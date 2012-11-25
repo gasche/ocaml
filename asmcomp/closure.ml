@@ -636,7 +636,12 @@ let rec close fenv cenv = function
           close (Tbl.add id alam fenv) cenv body
       | (_, _) ->
           let (ubody, abody) = close (Tbl.add id alam fenv) cenv body in
-          (Ulet(id, ulam, ubody), abody)
+          let res =
+            if occurs_var id ubody then Ulet(id, ulam, ubody)
+            else if is_pure_clambda ulam
+            then ubody
+            else Usequence(ulam, ubody) in
+          (res, abody)
       end
   | Lletrec(defs, body) ->
       if List.for_all
