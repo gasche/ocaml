@@ -55,7 +55,7 @@ let print_cmo_infos cu =
   printf "Force link: %s\n" (if cu.cu_force_link then "YES" else "no")
 
 let rec print_approx_infos ppf approx = match approx.approx_desc with
-    Value_closure(fundesc, approx) ->
+    Value_closure{ clos_desc = fundesc; clos_approx_res = approx } ->
       Format.fprintf ppf "@[<2>function %s@ arity %i"
         fundesc.fun_label fundesc.fun_arity;
       if fundesc.fun_closed then begin

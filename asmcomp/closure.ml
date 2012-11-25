@@ -519,8 +519,9 @@ let rec add_debug_info ev u =
    inside of the function. *)
 let rec remove_local_approx approx =
   let clean_desc = function
-    | Value_closure (f,env) ->
-       Value_closure (f, remove_local_approx env)
+    | Value_closure { clos_desc;
+                      clos_approx_res = approx_res } ->
+       Value_closure { clos_desc; clos_approx_res = remove_local_approx approx_res }
     | Value_block (tag, a) ->
        Value_block (tag, Array.map remove_local_approx a)
     | (Value_unknown
@@ -576,17 +577,20 @@ let rec close fenv cenv = function
   | Lapply(funct, args, loc) ->
       let nargs = List.length args in
       begin match (close fenv cenv funct, close_list fenv cenv args) with
-        ((ufunct, { approx_desc = Value_closure(fundesc, approx_res) }),
+        ((ufunct, { approx_desc = Value_closure{ clos_desc = fundesc;
+                                                 clos_approx_res = approx_res } }),
          [Uprim(Pmakeblock(_, _), uargs, _)])
         when List.length uargs = - fundesc.fun_arity ->
           let app = direct_apply fundesc funct ufunct uargs in
           (app, strengthen_approx app approx_res)
-      | ((ufunct, { approx_desc = Value_closure(fundesc, approx_res)}), uargs)
+      | ((ufunct, { approx_desc = Value_closure{ clos_desc = fundesc;
+                                                 clos_approx_res = approx_res }}), uargs)
         when nargs = fundesc.fun_arity ->
           let app = direct_apply fundesc funct ufunct uargs in
           (app, strengthen_approx app approx_res)
 
-      | ((ufunct, { approx_desc = Value_closure(fundesc, approx_res)}), uargs)
+      | ((ufunct, { approx_desc = Value_closure{ clos_desc = fundesc;
+                                                 clos_approx_res = approx_res }}), uargs)
           when nargs < fundesc.fun_arity ->
         let first_args = List.map (fun arg ->
           (Ident.create "arg", arg) ) uargs in
@@ -610,7 +614,8 @@ let rec close fenv cenv = function
         let new_fun = iter first_args new_fun in
         (new_fun, approx)
 
-      | ((ufunct, { approx_desc = Value_closure(fundesc, approx_res) }), uargs)
+      | ((ufunct, { approx_desc = Value_closure{ clos_desc = fundesc;
+                                                 clos_approx_res = approx_res } }), uargs)
         when fundesc.fun_arity > 0 && nargs > fundesc.fun_arity ->
           let (first_args, rem_args) = split_list fundesc.fun_arity uargs in
           (Ugeneric_apply(direct_apply fundesc funct ufunct first_args,
@@ -818,7 +823,7 @@ and close_functions fenv cenv fun_defs =
     List.fold_right
       (fun (id, params, body, fundesc) fenv ->
        let fenv =
-         Tbl.add id (mkapprox (Value_closure(fundesc, value_unknown))) fenv in
+         Tbl.add id (value_closure fundesc value_unknown) fenv in
       add_params params fenv)
       uncurried_defs fenv in
   (* TODO: trouver une manière plus propre / plus efficace de faire ça.
@@ -860,7 +865,7 @@ and close_functions fenv cenv fun_defs =
        params = fun_params;
        body   = ubody;
        dbg },
-     (id, env_pos, mkapprox (Value_closure(fundesc, approx)))) in
+     (id, env_pos, value_closure fundesc approx)) in
   (* Translate all function definitions. *)
   let clos_info_list =
     if initially_closed then begin
@@ -890,7 +895,7 @@ and close_functions fenv cenv fun_defs =
 and close_one_function fenv cenv id funct =
   match close_functions fenv cenv [id, funct] with
       ((Uclosure([f], _) as clos),
-       [_, _, ({approx_desc = Value_closure(fundesc, _)} as approx)]) ->
+       [_, _, ({approx_desc = Value_closure{ clos_desc = fundesc }} as approx)]) ->
         (* See if the function can be inlined *)
         if lambda_smaller f.body
           (!Clflags.inline_threshold + List.length f.params)

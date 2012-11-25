@@ -68,8 +68,12 @@ type approx_var =
   | Var_local of Ident.t
   | Var_global of Ident.t * int
 
-type value_approximation_desc =
-    Value_closure of function_description * value_approximation
+type closure_approx =
+    { clos_desc : function_description;
+      clos_approx_res : value_approximation; }
+
+and value_approximation_desc =
+    Value_closure of closure_approx
   | Value_block of int * value_approximation array
   | Value_unknown
   | Value_integer of int
@@ -89,3 +93,6 @@ let mkapprox ?id approx_desc =
 let value_unknown = mkapprox Value_unknown
 let value_integer i = mkapprox (Value_integer i)
 let value_constptr i = mkapprox (Value_constptr i)
+let value_closure fundesc approx_res =
+  mkapprox (Value_closure{ clos_desc = fundesc;
+                           clos_approx_res = approx_res })

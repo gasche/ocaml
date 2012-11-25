@@ -68,8 +68,12 @@ type approx_var =
   | Var_local of Ident.t
   | Var_global of Ident.t * int
 
-type value_approximation_desc =
-    Value_closure of function_description * value_approximation
+type closure_approx =
+    { clos_desc : function_description;
+      clos_approx_res : value_approximation; }
+
+and value_approximation_desc =
+    Value_closure of closure_approx
   | Value_block of int * value_approximation array
   | Value_unknown
   | Value_integer of int
@@ -83,3 +87,4 @@ val mkapprox : ?id:Ident.t -> value_approximation_desc -> value_approximation
 val value_unknown : value_approximation
 val value_integer : int -> value_approximation
 val value_constptr : int -> value_approximation
+val value_closure : function_description -> value_approximation -> value_approximation
