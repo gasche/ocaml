@@ -311,6 +311,14 @@ let rec approx_ulam fenv = function
      end
   | _ -> value_unknown
 
+let clean_no_occur_let id let_val body =
+  if occurs_var id body
+  then Ulet(id, let_val, body)
+  else
+     if is_pure_clambda let_val
+     then body
+     else Usequence(let_val, body)
+
 let rec substitute fenv sb ulam =
   match ulam with
     Uvar v ->
@@ -333,7 +341,10 @@ let rec substitute fenv sb ulam =
   | Uoffset(u, ofs) -> Uoffset(substitute fenv sb u, ofs)
   | Ulet(id, u1, u2) ->
       let id' = Ident.rename id in
-      Ulet(id', substitute fenv sb u1, substitute fenv (Tbl.add id (Uvar id') sb) u2)
+      let fenv' = Tbl.add id' (approx_ulam fenv u1) fenv in
+      let ubody = substitute fenv' (Tbl.add id (Uvar id') sb) u2 in
+      let let_val = substitute fenv sb u1 in
+      clean_no_occur_let id' let_val ubody
   | Uletrec(bindings, body) ->
       let bindings1 =
         List.map (fun (id, rhs) -> (id, Ident.rename id, rhs)) bindings in
@@ -396,9 +407,14 @@ let is_simple_argument = function
   | Uconst(Const_pointer _, _) -> true
   | _ -> false
 
-let no_effects = function
+let rec no_effects = function
     Uclosure _ -> true
   | Uconst(Const_base(Const_string _),_) -> true
+  | Uprim((Psetglobal _ | Psetfield _ | Psetfloatfield _ | Pduprecord _ |
+           Pccall _ | Praise | Poffsetref _ | Pstringsetu | Pstringsets |
+           Parraysetu _ | Parraysets _ | Pbigarrayset _), _, _) -> false
+  | Uconst(_, _) -> true
+  | Uprim(p, args, _) -> List.for_all no_effects args
   | u -> is_simple_argument u
 
 let rec bind_params_rec subst fenv params args body =
@@ -416,7 +432,7 @@ let rec bind_params_rec subst fenv params args body =
         let fenv = Tbl.add p1' approx (Tbl.add p1 approx fenv) in
         let body' =
           bind_params_rec (Tbl.add p1 (Uvar p1') subst) fenv pl al body in
-        if occurs_var p1 body then Ulet(p1', a1, body')
+        if occurs_var p1' body' then Ulet(p1', a1, body')
         else if no_effects a1 then body'
         else Usequence(a1, body')
       end
@@ -660,18 +676,13 @@ let rec close fenv cenv = function
       begin match (str, alam) with
         (Variable, _) ->
           let (ubody, abody) = close fenv cenv body in
-          (Ulet(id, ulam, ubody), abody)
+          (clean_no_occur_let id ulam ubody, abody)
       | (_, {approx_desc = (Value_integer _ | Value_constptr _)})
         when str = Alias || is_pure lam ->
           close (Tbl.add id alam fenv) cenv body
       | (_, _) ->
           let (ubody, abody) = close (Tbl.add id alam fenv) cenv body in
-          let res =
-            if occurs_var id ubody then Ulet(id, ulam, ubody)
-            else if is_pure_clambda ulam
-            then ubody
-            else Usequence(ulam, ubody) in
-          (res, abody)
+          (clean_no_occur_let id ulam ubody, abody)
       end
   | Lletrec(defs, body) ->
       if List.for_all
@@ -872,10 +883,9 @@ and close_functions fenv cenv fun_defs =
   let fva = Array.of_list fv in
   let env_approx = Array.init (List.length fv + fv_pos)
     (fun i -> if i < fv_pos
-           then (Format.printf "before pos %i@." i; value_unknown)
+           then value_unknown
            else
-             ( Format.printf "after pos %i %a@." i Ident.print fva.(i - fv_pos);
-               try Tbl.find fva.(i - fv_pos) original_env with Not_found -> value_unknown) ) in
+             try Tbl.find fva.(i - fv_pos) original_env with Not_found -> value_unknown) in
   (* This reference will be set to false if the hypothesis that a function
      does not use its environment parameter is invalidated. *)
   let useless_env = ref initially_closed in
