@@ -63,6 +63,11 @@ type function_description =
 
 (* Approximation of values *)
 
+type approx_var =
+  | Var_unknown
+  | Var_local of Ident.t
+  | Var_global of Ident.t * int
+
 type value_approximation_desc =
     Value_closure of function_description * value_approximation
   | Value_block of int * value_approximation array
@@ -71,10 +76,15 @@ type value_approximation_desc =
   | Value_constptr of int
 
 and value_approximation =
-  { approx_desc : value_approximation_desc; }
+  { approx_desc : value_approximation_desc;
+    approx_var : approx_var }
 
-let mkapprox approx_desc =
-  { approx_desc }
+let mkapprox ?id approx_desc =
+  { approx_desc;
+    approx_var =
+      match id with
+      | None -> Var_unknown
+      | Some id -> Var_local id }
 
 let value_unknown = mkapprox Value_unknown
 let value_integer i = mkapprox (Value_integer i)

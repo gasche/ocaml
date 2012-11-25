@@ -191,7 +191,7 @@ let make_const_int n = (Uconst(Const_base(Const_int n), None), value_integer n)
 let make_const_ptr n = (Uconst(Const_pointer n, None), value_constptr n)
 let make_const_bool b = make_const_ptr(if b then 1 else 0)
 
-let simplif_prim_pure p (args, approxs) dbg =
+let simplif_prim_pure fenv p (args, approxs) dbg =
   match approxs with
     [{ approx_desc = Value_integer x }] ->
       begin match p with
@@ -249,12 +249,31 @@ let simplif_prim_pure p (args, approxs) dbg =
       | Psequor  -> make_const_bool(x <> 0 || y <> 0)
       | _ -> (Uprim(p, args, dbg), value_unknown)
       end
+  | [{ approx_desc = Value_block(tag,a) }] ->
+      begin match p with
+        Pfield n ->
+        if n < Array.length a
+        then
+          let approx = a.(n) in
+          match approx.approx_desc with
+            Value_constptr x -> make_const_ptr x
+          | Value_integer x -> make_const_int x
+          | _ ->
+             match approx.approx_var with
+               Var_local v when Tbl.mem v fenv ->
+                Uvar v, approx
+             | Var_global(id,n) ->
+                Uprim(Pfield n, [getglobal id], Debuginfo.none), approx
+             | _ -> (Uprim(p, args, dbg), value_unknown)
+        else (Uprim(p, args, dbg), value_unknown)
+      | _ -> (Uprim(p, args, dbg), value_unknown)
+      end
   | _ ->
       (Uprim(p, args, dbg), value_unknown)
 
-let simplif_prim p (args, approxs as args_approxs) dbg =
+let simplif_prim fenv p (args, approxs as args_approxs) dbg =
   if List.for_all is_pure_clambda args
-  then simplif_prim_pure p args_approxs dbg
+  then simplif_prim_pure fenv p args_approxs dbg
   else (Uprim(p, args, dbg), value_unknown)
 
 (* Substitute variables in a [ulambda] term (a body of an inlined function)
@@ -321,7 +340,8 @@ let rec substitute sb ulam =
         substitute sb' body)
   | Uprim(p, args, dbg) ->
       let sargs = List.map (substitute sb) args in
-      let (res, _) = simplif_prim p (sargs, List.map (approx_ulam Tbl.empty) sargs) dbg in
+      (* TODO: populate env *)
+      let (res, _) = simplif_prim Tbl.empty p (sargs, List.map (approx_ulam Tbl.empty) sargs) dbg in
       res
   | Uswitch(arg, sw) ->
       Uswitch(substitute sb arg,
@@ -440,11 +460,17 @@ let strengthen_approx appl approx =
 (* If a term has approximation Value_integer or Value_constptr and is pure,
    replace it by an integer constant *)
 
-let check_constant_result lam ulam approx =
+let check_constant_result fenv lam ulam approx =
   match approx.approx_desc with
     Value_integer n when is_pure lam -> make_const_int n
   | Value_constptr n when is_pure lam -> make_const_ptr n
-  | _ -> (ulam, approx)
+  | _ ->
+     match approx.approx_var with
+       Var_local v when Tbl.mem v fenv && is_pure lam ->
+        Uvar v, approx
+     | Var_global(id,n) when is_pure lam ->
+        Uprim(Pfield n, [getglobal id], Debuginfo.none), approx
+     | _ -> (ulam, approx)
 
 (* Evaluate an expression with known value for its side effects only,
    or discard it if it's pure *)
@@ -576,6 +602,7 @@ let rec close fenv cenv = function
        value_unknown)
   | Llet(str, id, lam, body) ->
       let (ulam, alam) = close_named fenv cenv id lam in
+      let alam = { alam with approx_var = Var_local id } in
       begin match (str, alam) with
         (Variable, _) ->
           let (ubody, abody) = close fenv cenv body in
@@ -623,14 +650,14 @@ let rec close fenv cenv = function
   | Lprim(Prevapply loc,[arg;funct]) ->
       close fenv cenv (Lapply(funct, [arg], loc))
   | Lprim(Pgetglobal id, []) as lam ->
-      check_constant_result lam
+      check_constant_result fenv lam
                             (getglobal id)
                             (Compilenv.global_approx id)
   | Lprim(Pmakeblock(tag, mut) as prim, lams) ->
       let (ulams, approxs) = List.split (List.map (close fenv cenv) lams) in
       (Uprim(prim, ulams, Debuginfo.none),
        begin match mut with
-           Immutable -> mkapprox (Value_block(0, Array.of_list approxs))
+           Immutable -> mkapprox (Value_block(tag, Array.of_list approxs))
          | Mutable -> value_unknown
        end)
   | Lprim(Pfield n, [lam]) ->
@@ -639,9 +666,10 @@ let rec close fenv cenv = function
         match approx.approx_desc with
           Value_block(tag,a) when n < Array.length a -> a.(n)
         | _ -> value_unknown in
-      check_constant_result lam (Uprim(Pfield n, [ulam], Debuginfo.none)) fieldapprox
+      check_constant_result fenv lam (Uprim(Pfield n, [ulam], Debuginfo.none)) fieldapprox
   | Lprim(Psetfield(n, _), [Lprim(Pgetglobal id, []); lam]) ->
       let (ulam, approx) = close fenv cenv lam in
+      let approx = { approx with approx_var = Var_global(id,n) } in
       (!global_approx).(n) <- approx;
       (Uprim(Psetfield(n, false), [getglobal id; ulam], Debuginfo.none),
        value_unknown)
@@ -650,7 +678,7 @@ let rec close fenv cenv = function
       (Uprim(Praise, [ulam], Debuginfo.from_raise ev),
        value_unknown)
   | Lprim(p, args) ->
-      simplif_prim p (close_list_approx fenv cenv args) Debuginfo.none
+      simplif_prim fenv p (close_list_approx fenv cenv args) Debuginfo.none
   | Lswitch(arg, sw) ->
 (* NB: failaction might get copied, thus it should be some Lstaticraise *)
       let (uarg, _) = close fenv cenv arg in
@@ -753,10 +781,15 @@ and close_functions fenv cenv fun_defs =
         | (_, _) -> fatal_error "Closure.close_functions")
       fun_defs in
   (* Build an approximate fenv for compiling the functions *)
+  let add_params params fenv =
+    List.fold_left (fun fenv id -> Tbl.add id (mkapprox ~id Value_unknown) fenv)
+                    fenv params in
   let fenv_rec =
     List.fold_right
       (fun (id, params, body, fundesc) fenv ->
-        Tbl.add id (mkapprox (Value_closure(fundesc, value_unknown))) fenv)
+       let fenv =
+         Tbl.add id (mkapprox (Value_closure(fundesc, value_unknown))) fenv in
+      add_params params fenv)
       uncurried_defs fenv in
   (* Determine the offsets of each function's closure in the shared block *)
   let env_pos = ref (-1) in
