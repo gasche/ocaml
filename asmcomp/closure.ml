@@ -178,6 +178,11 @@ let lambda_smaller lam threshold =
 
 let rec is_pure_clambda = function
     Uvar v -> true
+  | Uclosure(_,((_::_) as args)) ->
+     (* If a closure with an environment is not used, its function is
+        never called. It is not the case for function without environment.
+        TODO: detect if a function is effectively called *)
+     List.for_all is_pure_clambda args
   | Uconst _ -> true
   | Uprim((Psetglobal _ | Psetfield _ | Psetfloatfield _ | Pduprecord _ |
            Pccall _ | Praise | Poffsetref _ | Pstringsetu | Pstringsets |
