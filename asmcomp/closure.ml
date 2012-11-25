@@ -520,8 +520,11 @@ let rec add_debug_info ev u =
 let rec remove_local_approx approx =
   let clean_desc = function
     | Value_closure { clos_desc;
-                      clos_approx_res = approx_res } ->
-       Value_closure { clos_desc; clos_approx_res = remove_local_approx approx_res }
+                      clos_approx_res = approx_res;
+                      clos_approx_env = approx_env } ->
+       Value_closure { clos_desc;
+                       clos_approx_res = remove_local_approx approx_res;
+                       clos_approx_env = Array.map remove_local_approx approx_env }
     | Value_block (tag, a) ->
        Value_block (tag, Array.map remove_local_approx a)
     | (Value_unknown
@@ -815,7 +818,14 @@ and close_functions fenv cenv fun_defs =
         | (_, _) -> fatal_error "Closure.close_functions")
       fun_defs in
   (* Build an approximate fenv for compiling the functions *)
+  let original_env = fenv in
   let fenv = clean_local_approx fenv in
+  (* TODO: trouver une manière plus propre / plus efficace de faire ça.
+     Une manière de le faire serait de mettre un niveau de binding aux
+     variable et d'augmenter à chaque rentrée dans une cloture.
+     Si le niveau est different du niveau courant, alors c'est interdit
+     de réécrire comme une variable *)
+  (* ou ne le faire que sur les variables libre *)
   let add_params params fenv =
     List.fold_left (fun fenv id -> Tbl.add id (mkapprox ~id Value_unknown) fenv)
                     fenv params in
@@ -826,11 +836,6 @@ and close_functions fenv cenv fun_defs =
          Tbl.add id (value_closure fundesc value_unknown) fenv in
       add_params params fenv)
       uncurried_defs fenv in
-  (* TODO: trouver une manière plus propre / plus efficace de faire ça.
-     Une manière de le faire serait de mettre un niveau de binding aux
-     variable et d'augmenter à chaque rentrée dans une cloture.
-     Si le niveau est different du niveau courant, alors c'est interdit
-     de réécrire comme une variable *)
   (* Determine the offsets of each function's closure in the shared block *)
   let env_pos = ref (-1) in
   let clos_offsets =
@@ -841,6 +846,13 @@ and close_functions fenv cenv fun_defs =
         pos)
       uncurried_defs in
   let fv_pos = !env_pos in
+  let fva = Array.of_list fv in
+  let env_approx = Array.init (List.length fv + fv_pos)
+    (fun i -> if i < fv_pos
+           then (Format.printf "before pos %i@." i; value_unknown)
+           else
+             ( Format.printf "after pos %i %a@." i Ident.print fva.(i - fv_pos);
+               try Tbl.find fva.(i - fv_pos) original_env with Not_found -> value_unknown) ) in
   (* This reference will be set to false if the hypothesis that a function
      does not use its environment parameter is invalidated. *)
   let useless_env = ref initially_closed in

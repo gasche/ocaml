@@ -70,7 +70,8 @@ type approx_var =
 
 type closure_approx =
     { clos_desc : function_description;
-      clos_approx_res : value_approximation; }
+      clos_approx_res : value_approximation;
+      clos_approx_env : value_approximation array; }
 
 and value_approximation_desc =
     Value_closure of closure_approx

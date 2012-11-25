@@ -70,7 +70,8 @@ type approx_var =
 
 type closure_approx =
     { clos_desc : function_description;
-      clos_approx_res : value_approximation; }
+      clos_approx_res : value_approximation;
+      clos_approx_env : value_approximation array; }
 
 and value_approximation_desc =
     Value_closure of closure_approx
@@ -95,4 +96,5 @@ let value_integer i = mkapprox (Value_integer i)
 let value_constptr i = mkapprox (Value_constptr i)
 let value_closure fundesc approx_res =
   mkapprox (Value_closure{ clos_desc = fundesc;
-                           clos_approx_res = approx_res })
+                           clos_approx_res = approx_res;
+                           clos_approx_env = [| |] })
