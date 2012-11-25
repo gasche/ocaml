@@ -513,6 +513,30 @@ let rec add_debug_info ev u =
       end
   | _ -> u
 
+(* removing all local binding informations from an approximation:
+   used for building function environment: It is not possible to
+   have access to a local variable bound outside of a function from
+   inside of the function. *)
+let rec remove_local_approx approx =
+  let clean_desc = function
+    | Value_closure (f,env) ->
+       Value_closure (f, remove_local_approx env)
+    | Value_block (tag, a) ->
+       Value_block (tag, Array.map remove_local_approx a)
+    | (Value_unknown
+      | Value_integer _
+      | Value_constptr _) as desc -> desc
+  in
+  match approx.approx_var with
+  | Var_global _ -> approx
+  | Var_unknown
+  | Var_local _ ->
+     { approx_desc = clean_desc approx.approx_desc;
+       approx_var = Var_unknown }
+
+let clean_local_approx fenv =
+  Tbl.map (fun _ approx -> remove_local_approx approx) fenv
+
 (* Uncurry an expression and explicitate closures.
    Also return the approximation of the expression.
    The approximation environment [fenv] maps idents to approximations.
@@ -781,6 +805,7 @@ and close_functions fenv cenv fun_defs =
         | (_, _) -> fatal_error "Closure.close_functions")
       fun_defs in
   (* Build an approximate fenv for compiling the functions *)
+  let fenv = clean_local_approx fenv in
   let add_params params fenv =
     List.fold_left (fun fenv id -> Tbl.add id (mkapprox ~id Value_unknown) fenv)
                     fenv params in
@@ -791,6 +816,11 @@ and close_functions fenv cenv fun_defs =
          Tbl.add id (mkapprox (Value_closure(fundesc, value_unknown))) fenv in
       add_params params fenv)
       uncurried_defs fenv in
+  (* TODO: trouver une manière plus propre / plus efficace de faire ça.
+     Une manière de le faire serait de mettre un niveau de binding aux
+     variable et d'augmenter à chaque rentrée dans une cloture.
+     Si le niveau est different du niveau courant, alors c'est interdit
+     de réécrire comme une variable *)
   (* Determine the offsets of each function's closure in the shared block *)
   let env_pos = ref (-1) in
   let clos_offsets =
