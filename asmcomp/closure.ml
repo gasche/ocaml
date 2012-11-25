@@ -249,7 +249,8 @@ let simplif_prim_pure fenv p (args, approxs) dbg =
       | Psequor  -> make_const_bool(x <> 0 || y <> 0)
       | _ -> (Uprim(p, args, dbg), value_unknown)
       end
-  | [{ approx_desc = Value_block(tag,a) }] ->
+  | [{ approx_desc = Value_block(_,a) }]
+  | [{ approx_desc = Value_closure{ clos_approx_env = a } }] ->
       begin match p with
         Pfield n ->
         if n < Array.length a
@@ -702,7 +703,8 @@ let rec close fenv cenv = function
       let (ulam, approx) = close fenv cenv lam in
       let fieldapprox =
         match approx.approx_desc with
-          Value_block(tag,a) when n < Array.length a -> a.(n)
+          Value_block(_,a)
+        | Value_closure{ clos_approx_env = a } when n < Array.length a -> a.(n)
         | _ -> value_unknown in
       check_constant_result fenv lam (Uprim(Pfield n, [ulam], Debuginfo.none)) fieldapprox
   | Lprim(Psetfield(n, _), [Lprim(Pgetglobal id, []); lam]) ->
