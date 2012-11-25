@@ -311,15 +311,15 @@ let rec approx_ulam fenv = function
      end
   | _ -> value_unknown
 
-let rec substitute sb ulam =
+let rec substitute fenv sb ulam =
   match ulam with
     Uvar v ->
       begin try Tbl.find v sb with Not_found -> ulam end
   | Uconst _ -> ulam
   | Udirect_apply(lbl, args, dbg) ->
-      Udirect_apply(lbl, List.map (substitute sb) args, dbg)
+      Udirect_apply(lbl, List.map (substitute fenv sb) args, dbg)
   | Ugeneric_apply(fn, args, dbg) ->
-      Ugeneric_apply(substitute sb fn, List.map (substitute sb) args, dbg)
+      Ugeneric_apply(substitute fenv sb fn, List.map (substitute fenv sb) args, dbg)
   | Uclosure(defs, env) ->
       (* Question: should we rename function labels as well?  Otherwise,
          there is a risk that function labels are not globally unique.
@@ -329,11 +329,11 @@ let rec substitute sb ulam =
          - When we substitute offsets for idents bound by let rec
            in [close], case [Lletrec], we discard the original
            let rec body and use only the substituted term. *)
-      Uclosure(defs, List.map (substitute sb) env)
-  | Uoffset(u, ofs) -> Uoffset(substitute sb u, ofs)
+      Uclosure(defs, List.map (substitute fenv sb) env)
+  | Uoffset(u, ofs) -> Uoffset(substitute fenv sb u, ofs)
   | Ulet(id, u1, u2) ->
       let id' = Ident.rename id in
-      Ulet(id', substitute sb u1, substitute (Tbl.add id (Uvar id') sb) u2)
+      Ulet(id', substitute fenv sb u1, substitute fenv (Tbl.add id (Uvar id') sb) u2)
   | Uletrec(bindings, body) ->
       let bindings1 =
         List.map (fun (id, rhs) -> (id, Ident.rename id, rhs)) bindings in
@@ -342,50 +342,49 @@ let rec substitute sb ulam =
           (fun (id, id', _) s -> Tbl.add id (Uvar id') s)
           bindings1 sb in
       Uletrec(
-        List.map (fun (id, id', rhs) -> (id', substitute sb' rhs)) bindings1,
-        substitute sb' body)
+        List.map (fun (id, id', rhs) -> (id', substitute fenv sb' rhs)) bindings1,
+        substitute fenv sb' body)
   | Uprim(p, args, dbg) ->
-      let sargs = List.map (substitute sb) args in
-      (* TODO: populate env *)
-      let (res, _) = simplif_prim Tbl.empty p (sargs, List.map (approx_ulam Tbl.empty) sargs) dbg in
+      let sargs = List.map (substitute fenv sb) args in
+      let (res, _) = simplif_prim fenv p (sargs, List.map (approx_ulam fenv) sargs) dbg in
       res
   | Uswitch(arg, sw) ->
-      Uswitch(substitute sb arg,
+      Uswitch(substitute fenv sb arg,
               { sw with
                 us_actions_consts =
-                  Array.map (substitute sb) sw.us_actions_consts;
+                  Array.map (substitute fenv sb) sw.us_actions_consts;
                 us_actions_blocks =
-                  Array.map (substitute sb) sw.us_actions_blocks;
+                  Array.map (substitute fenv sb) sw.us_actions_blocks;
                })
   | Ustaticfail (nfail, args) ->
-      Ustaticfail (nfail, List.map (substitute sb) args)
+      Ustaticfail (nfail, List.map (substitute fenv sb) args)
   | Ucatch(nfail, ids, u1, u2) ->
-      Ucatch(nfail, ids, substitute sb u1, substitute sb u2)
+      Ucatch(nfail, ids, substitute fenv sb u1, substitute fenv sb u2)
   | Utrywith(u1, id, u2) ->
       let id' = Ident.rename id in
-      Utrywith(substitute sb u1, id', substitute (Tbl.add id (Uvar id') sb) u2)
+      Utrywith(substitute fenv sb u1, id', substitute fenv (Tbl.add id (Uvar id') sb) u2)
   | Uifthenelse(u1, u2, u3) ->
-      begin match substitute sb u1 with
+      begin match substitute fenv sb u1 with
         Uconst(Const_pointer n, _) ->
-          if n <> 0 then substitute sb u2 else substitute sb u3
+          if n <> 0 then substitute fenv sb u2 else substitute fenv sb u3
       | su1 ->
-          Uifthenelse(su1, substitute sb u2, substitute sb u3)
+          Uifthenelse(su1, substitute fenv sb u2, substitute fenv sb u3)
       end
-  | Usequence(u1, u2) -> Usequence(substitute sb u1, substitute sb u2)
-  | Uwhile(u1, u2) -> Uwhile(substitute sb u1, substitute sb u2)
+  | Usequence(u1, u2) -> Usequence(substitute fenv sb u1, substitute fenv sb u2)
+  | Uwhile(u1, u2) -> Uwhile(substitute fenv sb u1, substitute fenv sb u2)
   | Ufor(id, u1, u2, dir, u3) ->
       let id' = Ident.rename id in
-      Ufor(id', substitute sb u1, substitute sb u2, dir,
-           substitute (Tbl.add id (Uvar id') sb) u3)
+      Ufor(id', substitute fenv sb u1, substitute fenv sb u2, dir,
+           substitute fenv (Tbl.add id (Uvar id') sb) u3)
   | Uassign(id, u) ->
       let id' =
         try
           match Tbl.find id sb with Uvar i -> i | _ -> assert false
         with Not_found ->
           id in
-      Uassign(id', substitute sb u)
+      Uassign(id', substitute fenv sb u)
   | Usend(k, u1, u2, ul, dbg) ->
-      Usend(k, substitute sb u1, substitute sb u2, List.map (substitute sb) ul, dbg)
+      Usend(k, substitute fenv sb u1, substitute fenv sb u2, List.map (substitute fenv sb) ul, dbg)
 
 (* Perform an inline expansion *)
 
@@ -402,16 +401,21 @@ let no_effects = function
   | Uconst(Const_base(Const_string _),_) -> true
   | u -> is_simple_argument u
 
-let rec bind_params_rec subst params args body =
+let rec bind_params_rec subst fenv params args body =
   match (params, args) with
-    ([], []) -> substitute subst body
-  | (p1 :: pl, a1 :: al) ->
+    ([], []) ->
+    substitute fenv subst body
+  | (p1 :: pl, (a1,approx) :: al) ->
       if is_simple_argument a1 then
-        bind_params_rec (Tbl.add p1 a1 subst) pl al body
+        let fenv = match a1 with
+            Uvar id -> Tbl.add id approx fenv
+          | _ -> fenv in
+        bind_params_rec (Tbl.add p1 a1 subst) (Tbl.add p1 approx fenv) pl al body
       else begin
         let p1' = Ident.rename p1 in
+        let fenv = Tbl.add p1' approx (Tbl.add p1 approx fenv) in
         let body' =
-          bind_params_rec (Tbl.add p1 (Uvar p1') subst) pl al body in
+          bind_params_rec (Tbl.add p1 (Uvar p1') subst) fenv pl al body in
         if occurs_var p1 body then Ulet(p1', a1, body')
         else if no_effects a1 then body'
         else Usequence(a1, body')
@@ -421,7 +425,7 @@ let rec bind_params_rec subst params args body =
 let bind_params params args body =
   (* Reverse parameters and arguments to preserve right-to-left
      evaluation order (PR#2910). *)
-  bind_params_rec Tbl.empty (List.rev params) (List.rev args) body
+  bind_params_rec Tbl.empty Tbl.empty (List.rev params) (List.rev args) body
 
 (* Check if a lambda term is ``pure'',
    that is without side-effects *and* not containing function definitions *)
@@ -440,10 +444,11 @@ let rec is_pure = function
 
 let direct_apply fundesc funct ufunct uargs =
   let app_args =
-    if fundesc.fun_closed then uargs else uargs @ [ufunct] in
+    (* TODO: il faudrait avoir l'approximation de la cloture *)
+    if fundesc.fun_closed then uargs else uargs @ [ufunct,value_unknown] in
   let app =
     match fundesc.fun_inline with
-      None -> Udirect_apply(fundesc.fun_label, app_args, Debuginfo.none)
+      None -> Udirect_apply(fundesc.fun_label, List.map fst app_args, Debuginfo.none)
     | Some(params, body) -> bind_params params app_args body in
   (* If ufunct can contain side-effects or function definitions,
      we must make sure that it is evaluated exactly once.
@@ -586,21 +591,28 @@ let rec close fenv cenv = function
        when fun_arity > nargs *)
   | Lapply(funct, args, loc) ->
       let nargs = List.length args in
-      begin match (close fenv cenv funct, close_list fenv cenv args) with
+      begin match (close fenv cenv funct, close_list_approx fenv cenv args) with
         ((ufunct, { approx_desc = Value_closure{ clos_desc = fundesc;
                                                  clos_approx_res = approx_res } }),
-         [Uprim(Pmakeblock(_, _), uargs, _)])
+         ([Uprim(Pmakeblock(_, _), uargs, _)],[approx]))
         when List.length uargs = - fundesc.fun_arity ->
+          let uargs = match approx.approx_desc with
+            | Value_block(tag,a) -> List.combine uargs (Array.to_list a)
+            | _ -> assert false
+          in
           let app = direct_apply fundesc funct ufunct uargs in
           (app, strengthen_approx app approx_res)
       | ((ufunct, { approx_desc = Value_closure{ clos_desc = fundesc;
-                                                 clos_approx_res = approx_res }}), uargs)
+                                                 clos_approx_res = approx_res }}),
+         (uargs,approx))
         when nargs = fundesc.fun_arity ->
+          let uargs = List.combine uargs approx in
           let app = direct_apply fundesc funct ufunct uargs in
           (app, strengthen_approx app approx_res)
 
       | ((ufunct, { approx_desc = Value_closure{ clos_desc = fundesc;
-                                                 clos_approx_res = approx_res }}), uargs)
+                                                 clos_approx_res = approx_res }}),
+         (uargs,_))
           when nargs < fundesc.fun_arity ->
         let first_args = List.map (fun arg ->
           (Ident.create "arg", arg) ) uargs in
@@ -625,13 +637,16 @@ let rec close fenv cenv = function
         (new_fun, approx)
 
       | ((ufunct, { approx_desc = Value_closure{ clos_desc = fundesc;
-                                                 clos_approx_res = approx_res } }), uargs)
+                                                 clos_approx_res = approx_res } }),
+         (uargs,approx))
         when fundesc.fun_arity > 0 && nargs > fundesc.fun_arity ->
+          let (first_approx, rem_approx) = split_list fundesc.fun_arity approx in
           let (first_args, rem_args) = split_list fundesc.fun_arity uargs in
+          let first_args = List.combine first_args first_approx in
           (Ugeneric_apply(direct_apply fundesc funct ufunct first_args,
                           rem_args, Debuginfo.none),
            value_unknown)
-      | ((ufunct, _), uargs) ->
+      | ((ufunct, _), (uargs,_)) ->
           (Ugeneric_apply(ufunct, uargs, Debuginfo.none), value_unknown)
       end
   | Lsend(kind, met, obj, args, _) ->
@@ -676,7 +691,7 @@ let rec close fenv cenv = function
             (fun (id, pos, approx) sb ->
               Tbl.add id (Uoffset(Uvar clos_ident, pos)) sb)
             infos Tbl.empty in
-        (Ulet(clos_ident, clos, substitute sb ubody),
+        (Ulet(clos_ident, clos, substitute fenv sb ubody),
          approx)
       end else begin
         (* General case: recursive definition of values *)
