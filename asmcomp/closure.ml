@@ -566,12 +566,13 @@ let rec close fenv cenv = function
     Lvar id ->
       close_approx_var fenv cenv id
   | Lconst cst ->
-      begin match cst with
-        Const_base(Const_int n) -> (Uconst (cst,None), value_integer n)
-      | Const_base(Const_char c) -> (Uconst (cst,None), value_integer(Char.code c))
-      | Const_pointer n -> (Uconst (cst, None), value_constptr n)
-      | _ -> (Uconst (cst, Some (Compilenv.new_structured_constant cst true)), value_unknown)
-      end
+      let ulam = match cst with
+          Const_base(Const_int n) -> Uconst (cst,None)
+        | Const_base(Const_char c) -> Uconst (cst,None)
+        | Const_pointer n -> Uconst (cst, None)
+        | _ -> Uconst (cst, Some (Compilenv.new_structured_constant cst true))
+      in
+      ulam, approx_ulam fenv ulam
   | Lfunction(kind, params, body) as funct ->
       close_one_function fenv cenv (Ident.create "fun") funct
 
