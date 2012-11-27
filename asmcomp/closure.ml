@@ -331,6 +331,56 @@ let close_approx_var fenv cenv id =
       let subst = try Tbl.find id cenv with Not_found -> Uvar id in
       (subst, approx)
 
+(* extract common informations from approximations of two different values.
+   Used to get an approximation of an it_then_else *)
+
+let rec merge_approx a1 a2 =
+  let approx_desc = match a1.approx_desc, a2.approx_desc with
+  | Value_bottom, _ -> a2.approx_desc
+  | _, Value_bottom -> a1.approx_desc
+  | Value_unknown, _
+  | _, Value_unknown -> Value_unknown
+  | Value_integer i, Value_integer j ->
+     if i = j
+     then a1.approx_desc
+     else Value_unknown
+     (* TODO: remember that this is an interger *)
+  | Value_constptr i, Value_constptr j ->
+     if i = j
+     then a1.approx_desc
+     else Value_unknown
+  | Value_closure c1, Value_closure c2 ->
+     if (c1.clos_desc = c2.clos_desc) &&
+        (Array.length c1.clos_approx_env = Array.length c2.clos_approx_env)
+     then
+       Value_closure
+         { clos_desc = c1.clos_desc;
+           clos_approx_res = merge_approx c1.clos_approx_res c2.clos_approx_res;
+           clos_approx_env = merge_approx_array c1.clos_approx_env c2.clos_approx_env }
+     else Value_unknown
+  | Value_block (tag1,ar1), Value_block (tag2,ar2) ->
+     if (tag1 = tag2)
+     then Value_block(tag1, merge_approx_array ar1 ar2)
+     else Value_unknown
+  | (Value_closure _ | Value_block _ | Value_integer _
+     | Value_constptr _ ), _ ->
+     Value_unknown
+  in
+  let approx_var = match a1.approx_var, a2.approx_var with
+    | Var_global (id1,p1), Var_global (id2,p2)
+         when Ident.same id1 id2 && p1 = p2  ->
+       a1.approx_var
+    | Var_local id1, Var_local id2
+         when Ident.same id1 id2 ->
+       a1.approx_var
+    | (Var_global _ | Var_local _ | Var_unknown), _ ->
+       Var_unknown
+  in
+  { approx_desc; approx_var }
+
+and merge_approx_array ar1 ar2 =
+  Array.of_list (List.map2 merge_approx (Array.to_list ar1) (Array.to_list ar2))
+
 let rec substitute_approx fenv sb ulam =
   match ulam with
     Uvar v ->
@@ -379,6 +429,9 @@ let rec substitute_approx fenv sb ulam =
         substitute fenv sb' body),
       (* TODO: better *)
       value_unknown
+  | Uprim(Praise, args, dinfo) ->
+     let uargs = List.map (substitute fenv sb) args in
+     Uprim(Praise, uargs, dinfo), value_bottom
   | Uprim(p, args, dbg) ->
       let sargs = List.map (substitute_approx fenv sb) args in
       let uargs = List.map fst sargs in
@@ -396,8 +449,7 @@ let rec substitute_approx fenv sb ulam =
       value_unknown
   | Ustaticfail (nfail, args) ->
       Ustaticfail (nfail, List.map (substitute fenv sb) args),
-      (* TODO: return bottom here *)
-      value_unknown
+      value_bottom
   | Ucatch(nfail, ids, u1, u2) ->
       Ucatch(nfail, ids, substitute fenv sb u1, substitute fenv sb u2),
       value_unknown
@@ -411,8 +463,10 @@ let rec substitute_approx fenv sb ulam =
           if n <> 0 then substitute_approx fenv sb u2
           else substitute_approx fenv sb u3
       | su1 ->
-          Uifthenelse(su1, substitute fenv sb u2, substitute fenv sb u3),
-          value_unknown
+          let (uifso, approxso) = substitute_approx fenv sb u2 in
+          let (uifnot, approxnot) = substitute_approx fenv sb u3 in
+          let approx = merge_approx approxso approxnot in
+          Uifthenelse(su1, uifso, uifnot), approx
       end
   | Usequence(u1, u2) ->
      let s1 = substitute fenv sb u1 in
@@ -519,13 +573,13 @@ let direct_apply fundesc funct ufunct uargs =
   then app, approx
   else Usequence(ufunct, app), approx
 
-(* Add [Value_integer] or [Value_constptr] info to the approximation
-   of an application *)
+(* merge informations from two approximations of a same value *)
 
 let rec fuse_approx a1 a2 =
   let approx_desc = match a1.approx_desc, a2.approx_desc with
   | Value_unknown, _ -> a2.approx_desc
   | _, Value_unknown -> a1.approx_desc
+  | Value_bottom, Value_bottom -> a1.approx_desc
   | Value_integer i, Value_integer j ->
      assert(i = j);
      a1.approx_desc
@@ -544,7 +598,8 @@ let rec fuse_approx a1 a2 =
      assert(tag1 = tag2);
      assert(Array.length ar1 = Array.length ar2);
      Value_block (tag1,fuse_approx_array ar1 ar2)
-  | (Value_closure _ | Value_block _ | Value_integer _ | Value_constptr _ ), _ ->
+  | (Value_closure _ | Value_block _ | Value_integer _
+     | Value_constptr _ | Value_bottom), _ ->
      assert false
   in
   let approx_var = match a1.approx_var, a2.approx_var with
@@ -564,8 +619,8 @@ let rec fuse_approx a1 a2 =
   in
   { approx_desc; approx_var }
 
-  and fuse_approx_array ar1 ar2 =
-    Array.of_list (List.map2 fuse_approx (Array.to_list ar1) (Array.to_list ar2))
+and fuse_approx_array ar1 ar2 =
+  Array.of_list (List.map2 fuse_approx (Array.to_list ar1) (Array.to_list ar2))
 
 (* If a term has approximation Value_integer or Value_constptr and is pure,
    replace it by an integer constant *)
@@ -639,7 +694,8 @@ let rec remove_local_approx approx =
        Value_block (tag, Array.map remove_local_approx a)
     | (Value_unknown
       | Value_integer _
-      | Value_constptr _) as desc -> desc
+      | Value_constptr _
+      | Value_bottom) as desc -> desc
   in
   match approx.approx_var with
   | Var_global _ -> approx
@@ -821,7 +877,11 @@ let rec close fenv cenv = function
   | Lprim(Praise, [Levent(arg, ev)]) ->
       let (ulam, approx) = close fenv cenv arg in
       (Uprim(Praise, [ulam], Debuginfo.from_raise ev),
-       value_unknown)
+       value_bottom)
+  | Lprim(Praise, [arg]) ->
+      let (ulam, approx) = close fenv cenv arg in
+      (Uprim(Praise, [ulam], Debuginfo.none),
+       value_bottom)
   | Lprim(p, args) ->
       simplif_prim fenv p (close_list_approx fenv cenv args) Debuginfo.none
   | Lswitch(arg, sw) ->
@@ -838,7 +898,7 @@ let rec close fenv cenv = function
                 us_actions_blocks = block_actions}),
        value_unknown)
   | Lstaticraise (i, args) ->
-      (Ustaticfail (i, close_list fenv cenv args), value_unknown)
+      (Ustaticfail (i, close_list fenv cenv args), value_bottom)
   | Lstaticcatch(body, (i, vars), handler) ->
       let (ubody, _) = close fenv cenv body in
       let (uhandler, _) = close fenv cenv handler in
@@ -853,9 +913,10 @@ let rec close fenv cenv = function
           sequence_constant_expr arg uarg
             (close fenv cenv (if n = 0 then ifnot else ifso))
       | (uarg, _ ) ->
-          let (uifso, _) = close fenv cenv ifso in
-          let (uifnot, _) = close fenv cenv ifnot in
-          (Uifthenelse(uarg, uifso, uifnot), value_unknown)
+          let (uifso, approxso) = close fenv cenv ifso in
+          let (uifnot, approxnot) = close fenv cenv ifnot in
+          let approx = merge_approx approxso approxnot in
+          (Uifthenelse(uarg, uifso, uifnot), approx)
       end
   | Lsequence(lam1, lam2) ->
       let (ulam1, _) = close fenv cenv lam1 in

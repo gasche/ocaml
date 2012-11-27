@@ -79,6 +79,7 @@ and value_approximation_desc =
   | Value_unknown
   | Value_integer of int
   | Value_constptr of int
+  | Value_bottom
 
 and value_approximation =
   { approx_desc : value_approximation_desc;
@@ -92,6 +93,7 @@ let mkapprox ?id approx_desc =
       | Some id -> Var_local id }
 
 let value_unknown = mkapprox Value_unknown
+let value_bottom = mkapprox Value_bottom
 let value_integer i = mkapprox (Value_integer i)
 let value_constptr i = mkapprox (Value_constptr i)
 let value_closure fundesc approx_res =

@@ -79,6 +79,8 @@ and value_approximation_desc =
   | Value_unknown
   | Value_integer of int
   | Value_constptr of int
+  | Value_bottom  (* indicating that a value can't be created, for instance
+                     when raising an exception *)
 
 and value_approximation =
   { approx_desc : value_approximation_desc;
@@ -86,6 +88,7 @@ and value_approximation =
 
 val mkapprox : ?id:Ident.t -> value_approximation_desc -> value_approximation
 val value_unknown : value_approximation
+val value_bottom : value_approximation
 val value_integer : int -> value_approximation
 val value_constptr : int -> value_approximation
 val value_closure : function_description -> value_approximation -> value_approximation
