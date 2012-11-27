@@ -284,9 +284,14 @@ let simplif_prim_pure fenv p (args, approxs) dbg =
      begin match p with
        Pgetglobal id ->
         let approx =
-          Compilenv.global_approx
-            (* TODO: A bit too hackish *)
-            (Scanf.sscanf (Ident.name id) "caml%s" Ident.create_persistent)
+          if try
+              Scanf.sscanf (Ident.name id) "caml_exn_" true
+            with
+            | _ -> false
+          then value_unknown
+          else Compilenv.global_approx
+                 (* TODO: A bit too hackish *)
+                 (Scanf.sscanf (Ident.name id) "caml%s" Ident.create_persistent)
         in
         (Uprim(p, args, dbg), approx)
      | _ -> (Uprim(p, args, dbg), value_unknown)
