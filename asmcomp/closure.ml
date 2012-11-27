@@ -274,6 +274,17 @@ let simplif_prim_pure fenv p (args, approxs) dbg =
         else (Uprim(p, args, dbg), value_unknown)
       | _ -> (Uprim(p, args, dbg), value_unknown)
       end
+  | [] ->
+     begin match p with
+       Pgetglobal id ->
+        let approx =
+          Compilenv.global_approx
+            (* TODO: A bit too hackish *)
+            (Scanf.sscanf (Ident.name id) "caml%s" Ident.create_persistent)
+        in
+        (Uprim(p, args, dbg), approx)
+     | _ -> (Uprim(p, args, dbg), value_unknown)
+     end
   | _ ->
       (Uprim(p, args, dbg), value_unknown)
 
