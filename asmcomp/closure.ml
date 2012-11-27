@@ -301,16 +301,6 @@ let rec simpl_const_approx_desc = function
 and simpl_const_approx ulam =
   mkapprox (simpl_const_approx_desc ulam)
 
-let rec approx_ulam fenv = function
-    Uvar id -> begin try Tbl.find id fenv with Not_found -> value_unknown end
-  | Uconst(v,_) -> simpl_const_approx v
-  | Uprim(Pmakeblock(tag, mut), ulams, _) ->
-     begin match mut with
-       Immutable -> mkapprox (Value_block(tag,Array.of_list (List.map (approx_ulam fenv) ulams)))
-     | Mutable -> value_unknown
-     end
-  | _ -> value_unknown
-
 let clean_no_occur_let id let_val body =
   if occurs_var id body
   then Ulet(id, let_val, body)
@@ -334,8 +324,8 @@ let rec substitute_approx fenv sb ulam =
   match ulam with
     Uvar v ->
       close_approx_var fenv sb v
-  | Uconst _ ->
-     ulam, approx_ulam fenv ulam
+  | Uconst (c,_) ->
+     ulam, simpl_const_approx c
   | Udirect_apply(lbl, args, dbg) ->
       Udirect_apply(lbl, List.map (substitute fenv sb) args, dbg),
       (* TODO: better *)
@@ -566,12 +556,6 @@ let rec fuse_approx a1 a2 =
   and fuse_approx_array ar1 ar2 =
     Array.of_list (List.map2 fuse_approx (Array.to_list ar1) (Array.to_list ar2))
 
-let strengthen_approx appl approx =
-  match (approx_ulam Tbl.empty appl) with
-    { approx_desc = (Value_integer _ | Value_constptr _) } as intapprox ->
-    intapprox
-  | _ -> approx
-
 (* If a term has approximation Value_integer or Value_constptr and is pure,
    replace it by an integer constant *)
 
@@ -671,12 +655,12 @@ let rec close fenv cenv = function
       close_approx_var fenv cenv id
   | Lconst cst ->
       let ulam = match cst with
-          Const_base(Const_int n) -> Uconst (cst,None)
-        | Const_base(Const_char c) -> Uconst (cst,None)
-        | Const_pointer n -> Uconst (cst, None)
+          Const_base(Const_int _)
+        | Const_base(Const_char _)
+        | Const_pointer _ -> Uconst (cst, None)
         | _ -> Uconst (cst, Some (Compilenv.new_structured_constant cst true))
       in
-      ulam, approx_ulam fenv ulam
+      ulam, simpl_const_approx cst
   | Lfunction(kind, params, body) as funct ->
       close_one_function fenv cenv (Ident.create "fun") funct
 
