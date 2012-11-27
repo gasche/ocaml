@@ -190,6 +190,12 @@ let rec is_pure_clambda = function
   | Uprim(p, args, _) -> List.for_all is_pure_clambda args
   | _ -> false
 
+let sequence_constant_uexp ulam1 ulam2 =
+  if is_pure_clambda ulam1
+  then
+    ulam2
+  else Usequence(ulam1, ulam2)
+
 (* Simplify primitive operations on integers *)
 
 let make_const_int n = (Uconst(Const_base(Const_int n), None), value_integer n)
@@ -316,9 +322,7 @@ let clean_no_occur_let id let_val body =
   if occurs_var id body
   then Ulet(id, let_val, body)
   else
-     if is_pure_clambda let_val
-     then body
-     else Usequence(let_val, body)
+     sequence_constant_uexp let_val body
 
 let close_approx_var fenv cenv id =
   let approx = try Tbl.find id fenv with Not_found -> value_unknown in
@@ -380,6 +384,12 @@ let rec merge_approx a1 a2 =
 
 and merge_approx_array ar1 ar2 =
   Array.of_list (List.map2 merge_approx (Array.to_list ar1) (Array.to_list ar2))
+
+let sequence_bottom ulam approx normal =
+  match approx.approx_desc with
+  | Value_bottom ->
+     ulam, approx
+  | _ -> normal
 
 let rec substitute_approx fenv sb ulam =
   match ulam with
@@ -458,22 +468,36 @@ let rec substitute_approx fenv sb ulam =
       Utrywith(substitute fenv sb u1, id', substitute fenv (Tbl.add id (Uvar id') sb) u2),
       value_unknown
   | Uifthenelse(u1, u2, u3) ->
-      begin match substitute fenv sb u1 with
-        Uconst(Const_pointer n, _) ->
+      begin match substitute_approx fenv sb u1 with
+        (su1, { approx_desc = Value_constptr n }) ->
+        let ulam, approx =
           if n <> 0 then substitute_approx fenv sb u2
-          else substitute_approx fenv sb u3
-      | su1 ->
+          else substitute_approx fenv sb u3 in
+        sequence_constant_uexp su1 ulam, approx
+      | (su1, ({ approx_desc = Value_bottom } as approx)) ->
+          su1, approx
+      | (su1, _) ->
           let (uifso, approxso) = substitute_approx fenv sb u2 in
           let (uifnot, approxnot) = substitute_approx fenv sb u3 in
           let approx = merge_approx approxso approxnot in
           Uifthenelse(su1, uifso, uifnot), approx
       end
   | Usequence(u1, u2) ->
-     let s1 = substitute fenv sb u1 in
-     let s2,approx = substitute_approx fenv sb u2 in
-     Usequence(s1, s2), approx
-  | Uwhile(u1, u2) -> Uwhile(substitute fenv sb u1, substitute fenv sb u2),
-     value_unknown
+     let s1,approx1 = substitute_approx fenv sb u1 in
+     let s2,approx2 = substitute_approx fenv sb u2 in
+     sequence_bottom s1 approx1
+       ((sequence_constant_uexp s1 s2),approx2)
+  | Uwhile(u1, u2) ->
+      let (ucond, cond_approx) = substitute_approx fenv sb u1 in
+      let ubody = substitute fenv sb u2 in
+      begin match cond_approx.approx_desc with
+      | Value_constptr 0 ->
+         make_const_ptr 0
+      | Value_constptr _ ->
+         (Uwhile(ucond, ubody), value_bottom)
+      | _ ->
+         (Uwhile(ucond, ubody), value_unknown)
+      end
   | Ufor(id, u1, u2, dir, u3) ->
       let id' = Ident.rename id in
       Ufor(id', substitute fenv sb u1, substitute fenv sb u2, dir,
@@ -912,6 +936,8 @@ let rec close fenv cenv = function
         (uarg, { approx_desc = Value_constptr n }) ->
           sequence_constant_expr arg uarg
             (close fenv cenv (if n = 0 then ifnot else ifso))
+      | (uarg, ({ approx_desc = Value_bottom } as approx)) ->
+          uarg, approx
       | (uarg, _ ) ->
           let (uifso, approxso) = close fenv cenv ifso in
           let (uifnot, approxnot) = close fenv cenv ifnot in
@@ -919,13 +945,21 @@ let rec close fenv cenv = function
           (Uifthenelse(uarg, uifso, uifnot), approx)
       end
   | Lsequence(lam1, lam2) ->
-      let (ulam1, _) = close fenv cenv lam1 in
-      let (ulam2, approx) = close fenv cenv lam2 in
-      (Usequence(ulam1, ulam2), approx)
+      let (ulam1, approx1) = close fenv cenv lam1 in
+      let (ulam2, approx2) = close fenv cenv lam2 in
+      sequence_bottom ulam1 approx1
+        ((sequence_constant_uexp ulam1 ulam2),approx2)
   | Lwhile(cond, body) ->
-      let (ucond, _) = close fenv cenv cond in
+      let (ucond, cond_approx) = close fenv cenv cond in
       let (ubody, _) = close fenv cenv body in
-      (Uwhile(ucond, ubody), value_unknown)
+      begin match cond_approx.approx_desc with
+      | Value_constptr 0 ->
+         make_const_ptr 0
+      | Value_constptr _ ->
+         (Uwhile(ucond, ubody), value_bottom)
+      | _ ->
+         (Uwhile(ucond, ubody), value_unknown)
+      end
   | Lfor(id, lo, hi, dir, body) ->
       let (ulo, _) = close fenv cenv lo in
       let (uhi, _) = close fenv cenv hi in
