@@ -453,15 +453,24 @@ let rec substitute_approx fenv sb ulam =
       let approxs = List.map snd sargs in
       simplif_prim fenv p (uargs, approxs) dbg
   | Uswitch(arg, sw) ->
-      Uswitch(substitute fenv sb arg,
-              { sw with
-                us_actions_consts =
-                  Array.map (substitute fenv sb) sw.us_actions_consts;
-                us_actions_blocks =
-                  Array.map (substitute fenv sb) sw.us_actions_blocks;
-               }),
-      (* TODO: better *)
-      value_unknown
+      let uarg, approx = substitute_approx fenv sb arg in
+      begin match approx.approx_desc with
+        | Value_bottom ->
+           uarg, approx
+        | Value_constptr i ->
+           substitute_approx fenv sb (sw.us_actions_consts.(sw.us_index_consts.(i)))
+        | Value_block (tag,_) ->
+           substitute_approx fenv sb (sw.us_actions_blocks.(sw.us_index_blocks.(tag)))
+        | _ ->
+           Uswitch(uarg,
+                   { sw with
+                     us_actions_consts =
+                       Array.map (substitute fenv sb) sw.us_actions_consts;
+                     us_actions_blocks =
+                       Array.map (substitute fenv sb) sw.us_actions_blocks;
+                  }), value_unknown
+      end
+      (* TODO: better approximation propagation *)
   | Ustaticfail (nfail, args) ->
       Ustaticfail (nfail, List.map (substitute fenv sb) args),
       value_bottom
@@ -478,6 +487,9 @@ let rec substitute_approx fenv sb ulam =
         let ulam, approx =
           if n <> 0 then substitute_approx fenv sb u2
           else substitute_approx fenv sb u3 in
+        sequence_constant_uexp su1 ulam, approx
+      | (su1, { approx_desc = Value_block _ }) ->
+        let ulam, approx = substitute_approx fenv sb u2 in
         sequence_constant_uexp su1 ulam, approx
       | (su1, ({ approx_desc = Value_bottom } as approx)) ->
           su1, approx
@@ -915,17 +927,37 @@ let rec close fenv cenv = function
       simplif_prim fenv p (close_list_approx fenv cenv args) Debuginfo.none
   | Lswitch(arg, sw) ->
 (* NB: failaction might get copied, thus it should be some Lstaticraise *)
-      let (uarg, _) = close fenv cenv arg in
-      let const_index, const_actions =
-        close_switch fenv cenv sw.sw_consts sw.sw_numconsts sw.sw_failaction
-      and block_index, block_actions =
-        close_switch fenv cenv sw.sw_blocks sw.sw_numblocks sw.sw_failaction in
-      (Uswitch(uarg,
-               {us_index_consts = const_index;
-                us_actions_consts = const_actions;
-                us_index_blocks = block_index;
-                us_actions_blocks = block_actions}),
-       value_unknown)
+      let (uarg, approx) = close fenv cenv arg in
+      let use_action i l =
+        let case =
+          try List.assoc i l with
+          | Not_found ->
+             match sw.sw_failaction with
+             | None -> assert false
+             | Some a -> a
+        in
+        close fenv cenv case
+      in
+      begin
+        match approx.approx_desc with
+        | Value_bottom ->
+           uarg, approx
+        | Value_constptr i ->
+           use_action i sw.sw_consts
+        | Value_block (tag,_) ->
+           use_action tag sw.sw_blocks
+        | _ ->
+           let const_index, const_actions =
+             close_switch fenv cenv sw.sw_consts sw.sw_numconsts sw.sw_failaction
+           and block_index, block_actions =
+             close_switch fenv cenv sw.sw_blocks sw.sw_numblocks sw.sw_failaction in
+           (Uswitch(uarg,
+                    {us_index_consts = const_index;
+                     us_actions_consts = const_actions;
+                     us_index_blocks = block_index;
+                     us_actions_blocks = block_actions}),
+            value_unknown)
+      end
   | Lstaticraise (i, args) ->
       (Ustaticfail (i, close_list fenv cenv args), value_bottom)
   | Lstaticcatch(body, (i, vars), handler) ->
@@ -941,6 +973,9 @@ let rec close fenv cenv = function
         (uarg, { approx_desc = Value_constptr n }) ->
           sequence_constant_expr arg uarg
             (close fenv cenv (if n = 0 then ifnot else ifso))
+      | (uarg, { approx_desc = Value_block _ }) ->
+         sequence_constant_expr arg uarg
+            (close fenv cenv ifso)
       | (uarg, ({ approx_desc = Value_bottom } as approx)) ->
           uarg, approx
       | (uarg, _ ) ->
