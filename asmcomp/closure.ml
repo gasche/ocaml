@@ -188,6 +188,12 @@ let rec is_pure_clambda = function
            Pccall _ | Praise | Poffsetref _ | Pstringsetu | Pstringsets |
            Parraysetu _ | Parraysets _ | Pbigarrayset _), _, _) -> false
   | Uprim(p, args, _) -> List.for_all is_pure_clambda args
+  | Uifthenelse(u1, u2, u3) ->
+     is_pure_clambda u1 && is_pure_clambda u2 && is_pure_clambda u3
+  | Uswitch(uarg, uswitch) ->
+     is_pure_clambda uarg &&
+     List.for_all is_pure_clambda (Array.to_list uswitch.us_actions_consts) &&
+     List.for_all is_pure_clambda (Array.to_list uswitch.us_actions_blocks)
   | _ -> false
 
 let sequence_constant_uexp ulam1 ulam2 =
