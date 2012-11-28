@@ -402,6 +402,14 @@ let sequence_bottom ulam approx normal =
      ulam, approx
   | _ -> normal
 
+let switch_approx consts blocks =
+  let approxs =
+    Array.to_list (Array.map snd consts) @
+    Array.to_list (Array.map snd blocks) in
+  match approxs with
+  | [] -> value_unknown
+  | t::q -> List.fold_left merge_approx t q
+
 let rec substitute_approx fenv sb ulam =
   match ulam with
     Uvar v ->
@@ -459,24 +467,7 @@ let rec substitute_approx fenv sb ulam =
       let approxs = List.map snd sargs in
       simplif_prim fenv p (uargs, approxs) dbg
   | Uswitch(arg, sw) ->
-      let uarg, approx = substitute_approx fenv sb arg in
-      begin match approx.approx_desc with
-        | Value_bottom ->
-           uarg, approx
-        | Value_constptr i ->
-           substitute_approx fenv sb (sw.us_actions_consts.(sw.us_index_consts.(i)))
-        | Value_block (tag,_) ->
-           substitute_approx fenv sb (sw.us_actions_blocks.(sw.us_index_blocks.(tag)))
-        | _ ->
-           Uswitch(uarg,
-                   { sw with
-                     us_actions_consts =
-                       Array.map (substitute fenv sb) sw.us_actions_consts;
-                     us_actions_blocks =
-                       Array.map (substitute fenv sb) sw.us_actions_blocks;
-                  }), value_unknown
-      end
-      (* TODO: better approximation propagation *)
+     substitute_uswitch fenv sb arg sw
   | Ustaticfail (nfail, args) ->
       Ustaticfail (nfail, List.map (substitute fenv sb) args),
       value_bottom
@@ -539,6 +530,24 @@ let rec substitute_approx fenv sb ulam =
 
 and substitute fenv sb ulam =
   fst (substitute_approx fenv sb ulam)
+
+and substitute_uswitch fenv sb arg sw =
+  let uarg, approx = substitute_approx fenv sb arg in
+  match approx.approx_desc with
+  | Value_bottom ->
+     uarg, approx
+  | Value_constptr i ->
+     substitute_approx fenv sb (sw.us_actions_consts.(sw.us_index_consts.(i)))
+  | Value_block (tag,_) ->
+     substitute_approx fenv sb (sw.us_actions_blocks.(sw.us_index_blocks.(tag)))
+  | _ ->
+     let consts = Array.map (substitute_approx fenv sb) sw.us_actions_consts in
+     let blocks = Array.map (substitute_approx fenv sb) sw.us_actions_blocks in
+     Uswitch(uarg,
+       { sw with
+         us_actions_consts = Array.map fst consts;
+         us_actions_blocks = Array.map fst blocks;
+        }), switch_approx consts blocks
 
 (* Perform an inline expansion *)
 
@@ -959,10 +968,10 @@ let rec close fenv cenv = function
              close_switch fenv cenv sw.sw_blocks sw.sw_numblocks sw.sw_failaction in
            (Uswitch(uarg,
                     {us_index_consts = const_index;
-                     us_actions_consts = const_actions;
+                     us_actions_consts = Array.map fst const_actions;
                      us_index_blocks = block_index;
-                     us_actions_blocks = block_actions}),
-            value_unknown)
+                     us_actions_blocks = Array.map fst block_actions}),
+            switch_approx const_actions block_actions)
       end
   | Lstaticraise (i, args) ->
       (Ustaticfail (i, close_list fenv cenv args), value_bottom)
@@ -1181,12 +1190,7 @@ and close_switch fenv cenv cases num_keys default =
      index.(key) <- store.act_store lam)
     cases ;
   (* Compile action *)
-  let actions =
-    Array.map
-      (fun lam ->
-        let ulam,_ = close fenv cenv lam in
-        ulam)
-      (store.act_get ()) in
+  let actions = Array.map (close fenv cenv) (store.act_get ()) in
   match actions with
   | [| |] -> [| |], [| |] (* May happen when default is None *)
   | _     -> index, actions
