@@ -1173,7 +1173,7 @@ let rec transl = function
       if Array.length s.us_index_blocks = 0 then
         Cswitch
           (untag_int (transl arg),
-           s.us_index_consts,
+           Array.map (function | None -> 0 | Some i -> i) s.us_index_consts,
            Array.map transl s.us_actions_consts)
       else if Array.length s.us_index_consts = 0 then
         transl_switch (get_tag (transl arg))
@@ -1830,6 +1830,7 @@ and transl_switch arg index cases = match Array.length cases with
 | 0 -> fatal_error "Cmmgen.transl_switch"
 | 1 -> transl cases.(0)
 | _ ->
+    let index = Array.map (function None -> 0 | Some i -> i) index in
     let n_index = Array.length index in
     let actions = Array.map transl cases in
 

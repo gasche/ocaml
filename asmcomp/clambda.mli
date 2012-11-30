@@ -48,9 +48,9 @@ and ufunction = {
 }
 
 and ulambda_switch =
-  { us_index_consts: int array;
+  { us_index_consts: int option array;
     us_actions_consts: ulambda array;
-    us_index_blocks: int array;
+    us_index_blocks: int option array;
     us_actions_blocks: ulambda array}
 
 (* Description of known functions *)
@@ -68,6 +68,8 @@ type approx_var =
   | Var_local of Ident.t
   | Var_global of Ident.t * int
 
+type possible_tag = bool array
+
 type closure_approx =
     { clos_desc : function_description;
       clos_approx_res : value_approximation;
@@ -75,6 +77,7 @@ type closure_approx =
 
 and value_approximation_desc =
     Value_closure of closure_approx
+  | Value_tag of possible_tag
   | Value_block of int * value_approximation array
   | Value_unknown
   | Value_integer of int
@@ -92,3 +95,5 @@ val value_bottom : value_approximation
 val value_integer : int -> value_approximation
 val value_constptr : int -> value_approximation
 val value_closure : function_description -> value_approximation -> value_approximation
+val possible_tag : ?tag:int list -> unit -> value_approximation
+

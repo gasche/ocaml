@@ -319,6 +319,39 @@ let simplif_prim fenv p (args, approxs as args_approxs) dbg =
    during inline expansion, and also for the translation of let rec
    over functions. *)
 
+let filter_match_cases approx
+                       (const_index, const_actions)
+                       (block_index, block_actions) =
+  let keep vals a =
+    Array.map (function
+      | None -> None
+      | Some i -> if vals.(i) then Some i else None) a in
+  let clean_and_compress index actions =
+    let index = Array.to_list index in
+    let add_used (pos,l) (i,action) =
+      if List.mem (Some i) index
+      then ( pos+1 , (i,(pos,action))::l )
+      else ( pos, l )
+    in
+    let actions = Array.to_list (Array.mapi (fun i v -> i,v) actions) in
+    let (_,actions) = List.fold_left add_used (0,[]) actions in
+    let index = List.map (function
+      | None -> None
+      | Some i ->
+         let (pos,_) = List.assoc i actions in
+         Some pos) index in
+    let index = Array.of_list index in
+    let actions = Array.of_list (List.map (fun (_,(_,a)) -> a) (List.rev actions)) in
+    index, actions
+  in
+  match approx.approx_desc with
+  | Value_tag tags ->
+     ([| |], [| |]),
+     clean_and_compress (keep tags block_index) block_actions
+  | _ ->
+     (const_index, const_actions),
+     (block_index, block_actions)
+
 let rec simpl_const_approx_desc = function
   | Const_base(Const_int n) -> Value_integer n
   | Const_base(Const_char c) -> Value_integer(Char.code c)
@@ -355,6 +388,8 @@ let rec merge_approx a1 a2 =
   | _, Value_bottom -> a1.approx_desc
   | Value_unknown, _
   | _, Value_unknown -> Value_unknown
+  | Value_tag a, Value_tag b ->
+     Value_tag (Array.mapi (fun i b -> a.(i) || b) b)
   | Value_integer i, Value_integer j ->
      if i = j
      then a1.approx_desc
@@ -373,12 +408,18 @@ let rec merge_approx a1 a2 =
            clos_approx_res = merge_approx c1.clos_approx_res c2.clos_approx_res;
            clos_approx_env = merge_approx_array c1.clos_approx_env c2.clos_approx_env }
      else Value_unknown
+  | Value_tag tags, Value_block (tag1,_)
+  | Value_block (tag1,_), Value_tag tags ->
+     let tags = List.map fst
+       (List.filter (fun (i,b) -> b)
+          (Array.to_list (Array.mapi (fun i v -> i,v) tags))) in
+     (possible_tag ~tag:(tag1::tags) ()).approx_desc
   | Value_block (tag1,ar1), Value_block (tag2,ar2) ->
      if (tag1 = tag2)
      then Value_block(tag1, merge_approx_array ar1 ar2)
-     else Value_unknown
+     else (possible_tag ~tag:[tag1;tag2] ()).approx_desc
   | (Value_closure _ | Value_block _ | Value_integer _
-     | Value_constptr _ ), _ ->
+     | Value_constptr _ | Value_tag _ ), _ ->
      Value_unknown
   in
   let approx_var = match a1.approx_var, a2.approx_var with
@@ -395,6 +436,61 @@ let rec merge_approx a1 a2 =
 
 and merge_approx_array ar1 ar2 =
   Array.of_list (List.map2 merge_approx (Array.to_list ar1) (Array.to_list ar2))
+
+(* merge informations from two approximations of a same value *)
+
+let rec fuse_approx a1 a2 =
+  let approx_desc = match a1.approx_desc, a2.approx_desc with
+  | Value_unknown, _ -> a2.approx_desc
+  | _, Value_unknown -> a1.approx_desc
+  | Value_bottom, Value_bottom -> a1.approx_desc
+  | Value_tag a, Value_tag b ->
+     Value_tag (Array.mapi (fun i b -> a.(i) && b) b)
+  | (Value_block (tag1,ar1) as block), Value_tag tags
+  | Value_tag tags, (Value_block (tag1,ar1) as block) ->
+     assert(tags.(tag1));
+     block
+  | Value_integer i, Value_integer j ->
+     assert(i = j);
+     a1.approx_desc
+  | Value_constptr i, Value_constptr j ->
+     assert(i = j);
+     a1.approx_desc
+  | Value_closure c1, Value_closure c2 ->
+     assert(c1.clos_desc = c2.clos_desc);
+     assert(Array.length c1.clos_approx_env = Array.length c2.clos_approx_env);
+     Value_closure
+       { clos_desc = c1.clos_desc;
+         clos_approx_res = fuse_approx c1.clos_approx_res c2.clos_approx_res;
+         clos_approx_env =
+           fuse_approx_array c1.clos_approx_env c2.clos_approx_env }
+  | Value_block (tag1,ar1), Value_block (tag2,ar2) ->
+     assert(tag1 = tag2);
+     assert(Array.length ar1 = Array.length ar2);
+     Value_block (tag1,fuse_approx_array ar1 ar2)
+  | (Value_closure _ | Value_block _ | Value_integer _
+     | Value_constptr _ | Value_bottom   | Value_tag _ ), _ ->
+     assert false
+  in
+  let approx_var = match a1.approx_var, a2.approx_var with
+    | Var_global _, _ ->
+       a1.approx_var
+    | _, Var_global (id,p) ->
+       a2.approx_var
+    | Var_local _, _ ->
+       (* when there are two var_local just choose one... we could do
+       better by looking at the environment to know if one is not
+       bounded *)
+       a1.approx_var
+    | _, Var_local _ ->
+       a2.approx_var
+    | Var_unknown, Var_unknown ->
+       Var_unknown
+  in
+  { approx_desc; approx_var }
+
+and fuse_approx_array ar1 ar2 =
+  Array.of_list (List.map2 fuse_approx (Array.to_list ar1) (Array.to_list ar2))
 
 let sequence_bottom ulam approx normal =
   match approx.approx_desc with
@@ -537,17 +633,57 @@ and substitute_uswitch fenv sb arg sw =
   | Value_bottom ->
      uarg, approx
   | Value_constptr i ->
-     substitute_approx fenv sb (sw.us_actions_consts.(sw.us_index_consts.(i)))
+     (match sw.us_index_consts.(i) with
+      | None -> assert false
+      (* TODO: Verify that this can't happen
+         normaly this branch shouldn't have been compiled
+         if there is no possible value *)
+      | Some n -> substitute_approx fenv sb (sw.us_actions_consts.(n)))
   | Value_block (tag,_) ->
-     substitute_approx fenv sb (sw.us_actions_blocks.(sw.us_index_blocks.(tag)))
+     (match sw.us_index_blocks.(tag) with
+      | None -> assert false
+      (* TODO: Verify that this can't happen
+         normaly this branch shouldn't have been compiled
+         if there is no possible value *)
+      | Some n -> substitute_approx fenv sb (sw.us_actions_blocks.(n)))
   | _ ->
-     let consts = Array.map (substitute_approx fenv sb) sw.us_actions_consts in
-     let blocks = Array.map (substitute_approx fenv sb) sw.us_actions_blocks in
+     let ((us_index_consts, actions_consts),
+          (us_index_blocks, actions_blocks)) =
+       filter_match_cases approx
+                          (sw.us_index_consts, sw.us_actions_consts)
+                          (sw.us_index_blocks, sw.us_actions_blocks) in
+     let consts = Array.map (substitute_approx fenv sb) actions_consts in
+     let blocks = Array.mapi
+       (substitute_uswitch_block_branch (uarg,approx) fenv sb us_index_blocks)
+       actions_blocks in
      Uswitch(uarg,
-       { sw with
+       { us_index_consts;
          us_actions_consts = Array.map fst consts;
+         us_index_blocks;
          us_actions_blocks = Array.map fst blocks;
         }), switch_approx consts blocks
+
+and substitute_uswitch_block_branch (uarg,arg_approx) fenv sb index index_pos ulam =
+  let actions_index i index =
+    let l = ref [] in
+    Array.iteri (fun p v -> if v = Some i then l := p:: !l) index;
+    !l in
+  let tag_approx =
+    possible_tag ~tag:(actions_index index_pos index) () in
+  let branch_approx = fuse_approx tag_approx arg_approx in
+  let fenv =
+    match uarg with
+    | Uvar id ->
+       Tbl.add id branch_approx fenv
+    | _ -> fenv
+  in
+  let fenv =
+    match arg_approx.approx_var with
+    | Var_local id ->
+       Tbl.add id branch_approx fenv
+    | _ -> fenv
+  in
+  substitute_approx fenv sb ulam
 
 (* Perform an inline expansion *)
 
@@ -629,55 +765,6 @@ let direct_apply fundesc funct ufunct uargs =
   then app, approx
   else Usequence(ufunct, app), approx
 
-(* merge informations from two approximations of a same value *)
-
-let rec fuse_approx a1 a2 =
-  let approx_desc = match a1.approx_desc, a2.approx_desc with
-  | Value_unknown, _ -> a2.approx_desc
-  | _, Value_unknown -> a1.approx_desc
-  | Value_bottom, Value_bottom -> a1.approx_desc
-  | Value_integer i, Value_integer j ->
-     assert(i = j);
-     a1.approx_desc
-  | Value_constptr i, Value_constptr j ->
-     assert(i = j);
-     a1.approx_desc
-  | Value_closure c1, Value_closure c2 ->
-     assert(c1.clos_desc = c2.clos_desc);
-     assert(Array.length c1.clos_approx_env = Array.length c2.clos_approx_env);
-     Value_closure
-       { clos_desc = c1.clos_desc;
-         clos_approx_res = fuse_approx c1.clos_approx_res c2.clos_approx_res;
-         clos_approx_env =
-           fuse_approx_array c1.clos_approx_env c2.clos_approx_env }
-  | Value_block (tag1,ar1), Value_block (tag2,ar2) ->
-     assert(tag1 = tag2);
-     assert(Array.length ar1 = Array.length ar2);
-     Value_block (tag1,fuse_approx_array ar1 ar2)
-  | (Value_closure _ | Value_block _ | Value_integer _
-     | Value_constptr _ | Value_bottom), _ ->
-     assert false
-  in
-  let approx_var = match a1.approx_var, a2.approx_var with
-    | Var_global _, _ ->
-       a1.approx_var
-    | _, Var_global (id,p) ->
-       a2.approx_var
-    | Var_local _, _ ->
-       (* when there are two var_local just choose one... we could do
-       better by looking at the environment to know if one is not
-       bounded *)
-       a1.approx_var
-    | _, Var_local _ ->
-       a2.approx_var
-    | Var_unknown, Var_unknown ->
-       Var_unknown
-  in
-  { approx_desc; approx_var }
-
-and fuse_approx_array ar1 ar2 =
-  Array.of_list (List.map2 fuse_approx (Array.to_list ar1) (Array.to_list ar2))
-
 (* If a term has approximation Value_integer or Value_constptr and is pure,
    replace it by an integer constant *)
 
@@ -751,7 +838,8 @@ let rec remove_local_approx approx =
     | (Value_unknown
       | Value_integer _
       | Value_constptr _
-      | Value_bottom) as desc -> desc
+      | Value_bottom
+      | Value_tag _) as desc -> desc
   in
   match approx.approx_var with
   | Var_global _ -> approx
@@ -966,10 +1054,14 @@ let rec close fenv cenv = function
              close_switch fenv cenv sw.sw_consts sw.sw_numconsts sw.sw_failaction
            and block_index, block_actions =
              close_switch fenv cenv sw.sw_blocks sw.sw_numblocks sw.sw_failaction in
+           let block_index' = Array.map (fun i -> Some i) block_index in
+           let block_actions = Array.mapi
+             (substitute_uswitch_block_branch (uarg, approx) fenv Tbl.empty block_index')
+             (Array.map fst block_actions) in
            (Uswitch(uarg,
-                    {us_index_consts = const_index;
+                    {us_index_consts = Array.map (fun i -> Some i) const_index;
                      us_actions_consts = Array.map fst const_actions;
-                     us_index_blocks = block_index;
+                     us_index_blocks = Array.map (fun i -> Some i) block_index;
                      us_actions_blocks = Array.map fst block_actions}),
             switch_approx const_actions block_actions)
       end

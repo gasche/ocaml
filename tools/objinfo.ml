@@ -78,6 +78,12 @@ let rec print_approx_infos ppf approx = match approx.approx_desc with
       Format.fprintf ppf "%d" n
   | Value_constptr n ->
       Format.fprintf ppf "%dp" n
+  | Value_bottom ->
+      Format.fprintf ppf "bottom"
+  | Value_tag t ->
+      let print_tags ppf = Array.iteri
+        (fun i b -> if b then Format.fprintf ppf " %i" i) in
+      Format.fprintf ppf "@[( %a )@]" print_tags t
 
 let print_spaced_string s =
   printf " %s" s

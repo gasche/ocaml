@@ -71,16 +71,20 @@ let rec lam ppf = function
       let switch ppf sw =
         let spc = ref false in
         for i = 0 to Array.length sw.us_index_consts - 1 do
-          let n = sw.us_index_consts.(i) in
-          let l = sw.us_actions_consts.(n) in
-          if !spc then fprintf ppf "@ " else spc := true;
-          fprintf ppf "@[<hv 1>case int %i:@ %a@]" i lam l;
+          match sw.us_index_consts.(i) with
+            | None -> ()
+            | Some n ->
+               let l = sw.us_actions_consts.(n) in
+               if !spc then fprintf ppf "@ " else spc := true;
+               fprintf ppf "@[<hv 1>case int %i:@ %a@]" i lam l;
         done;
         for i = 0 to Array.length sw.us_index_blocks - 1 do
-          let n = sw.us_index_blocks.(i) in
-          let l = sw.us_actions_blocks.(n) in
-          if !spc then fprintf ppf "@ " else spc := true;
-          fprintf ppf "@[<hv 1>case tag %i:@ %a@]" i lam l;
+          match sw.us_index_blocks.(i) with
+            | None -> ()
+            | Some n ->
+               let l = sw.us_actions_blocks.(n) in
+               if !spc then fprintf ppf "@ " else spc := true;
+               fprintf ppf "@[<hv 1>case tag %i:@ %a@]" i lam l;
         done in
       fprintf ppf
        "@[<1>(switch %a@ @[<v 0>%a@])@]"
