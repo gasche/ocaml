@@ -1249,7 +1249,8 @@ and close_functions fenv cenv fun_defs =
   (* Return the Uclosure node and the list of all identifiers defined,
      with offsets and approximations. *)
   let (clos, infos) = List.split clos_info_list in
-  (Uclosure(clos, List.map (close_var fenv cenv) fv), infos)
+  let env = if !useless_env then [] else List.map (close_var fenv cenv) fv in
+  (Uclosure(clos, env), infos)
 
 (* Same, for one non-recursive function *)
 
