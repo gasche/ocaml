@@ -584,6 +584,9 @@ let rec substitute_approx fenv sb ulam =
       | (su1, { approx_desc = Value_block _ }) ->
         let ulam, approx = substitute_approx fenv sb u2 in
         sequence_constant_uexp su1 ulam, approx
+      | (su1, { approx_desc = Value_tag _ }) ->
+        let ulam, approx = substitute_approx fenv sb u2 in
+        sequence_constant_uexp su1 ulam, approx
       | (su1, ({ approx_desc = Value_bottom } as approx)) ->
           su1, approx
       | (su1, _) ->
@@ -1081,6 +1084,9 @@ let rec close fenv cenv = function
           sequence_constant_expr arg uarg
             (close fenv cenv (if n = 0 then ifnot else ifso))
       | (uarg, { approx_desc = Value_block _ }) ->
+         sequence_constant_expr arg uarg
+            (close fenv cenv ifso)
+      | (uarg, { approx_desc = Value_tag _ }) ->
          sequence_constant_expr arg uarg
             (close fenv cenv ifso)
       | (uarg, ({ approx_desc = Value_bottom } as approx)) ->
