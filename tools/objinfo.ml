@@ -54,7 +54,7 @@ let print_cmo_infos cu =
         List.iter print_line l);
   printf "Force link: %s\n" (if cu.cu_force_link then "YES" else "no")
 
-let rec print_approx_infos ppf = function
+let rec print_approx_infos ppf approx = match approx.approx_desc with
     Value_closure(fundesc, approx) ->
       Format.fprintf ppf "@[<2>function %s@ arity %i"
         fundesc.fun_label fundesc.fun_arity;
@@ -65,11 +65,11 @@ let rec print_approx_infos ppf = function
         Format.fprintf ppf "@ (inline)"
       end;
       Format.fprintf ppf "@ -> @ %a@]" print_approx_infos approx
-  | Value_tuple approx ->
+  | Value_block (tag, approx) ->
       let tuple ppf approx =
         for i = 0 to Array.length approx - 1 do
           if i > 0 then Format.fprintf ppf ";@ ";
-          Format.fprintf ppf "%i: %a" i print_approx_infos approx.(i)
+          Format.fprintf ppf "%i: %i %a" i tag print_approx_infos approx.(i)
         done in
       Format.fprintf ppf "@[<hov 1>(%a)@]" tuple approx
   | Value_unknown ->

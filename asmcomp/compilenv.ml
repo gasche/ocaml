@@ -35,7 +35,7 @@ let current_unit =
     ui_defines = [];
     ui_imports_cmi = [];
     ui_imports_cmx = [];
-    ui_approx = Value_unknown;
+    ui_approx = value_unknown;
     ui_curry_fun = [];
     ui_apply_fun = [];
     ui_send_fun = [];
@@ -148,11 +148,11 @@ let record_global_approx_toplevel id =
   Hashtbl.add toplevel_approx current_unit.ui_name current_unit.ui_approx
 
 let global_approx id =
-  if Ident.is_predef_exn id then Value_unknown
+  if Ident.is_predef_exn id then value_unknown
   else try Hashtbl.find toplevel_approx (Ident.name id)
   with Not_found ->
     match get_global_info id with
-      | None -> Value_unknown
+      | None -> value_unknown
       | Some ui -> ui.ui_approx
 
 (* Return the symbol used to refer to a global identifier *)

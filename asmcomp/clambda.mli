@@ -63,9 +63,17 @@ type function_description =
 
 (* Approximation of values *)
 
-type value_approximation =
+type value_approximation_desc =
     Value_closure of function_description * value_approximation
-  | Value_tuple of value_approximation array
+  | Value_block of int * value_approximation array
   | Value_unknown
   | Value_integer of int
   | Value_constptr of int
+
+and value_approximation =
+  { approx_desc : value_approximation_desc; }
+
+val mkapprox : value_approximation_desc -> value_approximation
+val value_unknown : value_approximation
+val value_integer : int -> value_approximation
+val value_constptr : int -> value_approximation
