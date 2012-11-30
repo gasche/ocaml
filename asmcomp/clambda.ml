@@ -110,3 +110,27 @@ let possible_tag ?tag () =
     | Some l -> Array.init 256 (fun j -> List.mem j l) in
   mkapprox (Value_tag tags)
 
+let rec remove_approx ?(remove_global=false) approx =
+  let clean_desc = function
+    | Value_closure { clos_desc;
+                      clos_approx_res = approx_res;
+                      clos_approx_env = approx_env } ->
+       Value_closure { clos_desc;
+                       clos_approx_res = remove_approx ~remove_global approx_res;
+                       clos_approx_env = Array.map (remove_approx ~remove_global) approx_env }
+    | Value_block (tag, a) ->
+       Value_block (tag, Array.map (remove_approx ~remove_global) a)
+    | (Value_unknown
+      | Value_integer _
+      | Value_constptr _
+      | Value_bottom
+      | Value_tag _) as desc -> desc
+  in
+  match approx.approx_var with
+  | Var_global _ when not remove_global ->
+     approx
+  | Var_global _
+  | Var_unknown
+  | Var_local _ ->
+     { approx_desc = clean_desc approx.approx_desc;
+       approx_var = Var_unknown }

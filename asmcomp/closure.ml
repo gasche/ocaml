@@ -828,31 +828,8 @@ let rec add_debug_info ev u =
    used for building function environment: It is not possible to
    have access to a local variable bound outside of a function from
    inside of the function. *)
-let rec remove_local_approx approx =
-  let clean_desc = function
-    | Value_closure { clos_desc;
-                      clos_approx_res = approx_res;
-                      clos_approx_env = approx_env } ->
-       Value_closure { clos_desc;
-                       clos_approx_res = remove_local_approx approx_res;
-                       clos_approx_env = Array.map remove_local_approx approx_env }
-    | Value_block (tag, a) ->
-       Value_block (tag, Array.map remove_local_approx a)
-    | (Value_unknown
-      | Value_integer _
-      | Value_constptr _
-      | Value_bottom
-      | Value_tag _) as desc -> desc
-  in
-  match approx.approx_var with
-  | Var_global _ -> approx
-  | Var_unknown
-  | Var_local _ ->
-     { approx_desc = clean_desc approx.approx_desc;
-       approx_var = Var_unknown }
-
 let clean_local_approx fenv =
-  Tbl.map (fun _ approx -> remove_local_approx approx) fenv
+  Tbl.map (fun _ approx -> remove_approx approx) fenv
 
 (* Uncurry an expression and explicitate closures.
    Also return the approximation of the expression.

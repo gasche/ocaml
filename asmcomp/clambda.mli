@@ -97,3 +97,6 @@ val value_constptr : int -> value_approximation
 val value_closure : function_description -> value_approximation -> value_approximation array -> value_approximation
 val possible_tag : ?tag:int list -> unit -> value_approximation
 
+val remove_approx : ?remove_global:bool -> value_approximation -> value_approximation
+        (* set approx_var fields of the approximation and its childs to Var_unknown
+           if remove_global is false (the default) only Var_local are cleaned. *)

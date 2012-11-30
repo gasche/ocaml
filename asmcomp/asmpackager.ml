@@ -48,7 +48,9 @@ let read_member_info pack_path file =
          (Compilenv.current_unit_infos()).ui_symbol ^ "__" ^ info.ui_name
       then raise(Error(Wrong_for_pack(file, pack_path)));
       Asmlink.check_consistency file info crc;
-      Compilenv.cache_unit_info info;
+      (* Remove references to packed module in approximations *)
+      Compilenv.cache_unit_info { info with ui_approx =
+        Clambda.remove_approx ~remove_global:true info.ui_approx };
       PM_impl info
     end else
       PM_intf in
