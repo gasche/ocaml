@@ -16,6 +16,13 @@ let a = [| 0; 1; 2 |]
 
 let trail = ref []
 
+(* ignore that force evaluation of its parameter:
+   avoid dead code elimination... *)
+let ignore v =
+  let r = ref [] in
+  r:= [v];
+  ()
+
 let test n =
   let result =
     try
