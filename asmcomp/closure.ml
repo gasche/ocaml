@@ -1183,7 +1183,7 @@ and close_functions fenv cenv fun_defs =
     List.fold_right
       (fun (id, params, body, fundesc) fenv ->
        let fenv =
-         Tbl.add id (value_closure fundesc value_unknown) fenv in
+         Tbl.add id (value_closure fundesc value_unknown [||]) fenv in
       add_params params fenv)
       uncurried_defs fenv in
   (* Determine the offsets of each function's closure in the shared block *)
@@ -1226,7 +1226,8 @@ and close_functions fenv cenv fun_defs =
        params = fun_params;
        body   = ubody;
        dbg },
-     (id, env_pos, value_closure fundesc approx)) in
+     let env_approx = if !useless_env then [||] else env_approx in
+     (id, env_pos, value_closure fundesc approx env_approx)) in
   (* Translate all function definitions. *)
   let clos_info_list =
     if initially_closed then begin

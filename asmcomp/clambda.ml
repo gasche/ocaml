@@ -99,10 +99,10 @@ let value_unknown = mkapprox Value_unknown
 let value_bottom = mkapprox Value_bottom
 let value_integer i = mkapprox (Value_integer i)
 let value_constptr i = mkapprox (Value_constptr i)
-let value_closure fundesc approx_res =
+let value_closure fundesc approx_res env_approx =
   mkapprox (Value_closure{ clos_desc = fundesc;
                            clos_approx_res = approx_res;
-                           clos_approx_env = [| |] })
+                           clos_approx_env = env_approx })
 
 let possible_tag ?tag () =
   let tags = match tag with

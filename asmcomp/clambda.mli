@@ -94,6 +94,6 @@ val value_unknown : value_approximation
 val value_bottom : value_approximation
 val value_integer : int -> value_approximation
 val value_constptr : int -> value_approximation
-val value_closure : function_description -> value_approximation -> value_approximation
+val value_closure : function_description -> value_approximation -> value_approximation array -> value_approximation
 val possible_tag : ?tag:int list -> unit -> value_approximation
 
