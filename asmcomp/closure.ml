@@ -731,10 +731,10 @@ let rec bind_params_rec subst fenv params args body =
       end
   | (_, _) -> assert false
 
-let bind_params params args body =
+let bind_params fenv subst params args body =
   (* Reverse parameters and arguments to preserve right-to-left
      evaluation order (PR#2910). *)
-  bind_params_rec Tbl.empty Tbl.empty (List.rev params) (List.rev args) body
+  bind_params_rec subst fenv (List.rev params) (List.rev args) body
 
 (* Check if a lambda term is ``pure'',
    that is without side-effects *and* not containing function definitions *)
@@ -751,14 +751,13 @@ let rec is_pure = function
 
 (* Generate a direct application *)
 
-let direct_apply fundesc funct ufunct uargs =
+let direct_apply fenv subst fundesc funct ufunct uargs fun_approx =
   let app_args =
-    (* TODO: il faudrait avoir l'approximation de la cloture *)
-    if fundesc.fun_closed then uargs else uargs @ [ufunct,value_unknown] in
+    if fundesc.fun_closed then uargs else uargs @ [ufunct,fun_approx] in
   let app, approx =
     match fundesc.fun_inline with
       None -> Udirect_apply(fundesc.fun_label, List.map fst app_args, Debuginfo.none), value_unknown
-    | Some(params, body) -> bind_params params app_args body in
+    | Some(params, body) -> bind_params fenv subst params app_args body in
   (* If ufunct can contain side-effects or function definitions,
      we must make sure that it is evaluated exactly once.
      If the function is not closed, we evaluate ufunct as part of the
@@ -860,23 +859,23 @@ let rec close fenv cenv = function
   | Lapply(funct, args, loc) ->
       let nargs = List.length args in
       begin match (close fenv cenv funct, close_list_approx fenv cenv args) with
-        ((ufunct, { approx_desc = Value_closure{ clos_desc = fundesc;
-                                                 clos_approx_res = approx_res } }),
+        ((ufunct, ({ approx_desc = Value_closure{ clos_desc = fundesc;
+                                                 clos_approx_res = approx_res } } as fun_approx)),
          ([Uprim(Pmakeblock(_, _), uargs, _)],[approx]))
         when List.length uargs = - fundesc.fun_arity ->
           let uargs = match approx.approx_desc with
             | Value_block(tag,a) -> List.combine uargs (Array.to_list a)
             | _ -> assert false
           in
-          let app, approx_subst = direct_apply fundesc funct ufunct uargs in
+          let app, approx_subst = direct_apply fenv cenv fundesc funct ufunct uargs fun_approx in
           let approx = fuse_approx approx_subst approx_res in
           (app, approx)
-      | ((ufunct, { approx_desc = Value_closure{ clos_desc = fundesc;
-                                                 clos_approx_res = approx_res }}),
+      | ((ufunct, ({ approx_desc = Value_closure{ clos_desc = fundesc;
+                                                 clos_approx_res = approx_res }}as fun_approx)),
          (uargs,approx))
         when nargs = fundesc.fun_arity ->
           let uargs = List.combine uargs approx in
-          let app, approx_subst = direct_apply fundesc funct ufunct uargs in
+          let app, approx_subst = direct_apply fenv cenv fundesc funct ufunct uargs fun_approx in
           let approx = fuse_approx approx_subst approx_res in
           (app, approx)
 
@@ -906,14 +905,14 @@ let rec close fenv cenv = function
         let new_fun = iter first_args new_fun in
         (new_fun, approx)
 
-      | ((ufunct, { approx_desc = Value_closure{ clos_desc = fundesc;
-                                                 clos_approx_res = approx_res } }),
+      | ((ufunct, ({ approx_desc = Value_closure{ clos_desc = fundesc;
+                                                 clos_approx_res = approx_res } } as fun_approx)),
          (uargs,approx))
         when fundesc.fun_arity > 0 && nargs > fundesc.fun_arity ->
           let (first_approx, rem_approx) = split_list fundesc.fun_arity approx in
           let (first_args, rem_args) = split_list fundesc.fun_arity uargs in
           let first_args = List.combine first_args first_approx in
-          let app, _ = direct_apply fundesc funct ufunct first_args in
+          let app, _ = direct_apply fenv cenv fundesc funct ufunct first_args fun_approx in
           (Ugeneric_apply(app, rem_args, Debuginfo.none),
            value_unknown)
       | ((ufunct, _), (uargs,_)) ->
