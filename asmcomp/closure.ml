@@ -554,6 +554,14 @@ let rec substitute_approx fenv sb ulam =
         substitute fenv sb' body),
       (* TODO: better *)
       value_unknown
+  | Uprim(Pmakeblock(tag, mut) as prim, ulams, dinfo) ->
+      let (ulams, approxs) = List.split
+        (List.map (substitute_approx fenv sb) ulams) in
+      (Uprim(prim, ulams, dinfo),
+       begin match mut with
+           Immutable -> mkapprox (Value_block(tag, Array.of_list approxs))
+         | Mutable -> value_unknown
+       end)
   | Uprim(Praise, args, dinfo) ->
      let uargs = List.map (substitute fenv sb) args in
      Uprim(Praise, uargs, dinfo), value_bottom
