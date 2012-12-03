@@ -506,8 +506,18 @@ let switch_approx consts blocks =
 
 let rec substitute_approx fenv sb ulam =
   match ulam with
-    Uvar v ->
-      close_approx_var fenv sb v
+    Uvar id ->
+    let approx = try Tbl.find id fenv with Not_found -> value_unknown in
+    begin match approx.approx_desc with
+      Value_integer n ->
+       make_const_int n
+    | Value_constptr n ->
+       make_const_ptr n
+    | _ ->
+       try
+         substitute_approx fenv sb (Tbl.find id sb)
+       with Not_found -> Uvar id, approx
+    end
   | Uconst (c,_) ->
      ulam, simpl_const_approx c
   | Udirect_apply(lbl, args, dbg) ->
@@ -537,6 +547,7 @@ let rec substitute_approx fenv sb ulam =
   | Ulet(id, u1, u2) ->
       let id' = Ident.rename id in
       let let_val,approx = substitute_approx fenv sb u1 in
+      let approx = { approx with approx_var = Var_local id' } in
       let fenv' = Tbl.add id' approx fenv in
       let ubody,approx = substitute_approx fenv' (Tbl.add id (Uvar id') sb) u2 in
       clean_no_occur_let id' let_val ubody, approx
