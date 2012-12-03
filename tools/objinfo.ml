@@ -69,9 +69,9 @@ let rec print_approx_infos ppf approx = match approx.approx_desc with
       let tuple ppf approx =
         for i = 0 to Array.length approx - 1 do
           if i > 0 then Format.fprintf ppf ";@ ";
-          Format.fprintf ppf "%i: %i %a" i tag print_approx_infos approx.(i)
+          Format.fprintf ppf "%i: %a" i print_approx_infos approx.(i)
         done in
-      Format.fprintf ppf "@[<hov 1>(%a)@]" tuple approx
+      Format.fprintf ppf "@[<hov 1>(%i %a)@]" tag tuple approx
   | Value_unknown ->
       Format.fprintf ppf "_"
   | Value_integer n ->
