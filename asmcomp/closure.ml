@@ -323,9 +323,7 @@ let filter_match_cases approx
                        (const_index, const_actions)
                        (block_index, block_actions) =
   let keep vals a =
-    Array.map (function
-      | None -> None
-      | Some i -> if vals.(i) then Some i else None) a in
+    Array.mapi (fun i v -> if vals.(i) then v else None) a in
   let clean_and_compress index actions =
     let index = Array.to_list index in
     let add_used (pos,l) (i,action) =
