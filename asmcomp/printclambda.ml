@@ -44,13 +44,16 @@ let rec lam ppf = function
         List.iter (fprintf ppf "@ %a" lam) in
       fprintf ppf "@[<2>(closure@ %a %a)@]" funs clos lams fv
   | Uoffset(l,i) -> fprintf ppf "@[<2>(offset %a %d)@]" lam l i
-  | Ulet(id, arg, body) ->
+  | Ulet(id, let_kind, arg, body) ->
+      let variable_let = function Lambda.Variable -> "var" | _ -> "" in
       let rec letbody ul = match ul with
-        | Ulet(id, arg, body) ->
-            fprintf ppf "@ @[<2>%a@ %a@]" Ident.print id lam arg;
+        | Ulet(id, let_kind, arg, body) ->
+            fprintf ppf "@ @[<2>%s %a@ %a@]" (variable_let let_kind)
+              Ident.print id lam arg;
             letbody body
         | _ -> ul in
-      fprintf ppf "@[<2>(let@ @[<hv 1>(@[<2>%a@ %a@]" Ident.print id lam arg;
+      fprintf ppf "@[<2>(let@ @[<hv 1>(@[<2>%s %a@ %a@]" (variable_let let_kind)
+        Ident.print id lam arg;
       let expr = letbody body in
       fprintf ppf ")@]@ %a)@]" lam expr
   | Uletrec(id_arg_list, body) ->
