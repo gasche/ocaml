@@ -539,6 +539,9 @@ let switch_approx consts blocks =
 let approx_ulam fenv sb = function
     Uvar id ->
     (try Tbl.find id fenv with Not_found -> value_unknown)
+  | Uconst(Const_base(Const_int n),_) -> value_integer n
+  | Uconst(Const_base(Const_char c),_) -> value_integer(Char.code c)
+  | Uconst(Const_pointer n,_) -> value_constptr n
   | _ -> value_unknown
 
 let rec substitute_approx fenv sb ulam =
