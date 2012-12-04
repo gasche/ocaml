@@ -1308,10 +1308,129 @@ and close_switch fenv cenv cases num_keys default arg block =
 
 (* The entry point *)
 
+let rec deconstruct_makeblock = function
+    Lvar v as lam -> lam
+  | Lconst cst as lam -> lam
+  | Lapply(e1, el, loc) ->
+      Lapply(deconstruct_makeblock e1, List.map (deconstruct_makeblock) el, loc)
+  | Lfunction(kind, params, body) ->
+      Lfunction(kind, params, deconstruct_makeblock body)
+  | Llet(str, v, e1, e2) ->
+      Llet(str, v, deconstruct_makeblock e1, deconstruct_makeblock e2)
+  | Lletrec(idel, e2) ->
+      Lletrec(List.map (fun (v, e) -> (v, deconstruct_makeblock e)) idel,
+              deconstruct_makeblock e2)
+  | Lprim(Pmakeblock(tag, mut) as prim, lams) as lam ->
+      begin match mut with
+           Mutable -> lam
+         | Immutable ->
+            let vars = List.mapi
+              (fun i _ -> Ident.create (Printf.sprintf "block_%i" i)) lams in
+            let block_lam = Lprim(prim, List.map (fun id -> Lvar id) vars) in
+            List.fold_left2 (fun acc_lam var lam -> Llet(Strict,var,lam,acc_lam))
+              block_lam vars lams
+      end
+  | Lprim(p, el) ->
+      Lprim(p, List.map (deconstruct_makeblock) el)
+  | Lswitch(e, sw) ->
+      Lswitch(deconstruct_makeblock e,
+        {sw_numconsts = sw.sw_numconsts;
+         sw_consts =
+            List.map (fun (n, e) -> (n, deconstruct_makeblock e)) sw.sw_consts;
+         sw_numblocks = sw.sw_numblocks;
+         sw_blocks =
+            List.map (fun (n, e) -> (n, deconstruct_makeblock e)) sw.sw_blocks;
+         sw_failaction = match sw.sw_failaction with
+         | None -> None
+         | Some l -> Some (deconstruct_makeblock l)})
+  | Lstaticraise (i,args) ->
+      Lstaticraise (i,List.map (deconstruct_makeblock) args)
+  | Lstaticcatch(e1, i, e2) ->
+      Lstaticcatch(deconstruct_makeblock e1, i, deconstruct_makeblock e2)
+  | Ltrywith(e1, v, e2) ->
+      Ltrywith(deconstruct_makeblock e1, v, deconstruct_makeblock e2)
+  | Lifthenelse(e1, e2, e3) ->
+      Lifthenelse(deconstruct_makeblock e1,
+                  deconstruct_makeblock e2,
+                  deconstruct_makeblock e3)
+  | Lsequence(e1, e2) ->
+      Lsequence(deconstruct_makeblock e1, deconstruct_makeblock e2)
+  | Lwhile(e1, e2) ->
+      Lwhile(deconstruct_makeblock e1, deconstruct_makeblock e2)
+  | Lfor(v, e1, e2, dir, e3) ->
+      Lfor(v, deconstruct_makeblock e1, deconstruct_makeblock e2,
+           dir, deconstruct_makeblock e3)
+  | Lassign(v, e) ->
+      Lassign(v, deconstruct_makeblock e)
+  | Lsend(k, m, o, el, loc) ->
+      Lsend(k, deconstruct_makeblock m, deconstruct_makeblock o,
+            List.map (deconstruct_makeblock) el, loc)
+  | Levent(l, ev) ->
+      Levent(deconstruct_makeblock l, ev)
+  | Lifused(v, e) ->
+      Lifused(v, deconstruct_makeblock e)
+
+let rec let_lifting = function
+    Lvar v as lam -> lam
+  | Lconst cst as lam -> lam
+  | Lapply(e1, el, loc) ->
+      Lapply(let_lifting e1, List.map (let_lifting) el, loc)
+  | Lfunction(kind, params, body) ->
+      Lfunction(kind, params, let_lifting body)
+  | Llet(str_out, v_out, Llet(str_in, v_in, e1, body_in), body_out) ->
+      let_lifting
+        (Llet(str_in, v_in, e1, Llet(str_out, v_out, body_in, body_out)))
+  | Llet(str, v, e1, e2) ->
+      Llet(str, v, let_lifting e1, let_lifting e2)
+  | Lletrec(idel, e2) ->
+      Lletrec(List.map (fun (v, e) -> (v, let_lifting e)) idel,
+              let_lifting e2)
+  | Lprim(p, el) ->
+      Lprim(p, List.map (let_lifting) el)
+  | Lswitch(e, sw) ->
+      Lswitch(let_lifting e,
+        {sw_numconsts = sw.sw_numconsts;
+         sw_consts =
+            List.map (fun (n, e) -> (n, let_lifting e)) sw.sw_consts;
+         sw_numblocks = sw.sw_numblocks;
+         sw_blocks =
+            List.map (fun (n, e) -> (n, let_lifting e)) sw.sw_blocks;
+         sw_failaction = match sw.sw_failaction with
+         | None -> None
+         | Some l -> Some (let_lifting l)})
+  | Lstaticraise (i,args) ->
+      Lstaticraise (i,List.map (let_lifting) args)
+  | Lstaticcatch(e1, i, e2) ->
+      Lstaticcatch(let_lifting e1, i, let_lifting e2)
+  | Ltrywith(e1, v, e2) ->
+      Ltrywith(let_lifting e1, v, let_lifting e2)
+  | Lifthenelse(e1, e2, e3) ->
+      Lifthenelse(let_lifting e1,
+                  let_lifting e2,
+                  let_lifting e3)
+  | Lsequence(e1, e2) ->
+      Lsequence(let_lifting e1, let_lifting e2)
+  | Lwhile(e1, e2) ->
+      Lwhile(let_lifting e1, let_lifting e2)
+  | Lfor(v, e1, e2, dir, e3) ->
+      Lfor(v, let_lifting e1, let_lifting e2,
+           dir, let_lifting e3)
+  | Lassign(v, e) ->
+      Lassign(v, let_lifting e)
+  | Lsend(k, m, o, el, loc) ->
+      Lsend(k, let_lifting m, let_lifting o,
+            List.map (let_lifting) el, loc)
+  | Levent(l, ev) ->
+      Levent(let_lifting l, ev)
+  | Lifused(v, e) ->
+      Lifused(v, let_lifting e)
+
 let intro size lam =
   function_nesting_depth := 0;
   global_approx := Array.create size value_unknown;
   Compilenv.set_global_approx(mkapprox (Value_block(0,!global_approx)));
+  let lam = deconstruct_makeblock lam in
+  let lam = let_lifting lam in
   let (ulam, approx) = close Tbl.empty Tbl.empty lam in
   global_approx := [||];
   ulam
