@@ -490,6 +490,38 @@ let rec fuse_approx a1 a2 =
 and fuse_approx_array ar1 ar2 =
   Array.of_list (List.map2 fuse_approx (Array.to_list ar1) (Array.to_list ar2))
 
+
+(* add the approximation of switch argument to the environment *)
+let switch_branch_approx (uarg,arg_approx) block index i fenv =
+  let actions_index =
+    let l = ref [] in
+    Array.iteri (fun p v -> if v = Some i then l := p:: !l) index;
+    !l in
+  let branch_approx =
+    let approx =
+      if block
+      then
+        possible_tag ~tag:actions_index ()
+      else
+        match actions_index with
+        | [i] -> value_constptr i
+        | _ -> value_unknown in
+    fuse_approx approx arg_approx
+  in
+  let fenv =
+    match uarg with
+    | Uvar id ->
+       Tbl.add id branch_approx fenv
+    | _ -> fenv
+  in
+  let fenv =
+    match arg_approx.approx_var with
+    | Var_local id ->
+       Tbl.add id branch_approx fenv
+    | _ -> fenv
+  in
+  fenv
+
 let sequence_bottom ulam approx normal =
   match approx.approx_desc with
   | Value_bottom ->
@@ -672,38 +704,18 @@ and substitute_uswitch fenv sb arg sw =
        filter_match_cases approx
                           (sw.us_index_consts, sw.us_actions_consts)
                           (sw.us_index_blocks, sw.us_actions_blocks) in
-     let consts = Array.map (substitute_approx fenv sb) actions_consts in
-     let blocks = Array.mapi
-       (substitute_uswitch_block_branch (uarg,approx) fenv sb us_index_blocks)
-       actions_blocks in
+     let substitute_branch block index i ulam =
+       let fenv = switch_branch_approx (uarg,approx) block index i fenv in
+       substitute_approx fenv sb ulam
+     in
+     let consts = Array.mapi (substitute_branch false us_index_consts) actions_consts in
+     let blocks = Array.mapi (substitute_branch true us_index_blocks) actions_blocks in
      Uswitch(uarg,
        { us_index_consts;
          us_actions_consts = Array.map fst consts;
          us_index_blocks;
          us_actions_blocks = Array.map fst blocks;
         }), switch_approx consts blocks
-
-and substitute_uswitch_block_branch (uarg,arg_approx) fenv sb index index_pos ulam =
-  let actions_index i index =
-    let l = ref [] in
-    Array.iteri (fun p v -> if v = Some i then l := p:: !l) index;
-    !l in
-  let tag_approx =
-    possible_tag ~tag:(actions_index index_pos index) () in
-  let branch_approx = fuse_approx tag_approx arg_approx in
-  let fenv =
-    match uarg with
-    | Uvar id ->
-       Tbl.add id branch_approx fenv
-    | _ -> fenv
-  in
-  let fenv =
-    match arg_approx.approx_var with
-    | Var_local id ->
-       Tbl.add id branch_approx fenv
-    | _ -> fenv
-  in
-  substitute_approx fenv sb ulam
 
 (* Perform an inline expansion *)
 
@@ -1026,7 +1038,7 @@ let rec close fenv cenv = function
       simplif_prim fenv p (close_list_approx fenv cenv args) Debuginfo.none
   | Lswitch(arg, sw) ->
 (* NB: failaction might get copied, thus it should be some Lstaticraise *)
-      let (uarg, approx) = close fenv cenv arg in
+      let ((uarg, approx) as arg) = close fenv cenv arg in
       let use_action i l =
         let case =
           try List.assoc i l with
@@ -1047,17 +1059,13 @@ let rec close fenv cenv = function
            use_action tag sw.sw_blocks
         | _ ->
            let const_index, const_actions =
-             close_switch fenv cenv sw.sw_consts sw.sw_numconsts sw.sw_failaction
+             close_switch fenv cenv sw.sw_consts sw.sw_numconsts sw.sw_failaction arg false
            and block_index, block_actions =
-             close_switch fenv cenv sw.sw_blocks sw.sw_numblocks sw.sw_failaction in
-           let block_index' = Array.map (fun i -> Some i) block_index in
-           let block_actions = Array.mapi
-             (substitute_uswitch_block_branch (uarg, approx) fenv Tbl.empty block_index')
-             (Array.map fst block_actions) in
+             close_switch fenv cenv sw.sw_blocks sw.sw_numblocks sw.sw_failaction arg true in
            (Uswitch(uarg,
-                    {us_index_consts = Array.map (fun i -> Some i) const_index;
+                    {us_index_consts = const_index;
                      us_actions_consts = Array.map fst const_actions;
-                     us_index_blocks = Array.map (fun i -> Some i) block_index;
+                     us_index_blocks = block_index;
                      us_actions_blocks = Array.map fst block_actions}),
             switch_approx const_actions block_actions)
       end
@@ -1267,7 +1275,7 @@ and close_one_function fenv cenv id funct =
 
 (* Close a switch *)
 
-and close_switch fenv cenv cases num_keys default =
+and close_switch fenv cenv cases num_keys default arg block =
   let index = Array.create num_keys 0
   and store = mk_store Lambda.same in
 
@@ -1283,7 +1291,12 @@ and close_switch fenv cenv cases num_keys default =
      index.(key) <- store.act_store lam)
     cases ;
   (* Compile action *)
-  let actions = Array.map (close fenv cenv) (store.act_get ()) in
+  let index = Array.map (fun i -> Some i) index in
+  let close_branch i lam =
+    let fenv = switch_branch_approx arg block index i fenv in
+    close fenv cenv lam
+  in
+  let actions = Array.mapi close_branch (store.act_get ()) in
   match actions with
   | [| |] -> [| |], [| |] (* May happen when default is None *)
   | _     -> index, actions
