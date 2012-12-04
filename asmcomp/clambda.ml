@@ -111,7 +111,7 @@ let possible_tag ?tag () =
   mkapprox (Value_tag tags)
 
 let rec remove_approx ?(remove_global=false) approx =
-  let clean_desc = function
+  let clean_desc = match approx.approx_desc with
     | Value_closure { clos_desc;
                       clos_approx_res = approx_res;
                       clos_approx_env = approx_env } ->
@@ -128,9 +128,9 @@ let rec remove_approx ?(remove_global=false) approx =
   in
   match approx.approx_var with
   | Var_global _ when not remove_global ->
-     approx
+     { approx with approx_desc = clean_desc }
   | Var_global _
   | Var_unknown
   | Var_local _ ->
-     { approx_desc = clean_desc approx.approx_desc;
+     { approx_desc = clean_desc;
        approx_var = Var_unknown }
