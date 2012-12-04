@@ -198,6 +198,7 @@ let write_unit_info info filename =
 
 let save_unit_info filename =
   current_unit.ui_imports_cmi <- Env.imported_units();
+  current_unit.ui_approx <- Clambda.remove_approx current_unit.ui_approx;
   write_unit_info current_unit filename
 
 
