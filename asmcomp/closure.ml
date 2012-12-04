@@ -208,7 +208,7 @@ let make_const_int n = (Uconst(Const_base(Const_int n), None), value_integer n)
 let make_const_ptr n = (Uconst(Const_pointer n, None), value_constptr n)
 let make_const_bool b = make_const_ptr(if b then 1 else 0)
 
-let simplif_prim_pure fenv p (args, approxs) dbg =
+let simplif_prim_pure fenv sb p (args, approxs) dbg =
   match approxs with
     [{ approx_desc = Value_integer x }] ->
       begin match p with
@@ -279,7 +279,11 @@ let simplif_prim_pure fenv p (args, approxs) dbg =
           | _ ->
              match approx.approx_var with
                Var_local v when Tbl.mem v fenv ->
-                Uvar v, approx
+                let ulam =
+                  if Tbl.mem v sb
+                  then Tbl.find v sb
+                  else Uvar v in
+                ulam, approx
              | Var_global(id,n) ->
                 Uprim(Pfield n, [getglobal id], Debuginfo.none), approx
              | _ -> (Uprim(p, args, dbg), value_unknown)
@@ -305,9 +309,9 @@ let simplif_prim_pure fenv p (args, approxs) dbg =
   | _ ->
       (Uprim(p, args, dbg), value_unknown)
 
-let simplif_prim fenv p (args, approxs as args_approxs) dbg =
+let simplif_prim fenv sb p (args, approxs as args_approxs) dbg =
   if List.for_all is_pure_clambda args
-  then simplif_prim_pure fenv p args_approxs dbg
+  then simplif_prim_pure fenv sb p args_approxs dbg
   else (Uprim(p, args, dbg), value_unknown)
 
 (* Substitute variables in a [ulambda] term (a body of an inlined function)
@@ -610,7 +614,7 @@ let rec substitute_approx fenv sb ulam =
       let sargs = List.map (substitute_approx fenv sb) args in
       let uargs = List.map fst sargs in
       let approxs = List.map snd sargs in
-      simplif_prim fenv p (uargs, approxs) dbg
+      simplif_prim fenv sb p (uargs, approxs) dbg
   | Uswitch(arg, sw) ->
      substitute_uswitch fenv sb arg sw
   | Ustaticfail (nfail, args) ->
@@ -1035,7 +1039,7 @@ let rec close fenv cenv = function
       (Uprim(Praise, [ulam], Debuginfo.none),
        value_bottom)
   | Lprim(p, args) ->
-      simplif_prim fenv p (close_list_approx fenv cenv args) Debuginfo.none
+      simplif_prim fenv cenv p (close_list_approx fenv cenv args) Debuginfo.none
   | Lswitch(arg, sw) ->
 (* NB: failaction might get copied, thus it should be some Lstaticraise *)
       let ((uarg, approx) as arg) = close fenv cenv arg in
