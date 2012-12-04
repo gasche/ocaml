@@ -1069,6 +1069,10 @@ let rec close fenv cenv = function
              close_switch fenv cenv sw.sw_consts sw.sw_numconsts sw.sw_failaction arg false
            and block_index, block_actions =
              close_switch fenv cenv sw.sw_blocks sw.sw_numblocks sw.sw_failaction arg true in
+           let (const_index, const_actions),
+               (block_index, block_actions)
+             = filter_match_cases approx (const_index, const_actions)
+                                         (block_index, block_actions) in
            (Uswitch(uarg,
                     {us_index_consts = const_index;
                      us_actions_consts = Array.map fst const_actions;
