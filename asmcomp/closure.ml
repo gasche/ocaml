@@ -279,11 +279,7 @@ let simplif_prim_pure fenv sb p (args, approxs) dbg =
           | _ ->
              match approx.approx_var with
                Var_local v when Tbl.mem v fenv ->
-                let ulam =
-                  if Tbl.mem v sb
-                  then Tbl.find v sb
-                  else Uvar v in
-                ulam, approx
+                Uvar v, approx
              | Var_global(id,n) ->
                 Uprim(Pfield n, [getglobal id], Debuginfo.none), approx
              | _ -> (Uprim(p, args, dbg), value_unknown)
@@ -540,20 +536,27 @@ let switch_approx consts blocks =
   | [] -> value_unknown
   | t::q -> List.fold_left merge_approx t q
 
+let approx_ulam fenv sb = function
+    Uvar id ->
+    (try Tbl.find id fenv with Not_found -> value_unknown)
+  | _ -> value_unknown
+
 let rec substitute_approx fenv sb ulam =
   match ulam with
     Uvar id ->
-    let approx = try Tbl.find id fenv with Not_found -> value_unknown in
-    begin match approx.approx_desc with
-      Value_integer n ->
-       make_const_int n
-    | Value_constptr n ->
-       make_const_ptr n
-    | _ ->
+     let ulam =
        try
-         substitute_approx fenv sb (Tbl.find id sb)
-       with Not_found -> Uvar id, approx
-    end
+         Tbl.find id sb
+       with Not_found -> ulam in
+     let approx = approx_ulam fenv sb ulam in
+     begin match approx.approx_desc with
+       Value_integer n ->
+        make_const_int n
+     | Value_constptr n ->
+        make_const_ptr n
+     | _ ->
+        ulam, approx
+     end
   | Uconst (c,_) ->
      ulam, simpl_const_approx c
   | Udirect_apply(lbl, args, dbg) ->
@@ -1159,8 +1162,8 @@ and close_functions fenv cenv fun_defs =
   let initially_closed =
     !function_nesting_depth < excessive_function_nesting_depth in
   (* Determine the free variables of the functions *)
-  let fv =
-    IdentSet.elements (free_variables (Lletrec(fun_defs, lambda_unit))) in
+  let fv_set = free_variables (Lletrec(fun_defs, lambda_unit)) in
+  let fv = IdentSet.elements fv_set in
   (* Build the function descriptors for the functions.
      Initially all functions are assumed not to need their environment
      parameter. *)
@@ -1180,6 +1183,11 @@ and close_functions fenv cenv fun_defs =
       fun_defs in
   (* Build an approximate fenv for compiling the functions *)
   let original_env = fenv in
+  let fenv =
+    Tbl.fold (fun var approx acc ->
+              if IdentSet.mem var fv_set
+              then Tbl.add var approx acc
+              else acc) fenv Tbl.empty in
   let fenv = clean_local_approx fenv in
   (* TODO: trouver une manière plus propre / plus efficace de faire ça.
      Une manière de le faire serait de mettre un niveau de binding aux
