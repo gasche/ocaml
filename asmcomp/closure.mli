@@ -12,4 +12,6 @@
 
 (* Introduction of closures, uncurrying, recognition of direct calls *)
 
+val transform_lambda : Lambda.lambda -> Lambda.lambda
+
 val intro: int -> Lambda.lambda -> Clambda.ulambda

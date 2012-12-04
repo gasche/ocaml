@@ -1440,12 +1440,15 @@ let rec let_lifting = function
   | Lifused(v, e) ->
       Lifused(v, let_lifting e)
 
+let transform_lambda lam =
+  let lam = deconstruct_makeblock lam in
+  let lam = let_lifting lam in
+  lam
+
 let intro size lam =
   function_nesting_depth := 0;
   global_approx := Array.create size value_unknown;
   Compilenv.set_global_approx(mkapprox (Value_block(0,!global_approx)));
-  let lam = deconstruct_makeblock lam in
-  let lam = let_lifting lam in
   let (ulam, approx) = close Tbl.empty Tbl.empty lam in
   global_approx := [||];
   ulam
