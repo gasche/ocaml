@@ -39,9 +39,12 @@ let rec build_closure_env env_param pos = function
    and no longer in Cmmgen so that approximations stored in .cmx files
    contain the right names if the -for-pack option is active. *)
 
+let global_id_assoc = ref Tbl.empty
+
 let getglobal id =
-  Uprim(Pgetglobal (Ident.create_persistent (Compilenv.symbol_for_global id)),
-        [], Debuginfo.none)
+  let new_ident = Ident.create_persistent (Compilenv.symbol_for_global id) in
+  global_id_assoc := Tbl.add new_ident id !global_id_assoc;
+  Uprim(Pgetglobal new_ident, [], Debuginfo.none)
 
 (* Check if a variable occurs in a [clambda] term. *)
 
@@ -289,6 +292,12 @@ let simplif_prim_pure fenv sb p (args, approxs) dbg =
   | [] ->
      begin match p with
        Pgetglobal id ->
+       let approx = try
+           let orig_id = Tbl.find id !global_id_assoc in
+           (Compilenv.global_approx orig_id)
+         with Not_found -> value_unknown
+       in
+(*
         let approx =
           if try
               Scanf.sscanf (Ident.name id) "caml_exn_" true
@@ -299,6 +308,7 @@ let simplif_prim_pure fenv sb p (args, approxs) dbg =
                  (* TODO: A bit too hackish *)
                  (Scanf.sscanf (Ident.name id) "caml%s" Ident.create_persistent)
         in
+*)
         (Uprim(p, args, dbg), approx)
      | _ -> (Uprim(p, args, dbg), value_unknown)
      end
@@ -1454,4 +1464,5 @@ let intro size lam =
   Compilenv.set_global_approx(mkapprox (Value_block(0,!global_approx)));
   let (ulam, approx) = close Tbl.empty Tbl.empty lam in
   global_approx := [||];
+  global_id_assoc := Tbl.empty;
   ulam
