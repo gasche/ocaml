@@ -54,7 +54,13 @@ let print_cmo_infos cu =
         List.iter print_line l);
   printf "Force link: %s\n" (if cu.cu_force_link then "YES" else "no")
 
-let rec print_approx_infos ppf approx = match approx.approx_desc with
+let rec print_approx_infos ppf approx =
+  begin match approx.approx_var with
+  | Var_unknown -> ()
+  | Var_local id -> Format.fprintf ppf "local(%a): " Ident.print id
+  | Var_global (id,n) -> Format.fprintf ppf "global(%a,%i): " Ident.print id n
+  end;
+  match approx.approx_desc with
     Value_closure{ clos_desc = fundesc; clos_approx_res = approx } ->
       Format.fprintf ppf "@[<2>function %s@ arity %i"
         fundesc.fun_label fundesc.fun_arity;
