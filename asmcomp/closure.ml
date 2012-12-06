@@ -197,6 +197,7 @@ let rec is_pure_clambda = function
      is_pure_clambda uarg &&
      List.for_all is_pure_clambda (Array.to_list uswitch.us_actions_consts) &&
      List.for_all is_pure_clambda (Array.to_list uswitch.us_actions_blocks)
+  | Uoffset _ -> true
   | _ -> false
 
 let sequence_constant_uexp ulam1 ulam2 =
@@ -570,6 +571,37 @@ let approx_ulam fenv sb = function
   | Uconst(Const_pointer n,_) -> value_constptr n
   | _ -> value_unknown
 
+(* Check if a lambda term is ``pure'',
+   that is without side-effects *and* not containing function definitions *)
+
+let rec is_pure = function
+    Lvar v -> true
+  | Lconst cst -> true
+  | Lprim((Psetglobal _ | Psetfield _ | Psetfloatfield _ | Pduprecord _ |
+           Pccall _ | Praise | Poffsetref _ | Pstringsetu | Pstringsets |
+           Parraysetu _ | Parraysets _ | Pbigarrayset _), _) -> false
+  | Lprim(p, args) -> List.for_all is_pure args
+  | Levent(lam, ev) -> is_pure lam
+  | _ -> false
+
+let is_simple_argument = function
+    Uvar _ -> true
+  | Uconst(Const_base(Const_int _ | Const_char _ | Const_float _ |
+                      Const_int32 _ | Const_int64 _ | Const_nativeint _),_) ->
+      true
+  | Uconst(Const_pointer _, _) -> true
+  | _ -> false
+
+let rec no_effects = function
+    Uclosure _ -> true
+  | Uconst(Const_base(Const_string _),_) -> true
+  | Uprim((Psetglobal _ | Psetfield _ | Psetfloatfield _ | Pduprecord _ |
+           Pccall _ | Praise | Poffsetref _ | Pstringsetu | Pstringsets |
+           Parraysetu _ | Parraysets _ | Pbigarrayset _), _, _) -> false
+  | Uconst(_, _) -> true
+  | Uprim(p, args, _) -> List.for_all no_effects args
+  | u -> is_simple_argument u
+
 let rec substitute_approx fenv sb ulam =
   match ulam with
     Uvar id ->
@@ -593,9 +625,22 @@ let rec substitute_approx fenv sb ulam =
       (* TODO: better *)
       value_unknown
   | Ugeneric_apply(fn, args, dbg) ->
-      Ugeneric_apply(substitute fenv sb fn, List.map (substitute fenv sb) args, dbg),
-      (* TODO: better *)
-      value_unknown
+      let ufunct, fun_approx = substitute_approx fenv sb fn in
+      begin match fun_approx with
+      | { approx_desc = Value_closure{ clos_desc = fundesc; clos_approx_res = approx_res } } ->
+         let nargs = List.length args in
+         if nargs = fundesc.fun_arity
+         then
+           let uargs = List.map (substitute_approx fenv sb) args in
+           let app, approx_subst = direct_apply fenv sb fundesc ufunct uargs fun_approx in
+           let approx = fuse_approx approx_subst approx_res in
+           (app, approx)
+         else Ugeneric_apply(ufunct, List.map (substitute fenv sb) args, dbg),
+              value_unknown
+      | _ ->
+         Ugeneric_apply(ufunct, List.map (substitute fenv sb) args, dbg),
+         value_unknown
+      end
   | Uclosure(defs, env) ->
       (* Question: should we rename function labels as well?  Otherwise,
          there is a risk that function labels are not globally unique.
@@ -760,25 +805,7 @@ and substitute_uswitch fenv sb arg sw =
 
 (* Perform an inline expansion *)
 
-let is_simple_argument = function
-    Uvar _ -> true
-  | Uconst(Const_base(Const_int _ | Const_char _ | Const_float _ |
-                      Const_int32 _ | Const_int64 _ | Const_nativeint _),_) ->
-      true
-  | Uconst(Const_pointer _, _) -> true
-  | _ -> false
-
-let rec no_effects = function
-    Uclosure _ -> true
-  | Uconst(Const_base(Const_string _),_) -> true
-  | Uprim((Psetglobal _ | Psetfield _ | Psetfloatfield _ | Pduprecord _ |
-           Pccall _ | Praise | Poffsetref _ | Pstringsetu | Pstringsets |
-           Parraysetu _ | Parraysets _ | Pbigarrayset _), _, _) -> false
-  | Uconst(_, _) -> true
-  | Uprim(p, args, _) -> List.for_all no_effects args
-  | u -> is_simple_argument u
-
-let rec bind_params_rec subst fenv params args body =
+and bind_params_rec subst fenv params args body =
   match (params, args) with
     ([], []) ->
     substitute_approx fenv subst body
@@ -801,27 +828,14 @@ let rec bind_params_rec subst fenv params args body =
       end
   | (_, _) -> assert false
 
-let bind_params fenv subst params args body =
+and bind_params fenv subst params args body =
   (* Reverse parameters and arguments to preserve right-to-left
      evaluation order (PR#2910). *)
   bind_params_rec subst fenv (List.rev params) (List.rev args) body
 
-(* Check if a lambda term is ``pure'',
-   that is without side-effects *and* not containing function definitions *)
-
-let rec is_pure = function
-    Lvar v -> true
-  | Lconst cst -> true
-  | Lprim((Psetglobal _ | Psetfield _ | Psetfloatfield _ | Pduprecord _ |
-           Pccall _ | Praise | Poffsetref _ | Pstringsetu | Pstringsets |
-           Parraysetu _ | Parraysets _ | Pbigarrayset _), _) -> false
-  | Lprim(p, args) -> List.for_all is_pure args
-  | Levent(lam, ev) -> is_pure lam
-  | _ -> false
-
 (* Generate a direct application *)
 
-let direct_apply fenv subst fundesc funct ufunct uargs fun_approx =
+and direct_apply fenv subst fundesc ufunct uargs fun_approx =
   let app_args =
     if fundesc.fun_closed then uargs else uargs @ [ufunct,fun_approx] in
   let app, approx =
@@ -833,7 +847,7 @@ let direct_apply fenv subst fundesc funct ufunct uargs fun_approx =
      If the function is not closed, we evaluate ufunct as part of the
      arguments.
      If the function is closed, we force the evaluation of ufunct first. *)
-  if not fundesc.fun_closed || is_pure funct
+  if not fundesc.fun_closed || is_pure_clambda ufunct
   then app, approx
   else Usequence(ufunct, app), approx
 
@@ -937,7 +951,7 @@ let rec close fenv cenv = function
             | Value_block(tag,a) -> List.combine uargs (Array.to_list a)
             | _ -> assert false
           in
-          let app, approx_subst = direct_apply fenv cenv fundesc funct ufunct uargs fun_approx in
+          let app, approx_subst = direct_apply fenv cenv fundesc ufunct uargs fun_approx in
           let approx = fuse_approx approx_subst approx_res in
           (app, approx)
       | ((ufunct, ({ approx_desc = Value_closure{ clos_desc = fundesc;
@@ -945,7 +959,7 @@ let rec close fenv cenv = function
          (uargs,approx))
         when nargs = fundesc.fun_arity ->
           let uargs = List.combine uargs approx in
-          let app, approx_subst = direct_apply fenv cenv fundesc funct ufunct uargs fun_approx in
+          let app, approx_subst = direct_apply fenv cenv fundesc ufunct uargs fun_approx in
           let approx = fuse_approx approx_subst approx_res in
           (app, approx)
 
@@ -982,7 +996,7 @@ let rec close fenv cenv = function
           let (first_approx, rem_approx) = split_list fundesc.fun_arity approx in
           let (first_args, rem_args) = split_list fundesc.fun_arity uargs in
           let first_args = List.combine first_args first_approx in
-          let app, _ = direct_apply fenv cenv fundesc funct ufunct first_args fun_approx in
+          let app, _ = direct_apply fenv cenv fundesc ufunct first_args fun_approx in
           (Ugeneric_apply(app, rem_args, Debuginfo.none),
            value_unknown)
       | ((ufunct, _), (uargs,_)) ->
