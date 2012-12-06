@@ -501,6 +501,22 @@ and fuse_approx_array ar1 ar2 =
   Array.of_list (List.map2 fuse_approx (Array.to_list ar1) (Array.to_list ar2))
 
 
+let ifnot_branch_approx (uarg,arg_approx) fenv =
+  let branch_approx = value_constptr 0 in
+  let fenv =
+    match uarg with
+    | Uvar id ->
+       Tbl.add id branch_approx fenv
+    | _ -> fenv
+  in
+  let fenv =
+    match arg_approx.approx_var with
+    | Var_local id ->
+       Tbl.add id branch_approx fenv
+    | _ -> fenv
+  in
+  fenv
+
 (* add the approximation of switch argument to the environment *)
 let switch_branch_approx (uarg,arg_approx) block index i fenv =
   let actions_index =
@@ -661,9 +677,11 @@ let rec substitute_approx fenv sb ulam =
         sequence_constant_uexp su1 ulam, approx
       | (su1, ({ approx_desc = Value_bottom } as approx)) ->
           su1, approx
-      | (su1, _) ->
+      | (su1, arg_approx) ->
           let (uifso, approxso) = substitute_approx fenv sb u2 in
-          let (uifnot, approxnot) = substitute_approx fenv sb u3 in
+          let (uifnot, approxnot) =
+            let fenv = ifnot_branch_approx (su1, arg_approx) fenv in
+            substitute_approx fenv sb u3 in
           let approx = merge_approx approxso approxnot in
           Uifthenelse(su1, uifso, uifnot), approx
       end
@@ -1119,9 +1137,11 @@ let rec close fenv cenv = function
             (close fenv cenv ifso)
       | (uarg, ({ approx_desc = Value_bottom } as approx)) ->
           uarg, approx
-      | (uarg, _ ) ->
+      | (uarg, arg_approx) ->
           let (uifso, approxso) = close fenv cenv ifso in
-          let (uifnot, approxnot) = close fenv cenv ifnot in
+          let (uifnot, approxnot) =
+            let fenv = ifnot_branch_approx (uarg, arg_approx) fenv in
+            close fenv cenv ifnot in
           let approx = merge_approx approxso approxnot in
           (Uifthenelse(uarg, uifso, uifnot), approx)
       end
