@@ -286,7 +286,7 @@ let simplif_prim_pure fenv sb p (args, approxs) dbg =
                 Uvar v, approx
              | Var_global(id,n) ->
                 Uprim(Pfield n, [getglobal id], Debuginfo.none), approx
-             | _ -> (Uprim(p, args, dbg), value_unknown)
+             | _ -> (Uprim(p, args, dbg), approx)
         else (Uprim(p, args, dbg), value_unknown)
       | _ -> (Uprim(p, args, dbg), value_unknown)
       end
