@@ -284,6 +284,7 @@ objinfo_helper$(EXE): objinfo_helper.c ../config/s.h
 
 OBJINFO=../utils/misc.cmo ../utils/config.cmo \
         ../utils/warnings.cmo ../parsing/location.cmo \
+        ../typing/ident.cmo \
         ../typing/cmi_format.cmo ../bytecomp/bytesections.cmo \
         objinfo.cmo
 

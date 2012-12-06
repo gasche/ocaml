@@ -47,11 +47,11 @@ eqparsetree.cmx : ../parsing/parsetree.cmi ../parsing/longident.cmx \
     ../parsing/location.cmx ../parsing/asttypes.cmi
 myocamlbuild_config.cmo :
 myocamlbuild_config.cmx :
-objinfo.cmo : ../utils/misc.cmi ../utils/config.cmi \
+objinfo.cmo : ../typing/ident.cmi ../utils/misc.cmi ../utils/config.cmi \
     ../asmcomp/cmx_format.cmi ../bytecomp/cmo_format.cmi \
     ../typing/cmi_format.cmi ../asmcomp/clambda.cmi \
     ../bytecomp/bytesections.cmi
-objinfo.cmx : ../utils/misc.cmx ../utils/config.cmx \
+objinfo.cmx : ../typing/ident.cmx ../utils/misc.cmx ../utils/config.cmx \
     ../asmcomp/cmx_format.cmi ../bytecomp/cmo_format.cmi \
     ../typing/cmi_format.cmx ../asmcomp/clambda.cmx \
     ../bytecomp/bytesections.cmx
