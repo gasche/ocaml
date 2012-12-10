@@ -72,7 +72,7 @@ type possible_tag = bool array
 
 type closure_approx =
     { clos_desc : function_description;
-      clos_approx_res : value_approximation;
+      mutable clos_approx_res : value_approximation;
       clos_approx_env : value_approximation array; }
 
 and value_approximation_desc =
@@ -110,27 +110,55 @@ let possible_tag ?tag () =
     | Some l -> Array.init 256 (fun j -> List.mem j l) in
   mkapprox (Value_tag tags)
 
-let rec remove_approx ?(remove_global=false) approx =
-  let clean_desc = match approx.approx_desc with
-    | Value_closure { clos_desc;
-                      clos_approx_res = approx_res;
-                      clos_approx_env = approx_env } ->
-       Value_closure { clos_desc;
-                       clos_approx_res = remove_approx ~remove_global approx_res;
-                       clos_approx_env = Array.map (remove_approx ~remove_global) approx_env }
-    | Value_block (tag, a) ->
-       Value_block (tag, Array.map (remove_approx ~remove_global) a)
-    | (Value_unknown
-      | Value_integer _
-      | Value_constptr _
-      | Value_bottom
-      | Value_tag _) as desc -> desc
+module Hash_approx = struct
+  type t = value_approximation
+  let equal = (==)
+  let hash = Hashtbl.hash
+end
+module ApproxTbl = Hashtbl.Make(Hash_approx)
+
+let rec remove_approx tbl ~remove_global approx =
+  try ApproxTbl.find tbl approx
+  with Not_found ->
+  let approx_var =
+    match approx.approx_var with
+    | Var_global _ when not remove_global -> approx.approx_var
+    | Var_global _
+    | Var_unknown
+    | Var_local _ -> Var_unknown
   in
-  match approx.approx_var with
-  | Var_global _ when not remove_global ->
-     { approx with approx_desc = clean_desc }
-  | Var_global _
-  | Var_unknown
-  | Var_local _ ->
-     { approx_desc = clean_desc;
-       approx_var = Var_unknown }
+  match approx.approx_desc with
+  | Value_closure { clos_desc;
+                    clos_approx_res = approx_res;
+                    clos_approx_env = approx_env } ->
+     let dummy = Array.map (fun _ -> value_unknown) approx_env in
+     let desc =
+       { clos_desc;
+         clos_approx_res = value_unknown;
+         clos_approx_env = dummy } in
+     let ret = { approx_var; approx_desc = Value_closure desc } in
+     ApproxTbl.add tbl approx ret;
+     Array.iteri
+       (fun i v -> dummy.(i) <- remove_approx tbl ~remove_global v)
+       approx_env;
+     desc.clos_approx_res <- remove_approx tbl ~remove_global approx_res;
+     ret
+  | Value_block (tag, a) ->
+     let dummy = Array.map (fun _ -> value_unknown) a in
+     let ret = { approx_var; approx_desc = Value_block (tag, dummy) } in
+     ApproxTbl.add tbl approx ret;
+     Array.iteri
+       (fun i v -> dummy.(i) <- remove_approx tbl ~remove_global v) a;
+     ret
+  | (Value_unknown
+    | Value_integer _
+    | Value_constptr _
+    | Value_bottom
+    | Value_tag _) as approx_desc ->
+     let ret = { approx_var; approx_desc} in
+     ApproxTbl.add tbl approx ret;
+     ret
+
+let remove_approx ?(remove_global=false) approx =
+  let tbl = ApproxTbl.create 10 in
+  remove_approx tbl ~remove_global approx
