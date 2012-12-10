@@ -46,6 +46,14 @@ let getglobal id =
   global_id_assoc := Tbl.add new_ident id !global_id_assoc;
   Uprim(Pgetglobal new_ident, [], Debuginfo.none)
 
+let add_approx_id fenv id approx =
+  match approx.approx_var with
+  | Var_local id' when Tbl.mem id' fenv -> approx
+  | Var_global _ -> approx
+  | Var_unknown
+  | Var_local _ ->
+     { approx with approx_var = Var_local id }
+
 (* Check if a variable occurs in a [clambda] term. *)
 
 let occurs_var var u =
@@ -663,7 +671,7 @@ let rec substitute_approx fenv sb ulam =
       let approx = match let_kind with
         | Variable -> value_unknown
         | _ -> approx in
-      let approx = { approx with approx_var = Var_local id' } in
+      let approx = add_approx_id fenv id' approx in
       let fenv' = Tbl.add id' approx fenv in
       let ubody,approx = substitute_approx fenv' (Tbl.add id (Uvar id') sb) u2 in
       clean_no_occur_let id' let_kind let_val ubody, approx
@@ -1009,7 +1017,7 @@ let rec close fenv cenv = function
        value_unknown)
   | Llet(str, id, lam, body) ->
       let (ulam, alam) = close_named fenv cenv id lam in
-      let alam = { alam with approx_var = Var_local id } in
+      let alam = add_approx_id fenv id alam in
       begin match (str, alam) with
         (Variable, _) ->
           let (ubody, abody) = close fenv cenv body in
