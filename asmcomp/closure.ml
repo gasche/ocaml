@@ -435,7 +435,15 @@ let rec merge_approx a1 a2 =
      (possible_tag ~tag:(tag1::tags) ()).approx_desc
   | Value_block (tag1,ar1), Value_block (tag2,ar2) ->
      if (tag1 = tag2)
-     then Value_block(tag1, merge_approx_array ar1 ar2)
+     then
+       if (Array.length ar1 = Array.length ar2)
+       then Value_block(tag1, merge_approx_array ar1 ar2)
+       else
+         (* This case can occur with polymorphic variants (and Obj.magic...) *)
+         let len = min (Array.length ar1) (Array.length ar2) in
+         let ar1 = Array.sub ar1 0 len in
+         let ar2 = Array.sub ar2 0 len in
+         Value_block(tag1, merge_approx_array ar1 ar2)
      else (possible_tag ~tag:[tag1;tag2] ()).approx_desc
   | (Value_closure _ | Value_block _ | Value_integer _
      | Value_constptr _ | Value_tag _ ), _ ->
