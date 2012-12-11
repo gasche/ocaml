@@ -254,6 +254,7 @@ let simplif_prim_pure fenv sb p (args, approxs) dbg =
             | Cle -> x <= y
             | Cge -> x >= y in
           make_const_bool result
+      | Pisout -> make_const_bool(x < y)
       | _ -> (Uprim(p, args, dbg), value_unknown)
       end
   | [{ approx_desc = Value_constptr x }] ->
@@ -276,6 +277,7 @@ let simplif_prim_pure fenv sb p (args, approxs) dbg =
       begin match p with
         Psequand -> make_const_bool(x <> 0 && y <> 0)
       | Psequor  -> make_const_bool(x <> 0 || y <> 0)
+      | Pisout -> make_const_bool(x < y)
       | _ -> (Uprim(p, args, dbg), value_unknown)
       end
   | [{ approx_desc = Value_block(_,a) }]
