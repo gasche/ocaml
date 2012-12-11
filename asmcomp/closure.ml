@@ -473,6 +473,10 @@ let rec fuse_approx a1 a2 =
   | Value_constptr i, Value_constptr j ->
      assert(i = j);
      a1.approx_desc
+  | Value_constptr i, (Value_integer j as desc)
+  | (Value_integer j as desc), Value_constptr i ->
+     (* It can happen in match with integer cases *)
+     desc
   | Value_closure c1, Value_closure c2 ->
      assert(c1.clos_desc = c2.clos_desc);
      assert(Array.length c1.clos_approx_env = Array.length c2.clos_approx_env);
@@ -778,6 +782,7 @@ and substitute_uswitch fenv sb arg sw =
   match approx.approx_desc with
   | Value_bottom ->
      uarg, approx
+  | Value_integer i
   | Value_constptr i ->
      (match sw.us_index_consts.(i) with
       | None -> assert false
@@ -1116,6 +1121,7 @@ let rec close fenv cenv = function
         match approx.approx_desc with
         | Value_bottom ->
            uarg, approx
+        | Value_integer i
         | Value_constptr i ->
            use_action i sw.sw_consts
         | Value_block (tag,_) ->
