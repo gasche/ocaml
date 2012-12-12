@@ -1400,18 +1400,30 @@ and close_switch fenv cenv cases num_keys default arg block =
 
 (* The entry point *)
 
-let rec deconstruct_makeblock = function
+(* prepare do:
+
+  deconstruct makeblocks into
+  let followed by the makeblock
+
+  let v = (e1,e2) =>
+  let block_1 = e2 in
+  let block_0 = e1 in
+  (block_0, block_1)
+
+*)
+
+let rec prepare_intro = function
     Lvar v as lam -> lam
   | Lconst cst as lam -> lam
   | Lapply(e1, el, loc) ->
-      Lapply(deconstruct_makeblock e1, List.map (deconstruct_makeblock) el, loc)
+      Lapply(prepare_intro e1, List.map (prepare_intro) el, loc)
   | Lfunction(kind, params, body) ->
-      Lfunction(kind, params, deconstruct_makeblock body)
+      Lfunction(kind, params, prepare_intro body)
   | Llet(str, v, e1, e2) ->
-      Llet(str, v, deconstruct_makeblock e1, deconstruct_makeblock e2)
+      Llet(str, v, prepare_intro e1, prepare_intro e2)
   | Lletrec(idel, e2) ->
-      Lletrec(List.map (fun (v, e) -> (v, deconstruct_makeblock e)) idel,
-              deconstruct_makeblock e2)
+      Lletrec(List.map (fun (v, e) -> (v, prepare_intro e)) idel,
+              prepare_intro e2)
   | Lprim(Pmakeblock(tag, mut) as prim, lams) as lam ->
       begin match mut with
            Mutable -> lam
@@ -1423,44 +1435,44 @@ let rec deconstruct_makeblock = function
               block_lam vars lams
       end
   | Lprim(p, el) ->
-      Lprim(p, List.map (deconstruct_makeblock) el)
+      Lprim(p, List.map (prepare_intro) el)
   | Lswitch(e, sw) ->
-      Lswitch(deconstruct_makeblock e,
+      Lswitch(prepare_intro e,
         {sw_numconsts = sw.sw_numconsts;
          sw_consts =
-            List.map (fun (n, e) -> (n, deconstruct_makeblock e)) sw.sw_consts;
+            List.map (fun (n, e) -> (n, prepare_intro e)) sw.sw_consts;
          sw_numblocks = sw.sw_numblocks;
          sw_blocks =
-            List.map (fun (n, e) -> (n, deconstruct_makeblock e)) sw.sw_blocks;
+            List.map (fun (n, e) -> (n, prepare_intro e)) sw.sw_blocks;
          sw_failaction = match sw.sw_failaction with
          | None -> None
-         | Some l -> Some (deconstruct_makeblock l)})
+         | Some l -> Some (prepare_intro l)})
   | Lstaticraise (i,args) ->
-      Lstaticraise (i,List.map (deconstruct_makeblock) args)
+      Lstaticraise (i,List.map (prepare_intro) args)
   | Lstaticcatch(e1, i, e2) ->
-      Lstaticcatch(deconstruct_makeblock e1, i, deconstruct_makeblock e2)
+      Lstaticcatch(prepare_intro e1, i, prepare_intro e2)
   | Ltrywith(e1, v, e2) ->
-      Ltrywith(deconstruct_makeblock e1, v, deconstruct_makeblock e2)
+      Ltrywith(prepare_intro e1, v, prepare_intro e2)
   | Lifthenelse(e1, e2, e3) ->
-      Lifthenelse(deconstruct_makeblock e1,
-                  deconstruct_makeblock e2,
-                  deconstruct_makeblock e3)
+      Lifthenelse(prepare_intro e1,
+                  prepare_intro e2,
+                  prepare_intro e3)
   | Lsequence(e1, e2) ->
-      Lsequence(deconstruct_makeblock e1, deconstruct_makeblock e2)
+      Lsequence(prepare_intro e1, prepare_intro e2)
   | Lwhile(e1, e2) ->
-      Lwhile(deconstruct_makeblock e1, deconstruct_makeblock e2)
+      Lwhile(prepare_intro e1, prepare_intro e2)
   | Lfor(v, e1, e2, dir, e3) ->
-      Lfor(v, deconstruct_makeblock e1, deconstruct_makeblock e2,
-           dir, deconstruct_makeblock e3)
+      Lfor(v, prepare_intro e1, prepare_intro e2,
+           dir, prepare_intro e3)
   | Lassign(v, e) ->
-      Lassign(v, deconstruct_makeblock e)
+      Lassign(v, prepare_intro e)
   | Lsend(k, m, o, el, loc) ->
-      Lsend(k, deconstruct_makeblock m, deconstruct_makeblock o,
-            List.map (deconstruct_makeblock) el, loc)
+      Lsend(k, prepare_intro m, prepare_intro o,
+            List.map (prepare_intro) el, loc)
   | Levent(l, ev) ->
-      Levent(deconstruct_makeblock l, ev)
+      Levent(prepare_intro l, ev)
   | Lifused(v, e) ->
-      Lifused(v, deconstruct_makeblock e)
+      Lifused(v, prepare_intro e)
 
 let rec let_lifting = function
     Lvar v as lam -> lam
@@ -1518,7 +1530,7 @@ let rec let_lifting = function
       Lifused(v, let_lifting e)
 
 let transform_lambda lam =
-  let lam = deconstruct_makeblock lam in
+  let lam = prepare_intro lam in
   let lam = let_lifting lam in
   lam
 
