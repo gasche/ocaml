@@ -1410,6 +1410,7 @@ and close_switch fenv cenv cases num_keys default arg block =
   let block_0 = e1 in
   (block_0, block_1)
 
+  eliminate calls to identity
 *)
 
 let rec prepare_intro = function
@@ -1434,6 +1435,8 @@ let rec prepare_intro = function
             List.fold_left2 (fun acc_lam var lam -> Llet(Strict,var,lam,acc_lam))
               block_lam vars lams
       end
+  | Lprim(Pidentity, [v]) ->
+      prepare_intro v
   | Lprim(p, el) ->
       Lprim(p, List.map (prepare_intro) el)
   | Lswitch(e, sw) ->
