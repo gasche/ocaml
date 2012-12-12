@@ -205,6 +205,8 @@ let rec is_pure_clambda = function
      is_pure_clambda uarg &&
      List.for_all is_pure_clambda (Array.to_list uswitch.us_actions_consts) &&
      List.for_all is_pure_clambda (Array.to_list uswitch.us_actions_blocks)
+  | Ulet(_,_,u1,u2)
+  | Usequence(u1,u2) -> is_pure_clambda u1 && is_pure_clambda u2
   | Uoffset _ -> true
   | _ -> false
 
@@ -604,6 +606,8 @@ let rec is_pure = function
            Parraysetu _ | Parraysets _ | Pbigarrayset _), _) -> false
   | Lprim(p, args) -> List.for_all is_pure args
   | Levent(lam, ev) -> is_pure lam
+  | Llet(_,_,v1,v2)
+  | Lsequence(v1,v2) -> is_pure v1 && is_pure v2
   | _ -> false
 
 let is_simple_argument = function
@@ -622,6 +626,8 @@ let rec no_effects = function
            Parraysetu _ | Parraysets _ | Pbigarrayset _), _, _) -> false
   | Uconst(_, _) -> true
   | Uprim(p, args, _) -> List.for_all no_effects args
+  | Ulet(_,_,u1,u2)
+  | Usequence(u1,u2) -> no_effects u1 && no_effects u2
   | u -> is_simple_argument u
 
 let rec substitute_approx fenv sb ulam =
