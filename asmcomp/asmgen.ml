@@ -54,6 +54,9 @@ let rec regalloc ppf round fd =
     Reg.reinit(); Liveness.fundecl ppf newfd; regalloc ppf (round + 1) newfd
   end else newfd
 
+let add_fundecl_live_reg fd =
+  Mach.add_register_usage fd; fd
+
 let (++) x f = f x
 
 let compile_fundecl (ppf : formatter) fd_cmm =
@@ -72,6 +75,7 @@ let compile_fundecl (ppf : formatter) fd_cmm =
   ++ pass_dump_if ppf dump_split "After live range splitting"
   ++ liveness ppf
   ++ regalloc ppf 1
+  ++ add_fundecl_live_reg
   ++ Linearize.fundecl
   ++ pass_dump_linear_if ppf dump_linear "Linearized code"
   ++ Scheduling.fundecl

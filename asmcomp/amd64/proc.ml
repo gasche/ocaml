@@ -251,8 +251,15 @@ let destroyed_at_c_call =
        100;101;102;103;104;105;106;107;
        108;109;110;111;112;113;114;115])
 
+let destroyed_at_direct_call name =
+  match Mach.register_usage name with
+  | None -> all_phys_regs
+  | Some set ->
+     Array.of_list (List.map phys_reg (IntSet.elements set))
+
 let destroyed_at_oper = function
-    Iop(Icall_ind | Icall_imm _ | Iextcall(_, true)) -> all_phys_regs
+    Iop(Icall_ind | Iextcall(_, true)) -> all_phys_regs
+  | Iop(Icall_imm name) -> destroyed_at_direct_call name
   | Iop(Iextcall(_, false)) -> destroyed_at_c_call
   | Iop(Iintop(Idiv | Imod)) -> [| rax; rdx |]
   | Iop(Istore(Single, _)) -> [| rxmm15 |]

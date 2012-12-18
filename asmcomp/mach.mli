@@ -89,3 +89,9 @@ val instr_cons_debug:
       instruction_desc -> Reg.t array -> Reg.t array -> Debuginfo.t ->
         instruction -> instruction
 val instr_iter: (instruction -> unit) -> instruction -> unit
+
+module IntSet : Set.S with type elt = int
+
+val used_registers: instruction -> IntSet.t
+val register_usage: string -> IntSet.t option
+val add_register_usage: fundecl -> unit

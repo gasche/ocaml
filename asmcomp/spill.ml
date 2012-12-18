@@ -141,12 +141,33 @@ let rec reload i before =
   | Ireturn | Iop(Itailcall_ind) | Iop(Itailcall_imm _) ->
       (add_reloads (Reg.inter_set_array before i.arg) i,
        Reg.Set.empty)
-  | Iop(Icall_ind | Icall_imm _ | Iextcall(_, true)) ->
+  | Iop(Icall_ind | Iextcall(_, true)) ->
       (* All regs live across must be spilled *)
       let (new_next, finally) = reload i.next i.live in
       (add_reloads (Reg.inter_set_array before i.arg)
                    (instr_cons_debug i.desc i.arg i.res i.dbg new_next),
        finally)
+  | Iop(Icall_imm s as op) ->
+     begin match Mach.register_usage s with
+     | None -> (* All regs live across must be spilled *)
+        let (new_next, finally) = reload i.next i.live in
+        (add_reloads (Reg.inter_set_array before i.arg)
+                     (instr_cons_debug i.desc i.arg i.res i.dbg new_next),
+         finally)
+     | Some live_set ->
+        let reg_set = Reg.set_of_array (Array.of_list (List.map Proc.phys_reg (IntSet.elements live_set))) in
+        let new_before =
+          (* Quick check to see if the register pressure is below the maximum *)
+          if IntSet.cardinal live_set <= Proc.safe_register_pressure op
+          then before
+          else add_superpressure_regs op reg_set i.res before in
+        let after =
+          Reg.diff_set_array (Reg.diff_set_array new_before i.arg) i.res in
+        let (new_next, finally) = reload i.next after in
+        (add_reloads (Reg.inter_set_array new_before i.arg)
+                     (instr_cons_debug i.desc i.arg i.res i.dbg new_next),
+         finally)
+     end
   | Iop op ->
       let new_before =
         (* Quick check to see if the register pressure is below the maximum *)
