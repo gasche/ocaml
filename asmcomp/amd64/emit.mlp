@@ -31,6 +31,26 @@ let stack_offset = ref 0
 
 (* Layout of the stack frame *)
 
+let contains_spilling_calls fd =
+  let rec aux i =
+    match i.desc with
+    | Lend -> contains_calls := false
+    | Lop(Icall_ind | Iextcall _ | Ialloc _) ->
+       contains_calls := true
+    | Lop(Icall_imm s) ->
+       begin match Mach.register_usage s with
+       | None -> contains_calls := true
+       | Some _ ->
+          let live = Reg.Set.filter (function { Reg.loc = Reg.Reg _ } -> false | _ -> true) i.live in
+          if Reg.Set.cardinal live = 0
+          then aux i.next
+          else contains_calls := true
+       end
+    | _ ->
+       aux i.next
+  in
+  aux fd.fun_body
+
 let frame_required () =
   !contains_calls || num_stack_slots.(0) > 0 || num_stack_slots.(1) > 0
 
@@ -712,6 +732,7 @@ let fundecl fundecl =
   call_gc_sites := [];
   bound_error_sites := [];
   bound_error_call := 0;
+  contains_spilling_calls fundecl;
   `	.text\n`;
   emit_align 16;
   if macosx
