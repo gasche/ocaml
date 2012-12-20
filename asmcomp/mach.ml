@@ -129,8 +129,6 @@ let rec instr_iter f i =
       | _ ->
           instr_iter f i.next
 
-exception All_regs
-
 module Int = struct
   type t = int
   let compare x y = x - y
@@ -138,49 +136,11 @@ end
 module IntSet = Set.Make(Int)
 
 let register_usage_table = Hashtbl.create 0
+let set_register_usage f r =
+  Hashtbl.add register_usage_table f.fun_name (r:IntSet.t)
 let register_usage s =
   try
     Some (Hashtbl.find register_usage_table s)
   with
   | Not_found ->
      None
-
-let used_registers f =
-  let set = ref IntSet.empty in
-  let pysical_set set pset = Reg.Set.fold
-    (fun reg pset -> match reg with
-    | { Reg.loc = Reg.Reg i } -> IntSet.add i pset
-    | _ -> pset) set pset in
-  let instr_registers i pset =
-    let pset = pysical_set i.live pset in
-    let pset = pysical_set (Reg.set_of_array i.arg) pset in
-    let pset = pysical_set (Reg.set_of_array i.res) pset in
-    let call_registers =
-      match i.desc with
-      | Iop( Icall_ind | Itailcall_ind |
-             Iextcall _ ) ->
-         (* In fact not all registers are lost when doing extcall
-            (like on windows) see proc.ml
-            (this is sufficient for my quick and dirty hack) *)
-         raise All_regs
-      | Iop( Icall_imm s | Itailcall_imm s) ->
-         if s = f.fun_name
-         then pset
-         else
-           begin match register_usage s with
-                 | None -> raise All_regs
-                 | Some s -> IntSet.union s pset
-           end
-      | _ -> pset
-    in
-    call_registers
-  in
-  instr_iter (fun i -> set := instr_registers i !set) f.fun_body;
-  !set
-
-let add_register_usage f =
-  try
-    let r = used_registers f in
-    Hashtbl.add register_usage_table f.fun_name r
-  with
-  | All_regs -> ()

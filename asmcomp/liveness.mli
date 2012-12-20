@@ -16,3 +16,5 @@
 open Format
 
 val fundecl: formatter -> Mach.fundecl -> unit
+
+val used_registers: Mach.fundecl -> Mach.IntSet.t option

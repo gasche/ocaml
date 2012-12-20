@@ -55,7 +55,11 @@ let rec regalloc ppf round fd =
   end else newfd
 
 let add_fundecl_live_reg fd =
-  Mach.add_register_usage fd; fd
+  (match Liveness.used_registers fd with
+   | None -> ()
+   | Some r ->
+      Mach.set_register_usage fd r);
+  fd
 
 let (++) x f = f x
 

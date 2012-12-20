@@ -116,3 +116,44 @@ let fundecl ppf f =
     Format.fprintf ppf "%a@." Printmach.regset wrong_live;
     Misc.fatal_error "Liveness.fundecl"
   end
+
+
+(* why not here ? *)
+exception All_regs
+
+let used_registers f =
+  let set = ref IntSet.empty in
+  let pysical_set set pset = Reg.Set.fold
+    (fun reg pset -> match reg with
+    | { Reg.loc = Reg.Reg i } -> IntSet.add i pset
+    | _ -> pset) set pset in
+  let instr_registers i pset =
+    let destroyed = Proc.destroyed_at_oper i.desc in
+    let pset = pysical_set (Reg.set_of_array destroyed) pset in
+    let pset = pysical_set (Reg.set_of_array i.res) pset in
+    let call_registers =
+      match i.desc with
+      | Iop( Icall_ind | Itailcall_ind |
+             Iextcall _ ) ->
+         (* In fact not all registers are lost when doing extcall
+            (like on windows) see proc.ml
+            (this is sufficient for my quick and dirty hack) *)
+         raise All_regs
+      | Iop( Icall_imm s | Itailcall_imm s) ->
+         if s = f.fun_name
+         then pset
+         else
+           begin match register_usage s with
+                 | None -> raise All_regs
+                 | Some s -> IntSet.union s pset
+           end
+      | _ -> pset
+    in
+    call_registers
+  in
+  instr_iter (fun i -> set := instr_registers i !set) f.fun_body;
+  !set
+
+let used_registers f =
+  try Some (used_registers f) with
+  | All_regs -> None
