@@ -145,7 +145,7 @@ let register_usage s =
   | Not_found ->
      None
 
-let used_registers i =
+let used_registers f =
   let set = ref IntSet.empty in
   let pysical_set set pset = Reg.Set.fold
     (fun reg pset -> match reg with
@@ -164,20 +164,23 @@ let used_registers i =
             (this is sufficient for my quick and dirty hack) *)
          raise All_regs
       | Iop( Icall_imm s | Itailcall_imm s) ->
-         begin match register_usage s with
-               | None -> raise All_regs
-               | Some s -> IntSet.union s pset
-         end
+         if s = f.fun_name
+         then pset
+         else
+           begin match register_usage s with
+                 | None -> raise All_regs
+                 | Some s -> IntSet.union s pset
+           end
       | _ -> pset
     in
     call_registers
   in
-  instr_iter (fun i -> set := instr_registers i !set) i;
+  instr_iter (fun i -> set := instr_registers i !set) f.fun_body;
   !set
 
 let add_register_usage f =
   try
-    let r = used_registers f.fun_body in
+    let r = used_registers f in
     Hashtbl.add register_usage_table f.fun_name r
   with
   | All_regs -> ()

@@ -92,6 +92,6 @@ val instr_iter: (instruction -> unit) -> instruction -> unit
 
 module IntSet : Set.S with type elt = int
 
-val used_registers: instruction -> IntSet.t
+val used_registers: fundecl -> IntSet.t
 val register_usage: string -> IntSet.t option
 val add_register_usage: fundecl -> unit
