@@ -630,13 +630,35 @@ and transl_exp0 e =
   | Texp_let(rec_flag, pat_expr_list, body) ->
       transl_let rec_flag pat_expr_list (event_before body (transl_exp body))
   | Texp_function (_, pat_expr_list, partial) ->
-      let ((f_kind, f_params), f_body) =
+      let ((f_kind, params, return_type), f_body) =
         event_function e
           (function repr ->
             let pl = push_defaults e.exp_loc [] pat_expr_list partial in
-            transl_function e.exp_loc !Clflags.native_code repr partial pl)
+            transl_function e.exp_loc !Clflags.native_code repr partial e.exp_type pl)
       in
-      Lfunction{f_kind; f_params; f_body}
+      let type_kind t = match (Btype.repr t).desc with
+        | Tconstr (path, [], _) when Path.same path Predef.path_float ->
+           Vfloat
+        | Tconstr (path, [], _) when Path.same path Predef.path_nativeint ->
+           Vbint Pnativeint
+        | Tconstr (path, [], _) when Path.same path Predef.path_int32 ->
+           Vbint Pint32
+        | Tconstr (path, [], _) when Path.same path Predef.path_int64 ->
+           Vbint Pint64
+        | Tconstr (path, [], _) when Path.same path Predef.path_int ->
+           Vint
+        | _ ->
+           Vaddr
+      in
+      let f_return = match return_type with
+        | None -> Vaddr
+        | Some return_type -> type_kind return_type
+      in
+      let f_params, params_types = List.split params in
+      let f_params_kind = List.map (function
+        | None -> Vaddr
+        | Some t -> type_kind t) params_types in
+      Lfunction{f_kind; f_return; f_params; f_params_kind; f_body}
   | Texp_apply({exp_desc = Texp_ident(path, _, {val_kind = Val_prim p})}, oargs)
     when List.length oargs >= p.prim_arity
     && List.for_all (fun (_, arg,_) -> arg <> None) oargs ->
@@ -930,35 +952,47 @@ and transl_apply lam sargs loc =
   in
   build_apply lam [] (List.map (fun (l, x,o) -> may_map transl_exp x, o) sargs)
 
-and transl_function loc untuplify_fn repr partial pat_expr_list =
+and transl_function loc untuplify_fn repr partial exp_type pat_expr_list =
+  let return_type = match (Btype.repr exp_type).desc with
+    | Tarrow (_,_,t,_) -> Some t
+    | _ -> None
+    (* XXX Verify that this case can't happen.
+       For instance is it possible to have a variable here ? *)
+  in
   match pat_expr_list with
-    [pat, ({exp_desc = Texp_function(_, pl,partial')} as exp)]
+    [pat, ({exp_desc = Texp_function(_, pl,partial'); exp_type} as exp)]
     when Parmatch.fluid pat ->
       let param = name_pattern "param" pat_expr_list in
-      let ((_, params), body) =
-        transl_function exp.exp_loc false repr partial' pl in
-      ((Curried, param :: params),
+      let param_type = pat.pat_type in
+      let ((_, params, return_type'), body) =
+        transl_function exp.exp_loc false repr partial' exp_type pl in
+      ((Curried, (param, Some param_type) :: params ,return_type'),
        Matching.for_function loc None (Lvar param) [pat, body] partial)
-  | ({pat_desc = Tpat_tuple pl}, _) :: _ when untuplify_fn ->
+  | ({pat_desc = Tpat_tuple pl} as pat, _) :: _ when untuplify_fn ->
       begin try
         let size = List.length pl in
         let pats_expr_list =
           List.map
             (fun (pat, expr) -> (Matching.flatten_pattern size pat, expr))
             pat_expr_list in
-        let params = List.map (fun p -> Ident.create "param") pl in
-        ((Tupled, params),
-         Matching.for_tupled_function loc params
+        let params = List.map (fun p -> Ident.create "param", Some p.pat_type ) pl in
+        ((Tupled, params, return_type),
+         Matching.for_tupled_function loc (List.map fst params)
            (transl_tupled_cases pats_expr_list) partial)
       with Matching.Cannot_flatten ->
         let param = name_pattern "param" pat_expr_list in
-        ((Curried, [param]),
+        ((Curried, [param, Some pat.pat_type], return_type),
          Matching.for_function loc repr (Lvar param)
            (transl_cases pat_expr_list) partial)
       end
-  | _ ->
+  | (pat,_)::_ ->
       let param = name_pattern "param" pat_expr_list in
-      ((Curried, [param]),
+      ((Curried, [param, Some pat.pat_type], return_type),
+       Matching.for_function loc repr (Lvar param)
+         (transl_cases pat_expr_list) partial)
+  | [] ->
+      let param = name_pattern "param" pat_expr_list in
+      ((Curried, [param, None], None),
        Matching.for_function loc repr (Lvar param)
          (transl_cases pat_expr_list) partial)
 

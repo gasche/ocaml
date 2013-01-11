@@ -161,6 +161,8 @@ type meth_kind = Self | Public | Cached
 
 type shared_code = (int * int) list     (* stack size -> code label *)
 
+type value_kind = Vaddr | Vfloat | Vint | Vbint of boxed_integer
+
 type lambda =
     Lvar of Ident.t
   | Lconst of structured_constant
@@ -185,6 +187,8 @@ type lambda =
 and lambda_function =
   { f_kind : function_kind;
     f_params : Ident.t list;
+    f_params_kind : value_kind list;
+    f_return : value_kind;
     f_body : lambda; }
 
 and lambda_switch =
@@ -224,7 +228,8 @@ val bind : let_kind -> Ident.t -> lambda -> lambda -> lambda
 val commute_comparison : comparison -> comparison
 val negate_comparison : comparison -> comparison
 
-val lfun : Ident.t list -> lambda -> lambda
+val lfun : ?kind:function_kind -> Ident.t list -> lambda -> lambda
+val lfun_add_param : lambda_function -> Ident.t -> lambda_function
 
 (***********************)
 (* For static failures *)

@@ -152,6 +152,8 @@ type meth_kind = Self | Public | Cached
 
 type shared_code = (int * int) list
 
+type value_kind = Vaddr | Vfloat | Vint | Vbint of boxed_integer
+
 type lambda =
     Lvar of Ident.t
   | Lconst of structured_constant
@@ -176,6 +178,8 @@ type lambda =
 and lambda_function =
   { f_kind : function_kind;
     f_params : Ident.t list;
+    f_params_kind : value_kind list;
+    f_return : value_kind;
     f_body : lambda; }
 
 and lambda_switch =
@@ -459,4 +463,15 @@ and negate_comparison = function
 | Clt -> Cge | Cle -> Cgt
 | Cgt -> Cle | Cge -> Clt
 
-let lfun f_params f_body = Lfunction {f_kind = Curried; f_params; f_body}
+let lfun ?(kind=Curried) f_params f_body =
+  Lfunction
+    { f_kind = kind;
+      f_return = Vaddr;
+      f_params;
+      f_params_kind = List.map (fun _ -> Vaddr) f_params;
+      f_body }
+
+let lfun_add_param func id_arg =
+    { func with
+      f_params = id_arg::func.f_params;
+      f_params_kind = Vaddr::func.f_params_kind }
