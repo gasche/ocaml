@@ -365,7 +365,7 @@ let no_effects = function
 let rec bind_params_rec subst params args body =
   match (params, args) with
     ([], []) -> substitute subst body
-  | (p1 :: pl, a1 :: al) ->
+  | ((p1, _) :: pl, a1 :: al) ->
       if is_simple_argument a1 then
         bind_params_rec (Tbl.add p1 a1 subst) pl al body
       else begin
@@ -403,7 +403,7 @@ let direct_apply fundesc funct ufunct uargs =
     if fundesc.fun_closed then uargs else uargs @ [ufunct] in
   let app =
     match fundesc.fun_inline with
-      None -> Udirect_apply(fundesc.fun_label, app_args, Debuginfo.none)
+      None -> Udirect_apply(fundesc, app_args, Debuginfo.none)
     | Some(params, body) -> bind_params params app_args body in
   (* If ufunct can contain side-effects or function definitions,
      we must make sure that it is evaluated exactly once.
@@ -503,7 +503,7 @@ let rec close fenv cenv = function
       | Const_pointer n -> (Uconst (cst, None), Value_constptr n)
       | _ -> (Uconst (cst, Some (Compilenv.new_structured_constant cst true)), Value_unknown)
       end
-  | Lfunction(kind, params, body) as funct ->
+  | Lfunction{ f_kind; f_params; f_body } as funct ->
       close_one_function fenv cenv (Ident.create "fun") funct
 
     (* We convert [f a] to [let a' = a in fun b c -> f a' b c]
@@ -539,8 +539,7 @@ let rec close fenv cenv = function
           @ (List.map (fun arg -> Lvar arg ) final_args)
         in
         let (new_fun, approx) = close fenv cenv
-          (Lfunction(
-            Curried, final_args, Lapply(funct, internal_args, loc)))
+          (lfun final_args (Lapply(funct, internal_args, loc)))
         in
         let new_fun = iter first_args new_fun in
         (new_fun, approx)
@@ -574,7 +573,7 @@ let rec close fenv cenv = function
       end
   | Lletrec(defs, body) ->
       if List.for_all
-           (function (id, Lfunction(_, _, _)) -> true | _ -> false)
+           (function (id, Lfunction _) -> true | _ -> false)
            defs
       then begin
         (* Simple case: only function definitions *)
@@ -705,7 +704,7 @@ and close_list_approx fenv cenv = function
       (ulam :: ulams, approx :: approxs)
 
 and close_named fenv cenv id = function
-    Lfunction(kind, params, body) as funct ->
+    Lfunction _ as funct ->
       close_one_function fenv cenv id funct
   | lam ->
       close fenv cenv lam
@@ -726,15 +725,15 @@ and close_functions fenv cenv fun_defs =
   let uncurried_defs =
     List.map
       (function
-          (id, Lfunction(kind, params, body)) ->
+          (id, Lfunction{ f_kind; f_params; f_body }) ->
             let label = Compilenv.make_symbol (Some (Ident.unique_name id)) in
-            let arity = List.length params in
+            let arity = List.length f_params in
             let fundesc =
               {fun_label = label;
-               fun_arity = (if kind = Tupled then -arity else arity);
+               fun_arity = (if f_kind = Tupled then -arity else arity);
                fun_closed = initially_closed;
                fun_inline = None } in
-            (id, params, body, fundesc)
+            (id, f_params, f_body, fundesc)
         | (_, _) -> fatal_error "Closure.close_functions")
       fun_defs in
   (* Build an approximate fenv for compiling the functions *)

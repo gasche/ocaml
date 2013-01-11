@@ -27,14 +27,14 @@ let rec lam ppf = function
   | Udirect_apply(f, largs, _) ->
       let lams ppf largs =
         List.iter (fun l -> fprintf ppf "@ %a" lam l) largs in
-      fprintf ppf "@[<2>(apply*@ %s %a)@]" f lams largs
+      fprintf ppf "@[<2>(apply*@ %s %a)@]" f.fun_label lams largs
   | Ugeneric_apply(lfun, largs, _) ->
       let lams ppf largs =
         List.iter (fun l -> fprintf ppf "@ %a" lam l) largs in
       fprintf ppf "@[<2>(apply@ %a%a)@]" lam lfun lams largs
   | Uclosure(clos, fv) ->
       let idents ppf =
-        List.iter (fprintf ppf "@ %a" Ident.print)in
+        List.iter (fun (id,typ) -> fprintf ppf "@ %a" Ident.print id)in
       let one_fun ppf f =
         fprintf ppf "(fun@ %s@ %d @[<2>%a@] @[<2>%a@])"
           f.label f.arity idents f.params lam f.body in

@@ -21,7 +21,7 @@ type function_label = string
 type ulambda =
     Uvar of Ident.t
   | Uconst of structured_constant * string option
-  | Udirect_apply of function_label * ulambda list * Debuginfo.t
+  | Udirect_apply of function_description * ulambda list * Debuginfo.t
   | Ugeneric_apply of ulambda * ulambda list * Debuginfo.t
   | Uclosure of ufunction list * ulambda list
   | Uoffset of ulambda * int
@@ -55,7 +55,7 @@ and ulambda_switch =
 
 (* Description of known functions *)
 
-type function_description =
+and function_description =
   { fun_label: function_label;          (* Label of direct entry point *)
     fun_arity: int;                     (* Number of arguments *)
     mutable fun_closed: bool;           (* True if environment not used *)
