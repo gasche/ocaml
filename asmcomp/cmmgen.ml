@@ -21,6 +21,14 @@ open Clambda
 open Cmm
 open Cmx_format
 
+module IdentMap =
+  Map.Make(struct
+            type t = Ident.t
+            let compare = compare
+          end)
+
+let type_context = ref None
+
 (* Local binding of complex expressions *)
 
 let bind name arg fn =
@@ -978,6 +986,13 @@ let is_unboxed_number = function
         | Pbbswap bi -> Boxed_integer bi
         | _ -> No_unboxing
       end
+  | Udirect_apply (desc,_,_) ->
+    begin match desc.fun_return with
+    | Vfloat -> Boxed_float
+    | Vbint bi -> Boxed_integer bi
+    | Vint
+    | Vaddr -> No_unboxing
+    end
   | _ -> No_unboxing
 
 let subst_boxed_number unbox_fn boxed_id unboxed_id exp =
@@ -1015,9 +1030,21 @@ let subst_boxed_number unbox_fn boxed_id unboxed_id exp =
 
 let functions = (Queue.create() : ufunction Queue.t)
 
+let direct_label label = label ^ "_direct"
+
+let var_kind id =
+  match !type_context with
+  | None -> Vaddr
+  | Some map ->
+    try IdentMap.find id map with Not_found -> Vaddr
+
 let rec transl = function
     Uvar id ->
-      Cvar id
+    begin match var_kind id with
+    | Vaddr -> Cvar id
+    | Vint -> tag_int (Cvar id)
+    | Vfloat -> box_float (Cvar id)
+    | Vbint bi -> box_int bi (Cvar id) end
   | Uconst (sc, Some const_label) ->
       Cconst_symbol const_label
   | Uconst (sc, None) ->
@@ -1054,8 +1081,27 @@ let rec transl = function
   | Uoffset(arg, offset) ->
       field_address (transl arg) offset
   | Udirect_apply(fundesc, args, dbg) ->
-      Cop(Capply(typ_addr, dbg),
-          Cconst_symbol fundesc.fun_label :: List.map transl args)
+     let args = List.map transl args in
+     let rec unbox_args params args = match params, args with
+       | [], [] -> []
+       | [], [arg] -> [arg] (* the environment *)
+       | (_,Vaddr)::q1, arg::q2 -> arg::(unbox_args q1 q2)
+       | (_,Vfloat)::q1, arg::q2 -> (unbox_float arg)::(unbox_args q1 q2)
+       | (_,Vbint bi)::q1, arg::q2 -> (unbox_int bi arg)::(unbox_args q1 q2)
+       | (_,Vint)::q1, arg::q2 -> (untag_int arg)::(unbox_args q1 q2)
+       | _, _ -> assert false in
+     let args' = unbox_args fundesc.fun_params args in
+     let fun_label =
+       if Specialisation.specialised' fundesc
+       then direct_label fundesc.fun_label
+       else fundesc.fun_label in
+     let arg = Cconst_symbol fun_label :: args' in
+     begin match fundesc.fun_return with
+         Vaddr -> Cop(Capply(typ_addr, dbg), arg)
+       | Vint -> tag_int (Cop(Capply(typ_int, dbg), arg))
+       | Vbint bi -> box_int bi (Cop(Capply(typ_int, dbg), arg))
+       | Vfloat -> box_float (Cop(Capply(typ_float, dbg), arg))
+     end
   | Ugeneric_apply(clos, [arg], dbg) ->
       bind "fun" (transl clos) (fun clos ->
         Cop(Capply(typ_addr, dbg), [get_field clos 0; transl arg; clos]))
@@ -1889,12 +1935,55 @@ and transl_letrec bindings cont =
 
 (* Translate a function definition *)
 
+let with_context c f x =
+  type_context := Some c;
+  let r = f x in
+  type_context := None;
+  r
+
+(* TODO: estimate wether direct or indirect version of a function can
+   be used to remove unused ones *)
 let transl_function f =
-  Cfunction {fun_name = f.label;
-             fun_args = List.map (fun id -> (id, typ_addr)) f.params;
-             fun_body = transl f.body;
-             fun_fast = !Clflags.optimize_for_speed;
-             fun_dbg  = f.dbg; }
+  let transl_function' direct f =
+    Cfunction {
+      fun_name =
+        if direct
+        then direct_label f.label
+        else f.label;
+      fun_args =
+        if direct
+        then List.map (function
+          | (id, Vaddr) -> (id, typ_addr)
+          | (id, Vint) -> (id, typ_int)
+          | (id, Vbint _) -> (id, typ_int)
+          | (id, Vfloat) -> (id, typ_float)) f.params
+        else List.map (fun (id, _) -> (id, typ_addr)) f.params;
+      fun_body = begin
+        let context =
+          if direct
+          then
+            List.fold_left (fun map (id,kind) -> IdentMap.add id kind map)
+              IdentMap.empty f.params
+          else
+            IdentMap.empty in
+        let cmm_body = with_context context transl f.body in
+        if direct
+        then match f.return with
+        | Vfloat -> unbox_float cmm_body
+        | Vbint bi -> unbox_int bi cmm_body
+        | Vint -> untag_int cmm_body
+        | Vaddr -> cmm_body
+        else cmm_body
+      end;
+      fun_fast = !Clflags.optimize_for_speed;
+      fun_dbg  = f.dbg; } in
+  let generic_body = transl_function' false f in
+  if Specialisation.specialised f
+  then
+    let direct_body = transl_function' true f in
+    [direct_body; generic_body]
+  else
+    [generic_body]
 
 (* Translate all function definitions *)
 
@@ -1912,7 +2001,7 @@ let rec transl_all_functions already_translated cont =
     else begin
       transl_all_functions
         (StringSet.add f.label already_translated)
-        (transl_function f :: cont)
+        (transl_function f @ cont)
     end
   with Queue.Empty ->
     cont
