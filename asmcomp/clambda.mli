@@ -18,6 +18,8 @@ open Lambda
 
 type function_label = string
 
+type param = Ident.t * value_kind
+
 type ulambda =
     Uvar of Ident.t
   | Uconst of structured_constant * string option
@@ -42,7 +44,8 @@ type ulambda =
 and ufunction = {
   label  : function_label;
   arity  : int;
-  params : Ident.t list;
+  mutable params : param list;
+  mutable return : value_kind;
   body   : ulambda;
   dbg    : Debuginfo.t;
 }
@@ -58,8 +61,11 @@ and ulambda_switch =
 and function_description =
   { fun_label: function_label;          (* Label of direct entry point *)
     fun_arity: int;                     (* Number of arguments *)
+    mutable fun_params: param list;     (* How the parameters are passed *)
+    mutable fun_return: value_kind;     (* How return value is passed *)
+    mutable fun_specialisation_done : bool;
     mutable fun_closed: bool;           (* True if environment not used *)
-    mutable fun_inline: (Ident.t list * ulambda) option }
+    mutable fun_inline: (param list * ulambda) option }
 
 (* Approximation of values *)
 

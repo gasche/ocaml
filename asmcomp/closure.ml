@@ -493,6 +493,8 @@ let close_approx_var fenv cenv id =
 let close_var fenv cenv id =
   let (ulam, app) = close_approx_var fenv cenv id in ulam
 
+let module_functions = ref []
+
 let rec close fenv cenv = function
     Lvar id ->
       close_approx_var fenv cenv id
@@ -721,32 +723,45 @@ and close_functions fenv cenv fun_defs =
     IdentSet.elements (free_variables (Lletrec(fun_defs, lambda_unit))) in
   (* Build the function descriptors for the functions.
      Initially all functions are assumed not to need their environment
-     parameter. *)
+     parameter.
+     Functions taking parameters of type float are first assumed to be
+     possible to do direct call them specialising this parameter: not boxing.
+     later when all constraints are known, the parameters that can't be passed
+     unboxed are removed *)
   let uncurried_defs =
     List.map
       (function
-          (id, Lfunction{ f_kind; f_params; f_body }) ->
+          (id, Lfunction{ f_kind; f_params; f_params_kind; f_body; f_return }) ->
             let label = Compilenv.make_symbol (Some (Ident.unique_name id)) in
             let arity = List.length f_params in
+            let rec map_kind id kind = match id,kind with
+              | [], [] -> []
+              | [], _ -> assert false (* possible ? *)
+              | id::q, [] -> (id,Vaddr) :: (map_kind q [])
+              | id::q1, kind::q2 -> (id,kind) :: (map_kind q1 q2)
+            in
             let fundesc =
               {fun_label = label;
                fun_arity = (if f_kind = Tupled then -arity else arity);
+               fun_params = map_kind f_params f_params_kind;
+               fun_return = f_return;
+               fun_specialisation_done = false;
                fun_closed = initially_closed;
                fun_inline = None } in
-            (id, f_params, f_body, fundesc)
+            (id, f_body, fundesc)
         | (_, _) -> fatal_error "Closure.close_functions")
       fun_defs in
   (* Build an approximate fenv for compiling the functions *)
   let fenv_rec =
     List.fold_right
-      (fun (id, params, body, fundesc) fenv ->
+      (fun (id, body, fundesc) fenv ->
         Tbl.add id (Value_closure(fundesc, Value_unknown)) fenv)
       uncurried_defs fenv in
   (* Determine the offsets of each function's closure in the shared block *)
   let env_pos = ref (-1) in
   let clos_offsets =
     List.map
-      (fun (id, params, body, fundesc) ->
+      (fun (id, body, fundesc) ->
         let pos = !env_pos + 1 in
         env_pos := !env_pos + 1 + (if fundesc.fun_arity <> 1 then 3 else 2);
         pos)
@@ -756,7 +771,7 @@ and close_functions fenv cenv fun_defs =
      does not use its environment parameter is invalidated. *)
   let useless_env = ref initially_closed in
   (* Translate each function definition *)
-  let clos_fundef (id, params, body, fundesc) env_pos =
+  let clos_fundef (id, body, fundesc) env_pos =
     let dbg = match body with
       | Levent (_,({lev_kind=Lev_function} as ev)) -> Debuginfo.from_call ev
       | _ -> Debuginfo.none in
@@ -765,18 +780,23 @@ and close_functions fenv cenv fun_defs =
       build_closure_env env_param (fv_pos - env_pos) fv in
     let cenv_body =
       List.fold_right2
-        (fun (id, params, arity, body) pos env ->
+        (fun (id, arity, body) pos env ->
           Tbl.add id (Uoffset(Uvar env_param, pos - env_pos)) env)
         uncurried_defs clos_offsets cenv_fv in
     let (ubody, approx) = close fenv_rec cenv_body body in
     if !useless_env && occurs_var env_param ubody then useless_env := false;
-    let fun_params = if !useless_env then params else params @ [env_param] in
-    ({ label  = fundesc.fun_label;
-       arity  = fundesc.fun_arity;
-       params = fun_params;
-       body   = ubody;
-       dbg },
-     (id, env_pos, Value_closure(fundesc, approx))) in
+    let fun_params = if !useless_env
+                     then fundesc.fun_params
+                     else fundesc.fun_params @ [env_param, Vaddr] in
+    let clos =
+      { label  = fundesc.fun_label;
+        arity  = fundesc.fun_arity;
+        params = fun_params;
+        return = fundesc.fun_return;
+        body   = ubody;
+        dbg } in
+    module_functions := (clos,fundesc) :: !module_functions;
+    (clos, (id, env_pos, Value_closure (fundesc, approx))) in
   (* Translate all function definitions. *)
   let clos_info_list =
     if initially_closed then begin
@@ -786,7 +806,7 @@ and close_functions fenv cenv fun_defs =
          recompile *)
       if !useless_env then cl else begin
         List.iter
-          (fun (id, params, body, fundesc) -> fundesc.fun_closed <- false)
+          (fun (id, body, fundesc) -> fundesc.fun_closed <- false)
           uncurried_defs;
         List.map2 clos_fundef uncurried_defs clos_offsets
       end
@@ -796,6 +816,7 @@ and close_functions fenv cenv fun_defs =
     in
   (* Update nesting depth *)
   decr function_nesting_depth;
+
   (* Return the Uclosure node and the list of all identifiers defined,
      with offsets and approximations. *)
   let (clos, infos) = List.split clos_info_list in
@@ -842,7 +863,6 @@ and close_switch fenv cenv cases num_keys default =
   | [| |] -> [| |], [| |] (* May happen when default is None *)
   | _     -> index, actions
 
-
 (* The entry point *)
 
 let intro size lam =
@@ -850,5 +870,7 @@ let intro size lam =
   global_approx := Array.create size Value_unknown;
   Compilenv.set_global_approx(Value_tuple !global_approx);
   let (ulam, approx) = close Tbl.empty Tbl.empty lam in
+  Specialisation.function_constraints !module_functions;
+  module_functions := [];
   global_approx := [||];
   ulam
