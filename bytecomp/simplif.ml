@@ -26,7 +26,7 @@ let rec eliminate_ref id = function
   | Lconst cst as lam -> lam
   | Lapply(e1, el, loc) ->
       Lapply(eliminate_ref id e1, List.map (eliminate_ref id) el, loc)
-  | Lfunction(kind, params, body) as lam ->
+  | Lfunction _ as lam ->
       if IdentSet.mem id (free_variables lam)
       then raise Real_reference
       else lam
@@ -103,7 +103,7 @@ let simplify_exits lam =
   let rec count = function
   | (Lvar _| Lconst _) -> ()
   | Lapply(l1, ll, _) -> count l1; List.iter count ll
-  | Lfunction(kind, params, l) -> count l
+  | Lfunction{ f_body } -> count f_body
   | Llet(str, v, l1, l2) ->
       count l2; count l1
   | Lletrec(bindings, body) ->
@@ -184,7 +184,7 @@ let simplify_exits lam =
   let rec simplif = function
   | (Lvar _|Lconst _) as l -> l
   | Lapply(l1, ll, loc) -> Lapply(simplif l1, List.map simplif ll, loc)
-  | Lfunction(kind, params, l) -> Lfunction(kind, params, simplif l)
+  | Lfunction({ f_body } as func) -> Lfunction{ func with f_body = simplif f_body }
   | Llet(kind, v, l1, l2) -> Llet(kind, v, simplif l1, simplif l2)
   | Lletrec(bindings, body) ->
       Lletrec(List.map (fun (v, l) -> (v, simplif l)) bindings, simplif body)
@@ -332,16 +332,17 @@ let simplify_lets lam =
   | Lconst cst -> ()
   | Lvar v ->
       use_var bv v 1
-  | Lapply(Lfunction(Curried, params, body), args, _)
+  | Lapply(Lfunction{ f_kind = Curried; f_params = params; f_body = body }, args, _)
     when optimize && List.length params = List.length args ->
       count bv (beta_reduce params body args)
-  | Lapply(Lfunction(Tupled, params, body), [Lprim(Pmakeblock _, args)], _)
+  | Lapply(Lfunction{ f_kind = Tupled; f_params = params; f_body = body },
+           [Lprim(Pmakeblock _, args)], _)
     when optimize && List.length params = List.length args ->
       count bv (beta_reduce params body args)
   | Lapply(l1, ll, _) ->
       count bv l1; List.iter (count bv) ll
-  | Lfunction(kind, params, l) ->
-      count Tbl.empty l
+  | Lfunction{ f_body } ->
+      count Tbl.empty f_body
   | Llet(str, v, Lvar w, l2) when optimize ->
       (* v will be replaced by w in l2, so each occurrence of v in l2
          increases w's refcount *)
@@ -413,14 +414,15 @@ let simplify_lets lam =
         l
       end
   | Lconst cst as l -> l
-  | Lapply(Lfunction(Curried, params, body), args, _)
-    when optimize && List.length params = List.length args ->
-      simplif (beta_reduce params body args)
-  | Lapply(Lfunction(Tupled, params, body), [Lprim(Pmakeblock _, args)], _)
-    when optimize && List.length params = List.length args ->
-      simplif (beta_reduce params body args)
+  | Lapply(Lfunction{ f_kind = Curried; f_params; f_body }, args, _)
+    when optimize && List.length f_params = List.length args ->
+      simplif (beta_reduce f_params f_body args)
+  | Lapply(Lfunction{ f_kind = Tupled; f_params; f_body },
+           [Lprim(Pmakeblock _, args)], _)
+    when optimize && List.length f_params = List.length args ->
+      simplif (beta_reduce f_params f_body args)
   | Lapply(l1, ll, loc) -> Lapply(simplif l1, List.map simplif ll, loc)
-  | Lfunction(kind, params, l) -> Lfunction(kind, params, simplif l)
+  | Lfunction({ f_body } as func) -> Lfunction{func with f_body = simplif f_body}
   | Llet(str, v, Lvar w, l2) when optimize ->
       Hashtbl.add subst v (simplif (Lvar w));
       simplif l2
@@ -499,8 +501,8 @@ let rec emit_tail_infos is_tail lambda =
   | Lapply (func, l, loc) ->
       list_emit_tail_infos false l;
       Stypes.record (Stypes.An_call (loc, call_kind l))
-  | Lfunction (_, _, lam) ->
-      emit_tail_infos true lam
+  | Lfunction { f_body } ->
+      emit_tail_infos true f_body
   | Llet (_, _, lam, body) ->
       emit_tail_infos false lam;
       emit_tail_infos is_tail body

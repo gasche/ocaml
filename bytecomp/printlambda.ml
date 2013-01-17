@@ -239,7 +239,7 @@ let rec lam ppf = function
       let lams ppf largs =
         List.iter (fun l -> fprintf ppf "@ %a" lam l) largs in
       fprintf ppf "@[<2>(apply@ %a%a)@]" lam lfun lams largs
-  | Lfunction(kind, params, body) ->
+  | Lfunction { f_kind = kind; f_params = params; f_body = body } ->
       let pr_params ppf params =
         match kind with
         | Curried ->

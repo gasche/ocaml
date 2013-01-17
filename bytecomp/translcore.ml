@@ -404,12 +404,12 @@ let transl_primitive loc p =
   match prim with
     Plazyforce ->
       let parm = Ident.create "prim" in
-      Lfunction(Curried, [parm], Matching.inline_lazy_force (Lvar parm) Location.none)
+      lfun [parm] (Matching.inline_lazy_force (Lvar parm) Location.none)
   | _ ->
       let rec make_params n =
         if n <= 0 then [] else Ident.create "prim" :: make_params (n-1) in
       let params = make_params p.prim_arity in
-      Lfunction(Curried, params, Lprim(prim, List.map (fun id -> Lvar id) params))
+      lfun params (Lprim(prim, List.map (fun id -> Lvar id) params))
 
 (* To check the well-formedness of r.h.s. of "let rec" definitions *)
 
@@ -431,7 +431,7 @@ let check_recursive_lambda idlist lam =
 
   and check idlist = function
     | Lvar _ -> true
-    | Lfunction(kind, params, body) -> true
+    | Lfunction _ -> true
     | Llet (_, _, _, _) as lam when check_recursive_recordwith idlist lam ->
         true
     | Llet(str, id, arg, body) ->
@@ -612,12 +612,12 @@ and transl_exp0 e =
       if public_send || p.prim_name = "%sendself" then
         let kind = if public_send then Public else Self in
         let obj = Ident.create "obj" and meth = Ident.create "meth" in
-        Lfunction(Curried, [obj; meth], Lsend(kind, Lvar meth, Lvar obj, [], e.exp_loc))
+        lfun [obj; meth] (Lsend(kind, Lvar meth, Lvar obj, [], e.exp_loc))
       else if p.prim_name = "%sendcache" then
         let obj = Ident.create "obj" and meth = Ident.create "meth" in
         let cache = Ident.create "cache" and pos = Ident.create "pos" in
-        Lfunction(Curried, [obj; meth; cache; pos],
-                  Lsend(Cached, Lvar meth, Lvar obj, [Lvar cache; Lvar pos], e.exp_loc))
+        lfun [obj; meth; cache; pos]
+             (Lsend(Cached, Lvar meth, Lvar obj, [Lvar cache; Lvar pos], e.exp_loc))
       else
         transl_primitive e.exp_loc p
   | Texp_ident(path, _, {val_kind = Val_anc _}) ->
@@ -630,13 +630,13 @@ and transl_exp0 e =
   | Texp_let(rec_flag, pat_expr_list, body) ->
       transl_let rec_flag pat_expr_list (event_before body (transl_exp body))
   | Texp_function (_, pat_expr_list, partial) ->
-      let ((kind, params), body) =
+      let ((f_kind, f_params), f_body) =
         event_function e
           (function repr ->
             let pl = push_defaults e.exp_loc [] pat_expr_list partial in
             transl_function e.exp_loc !Clflags.native_code repr partial pl)
       in
-      Lfunction(kind, params, body)
+      Lfunction{f_kind; f_params; f_body}
   | Texp_apply({exp_desc = Texp_ident(path, _, {val_kind = Val_prim p})}, oargs)
     when List.length oargs >= p.prim_arity
     && List.for_all (fun (_, arg,_) -> arg <> None) oargs ->
@@ -858,7 +858,7 @@ and transl_exp0 e =
           end
       (* other cases compile to a lazy block holding a function *)
       | _ ->
-          let fn = Lfunction (Curried, [Ident.create "param"], transl_exp e) in
+          let fn = lfun [Ident.create "param"] (transl_exp e) in
           Lprim(Pmakeblock(Config.lazy_tag, Immutable), [fn])
       end
   | Texp_object (cs, meths) ->
@@ -914,12 +914,11 @@ and transl_apply lam sargs loc =
         and id_arg = Ident.create "param" in
         let body =
           match build_apply handle ((Lvar id_arg, optional)::args') l with
-            Lfunction(Curried, ids, lam) ->
-              Lfunction(Curried, id_arg::ids, lam)
-          | Levent(Lfunction(Curried, ids, lam), _) ->
-              Lfunction(Curried, id_arg::ids, lam)
+            Lfunction({ f_kind = Curried } as func)
+          | Levent(Lfunction({ f_kind = Curried } as func), _) ->
+              Lfunction( lfun_add_param func id_arg )
           | lam ->
-              Lfunction(Curried, [id_arg], lam)
+              lfun [id_arg] lam
         in
         List.fold_left
           (fun body (id, lam) -> Llet(Strict, id, lam, body))

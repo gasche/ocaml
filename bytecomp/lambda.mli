@@ -165,7 +165,7 @@ type lambda =
     Lvar of Ident.t
   | Lconst of structured_constant
   | Lapply of lambda * lambda list * Location.t
-  | Lfunction of function_kind * Ident.t list * lambda
+  | Lfunction of lambda_function
   | Llet of let_kind * Ident.t * lambda * lambda
   | Lletrec of (Ident.t * lambda) list * lambda
   | Lprim of primitive * lambda list
@@ -181,6 +181,11 @@ type lambda =
   | Lsend of meth_kind * lambda * lambda * lambda list * Location.t
   | Levent of lambda * lambda_event
   | Lifused of Ident.t * lambda
+
+and lambda_function =
+  { f_kind : function_kind;
+    f_params : Ident.t list;
+    f_body : lambda; }
 
 and lambda_switch =
   { sw_numconsts: int;                  (* Number of integer cases *)
@@ -218,6 +223,8 @@ val bind : let_kind -> Ident.t -> lambda -> lambda -> lambda
 
 val commute_comparison : comparison -> comparison
 val negate_comparison : comparison -> comparison
+
+val lfun : Ident.t list -> lambda -> lambda
 
 (***********************)
 (* For static failures *)

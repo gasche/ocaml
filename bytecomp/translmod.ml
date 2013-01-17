@@ -42,10 +42,10 @@ let rec apply_coercion restr arg =
   | Tcoerce_functor(cc_arg, cc_res) ->
       let param = Ident.create "funarg" in
       name_lambda arg (fun id ->
-        Lfunction(Curried, [param],
-          apply_coercion cc_res
-            (Lapply(Lvar id, [apply_coercion cc_arg (Lvar param)],
-                    Location.none))))
+        lfun [param]
+          (apply_coercion cc_res
+             (Lapply(Lvar id, [apply_coercion cc_arg (Lvar param)],
+                     Location.none))))
   | Tcoerce_primitive p ->
       transl_primitive Location.none p
 
@@ -241,13 +241,11 @@ let rec transl_module cc rootpath mexp =
       oo_wrap mexp.mod_env true
         (function
         | Tcoerce_none ->
-            Lfunction(Curried, [param],
-                      transl_module Tcoerce_none bodypath body)
+            lfun [param] (transl_module Tcoerce_none bodypath body)
         | Tcoerce_functor(ccarg, ccres) ->
             let param' = Ident.create "funarg" in
-            Lfunction(Curried, [param'],
-                      Llet(Alias, param, apply_coercion ccarg (Lvar param'),
-                           transl_module ccres bodypath body))
+            lfun [param'] (Llet(Alias, param, apply_coercion ccarg (Lvar param'),
+                             transl_module ccres bodypath body))
         | _ ->
             fatal_error "Translmod.transl_module")
         cc

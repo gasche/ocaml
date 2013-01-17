@@ -139,7 +139,7 @@ let rec check_recordwith_updates id e =
 ;;
 
 let rec size_of_lambda = function
-  | Lfunction(kind, params, body) as funct ->
+  | Lfunction _ as funct ->
       RHS_block (1 + IdentSet.cardinal(free_variables funct))
   | Llet (Strict, id, Lprim (Pduprecord (kind, size), _), body)
     when check_recordwith_updates id body ->
@@ -471,11 +471,11 @@ let rec comp_expr env exp sz cont =
           comp_args env args' (sz + 3)
             (getmethod :: Kapply nargs :: cont1)
         end
-  | Lfunction(kind, params, body) -> (* assume kind = Curried *)
+  | Lfunction{ f_params; f_body } -> (* assume kind = Curried *)
       let lbl = new_label() in
       let fv = IdentSet.elements(free_variables exp) in
       let to_compile =
-        { params = params; body = body; label = lbl;
+        { params = f_params; body = f_body; label = lbl;
           free_vars = fv; num_defs = 1; rec_vars = []; rec_pos = 0 } in
       Stack.push to_compile functions_to_compile;
       comp_args env (List.map (fun n -> Lvar n) fv) sz
@@ -486,7 +486,7 @@ let rec comp_expr env exp sz cont =
           (add_pop 1 cont))
   | Lletrec(decl, body) ->
       let ndecl = List.length decl in
-      if List.for_all (function (_, Lfunction(_,_,_)) -> true | _ -> false)
+      if List.for_all (function (_, Lfunction _) -> true | _ -> false)
                       decl then begin
         (* let rec of functions *)
         let fv =
@@ -494,10 +494,10 @@ let rec comp_expr env exp sz cont =
         let rec_idents = List.map (fun (id, lam) -> id) decl in
         let rec comp_fun pos = function
             [] -> []
-          | (id, Lfunction(kind, params, body)) :: rem ->
+          | (id, Lfunction{ f_params; f_body }) :: rem ->
               let lbl = new_label() in
               let to_compile =
-                { params = params; body = body; label = lbl; free_vars = fv;
+                { params = f_params; body = f_body; label = lbl; free_vars = fv;
                   num_defs = ndecl; rec_vars = rec_idents; rec_pos = pos} in
               Stack.push to_compile functions_to_compile;
               lbl :: comp_fun (pos + 1) rem

@@ -156,7 +156,7 @@ type lambda =
     Lvar of Ident.t
   | Lconst of structured_constant
   | Lapply of lambda * lambda list * Location.t
-  | Lfunction of function_kind * Ident.t list * lambda
+  | Lfunction of lambda_function
   | Llet of let_kind * Ident.t * lambda * lambda
   | Lletrec of (Ident.t * lambda) list * lambda
   | Lprim of primitive * lambda list
@@ -172,6 +172,11 @@ type lambda =
   | Lsend of meth_kind * lambda * lambda * lambda list * Location.t
   | Levent of lambda * lambda_event
   | Lifused of Ident.t * lambda
+
+and lambda_function =
+  { f_kind : function_kind;
+    f_params : Ident.t list;
+    f_body : lambda; }
 
 and lambda_switch =
   { sw_numconsts: int;
@@ -203,7 +208,8 @@ let rec same l1 l2 =
       c1 = c2
   | Lapply(a1, bl1, _), Lapply(a2, bl2, _) ->
       same a1 a2 && samelist same bl1 bl2
-  | Lfunction(k1, idl1, a1), Lfunction(k2, idl2, a2) ->
+  | Lfunction{ f_kind = k1; f_params = idl1; f_body = a1 },
+    Lfunction{ f_kind = k2; f_params = idl2; f_body = a2 } ->
       k1 = k2 && samelist Ident.same idl1 idl2 && same a1 a2
   | Llet(k1, id1, a1, b1), Llet(k2, id2, a2, b2) ->
       k1 = k2 && Ident.same id1 id2 && same a1 a2 && same b1 b2
@@ -273,8 +279,8 @@ let iter f = function
   | Lconst _ -> ()
   | Lapply(fn, args, _) ->
       f fn; List.iter f args
-  | Lfunction(kind, params, body) ->
-      f body
+  | Lfunction{ f_body } ->
+      f f_body
   | Llet(str, id, arg, body) ->
       f arg; f body
   | Lletrec(decl, body) ->
@@ -325,8 +331,8 @@ let free_ids get l =
     iter free l;
     fv := List.fold_right IdentSet.add (get l) !fv;
     match l with
-      Lfunction(kind, params, body) ->
-        List.iter (fun param -> fv := IdentSet.remove param !fv) params
+      Lfunction{ f_params } ->
+        List.iter (fun param -> fv := IdentSet.remove param !fv) f_params
     | Llet(str, id, arg, body) ->
         fv := IdentSet.remove id !fv
     | Lletrec(decl, body) ->
@@ -406,7 +412,7 @@ let subst_lambda s lam =
       begin try Ident.find_same id s with Not_found -> l end
   | Lconst sc as l -> l
   | Lapply(fn, args, loc) -> Lapply(subst fn, List.map subst args, loc)
-  | Lfunction(kind, params, body) -> Lfunction(kind, params, subst body)
+  | Lfunction({ f_body } as func) -> Lfunction{ func with f_body = subst f_body }
   | Llet(str, id, arg, body) -> Llet(str, id, subst arg, subst body)
   | Lletrec(decl, body) -> Lletrec(List.map subst_decl decl, subst body)
   | Lprim(p, args) -> Lprim(p, List.map subst args)
@@ -452,3 +458,5 @@ and negate_comparison = function
 | Ceq -> Cneq| Cneq -> Ceq
 | Clt -> Cge | Cle -> Cgt
 | Cgt -> Cle | Cge -> Clt
+
+let lfun f_params f_body = Lfunction {f_kind = Curried; f_params; f_body}
