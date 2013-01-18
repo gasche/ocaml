@@ -247,6 +247,7 @@ let rec unbox_float = function
   | Csequence(e1, e2) -> Csequence(e1, unbox_float e2)
   | Cswitch(e, tbl, el) -> Cswitch(e, tbl, Array.map unbox_float el)
   | Ccatch(n, ids, e1, e2) -> Ccatch(n, ids, unbox_float e1, unbox_float e2)
+  | Cexit _ as c -> c
   | Ctrywith(e1, id, e2) -> Ctrywith(unbox_float e1, id, unbox_float e2)
   | c -> Cop(Cload Double_u, [c])
 
@@ -944,9 +945,34 @@ type unboxed_number_kind =
   | Boxed_float
   | Boxed_integer of boxed_integer
 
-let is_unboxed_number = function
+let var_kind id =
+  match !type_context with
+  | None -> Vaddr
+  | Some map ->
+    try IdentMap.find id map with Not_found -> Vaddr
+
+let merge_unboxed_number n1 n2 =
+  if n1 = n2
+  then n1
+  else No_unboxing
+
+let rec is_unboxed_number = function
     Uconst(Const_base(Const_float f), _) ->
       Boxed_float
+  | Uconst(Const_base(Const_int32 n), _) ->
+      Boxed_integer Pint32
+  | Uconst(Const_base(Const_nativeint n), _) ->
+      Boxed_integer Pnativeint
+  | Uconst(Const_base(Const_int64 n), _) ->
+      if size_int = 8
+      then Boxed_integer Pint64
+      else No_unboxing
+  | Uvar id ->
+    begin match var_kind id with
+    | Vaddr -> No_unboxing
+    | Vint -> No_unboxing
+    | Vfloat -> Boxed_float
+    | Vbint bi -> Boxed_integer bi end
   | Uprim(p, _, _) ->
       begin match simplif_primitive p with
           Pccall p -> if p.prim_native_float then Boxed_float else No_unboxing
@@ -993,6 +1019,8 @@ let is_unboxed_number = function
     | Vint
     | Vaddr -> No_unboxing
     end
+  | Uifthenelse(_, ifso, ifnot) ->
+    merge_unboxed_number (is_unboxed_number ifso) (is_unboxed_number ifnot)
   | _ -> No_unboxing
 
 let subst_boxed_number unbox_fn boxed_id unboxed_id exp =
@@ -1031,12 +1059,6 @@ let subst_boxed_number unbox_fn boxed_id unboxed_id exp =
 let functions = (Queue.create() : ufunction Queue.t)
 
 let direct_label label = label ^ "_direct"
-
-let var_kind id =
-  match !type_context with
-  | None -> Vaddr
-  | Some map ->
-    try IdentMap.find id map with Not_found -> Vaddr
 
 let rec transl = function
     Uvar id ->
