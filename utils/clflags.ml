@@ -68,6 +68,7 @@ and dump_instr = ref false              (* -dinstr *)
 
 let keep_asm_file = ref false           (* -S *)
 let optimize_for_speed = ref true       (* -compact *)
+let separate_compilation = ref false    (* -separate-compilation *)
 
 and dump_cmm = ref false                (* -dcmm *)
 let dump_selection = ref false          (* -dsel *)

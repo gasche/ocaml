@@ -120,6 +120,7 @@ module type Optcomp_options = sig
   val _cclib : string -> unit
   val _ccopt : string -> unit
   val _compact : unit -> unit
+  val _separate_compilation : unit -> unit
   val _config : unit -> unit
   val _for_pack : string -> unit
   val _g : unit -> unit

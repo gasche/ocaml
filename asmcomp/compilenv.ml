@@ -133,6 +133,9 @@ let get_global_info global_ident = (
     with Not_found ->
       let (infos, crc) =
         try
+          (* access .cmxing information breaks separate compilation *)
+          if !Clflags.separate_compilation
+          then raise Not_found;
           let filename =
             find_in_path_uncap !load_path (modname ^ ".cmx") in
           let (ui, crc) = read_unit_info filename in

@@ -52,6 +52,7 @@ module Options = Main_args.Make_optcomp_options (struct
   let _cclib s = option_with_arg "-cclib" s
   let _ccopt s = option_with_arg "-ccopt" s
   let _compact = option "-compact"
+  let _separate_compilation = option "-separate_compilation"
   let _config = option "-config"
   let _for_pack s = option_with_arg "-for-pack" s
   let _g = option "-g"
