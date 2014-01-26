@@ -77,8 +77,7 @@ type error =
   | Label_multiply_defined of Longident.t
   | Label_missing of Ident.t list
   | Label_not_mutable of Longident.t
-  | Incomplete_format of string
-  | Bad_conversion of string * int * char
+  | Invalid_format of string
   | Undefined_method of type_expr * string
   | Undefined_inherited_method of string
   | Virtual_class of Longident.t

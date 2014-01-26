@@ -38,7 +38,6 @@ and ident_unit = ident_create "unit"
 and ident_exn = ident_create "exn"
 and ident_array = ident_create "array"
 and ident_list = ident_create "list"
-and ident_format6 = ident_create "format6"
 and ident_option = ident_create "option"
 and ident_nativeint = ident_create "nativeint"
 and ident_int32 = ident_create "int32"
@@ -54,7 +53,6 @@ and path_unit = Pident ident_unit
 and path_exn = Pident ident_exn
 and path_array = Pident ident_array
 and path_list = Pident ident_list
-and path_format6 = Pident ident_format6
 and path_option = Pident ident_option
 and path_nativeint = Pident ident_nativeint
 and path_int32 = Pident ident_int32
@@ -160,22 +158,6 @@ let build_initial_env add_type add_exception empty_env =
      type_manifest = None;
      type_variance = [true, false, false];
      type_newtype_level = None}
-  and decl_format6 =
-    {type_params = [
-     newgenvar(); newgenvar(); newgenvar();
-     newgenvar(); newgenvar(); newgenvar();
-   ];
-     type_arity = 6;
-     type_kind = Type_abstract;
-     type_loc = Location.none;
-     type_private = Public;
-     type_manifest = None;
-     type_variance = [
-     true, true, true; true, true, true;
-     true, true, true; true, true, true;
-     true, true, true; true, true, true;
-   ];
-     type_newtype_level = None}
   and decl_option =
     let tvar = newgenvar() in
     {type_params = [tvar];
@@ -220,7 +202,6 @@ let build_initial_env add_type add_exception empty_env =
   add_type ident_nativeint decl_abstr (
   add_type ident_lazy_t decl_lazy_t (
   add_type ident_option decl_option (
-  add_type ident_format6 decl_format6 (
   add_type ident_list decl_list (
   add_type ident_array decl_array (
   add_type ident_exn decl_exn (
@@ -230,7 +211,7 @@ let build_initial_env add_type add_exception empty_env =
   add_type ident_string decl_abstr (
   add_type ident_char decl_abstr (
   add_type ident_int decl_abstr (
-    empty_env)))))))))))))))))))))))))))
+    empty_env))))))))))))))))))))))))))
 
 let builtin_values =
   List.map (fun id -> Ident.make_global id; (Ident.name id, id))
