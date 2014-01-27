@@ -914,6 +914,8 @@ let scanf_bad_input ib = function
   | Scan_failure s | Failure s ->
     let i = Scanning.char_count ib in
     bad_input (Printf.sprintf "scanf: bad input at char number %i: %S" i s)
+  (*REVIEW: patch changed the error format (what about the others?) *)
+
   | x -> raise x
 
 (* Get the content of a counter from an input buffer. *)

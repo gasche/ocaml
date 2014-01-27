@@ -468,6 +468,7 @@ val kscanf :
     error handling function [ef] with the formatted input channel and the
     exception that aborted the scanning process as arguments. *)
 
+(* REVIEW: what are those new functions ksscanf and kfscanf? *)
 val ksscanf :
   string -> (Scanning.in_channel -> exn -> 'd) ->
     ('a, 'b, 'c, 'd) scanner

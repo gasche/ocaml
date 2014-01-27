@@ -1689,7 +1689,7 @@ let fmt_ebb_of_string str =
         let Fmt_EBB fmt_rest = parse (str_ind + 1) end_ind in
         Fmt_EBB (Formatting (Scan_indic c, fmt_rest))
 
-  (* Try to read the optionnal <...> after "@[". *)
+  (* Try to read the optional <...> after "@[". *)
   and parse_open_box : type e f . int -> int -> (_, _, e, f) fmt_ebb =
   fun str_ind end_ind ->
     let next_ind, box_ty, indent =
@@ -1749,7 +1749,7 @@ let fmt_ebb_of_string str =
     let Fmt_EBB fmt_rest = parse next_ind end_ind in
     Fmt_EBB (Formatting (Open_tag (lit, name), fmt_rest))
 
-  (* Try to read the optionnal <width offset> after "@;". *)
+  (* Try to read the optional <width offset> after "@;". *)
   and parse_good_break : type e f . int -> int -> (_, _, e, f) fmt_ebb =
   fun str_ind end_ind ->
     let next_ind, formatting =
@@ -1870,6 +1870,13 @@ let fmt_ebb_of_string str =
     | '0' .. '9' as c ->
       let new_acc = acc * 10 + (int_of_char c - int_of_char '0') in
       if new_acc > Sys.max_string_length then
+        (* REVIEW:
+           this test depends on the machine on which it happens,
+           which is not necessarily the machine on which the code will run.
+
+           Why don't we just accept this in any case, and check for
+           string sizes later in the respectif printf/scanf/format
+           functions? *)
         failwith_message
           "invalid format %S: integer %d is greater than the limit %d"
           str new_acc Sys.max_string_length
