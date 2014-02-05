@@ -18,106 +18,105 @@
 (* Scanning buffers. *)
 module type SCANNING = sig
 
-  type in_channel;;
+  type in_channel
 
-  type scanbuf = in_channel;;
+  type scanbuf = in_channel
 
-  type file_name = string;;
+  type file_name = string
 
-  val stdin : in_channel;;
+  val stdin : in_channel
   (* The scanning buffer reading from [Pervasives.stdin].
       [stdib] is equivalent to [Scanning.from_channel Pervasives.stdin]. *)
 
-  val stdib : in_channel;;
+  val stdib : in_channel
   (* An alias for [Scanf.stdin], the scanning buffer reading from
      [Pervasives.stdin]. *)
 
-  val next_char : scanbuf -> char;;
+  val next_char : scanbuf -> char
   (* [Scanning.next_char ib] advance the scanning buffer for
       one character.
       If no more character can be read, sets a end of file condition and
       returns '\000'. *)
 
-  val invalidate_current_char : scanbuf -> unit;;
+  val invalidate_current_char : scanbuf -> unit
   (* [Scanning.invalidate_current_char ib] mark the current_char as already
       scanned. *)
 
-  val peek_char : scanbuf -> char;;
+  val peek_char : scanbuf -> char
   (* [Scanning.peek_char ib] returns the current char available in
       the buffer or reads one if necessary (when the current character is
       already scanned).
       If no character can be read, sets an end of file condition and
       returns '\000'. *)
 
-  val checked_peek_char : scanbuf -> char;;
+  val checked_peek_char : scanbuf -> char
   (* Same as above but always returns a valid char or fails:
       instead of returning a null char when the reading method of the
       input buffer has reached an end of file, the function raises exception
       [End_of_file]. *)
 
-  val store_char : int -> scanbuf -> char -> int;;
+  val store_char : int -> scanbuf -> char -> int
   (* [Scanning.store_char lim ib c] adds [c] to the token buffer
       of the scanning buffer. It also advances the scanning buffer for one
       character and returns [lim - 1], indicating the new limit
       for the length of the current token. *)
 
-  val skip_char : int -> scanbuf -> int;;
+  val skip_char : int -> scanbuf -> int
   (* [Scanning.skip_char lim ib] ignores the current character. *)
 
-  val ignore_char : int -> scanbuf -> int;;
+  val ignore_char : int -> scanbuf -> int
   (* [Scanning.ignore_char ib lim] ignores the current character and
      decrements the limit. *)
 
-  val token : scanbuf -> string;;
+  val token : scanbuf -> string
   (* [Scanning.token ib] returns the string stored into the token
       buffer of the scanning buffer: it returns the token matched by the
       format. *)
 
-  val reset_token : scanbuf -> unit;;
+  val reset_token : scanbuf -> unit
   (* [Scanning.reset_token ib] resets the token buffer of
       the given scanning buffer. *)
 
-  val char_count : scanbuf -> int;;
+  val char_count : scanbuf -> int
   (* [Scanning.char_count ib] returns the number of characters
       read so far from the given buffer. *)
 
-  val line_count : scanbuf -> int;;
+  val line_count : scanbuf -> int
   (* [Scanning.line_count ib] returns the number of new line
       characters read so far from the given buffer. *)
 
-  val token_count : scanbuf -> int;;
+  val token_count : scanbuf -> int
   (* [Scanning.token_count ib] returns the number of tokens read
       so far from [ib]. *)
 
-  val eof : scanbuf -> bool;;
+  val eof : scanbuf -> bool
   (* [Scanning.eof ib] returns the end of input condition
       of the given buffer. *)
 
-  val end_of_input : scanbuf -> bool;;
+  val end_of_input : scanbuf -> bool
   (* [Scanning.end_of_input ib] tests the end of input condition
       of the given buffer (if no char has ever been read, an attempt to
       read one is performed). *)
 
-  val beginning_of_input : scanbuf -> bool;;
+  val beginning_of_input : scanbuf -> bool
   (* [Scanning.beginning_of_input ib] tests the beginning of input
       condition of the given buffer. *)
 
-  val name_of_input : scanbuf -> string;;
+  val name_of_input : scanbuf -> string
   (* [Scanning.name_of_input ib] returns the name of the character
       source for input buffer [ib]. *)
 
-  val open_in : file_name -> in_channel;;
-  val open_in_bin : file_name -> in_channel;;
-  val from_file : file_name -> in_channel;;
-  val from_file_bin : file_name -> in_channel;;
-  val from_string : string -> in_channel;;
-  val from_function : (unit -> char) -> in_channel;;
-  val from_channel : Pervasives.in_channel -> in_channel;;
+  val open_in : file_name -> in_channel
+  val open_in_bin : file_name -> in_channel
+  val from_file : file_name -> in_channel
+  val from_file_bin : file_name -> in_channel
+  val from_string : string -> in_channel
+  val from_function : (unit -> char) -> in_channel
+  val from_channel : Pervasives.in_channel -> in_channel
 
-  val close_in : in_channel -> unit;;
+  val close_in : in_channel -> unit
 
 end
-;;
 
 module Scanning : SCANNING = struct
 
@@ -127,7 +126,6 @@ module Scanning : SCANNING = struct
     | From_string
     | From_function
     | From_channel of Pervasives.in_channel
-  ;;
 
   type in_channel = {
     mutable eof : bool;
@@ -140,13 +138,12 @@ module Scanning : SCANNING = struct
     tokbuf : Buffer.t;
     input_name : in_channel_name;
   }
-  ;;
 
-  type scanbuf = in_channel;;
+  type scanbuf = in_channel
 
-  type file_name = string;;
+  type file_name = string
 
-  let null_char = '\000';;
+  let null_char = '\000'
 
   (* Reads a new character from input buffer.  Next_char never fails,
      even in case of end of input: it then simply sets the end of file
@@ -165,10 +162,9 @@ module Scanning : SCANNING = struct
       ib.current_char_is_valid <- false;
       ib.eof <- true;
       c
-  ;;
 
   let peek_char ib =
-    if ib.current_char_is_valid then ib.current_char else next_char ib;;
+    if ib.current_char_is_valid then ib.current_char else next_char ib
 
   (* Returns a valid current char for the input buffer. In particular
      no irrelevant null character (as set by [next_char] in case of end
@@ -179,30 +175,26 @@ module Scanning : SCANNING = struct
     let c = peek_char ib in
     if ib.eof then raise End_of_file;
     c
-  ;;
 
   let end_of_input ib =
     ignore (peek_char ib);
     ib.eof
-  ;;
 
-  let eof ib = ib.eof;;
+  let eof ib = ib.eof
 
-  let beginning_of_input ib = ib.char_count = 0;;
+  let beginning_of_input ib = ib.char_count = 0
   let name_of_input ib =
     match ib.input_name with
     | From_file (fname, _ic) -> fname
     | From_string -> "unnamed character string"
     | From_function -> "unnamed function"
     | From_channel _ic -> "unnamed pervasives input channel"
-  ;;
 
   let char_count ib =
     if ib.current_char_is_valid then ib.char_count - 1 else ib.char_count
-  ;;
-  let line_count ib = ib.line_count;;
-  let reset_token ib = Buffer.reset ib.tokbuf;;
-  let invalidate_current_char ib = ib.current_char_is_valid <- false;;
+  let line_count ib = ib.line_count
+  let reset_token ib = Buffer.reset ib.tokbuf
+  let invalidate_current_char ib = ib.current_char_is_valid <- false
 
   let token ib =
     let tokbuf = ib.tokbuf in
@@ -210,23 +202,20 @@ module Scanning : SCANNING = struct
     Buffer.clear tokbuf;
     ib.token_count <- succ ib.token_count;
     tok
-  ;;
 
-  let token_count ib = ib.token_count;;
+  let token_count ib = ib.token_count
 
   let skip_char width ib =
     invalidate_current_char ib;
     width
-  ;;
 
-  let ignore_char width ib = skip_char (width - 1) ib;;
+  let ignore_char width ib = skip_char (width - 1) ib
 
   let store_char width ib c =
     Buffer.add_char ib.tokbuf c;
     ignore_char width ib
-  ;;
 
-  let default_token_buffer_size = 1024;;
+  let default_token_buffer_size = 1024
 
   let create iname next = {
     eof = false;
@@ -239,7 +228,6 @@ module Scanning : SCANNING = struct
     tokbuf = Buffer.create default_token_buffer_size;
     input_name = iname;
   }
-  ;;
 
   let from_string s =
     let i = ref 0 in
@@ -250,9 +238,8 @@ module Scanning : SCANNING = struct
       incr i;
       c in
     create From_string next
-  ;;
 
-  let from_function = create From_function;;
+  let from_function = create From_function
 
   (* Scanning from an input channel. *)
 
@@ -309,14 +296,14 @@ module Scanning : SCANNING = struct
      input channels. *)
 
   (* Perform bufferized input to improve efficiency. *)
-  let file_buffer_size = ref 1024;;
+  let file_buffer_size = ref 1024
 
   (* The scanner closes the input channel at end of input. *)
-  let scan_close_at_end ic = close_in ic; raise End_of_file;;
+  let scan_close_at_end ic = close_in ic; raise End_of_file
 
   (* The scanner does not close the input channel at end of input:
      it just raises [End_of_file]. *)
-  let scan_raise_at_end _ic = raise End_of_file;;
+  let scan_raise_at_end _ic = raise End_of_file
 
   let from_ic scan_close_ic iname ic =
     let len = !file_buffer_size in
@@ -334,9 +321,8 @@ module Scanning : SCANNING = struct
         end
       end in
     create iname next
-  ;;
 
-  let from_ic_close_at_end = from_ic scan_close_at_end;;
+  let from_ic_close_at_end = from_ic scan_close_at_end
 
   (* The scanning buffer reading from [Pervasives.stdin].
      One could try to define [stdib] as a scanning buffer reading a character at a
@@ -354,9 +340,8 @@ module Scanning : SCANNING = struct
   let stdin =
     from_ic scan_raise_at_end
       (From_file ("-", Pervasives.stdin)) Pervasives.stdin
-  ;;
 
-  let stdib = stdin;;
+  let stdib = stdin
 
   let open_in fname =
     match fname with
@@ -364,7 +349,6 @@ module Scanning : SCANNING = struct
     | fname ->
       let ic = open_in fname in
       from_ic_close_at_end (From_file (fname, ic)) ic
-  ;;
 
   let open_in_bin fname =
     match fname with
@@ -372,10 +356,9 @@ module Scanning : SCANNING = struct
     | fname ->
       let ic = open_in_bin fname in
       from_ic_close_at_end (From_file (fname, ic)) ic
-  ;;
 
-  let from_file = open_in;;
-  let from_file_bin = open_in_bin;;
+  let from_file = open_in
+  let from_file_bin = open_in_bin
 
   let memo_from_ic =
     let memo = ref [] in
@@ -385,19 +368,16 @@ module Scanning : SCANNING = struct
        let ib = from_ic scan_close_ic (From_channel ic) ic in
        memo := (ic, ib) :: !memo;
        ib)
-  ;;
 
-  let from_channel = memo_from_ic scan_raise_at_end;;
+  let from_channel = memo_from_ic scan_raise_at_end
 
   let close_in ib =
     match ib.input_name with
     | From_file (_fname, ic) -> Pervasives.close_in ic
     | From_string | From_function -> ()
     | From_channel ic -> Pervasives.close_in ic
-  ;;
 
 end
-;;
 
 (* Formatted input functions. *)
 
@@ -410,20 +390,18 @@ external string_to_format :
 ;;
 
 (* Reporting errors. *)
-exception Scan_failure of string;;
+exception Scan_failure of string
 
-let bad_input s = raise (Scan_failure s);;
+let bad_input s = raise (Scan_failure s)
 
 let bad_input_escape c =
   bad_input (Printf.sprintf "illegal escape character %C" c)
-;;
 
 let bad_token_length message =
   bad_input
     (Printf.sprintf
        "scanning of %s failed: \
         the specified length was too short for token" message)
-;;
 
 let bad_end_of_input message =
   bad_input
@@ -460,11 +438,9 @@ let incomplete_format fmt =
 
 let bad_float () =
   bad_input "no dot or exponent part found in float token"
-;;
 
 let character_mismatch_err c ci =
   Printf.sprintf "looking for %C, found %C" c ci
-;;
 
 let character_mismatch c ci =
   bad_input (character_mismatch_err c ci)
@@ -522,16 +498,15 @@ let ignore_stoppers stps ib =
 
 (* Extracting tokens from the output token buffer. *)
 
-let token_char ib = (Scanning.token ib).[0];;
+let token_char ib = (Scanning.token ib).[0]
 
-let token_string = Scanning.token;;
+let token_string = Scanning.token
 
 let token_bool ib =
   match Scanning.token ib with
   | "true" -> true
   | "false" -> false
   | s -> bad_input (Printf.sprintf "invalid boolean %S" s)
-;;
 
 (* Extract an integer literal token.
    Since the functions Pervasives.*int*_of_string do not accept a leading +,
@@ -546,14 +521,13 @@ let token_int_literal conv ib =
     | _ -> assert false in
   let l = String.length tok in
   if l = 0 || tok.[0] <> '+' then tok else String.sub tok 1 (l - 1)
-;;
 
 (* All the functions that convert a string to a number raise the exception
    Failure when the conversion is not possible.
    This exception is then trapped in [kscanf]. *)
-let token_int conv ib = int_of_string (token_int_literal conv ib);;
+let token_int conv ib = int_of_string (token_int_literal conv ib)
 
-let token_float ib = float_of_string (Scanning.token ib);;
+let token_float ib = float_of_string (Scanning.token ib)
 
 (* To scan native ints, int32 and int64 integers.
    We cannot access to conversions to/from strings for those types,
@@ -563,17 +537,14 @@ let token_float ib = float_of_string (Scanning.token ib);;
    available in the runtime. *)
 external nativeint_of_string : string -> nativeint
   = "caml_nativeint_of_string"
-;;
 external int32_of_string : string -> int32
   = "caml_int32_of_string"
-;;
 external int64_of_string : string -> int64
   = "caml_int64_of_string"
-;;
 
-let token_nativeint conv ib = nativeint_of_string (token_int_literal conv ib);;
-let token_int32 conv ib = int32_of_string (token_int_literal conv ib);;
-let token_int64 conv ib = int64_of_string (token_int_literal conv ib);;
+let token_nativeint conv ib = nativeint_of_string (token_int_literal conv ib)
+let token_int32 conv ib = int32_of_string (token_int_literal conv ib)
+let token_int64 conv ib = int64_of_string (token_int_literal conv ib)
 
 (* Scanning numbers. *)
 
@@ -600,7 +571,6 @@ let rec scan_decimal_digits width ib =
     let width = Scanning.ignore_char width ib in
     scan_decimal_digits width ib
   | _ -> width
-;;
 
 let scan_decimal_digits_plus width ib =
   if width = 0 then bad_token_length "decimal digits" else
@@ -611,7 +581,6 @@ let scan_decimal_digits_plus width ib =
     scan_decimal_digits width ib
   | c ->
     bad_input (Printf.sprintf "character %C is not a decimal digit" c)
-;;
 
 let scan_digits_plus digitp width ib =
   (* To scan numbers from other bases, we use a predicate argument to
@@ -639,31 +608,27 @@ let scan_digits_plus digitp width ib =
     scan_digits width
   else
     bad_input (Printf.sprintf "character %C is not a digit" c)
-;;
 
 let is_binary_digit = function
   | '0' .. '1' -> true
   | _ -> false
-;;
 
-let scan_binary_int = scan_digits_plus is_binary_digit;;
+let scan_binary_int = scan_digits_plus is_binary_digit
 
 let is_octal_digit = function
   | '0' .. '7' -> true
   | _ -> false
-;;
 
-let scan_octal_int = scan_digits_plus is_octal_digit;;
+let scan_octal_int = scan_digits_plus is_octal_digit
 
 let is_hexa_digit = function
   | '0' .. '9' | 'a' .. 'f' | 'A' .. 'F' -> true
   | _ -> false
-;;
 
-let scan_hexadecimal_int = scan_digits_plus is_hexa_digit;;
+let scan_hexadecimal_int = scan_digits_plus is_hexa_digit
 
 (* Scan a decimal integer. *)
-let scan_unsigned_decimal_int = scan_decimal_digits_plus;;
+let scan_unsigned_decimal_int = scan_decimal_digits_plus
 
 let scan_sign width ib =
   let c = Scanning.checked_peek_char ib in
@@ -671,12 +636,10 @@ let scan_sign width ib =
   | '+' -> Scanning.store_char width ib c
   | '-' -> Scanning.store_char width ib c
   | _ -> width
-;;
 
 let scan_optionally_signed_decimal_int width ib =
   let width = scan_sign width ib in
   scan_unsigned_decimal_int width ib
-;;
 
 (* Scan an unsigned integer that could be given in any (common) basis.
    If digits are prefixed by one of 0x, 0X, 0o, or 0b, the number is
@@ -695,12 +658,10 @@ let scan_unsigned_int width ib =
     | 'b' -> scan_binary_int (Scanning.store_char width ib c) ib
     | _ -> scan_decimal_digits width ib end
   | _ -> scan_unsigned_decimal_int width ib
-;;
 
 let scan_optionally_signed_int width ib =
   let width = scan_sign width ib in
   scan_unsigned_int width ib
-;;
 
 let scan_int_conv conv width _prec ib =
   match conv with
@@ -711,7 +672,6 @@ let scan_int_conv conv width _prec ib =
   | 'u' -> scan_unsigned_decimal_int width ib
   | 'x' | 'X' -> scan_hexadecimal_int width ib
   | _ -> assert false
-;;
 
 (* Scanning floating point numbers. *)
 (* Fractional part is optional and can be reduced to 0 digits. *)
@@ -723,7 +683,6 @@ let scan_frac_part width ib =
   | '0' .. '9' as c ->
     scan_decimal_digits (Scanning.store_char width ib c) ib
   | _ -> width
-;;
 
 (* Exp part is optional and can be reduced to 0 digits. *)
 let scan_exp_part width ib =
@@ -734,7 +693,6 @@ let scan_exp_part width ib =
   | 'e' | 'E' as c ->
     scan_optionally_signed_decimal_int (Scanning.store_char width ib c) ib
   | _ -> width
-;;
 
 (* Scan the integer part of a floating point number, (not using the
    OCaml lexical convention since the integer part can be empty):
@@ -743,7 +701,6 @@ let scan_exp_part width ib =
 let scan_int_part width ib =
   let width = scan_sign width ib in
   scan_decimal_digits width ib
-;;
 
 (*
    For the time being we have (as found in scanf.mli):
@@ -790,7 +747,6 @@ let scan_float width precision ib =
     scan_exp_part width ib, precision
   | _ ->
     scan_exp_part width ib, precision
-;;
 
 let scan_Float width precision ib =
   let width = scan_optionally_signed_decimal_int width ib in
@@ -826,7 +782,6 @@ let scan_string stp width ib =
     if List.memq c stp then Scanning.skip_char width ib else
     loop (Scanning.store_char width ib c) in
   loop width
-;;
 
 (* Scan a char: peek strictly one character in the input, whatsoever. *)
 let scan_char width ib =
@@ -834,7 +789,6 @@ let scan_char width ib =
      calling scan_char, in the main scanning function.
     if width = 0 then bad_token_length "a character" else *)
   Scanning.store_char width ib (Scanning.checked_peek_char ib)
-;;
 
 let char_for_backslash = function
   | 'n' -> '\010'
@@ -842,11 +796,10 @@ let char_for_backslash = function
   | 'b' -> '\008'
   | 't' -> '\009'
   | c -> c
-;;
 
 (* The integer value corresponding to the facial value of a valid
    decimal digit character. *)
-let decimal_value_of_char c = int_of_char c - int_of_char '0';;
+let decimal_value_of_char c = int_of_char c - int_of_char '0'
 
 let char_for_decimal_code c0 c1 c2 =
   let c =
@@ -858,7 +811,6 @@ let char_for_decimal_code c0 c1 c2 =
       (Printf.sprintf
          "bad character decimal encoding \\%c%c%c" c0 c1 c2) else
   char_of_int c
-;;
 
 (* The integer value corresponding to the facial value of a valid
    hexadecimal digit character. *)
@@ -874,7 +826,6 @@ let hexadecimal_value_of_char c =
   if d >= int_of_char 'A' then
     d - 55  (* 10 + int_of_char c - int_of_char 'A' *) else
     d - int_of_char '0'
-;;
 
 let char_for_hexadecimal_code c1 c2 =
   let c =
@@ -884,7 +835,6 @@ let char_for_hexadecimal_code c1 c2 =
     bad_input
       (Printf.sprintf "bad character hexadecimal encoding \\%c%c" c1 c2) else
   char_of_int c
-;;
 
 (* Called in particular when encountering '\\' as starter of a char.
    Stops before the corresponding '\''. *)
@@ -893,10 +843,9 @@ let check_next_char message width ib =
   let c = Scanning.peek_char ib in
   if Scanning.eof ib then bad_end_of_input message else
   c
-;;
 
-let check_next_char_for_char = check_next_char "a Char";;
-let check_next_char_for_string = check_next_char "a String";;
+let check_next_char_for_char = check_next_char "a Char"
+let check_next_char_for_string = check_next_char "a String"
 
 let scan_backslash_char width ib =
   match check_next_char_for_char width ib with
@@ -923,7 +872,6 @@ let scan_backslash_char width ib =
     Scanning.store_char (width - 2) ib (char_for_hexadecimal_code c1 c2)
   | c ->
     bad_input_escape c
-;;
 
 (* Scan a character (an OCaml token). *)
 let scan_Char width ib =
@@ -944,7 +892,6 @@ let scan_Char width ib =
     | c -> character_mismatch '\'' c in
 
   find_start width
-;;
 
 (* Scan a delimited string (an OCaml token). *)
 let scan_String width ib =
@@ -977,7 +924,6 @@ let scan_String width ib =
     | _ -> find_stop width in
 
   find_start width
-;;
 
 (* Scan a boolean (an OCaml token). *)
 let scan_bool width ib =
@@ -1541,11 +1487,9 @@ let string_to_String s =
   done;
   Buffer.add_char b '\"';
   Buffer.contents b
-;;
 
 let format_from_string s fmt =
   sscanf_format (string_to_String s) fmt (fun x -> x)
-;;
 
 let unescaped s =
   sscanf ("\"" ^ s ^ "\"") "%S%!" (fun x -> x)

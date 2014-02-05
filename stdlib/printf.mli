@@ -133,20 +133,20 @@ val bprintf : Buffer.t -> ('a, Buffer.t, unit) format -> 'a
 (** Formatted output functions with continuations. *)
 
 val kfprintf : (out_channel -> 'a) -> out_channel ->
-              ('b, out_channel, unit, 'a) format4 -> 'b;;
+              ('b, out_channel, unit, 'a) format4 -> 'b
 (** Same as [fprintf], but instead of returning immediately,
    passes the out channel to its first argument at the end of printing.
    @since 3.09.0
 *)
 
-val ksprintf : (string -> 'a) -> ('b, unit, string, 'a) format4 -> 'b;;
+val ksprintf : (string -> 'a) -> ('b, unit, string, 'a) format4 -> 'b
 (** Same as [sprintf] above, but instead of returning the string,
    passes it to the first argument.
    @since 3.09.0
 *)
 
 val kbprintf : (Buffer.t -> 'a) -> Buffer.t ->
-              ('b, Buffer.t, unit, 'a) format4 -> 'b;;
+              ('b, Buffer.t, unit, 'a) format4 -> 'b
 (** Same as [bprintf], but instead of returning immediately,
    passes the buffer to its first argument at the end of printing.
    @since 3.10.0
