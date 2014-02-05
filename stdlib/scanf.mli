@@ -13,6 +13,8 @@
 
 (* $Id$ *)
 
+open CamlinternalFormatBasics
+
 (** Formatted input functions. *)
 
 (** {6 Introduction} *)
@@ -465,6 +467,16 @@ val kscanf :
     some conversion fails, the scanning function aborts and calls the
     error handling function [ef] with the formatted input channel and the
     exception that aborted the scanning process as arguments. *)
+
+val ksscanf :
+  string -> (Scanning.in_channel -> exn -> 'd) ->
+    ('a, 'b, 'c, 'd) scanner
+(** Same as {!Scanf.kscanf} but reads from the given string. *)
+
+val kfscanf :
+  Pervasives.in_channel -> (Scanning.in_channel -> exn -> 'd) ->
+    ('a, 'b, 'c, 'd) scanner
+(** Same as {!Scanf.kscanf}, but reads from the given regular input channel. *)
 
 (** {6 Reading format strings from input} *)
 

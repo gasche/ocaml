@@ -19,8 +19,8 @@ case $1 in
   camlinternalOO.cmi) echo ' -nopervasives';;
   camlinternalOO.cmx|camlinternalOO.p.cmx) echo ' -inline 0';;
   buffer.cm[io]) echo ' -w A';;
-  camlinternalFormat.cm[io]) echo ' -w a';;
-  printf.cm[io]|format.cm[io]|scanf.cm[io]) echo ' -w A';;
+  camlinternalFormat.cm[io]) echo ' -w Ae';;
+  printf.cm[io]|format.cm[io]|scanf.cm[io]) echo ' -w Ae';;
   scanf.cmx|scanf.p.cmx) echo ' -inline 9';;
   arrayLabels.cm[ox]|arrayLabels.p.cmx) echo ' -nolabels';;
   listLabels.cm[ox]|listLabels.p.cmx) echo ' -nolabels';;

@@ -1228,12 +1228,11 @@ let rec strput_acc b acc = match acc with
                           (* Error managment *)
 
 (* Raise a Failure with a pretty-printed error message. *)
-(* Since it uses "compiled formats", it can't be implemented in bootstrap
-   mode. *)
-let failwith_message _ =
-  failwith
-    "CamlinternalFormat failure \
-     (error messages not implemented at bootstrap time)"
+let failwith_message
+    ((fmt, _) : ('a, 'b, 'c, 'd, 'e, 'f) CamlinternalFormatBasics.format6) =
+  let buf = Buffer.create 256 in
+  let k () acc = strput_acc buf acc; failwith (Buffer.contents buf) in
+  make_printf k () End_of_acc fmt
 
 (******************************************************************************)
                             (* Parsing tools *)

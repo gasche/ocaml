@@ -13,6 +13,8 @@
 
 (* $Id$ *)
 
+open CamlinternalFormatBasics
+
 (** Pretty printing.
 
    This module implements a pretty-printing facility to format text
