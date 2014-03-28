@@ -32,8 +32,7 @@ exception Error of error * Location.t;;
 
 (* The table of keywords *)
 
-let keyword_table =
-  create_hashtable 149 [
+let keywords_assoc = [
     "and", AND;
     "as", AS;
     "assert", ASSERT;
@@ -83,15 +82,155 @@ let keyword_table =
     "when", WHEN;
     "while", WHILE;
     "with", WITH;
-
     "mod", INFIXOP3("mod");
     "land", INFIXOP3("land");
     "lor", INFIXOP3("lor");
     "lxor", INFIXOP3("lxor");
     "lsl", INFIXOP4("lsl");
     "lsr", INFIXOP4("lsr");
-    "asr", INFIXOP4("asr")
+    "asr", INFIXOP4("asr");
 ]
+
+let keyword_table =
+  create_hashtable 149 keywords_assoc
+
+let string_of_keyword_table =
+  create_hashtable 149
+    (List.rev_map (fun (str,kwd) -> (kwd,str)) keywords_assoc)
+
+let string_of_token = function
+  (* first, rule out the keywords (tokens but not symbols) *)
+  | AND
+  | AS
+  | ASSERT
+  | BEGIN
+  | CLASS
+  | CONSTRAINT
+  | DO
+  | DONE
+  | DOWNTO
+  | ELSE
+  | END
+  | EXCEPTION
+  | EXTERNAL
+  | FALSE
+  | FOR
+  | FUN
+  | FUNCTION
+  | FUNCTOR
+  | IF
+  | IN
+  | INCLUDE
+  | INHERIT
+  | INITIALIZER
+  | LAZY
+  | LET
+  | MATCH
+  | METHOD
+  | MODULE
+  | MUTABLE
+  | NEW
+  | OBJECT
+  | OF
+  | OPEN
+  | OR
+  | PRIVATE
+  | REC
+  | SIG
+  | STRUCT
+  | THEN
+  | TO
+  | TRUE
+  | TRY
+  | TYPE
+  | VAL
+  | VIRTUAL
+  | WHEN
+  | WHILE
+  | WITH
+  (* we match on keywords first as the following infix keywords would
+     get caught by the cases for infix operator symbols below; the
+     ordering of clauses matters *)
+  | INFIXOP3("mod")
+  | INFIXOP3("land")
+  | INFIXOP3("lor")
+  | INFIXOP3("lxor")
+  | INFIXOP4("lsl")
+  | INFIXOP4("lsr")
+  | INFIXOP4("asr")
+  as kwd
+    ->
+    assert (Hashtbl.mem string_of_keyword_table kwd);
+    Hashtbl.find string_of_keyword_table kwd
+
+  | AMPERAMPER -> "&&"
+  | AMPERSAND -> "&"
+  | BACKQUOTE -> "`"
+  | BANG -> "!"
+  | BAR -> "|"
+  | BARBAR -> "||"
+  | BARRBRACKET -> "|]"
+  | CHAR lit -> lit.str
+  | COLON -> ":"
+  | COLONCOLON -> "::"
+  | COLONEQUAL -> ":="
+  | COLONGREATER -> ":>"
+  | COMMA -> ","
+  | DOT -> "."
+  | DOTDOT -> ".."
+  | EOF -> ""
+  | EQUAL -> "="
+  | FLOAT lit -> lit.str
+  | GREATER -> ">"
+  | GREATERRBRACE -> ">}"
+  | GREATERRBRACKET -> ">]"
+  | INFIXOP0 s -> s
+  | INFIXOP1 s -> s
+  | INFIXOP2 s -> s
+  | INFIXOP3 s -> s
+  | INFIXOP4 s -> s
+  | INT lit -> lit.str
+  | INT32 lit -> lit.str
+  | INT64 lit -> lit.str
+  | LABEL l -> "~" ^ l ^ ":"
+  | LBRACE -> "{"
+  | LBRACELESS -> "{<"
+  | LBRACKET -> "["
+  | LBRACKETBAR -> "[|"
+  | LBRACKETLESS -> "[<"
+  | LBRACKETGREATER -> "[>"
+  | LBRACKETPERCENT -> "[%"
+  | LBRACKETPERCENTPERCENT -> "[%%"
+  | LESS -> "<"
+  | LESSMINUS -> "<-"
+  | LIDENT id -> id
+  | LPAREN -> "("
+  | LBRACKETAT -> "[@"
+  | LBRACKETATAT -> "[@@"
+  | MINUS -> "-"
+  | MINUSDOT -> "-."
+  | MINUSGREATER -> "->"
+  | NATIVEINT lit -> lit.str
+  | OPTLABEL s -> "?"^s^":"
+  | PERCENT -> "%"
+  | PLUS -> "+"
+  | PLUSDOT -> "+."
+  | PREFIXOP s -> s
+  | QUESTION -> "?"
+  | QUOTE -> "'"
+  | RBRACE -> "}"
+  | RBRACKET -> "]"
+  | RPAREN -> ")"
+  | SEMI -> ";"
+  | SEMISEMI -> ";;"
+  | SHARP -> "#"
+  | STAR -> "*"
+  | TILDE -> "~"
+  | UNDERSCORE -> "_"
+  | STRING lit -> lit.str
+  | UIDENT id -> id
+  | WHITESPACE s -> s
+  | COMMENT (s, _loc) -> Printf.sprintf "(*%s*)" s
 
 (* To buffer string literals *)
 
