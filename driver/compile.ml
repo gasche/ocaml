@@ -19,29 +19,31 @@ open Compenv
 
 (* Compile a .mli file *)
 
-(* the proper way to do this would be to add a configuration option,
-   but it's unclear we ever want to upstream this. *)
-let reparse = (try Sys.getenv "OCAML_PARSE_ROUNDTRIP" <> "" with _ -> false)
+module Roundtrip = struct
+  let cp src tgt =
+    assert (0 = Sys.command (Printf.sprintf "cp --preserve=all %s %s"
+                               (Filename.quote src) (Filename.quote tgt)))
 
-let reparse sourcefile print parse ast =
-  if not reparse then ast
-  else begin
-    let cp src tgt =
-      ignore (Sys.command
-                (Printf.sprintf "cp --preserve=all %s %s"
-                   (Filename.quote src) (Filename.quote tgt))) in
-    let save_sourcefile k =
-      let cpfile = sourcefile ^ ".cp" in
-      cp sourcefile cpfile;
-      Sys.remove sourcefile;
-      let result = try `Ok (k ()) with exn -> `Err exn in
-      cp cpfile sourcefile;
-      Sys.remove cpfile;
-      match result with
-      | `Ok v -> v
-      | `Err exn -> raise exn
-    in
-    save_sourcefile begin fun () ->
+  type 'a result = Ok of 'a | Err of exn
+
+  let save sourcefile k =
+    let cpfile = sourcefile ^ ".cp" in
+    cp sourcefile cpfile;
+    Sys.remove sourcefile;
+    let result = try Ok (k ()) with exn -> Err exn in
+    cp cpfile sourcefile;
+    Sys.remove cpfile;
+    match result with
+    | Ok v -> v
+    | Err exn -> raise exn
+
+  (* the proper way to do this would be to add configuration options,
+     but it's unclear we ever want to upstream this. *)
+  let reparse_conf = (try Sys.getenv "OCAML_PARSE_ROUNDTRIP" <> "" with _ -> false)
+
+  let reparse sourcefile print parse ast =
+    if not reparse_conf then ast
+    else save sourcefile begin fun () ->
       let out = open_out sourcefile in
       let ppf = formatter_of_out_channel out in
       print ppf ast;
@@ -51,8 +53,7 @@ let reparse sourcefile print parse ast =
         cp sourcefile (sourcefile ^ ".dsource");
         raise exn
     end
-  end
-
+end
 
 (* Keep in sync with the copy in optcompile.ml *)
 
@@ -67,7 +68,8 @@ let interface ppf sourcefile outputprefix =
   if !Clflags.dump_parsetree then fprintf ppf "%a@." Printast.interface ast;
   if !Clflags.dump_source then fprintf ppf "%a@." Pprintast.signature ast;
   let ast =
-    reparse sourcefile Pprintast.signature (Pparse.parse_interface ppf) ast in
+    Roundtrip.reparse sourcefile
+      Pprintast.signature (Pparse.parse_interface ppf) ast in
   let tsg = Typemod.transl_signature initial_env ast in
   if !Clflags.dump_typedtree then fprintf ppf "%a@." Printtyped.interface tsg;
   let sg = tsg.sig_type in
@@ -104,7 +106,8 @@ let implementation ppf sourcefile outputprefix =
       ast
       ++ print_if ppf Clflags.dump_parsetree Printast.implementation
       ++ print_if ppf Clflags.dump_source Pprintast.structure
-      ++ reparse sourcefile Pprintast.structure (Pparse.parse_implementation ppf)
+      ++ Roundtrip.reparse sourcefile
+           Pprintast.structure (Pparse.parse_implementation ppf)
       ++ Typemod.type_implementation sourcefile outputprefix modulename env
       ++ print_if ppf Clflags.dump_typedtree
           Printtyped.implementation_with_coercion
@@ -123,7 +126,8 @@ let implementation ppf sourcefile outputprefix =
       ast
       ++ print_if ppf Clflags.dump_parsetree Printast.implementation
       ++ print_if ppf Clflags.dump_source Pprintast.structure
-      ++ reparse sourcefile Pprintast.structure (Pparse.parse_implementation ppf)
+      ++ Roundtrip.reparse sourcefile
+           Pprintast.structure (Pparse.parse_implementation ppf)
       ++ Typemod.type_implementation sourcefile outputprefix modulename env
       ++ print_if ppf Clflags.dump_typedtree
                   Printtyped.implementation_with_coercion
