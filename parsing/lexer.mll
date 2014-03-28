@@ -284,10 +284,9 @@ let float_literal =
 rule token = parse
   | newline
       { update_loc lexbuf None 1 false 0;
-        token lexbuf
-      }
+        WHITESPACE (Lexing.lexeme lexbuf) }
   | blank +
-      { token lexbuf }
+      { WHITESPACE (Lexing.lexeme lexbuf) }
   | "_"
       { UNDERSCORE }
   | "~"
@@ -404,7 +403,7 @@ rule token = parse
         ("\"" ([^ '\010' '\013' '"' ] * as name) "\"")?
         [^ '\010' '\013'] * newline
       { update_loc lexbuf name (int_of_string num) true 0;
-        token lexbuf
+        WHITESPACE (Lexing.lexeme lexbuf)
       }
   | "#"  { SHARP }
   | "&"  { AMPERSAND }
@@ -631,15 +630,22 @@ and skip_sharp_bang = parse
   | "" { () }
 
 {
-  let token_with_comments = token
+  let token_with_comments_and_whitespace = token
 
   let last_comments = ref []
+
+  let rec token_with_comments lexbuf =
+    match token_with_comments_and_whitespace lexbuf with
+    | WHITESPACE _ -> token_with_comments lexbuf
+    | tok -> tok
+
   let rec token lexbuf =
     match token_with_comments lexbuf with
         COMMENT (s, comment_loc) ->
           last_comments := (s, comment_loc) :: !last_comments;
           token lexbuf
       | tok -> tok
+
   let comments () = List.rev !last_comments
   let init () =
     is_in_string := false;

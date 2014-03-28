@@ -401,6 +401,7 @@ let mkexp_attrs d attrs =
 %token WHILE
 %token WITH
 %token <string * Location.t> COMMENT
+%token <string> WHITESPACE
 
 /* Precedences and associativities.
 
