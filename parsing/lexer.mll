@@ -34,61 +34,164 @@ exception Error of error * Location.t;;
 
 let keywords_assoc = [
     "and", AND;
+    "et", AND;
+
     "as", AS;
+    "tel", AS;
+
     "assert", ASSERT;
+    "affirme", ASSERT;
+
     "begin", BEGIN;
+    "début", BEGIN;
+
     "class", CLASS;
+    "classe", CLASS;
+
     "constraint", CONSTRAINT;
+    "contrainte", CONSTRAINT;
+
     "do", DO;
+    "faire", DO;
+
     "done", DONE;
+    "fait", DONE;
+
     "downto", DOWNTO;
+    "descendant_jusqu'a", DOWNTO;
+
     "else", ELSE;
+    "sinon", ELSE;
+
     "end", END;
+    "fin", END;
+
     "exception", EXCEPTION;
+
     "external", EXTERNAL;
+    "dehors", EXTERNAL;
+
     "false", FALSE;
+    "faux", FALSE;
+
     "for", FOR;
+    "pour", FOR;
+
     "fun", FUN;
+    "fonc", FUN;
+
     "function", FUNCTION;
+    "fonction", FUNCTION;
+
     "functor", FUNCTOR;
+    "foncteur", FUNCTOR;
+
     "if", IF;
+    "si", IF;
+
     "in", IN;
+    "dans", IN;
+
     "include", INCLUDE;
+    "inclus", INCLUDE;
+
     "inherit", INHERIT;
+    "hérite", INHERIT;
+
     "initializer", INITIALIZER;
+    "initialisateur", INITIALIZER;
+
     "lazy", LAZY;
+    "paresseux", LAZY;
+
     "let", LET;
+    "soit", LET;
+
     "match", MATCH;
+    "filtre", MATCH;
+
     "method", METHOD;
+    "méthode", METHOD;
+
     "module", MODULE;
+
     "mutable", MUTABLE;
+    "modifiable", MUTABLE;
+
     "new", NEW;
+    "nouv", NEW;
+
     "object", OBJECT;
+    "objet", OBJECT;
+
     "of", OF;
+    "de", OF;
+
     "open", OPEN;
+    "ouvre", OPEN;
+
     "or", OR;
+    "ou", OR;
+
 (*  "parser", PARSER; *)
+(*  "parseur", PARSER; *)
+
     "private", PRIVATE;
+    "privée", PRIVATE;
+
     "rec", REC;
+
     "sig", SIG;
+
     "struct", STRUCT;
+
     "then", THEN;
+    "alors", THEN;
+
     "to", TO;
+    "à", TO;
+
     "true", TRUE;
+    "vrai", TRUE;
+
     "try", TRY;
+    "essaie", TRY;
+
     "type", TYPE;
+
     "val", VAL;
+
     "virtual", VIRTUAL;
+    "virtuelle", VIRTUAL;
+
     "when", WHEN;
+    "quand", WHEN;
+
     "while", WHILE;
+    "pendant_que", WHILE;
+
     "with", WITH;
+    "avec", WITH;
+
     "mod", INFIXOP3("mod");
+
     "land", INFIXOP3("land");
+    "etl", INFIXOP3("land");
+
     "lor", INFIXOP3("lor");
+    "oul", INFIXOP3("lor");
+
     "lxor", INFIXOP3("lxor");
+    "ouxl", INFIXOP3("lxor");
+
     "lsl", INFIXOP4("lsl");
+    "dgl", INFIXOP4("lsl");
+
     "lsr", INFIXOP4("lsr");
+    "ddl", INFIXOP4("lsr");
+
     "asr", INFIXOP4("asr");
+    "dda", INFIXOP4("asr");
 ]
 
 let keyword_table =
