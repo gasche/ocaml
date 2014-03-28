@@ -21,7 +21,7 @@ open Compenv
 
 (* the proper way to do this would be to add a configuration option,
    but it's unclear we ever want to upstream this. *)
-let reparse = true
+let reparse = (try Sys.getenv "OCAML_PARSE_ROUNDTRIP" <> "" with _ -> false)
 
 let reparse sourcefile print parse ast =
   if not reparse then ast
