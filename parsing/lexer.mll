@@ -568,9 +568,14 @@ let () =
 
 let newline = ('\013'* '\010' )
 let blank = [' ' '\009' '\012']
-let lowercase = ['a'-'z' '_']
-let uppercase = ['A'-'Z']
-let identchar = ['A'-'Z' 'a'-'z' '_' '\'' '0'-'9']
+let lowercase_cocorico = ("à" | "â" | "é" | "è" | "ê" | "ë"
+                         | "î" | "ô" | "ù" | "û" | "ç" | "œ" | "æ")
+let uppercase_cocorico = ("À" | "Â" | "É" | "È" | "ê" | "Ë"
+                         | "Î" | "Ô" | "Ù" | "Û" | "Ç" | "Œ" | "Æ")
+let lowercase = (['a'-'z' '_'] | lowercase_cocorico)
+let uppercase = (['A'-'Z'] | uppercase_cocorico)
+let identchar = (['A'-'Z' 'a'-'z' '_' '\'' '0'-'9' '\147' '\159'-'\191']
+                 | uppercase_cocorico | lowercase_cocorico)
 let lowercase_latin1 = ['a'-'z' '\223'-'\246' '\248'-'\255' '_']
 let uppercase_latin1 = ['A'-'Z' '\192'-'\214' '\216'-'\222']
 let identchar_latin1 =
