@@ -280,6 +280,43 @@ let is_in_string = ref false
 let in_string () = !is_in_string
 let print_warnings = ref true
 
+let string_inside_comment string_rule lexbuf =
+  (* because of the historical choice of using only one buffer to
+     store either strings or comments, we have to be a bit devious to
+     handle string inside comments properly; the problem is that we
+     reuse the usual string-parsing rules that will add both the raw
+     string in the [raw_string_buff] *and* the unescaped string to the
+     [string_buff] which is *also* used for comments.
+
+     In a comment, we want to keep the raw representation of strings,
+     not their unescaped version. Just calling the string parsing rule
+     will only add the unescaped representation.
+
+     The solution is to save the state of the [string_buff] before
+     calling the string-parser, call the string parser, reinstate the
+     [string_buff] with the previous state, and then add the raw
+     string itself to the buffer. *)
+  let comment_start = get_stored_string () in
+  reset_string_buffer ();
+  init_raw lexbuf;
+  string_start_loc := Location.curr lexbuf;
+  is_in_string := true;
+  begin
+    try string_rule lexbuf
+    with Error (Unterminated_string, str_start) ->
+      match !comment_start_loc with
+      | [] -> assert false
+      | loc :: _ ->
+        let start = List.hd (List.rev !comment_start_loc) in
+        comment_start_loc := [];
+        raise (Error (Unterminated_string_in_comment (start, str_start), loc))
+  end;
+  is_in_string := false;
+  let raw_string = flush_raw_string () in
+  reset_string_buffer ();
+  store_string comment_start;
+  store_string raw_string
+
 (* To translate escape sequences *)
 
 let char_lit lexbuf lit = {
@@ -668,45 +705,12 @@ and comment = parse
                   comment lexbuf;
        }
   | "\""
-      {
-        string_start_loc := Location.curr lexbuf;
-        store_string_char '"';
-        is_in_string := true;
-        begin try string lexbuf
-        with Error (Unterminated_string, str_start) ->
-          match !comment_start_loc with
-          | [] -> assert false
-          | loc :: _ ->
-            let start = List.hd (List.rev !comment_start_loc) in
-            comment_start_loc := [];
-            raise (Error (Unterminated_string_in_comment (start, str_start),
-                          loc))
-        end;
-        is_in_string := false;
-        reset_raw ();
-        store_string_char '"';
+      { string_inside_comment string lexbuf;
         comment lexbuf }
   | "{" lowercase* "|"
-      {
-        let delim = Lexing.lexeme lexbuf in
+      { let delim = Lexing.lexeme lexbuf in
         let delim = String.sub delim 1 (String.length delim - 2) in
-        string_start_loc := Location.curr lexbuf;
-        store_lexeme lexbuf;
-        is_in_string := true;
-        begin try quoted_string delim lexbuf
-        with Error (Unterminated_string, str_start) ->
-          match !comment_start_loc with
-          | [] -> assert false
-          | loc :: _ ->
-            let start = List.hd (List.rev !comment_start_loc) in
-            comment_start_loc := [];
-            raise (Error (Unterminated_string_in_comment (start, str_start), loc))
-        end;
-        is_in_string := false;
-        reset_raw ();
-        store_string_char '|';
-        store_string delim;
-        store_string_char '}';
+        string_inside_comment (quoted_string delim) lexbuf;
         comment lexbuf }
 
   | "''"
@@ -761,7 +765,8 @@ and string = parse
         store_raw lexbuf;
         string lexbuf }
   | '\\' _
-      { if in_comment ()
+      { store_raw lexbuf;
+        if in_comment ()
         then string lexbuf
         else begin
 (*  Should be an error, but we are very lax.
@@ -772,7 +777,6 @@ and string = parse
           Location.prerr_warning loc Warnings.Illegal_backslash;
           store_string_char (Lexing.lexeme_char lexbuf 0);
           store_string_char (Lexing.lexeme_char lexbuf 1);
-          store_raw lexbuf;
           string lexbuf
         end
       }

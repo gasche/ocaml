@@ -309,7 +309,7 @@ module type LOG = sig
       level is greater than or equal to [level]. The default level is 1.
       More obscure debugging information should have a higher logging
       level. Youre formats are wrapped inside these two formats
-      ["@\[<2>"] and ["@\]@."]. *)
+      ["@<2>"] and ["@@."]. *)
   val dprintf : int -> ('a, Format.formatter, unit) format -> 'a
 
   (** Equivalent to calling [dprintf] with a level [< 0]. *)
