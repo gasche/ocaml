@@ -296,7 +296,7 @@ let mkexp_attrs d attrs =
 %token BARBAR
 %token BARRBRACKET
 %token BEGIN
-%token <char> CHAR
+%token <char Asttypes.literal> CHAR
 %token CLASS
 %token COLON
 %token COLONCOLON
@@ -316,7 +316,7 @@ let mkexp_attrs d attrs =
 %token EXCEPTION
 %token EXTERNAL
 %token FALSE
-%token <string> FLOAT
+%token <string Asttypes.literal> FLOAT
 %token FOR
 %token FUN
 %token FUNCTION
@@ -334,9 +334,9 @@ let mkexp_attrs d attrs =
 %token <string> INFIXOP4
 %token INHERIT
 %token INITIALIZER
-%token <int> INT
-%token <int32> INT32
-%token <int64> INT64
+%token <int Asttypes.literal> INT
+%token <int32 Asttypes.literal> INT32
+%token <int64 Asttypes.literal> INT64
 %token <string> LABEL
 %token LAZY
 %token LBRACE
@@ -361,7 +361,7 @@ let mkexp_attrs d attrs =
 %token MINUSGREATER
 %token MODULE
 %token MUTABLE
-%token <nativeint> NATIVEINT
+%token <nativeint Asttypes.literal> NATIVEINT
 %token NEW
 %token OBJECT
 %token OF
@@ -1821,26 +1821,26 @@ label:
 /* Constants */
 
 constant:
-    INT                                         { Const_int $1 }
-  | CHAR                                        { Const_char $1 }
+    INT                                         { Const_int $1.lit }
+  | CHAR                                        { Const_char $1.lit }
   | STRING                                      { let (s, d) = $1 in Const_string (s, d) }
-  | FLOAT                                       { Const_float $1 }
-  | INT32                                       { Const_int32 $1 }
-  | INT64                                       { Const_int64 $1 }
-  | NATIVEINT                                   { Const_nativeint $1 }
+  | FLOAT                                       { Const_float $1.lit }
+  | INT32                                       { Const_int32 $1.lit }
+  | INT64                                       { Const_int64 $1.lit }
+  | NATIVEINT                                   { Const_nativeint $1.lit }
 ;
 signed_constant:
     constant                               { $1 }
-  | MINUS INT                              { Const_int(- $2) }
-  | MINUS FLOAT                            { Const_float("-" ^ $2) }
-  | MINUS INT32                            { Const_int32(Int32.neg $2) }
-  | MINUS INT64                            { Const_int64(Int64.neg $2) }
-  | MINUS NATIVEINT                        { Const_nativeint(Nativeint.neg $2) }
-  | PLUS INT                               { Const_int $2 }
-  | PLUS FLOAT                             { Const_float $2 }
-  | PLUS INT32                             { Const_int32 $2 }
-  | PLUS INT64                             { Const_int64 $2 }
-  | PLUS NATIVEINT                         { Const_nativeint $2 }
+  | MINUS INT                              { Const_int(- $2.lit) }
+  | MINUS FLOAT                            { Const_float("-" ^ $2.lit) }
+  | MINUS INT32                            { Const_int32(Int32.neg $2.lit) }
+  | MINUS INT64                            { Const_int64(Int64.neg $2.lit) }
+  | MINUS NATIVEINT                        { Const_nativeint(Nativeint.neg $2.lit) }
+  | PLUS INT                               { Const_int $2.lit }
+  | PLUS FLOAT                             { Const_float $2.lit }
+  | PLUS INT32                             { Const_int32 $2.lit }
+  | PLUS INT64                             { Const_int64 $2.lit }
+  | PLUS NATIVEINT                         { Const_nativeint $2.lit }
 ;
 
 /* Identifiers and long identifiers */
@@ -1935,7 +1935,7 @@ class_longident:
 toplevel_directive:
     SHARP ident                 { Ptop_dir($2, Pdir_none) }
   | SHARP ident STRING          { Ptop_dir($2, Pdir_string (fst $3)) }
-  | SHARP ident INT             { Ptop_dir($2, Pdir_int $3) }
+  | SHARP ident INT             { Ptop_dir($2, Pdir_int $3.lit) }
   | SHARP ident val_longident   { Ptop_dir($2, Pdir_ident $3) }
   | SHARP ident FALSE           { Ptop_dir($2, Pdir_bool false) }
   | SHARP ident TRUE            { Ptop_dir($2, Pdir_bool true) }

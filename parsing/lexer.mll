@@ -16,6 +16,7 @@
 open Lexing
 open Misc
 open Parser
+open Asttypes
 
 type error =
   | Illegal_character of char
@@ -134,12 +135,20 @@ let print_warnings = ref true
 
 (* To translate escape sequences *)
 
-let char_for_backslash = function
+let char_lit lexbuf lit = {
+  str = Lexing.lexeme lexbuf;
+  lit;
+}
+
+let char lexbuf i = char_lit lexbuf (Lexing.lexeme_char lexbuf i)
+
+let char_for_backslash lexbuf i =
+  char_lit lexbuf (match Lexing.lexeme_char lexbuf i with
   | 'n' -> '\010'
   | 'r' -> '\013'
   | 'b' -> '\008'
   | 't' -> '\009'
-  | c   -> c
+  | c   -> c)
 
 let char_for_decimal_code lexbuf i =
   let c = 100 * (Char.code(Lexing.lexeme_char lexbuf i) - 48) +
@@ -147,10 +156,10 @@ let char_for_decimal_code lexbuf i =
                 (Char.code(Lexing.lexeme_char lexbuf (i+2)) - 48) in
   if (c < 0 || c > 255) then
     if in_comment ()
-    then 'x'
+    then char_lit lexbuf 'x'
     else raise (Error(Illegal_escape (Lexing.lexeme lexbuf),
                       Location.curr lexbuf))
-  else Char.chr c
+  else char_lit lexbuf (Char.chr c)
 
 let char_for_hexadecimal_code lexbuf i =
   let d1 = Char.code (Lexing.lexeme_char lexbuf i) in
@@ -163,19 +172,29 @@ let char_for_hexadecimal_code lexbuf i =
              else if d2 >= 65 then d2 - 55
              else d2 - 48
   in
-  Char.chr (val1 * 16 + val2)
+  char_lit lexbuf (Char.chr (val1 * 16 + val2))
 
 (* To convert integer literals, allowing max_int + 1 (PR#4210) *)
 
-let cvt_int_literal s =
-  - int_of_string ("-" ^ s)
-let cvt_int32_literal s =
-  Int32.neg (Int32.of_string ("-" ^ String.sub s 0 (String.length s - 1)))
-let cvt_int64_literal s =
-  Int64.neg (Int64.of_string ("-" ^ String.sub s 0 (String.length s - 1)))
-let cvt_nativeint_literal s =
-  Nativeint.neg (Nativeint.of_string ("-" ^ String.sub s 0
-                                                       (String.length s - 1)))
+let cvt_int_literal s = {
+  str = s;
+  lit = - int_of_string ("-" ^ s);
+}
+let cvt_int32_literal s = {
+  str = s;
+  lit = Int32.neg (Int32.of_string
+                     ("-" ^ String.sub s 0 (String.length s - 1)));
+}
+let cvt_int64_literal s = {
+  str = s;
+  lit = Int64.neg (Int64.of_string
+                     ("-" ^ String.sub s 0 (String.length s - 1)));
+}
+let cvt_nativeint_literal s = {
+  str = s;
+  lit = Nativeint.neg (Nativeint.of_string
+                         ("-" ^ String.sub s 0 (String.length s - 1)));
+}
 
 (* Remove underscores from float literals *)
 
@@ -189,6 +208,11 @@ let remove_underscores s =
         '_' -> remove (src + 1) dst
       |  c  -> s.[dst] <- c; remove (src + 1) (dst + 1)
   in remove 0 0
+
+let cvt_float_literal s = {
+  str = s;
+  lit = remove_underscores s;
+}
 
 (* recover the name from a LABEL or OPTLABEL token *)
 
@@ -318,7 +342,7 @@ rule token = parse
           raise (Error(Literal_overflow "int", Location.curr lexbuf))
       }
   | float_literal
-      { FLOAT (remove_underscores(Lexing.lexeme lexbuf)) }
+      { FLOAT (cvt_float_literal(Lexing.lexeme lexbuf)) }
   | int_literal "l"
       { try
           INT32 (cvt_int32_literal (Lexing.lexeme lexbuf))
@@ -356,15 +380,15 @@ rule token = parse
         STRING (get_stored_string(), Some delim) }
   | "'" newline "'"
       { update_loc lexbuf None 1 false 1;
-        CHAR (Lexing.lexeme_char lexbuf 1) }
+        CHAR (char lexbuf 1) }
   | "'" [^ '\\' '\'' '\010' '\013'] "'"
-      { CHAR(Lexing.lexeme_char lexbuf 1) }
+      { CHAR (char lexbuf 1) }
   | "'\\" ['\\' '\'' '"' 'n' 't' 'b' 'r' ' '] "'"
-      { CHAR(char_for_backslash (Lexing.lexeme_char lexbuf 2)) }
+      { CHAR (char_for_backslash lexbuf 2) }
   | "'\\" ['0'-'9'] ['0'-'9'] ['0'-'9'] "'"
-      { CHAR(char_for_decimal_code lexbuf 2) }
+      { CHAR (char_for_decimal_code lexbuf 2) }
   | "'\\" 'x' ['0'-'9' 'a'-'f' 'A'-'F'] ['0'-'9' 'a'-'f' 'A'-'F'] "'"
-      { CHAR(char_for_hexadecimal_code lexbuf 3) }
+      { CHAR (char_for_hexadecimal_code lexbuf 3) }
   | "'\\" _
       { let l = Lexing.lexeme lexbuf in
         let esc = String.sub l 1 (String.length l - 1) in
@@ -565,13 +589,13 @@ and string = parse
         string lexbuf
       }
   | '\\' ['\\' '\'' '"' 'n' 't' 'b' 'r' ' ']
-      { store_string_char(char_for_backslash(Lexing.lexeme_char lexbuf 1));
+      { store_string_char (char_for_backslash lexbuf 1).lit;
         string lexbuf }
   | '\\' ['0'-'9'] ['0'-'9'] ['0'-'9']
-      { store_string_char(char_for_decimal_code lexbuf 1);
+      { store_string_char (char_for_decimal_code lexbuf 1).lit;
          string lexbuf }
   | '\\' 'x' ['0'-'9' 'a'-'f' 'A'-'F'] ['0'-'9' 'a'-'f' 'A'-'F']
-      { store_string_char(char_for_hexadecimal_code lexbuf 2);
+      { store_string_char (char_for_hexadecimal_code lexbuf 2).lit;
          string lexbuf }
   | '\\' _
       { if in_comment ()

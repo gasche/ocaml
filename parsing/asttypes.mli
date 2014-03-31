@@ -47,3 +47,12 @@ type variance =
   | Covariant
   | Contravariant
   | Invariant
+
+
+(* used by the lexer to preserve the string value of the literal for
+   pixel-perfect reprinting; for example the integer literal 123_456
+   will be represented as { str = "123_456"; lit = 123456 } *)
+type 'a literal = {
+  str: string;
+  lit : 'a;
+}
