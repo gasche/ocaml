@@ -40,6 +40,7 @@ module Roundtrip = struct
   (* the proper way to do this would be to add configuration options,
      but it's unclear we ever want to upstream this. *)
   let reparse_conf = (try Sys.getenv "OCAML_PARSE_ROUNDTRIP" <> "" with _ -> false)
+  let relex_conf = (try Sys.getenv "OCAML_LEX_ROUNDTRIP" <> "" with _ -> false)
 
   let reparse sourcefile print parse ast =
     if not reparse_conf then ast
@@ -53,6 +54,39 @@ module Roundtrip = struct
         cp sourcefile (sourcefile ^ ".dsource");
         raise exn
     end
+
+  let relex parse_fun sourcefile =
+    if relex_conf then begin
+      let inc = open_in sourcefile in
+      let outbuf = Buffer.create 100 in
+      begin
+        try
+          Location.input_name := sourcefile;
+          let lexbuf = Lexing.from_channel inc in
+          Location.init lexbuf sourcefile;
+          while
+            let tok = Lexer.token_with_comments_and_whitespace lexbuf in
+            if tok = Parser.EOF then false
+            else begin
+              Buffer.add_string outbuf (Lexer.string_of_token tok);
+              true
+            end
+          do () done;
+          close_in inc;
+        with exn ->
+          close_in inc; raise exn
+      end;
+      try
+        let outc = open_out sourcefile in
+        Buffer.output_buffer outc outbuf;
+        close_out outc;
+      with _ ->
+        (* if sourcefile is not writable, so be it, we'll ignore
+           errors and leave the file unchanged; some people are averse
+           to progress *)
+        ();
+    end;
+    parse_fun sourcefile
 end
 
 (* Keep in sync with the copy in optcompile.ml *)
@@ -64,7 +98,7 @@ let interface ppf sourcefile outputprefix =
   check_unit_name ppf sourcefile modulename;
   Env.set_unit_name modulename;
   let initial_env = Compmisc.initial_env () in
-  let ast = Pparse.parse_interface ppf sourcefile in
+  let ast = Roundtrip.relex (Pparse.parse_interface ppf) sourcefile in
   if !Clflags.dump_parsetree then fprintf ppf "%a@." Printast.interface ast;
   if !Clflags.dump_source then fprintf ppf "%a@." Pprintast.signature ast;
   let ast =
@@ -115,7 +149,7 @@ let implementation ppf sourcefile outputprefix =
       Warnings.check_fatal ();
       Stypes.dump (Some (outputprefix ^ ".annot"))
     in
-    try comp (Pparse.parse_implementation ppf sourcefile)
+    try comp (Roundtrip.relex (Pparse.parse_implementation ppf) sourcefile)
     with x ->
       Stypes.dump (Some (outputprefix ^ ".annot"));
       raise x
@@ -142,7 +176,7 @@ let implementation ppf sourcefile outputprefix =
       close_out oc;
       Stypes.dump (Some (outputprefix ^ ".annot"))
     in
-    try comp (Pparse.parse_implementation ppf sourcefile)
+    try comp (Roundtrip.relex (Pparse.parse_implementation ppf) sourcefile)
     with x ->
       close_out oc;
       remove_file objfile;
