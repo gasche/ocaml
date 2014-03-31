@@ -111,6 +111,28 @@ let store_lexeme lexbuf =
 
 let get_stored_string () = Buffer.contents string_buff
 
+(* [raw_string_buff] stores the string as is present in the source
+   code, as opposed to [string_buff] which applies escaping rules to
+   return the string representation as intended as an OCaml value *)
+let raw_string_buff = Buffer.create 256
+
+let store_raw lexbuf =
+  Buffer.add_string raw_string_buff (Lexing.lexeme lexbuf)
+
+(* distinguishing [store_raw] and [init_raw] gives us sanity checks
+   that the [init_raw] / [flush_raw] are parenthesized as expected *)
+let init_raw lexbuf =
+  assert (Buffer.length raw_string_buff = 0);
+  store_raw lexbuf
+
+let reset_raw () =
+  Buffer.reset raw_string_buff
+
+let flush_raw_string () =
+  let raw_string = Buffer.contents raw_string_buff in
+  reset_raw ();
+  raw_string
+
 (* To store the position of the beginning of a string and comment *)
 let string_start_loc = ref Location.none;;
 let comment_start_loc = ref [];;
@@ -347,23 +369,33 @@ rule token = parse
   | "\""
       { reset_string_buffer();
         is_in_string := true;
+        init_raw lexbuf;
         let string_start = lexbuf.lex_start_p in
         string_start_loc := Location.curr lexbuf;
         string lexbuf;
+        let raw_string = flush_raw_string () in
         is_in_string := false;
         lexbuf.lex_start_p <- string_start;
-        STRING (get_stored_string(), None) }
+        STRING {
+          str = raw_string;
+          lit = (get_stored_string(), None);
+        } }
   | "{" lowercase* "|"
       { reset_string_buffer();
         let delim = Lexing.lexeme lexbuf in
         let delim = String.sub delim 1 (String.length delim - 2) in
         is_in_string := true;
+        init_raw lexbuf;
         let string_start = lexbuf.lex_start_p in
         string_start_loc := Location.curr lexbuf;
         quoted_string delim lexbuf;
+        let raw_string = flush_raw_string () in
         is_in_string := false;
         lexbuf.lex_start_p <- string_start;
-        STRING (get_stored_string(), Some delim) }
+        STRING {
+          str = raw_string;
+          lit = (get_stored_string(), Some delim);
+        } }
   | "'" newline "'"
       { update_loc lexbuf None 1 false 1;
         CHAR (char lexbuf 1) }
@@ -512,6 +544,7 @@ and comment = parse
                           loc))
         end;
         is_in_string := false;
+        reset_raw ();
         store_string_char '"';
         comment lexbuf }
   | "{" lowercase* "|"
@@ -531,6 +564,7 @@ and comment = parse
             raise (Error (Unterminated_string_in_comment (start, str_start), loc))
         end;
         is_in_string := false;
+        reset_raw ();
         store_string_char '|';
         store_string delim;
         store_string_char '}';
@@ -569,20 +603,24 @@ and comment = parse
 
 and string = parse
     '"'
-      { () }
+      { store_raw lexbuf }
   | '\\' newline ([' ' '\t'] * as space)
       { update_loc lexbuf None 1 false (String.length space);
+        store_raw lexbuf;
         string lexbuf
       }
   | '\\' ['\\' '\'' '"' 'n' 't' 'b' 'r' ' ']
       { store_string_char (char_for_backslash lexbuf 1).lit;
+        store_raw lexbuf;
         string lexbuf }
   | '\\' ['0'-'9'] ['0'-'9'] ['0'-'9']
       { store_string_char (char_for_decimal_code lexbuf 1).lit;
-         string lexbuf }
+        store_raw lexbuf;
+        string lexbuf }
   | '\\' 'x' ['0'-'9' 'a'-'f' 'A'-'F'] ['0'-'9' 'a'-'f' 'A'-'F']
       { store_string_char (char_for_hexadecimal_code lexbuf 2).lit;
-         string lexbuf }
+        store_raw lexbuf;
+        string lexbuf }
   | '\\' _
       { if in_comment ()
         then string lexbuf
@@ -595,6 +633,7 @@ and string = parse
           Location.prerr_warning loc Warnings.Illegal_backslash;
           store_string_char (Lexing.lexeme_char lexbuf 0);
           store_string_char (Lexing.lexeme_char lexbuf 1);
+          store_raw lexbuf;
           string lexbuf
         end
       }
@@ -603,6 +642,7 @@ and string = parse
           Location.prerr_warning (Location.curr lexbuf) Warnings.Eol_in_string;
         update_loc lexbuf None 1 false 0;
         store_lexeme lexbuf;
+        store_raw lexbuf;
         string lexbuf
       }
   | eof
@@ -610,12 +650,14 @@ and string = parse
         raise (Error (Unterminated_string, !string_start_loc)) }
   | _
       { store_string_char(Lexing.lexeme_char lexbuf 0);
+        store_raw lexbuf;
         string lexbuf }
 
 and quoted_string delim = parse
   | newline
       { update_loc lexbuf None 1 false 0;
         store_lexeme lexbuf;
+        store_raw lexbuf;
         quoted_string delim lexbuf
       }
   | eof
@@ -625,11 +667,13 @@ and quoted_string delim = parse
       {
         let edelim = Lexing.lexeme lexbuf in
         let edelim = String.sub edelim 1 (String.length edelim - 2) in
+        store_raw lexbuf;
         if delim = edelim then ()
         else (store_lexeme lexbuf; quoted_string delim lexbuf)
       }
   | _
       { store_string_char(Lexing.lexeme_char lexbuf 0);
+        store_raw lexbuf;
         quoted_string delim lexbuf }
 
 and skip_sharp_bang = parse
