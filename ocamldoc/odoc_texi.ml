@@ -438,8 +438,8 @@ class texi =
           (function
             | Newline -> Raw "\n"
             | Raw s -> Raw (Str.global_replace re "\n" s)
-            | List tel -> List (List.map self#fix_linebreaks tel)
-            | Enum tel -> Enum (List.map self#fix_linebreaks tel)
+            | List tes -> List (List.map self#fix_linebreaks tes)
+            | Enum tes -> Enum (List.map self#fix_linebreaks tes)
             | te -> te) t
 
     method private soft_fix_linebreaks =
