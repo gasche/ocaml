@@ -77,7 +77,12 @@ module Roundtrip = struct
           close_in inc; raise exn
       end;
       try
-        Sys.rename sourcefile (sourcefile ^ ".bak");
+        let count = ref 1 in
+        let backup () =
+          sourcefile ^ ".bak"
+          ^ (if !count = 1 then "" else string_of_int !count) in
+        while Sys.file_exists (backup ()) do incr count done;
+        Sys.rename sourcefile (backup ());
         let outc = open_out sourcefile in
         Buffer.output_buffer outc outbuf;
         close_out outc;
