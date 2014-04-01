@@ -13,39 +13,39 @@
 
 (* Handling of keyboard interrupts *)
 
-let interrupted = ref false
+soit interrupted = ref faux
 
-let is_protected = ref false
+soit is_protected = ref faux
 
-let break signum =
-  if !is_protected
-  then interrupted := true
-  else raise Sys.Break
+soit break signum =
+  si !is_protected
+  alors interrupted := vrai
+  sinon raise Sys.Break
 
-let _ =
-  match Sys.os_type with
+soit _ =
+  filtre Sys.os_type avec
     "Win32" -> ()
   | _ ->
       Sys.set_signal Sys.sigint (Sys.Signal_handle break);
-      Sys.set_signal Sys.sigpipe (Sys.Signal_handle(fun _ -> raise End_of_file))
+      Sys.set_signal Sys.sigpipe (Sys.Signal_handle(fonc _ -> raise End_of_file))
 
-let protect f =
-  if !is_protected then
+soit protect f =
+  si !is_protected alors
     f ()
-  else begin
-    is_protected := true;
-    if not !interrupted then
+  sinon début
+    is_protected := vrai;
+    si not !interrupted alors
        f ();
-    is_protected := false;
-    if !interrupted then begin interrupted := false; raise Sys.Break end
-  end
+    is_protected := faux;
+    si !interrupted alors début interrupted := faux; raise Sys.Break fin
+  fin
 
-let unprotect f =
-  if not !is_protected then
+soit unprotect f =
+  si not !is_protected alors
     f ()
-  else begin
-    is_protected := false;
-    if !interrupted then begin interrupted := false; raise Sys.Break end;
+  sinon début
+    is_protected := faux;
+    si !interrupted alors début interrupted := faux; raise Sys.Break fin;
     f ();
-    is_protected := true
-  end
+    is_protected := vrai
+  fin

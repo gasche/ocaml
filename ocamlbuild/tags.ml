@@ -12,7 +12,7 @@
 
 
 (* Original author: Nicolas Pouillard *)
-include Set.Make(String)
+inclus Set.Make(String)
 
 (**
   does_match {foo, bar, baz} {foo} => ok
@@ -20,25 +20,25 @@ include Set.Make(String)
   does_match {foo, bar, baz} {} => ok
   does_match {foo, bar, baz} {foo, bar, baz} => ok
 *)
-let does_match x y = subset y x
+soit does_match x y = subset y x
 
-let of_list l = List.fold_right add l empty
+soit of_list l = List.fold_right add l empty
 
-open Format
+ouvre Format
 
-let print f s =
-  let () = fprintf f "@[<0>" in
-  let _ =
-    fold begin fun elt first ->
-      if not first then fprintf f ",@ ";
+soit print f s =
+  soit () = fprintf f "@[<0>" dans
+  soit _ =
+    fold début fonc elt first ->
+      si not first alors fprintf f ",@ ";
       pp_print_string f elt;
-      false
-    end s true in
+      faux
+    fin s vrai dans
   fprintf f "@]"
 
 module Operators = struct
-  let ( ++ ) x y = add y x
-  let ( -- ) x y = remove y x
-  let ( +++ ) x = function Some y -> add y x | None -> x
-  let ( --- ) x = function Some y -> remove y x | None -> x
-end
+  soit ( ++ ) x y = add y x
+  soit ( -- ) x y = remove y x
+  soit ( +++ ) x = fonction Some y -> add y x | None -> x
+  soit ( --- ) x = fonction Some y -> remove y x | None -> x
+fin

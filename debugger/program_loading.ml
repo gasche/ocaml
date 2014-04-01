@@ -13,86 +13,86 @@
 
 (* Program loading *)
 
-open Unix
-open Debugger_config
-open Parameters
-open Input_handling
+ouvre Unix
+ouvre Debugger_config
+ouvre Parameters
+ouvre Input_handling
 
 (*** Debugging. ***)
 
-let debug_loading = ref false
+soit debug_loading = ref faux
 
 (*** Load a program. ***)
 
 (* Function used for launching the program. *)
-let launching_func = ref (function () -> ())
+soit launching_func = ref (fonction () -> ())
 
-let load_program () =
+soit load_program () =
   !launching_func ();
   main_loop ()
 
 (*** Launching functions. ***)
 
 (* Returns a command line prefix to set environment for the debuggee *)
-let get_unix_environment () =
-  let f (vname, vvalue) =
+soit get_unix_environment () =
+  soit f (vname, vvalue) =
     Printf.sprintf "%s=%s " vname (Filename.quote vvalue)
-  in
+  dans
   String.concat "" (List.map f !Debugger_config.environment)
 ;;
 
 (* Returns a command line prefix to set environment for the debuggee *)
-let get_win32_environment () =
+soit get_win32_environment () =
   (* Note: no space before the & or Windows will add it to the value *)
-  let f (vname, vvalue) = Printf.sprintf "set %s=%s&" vname vvalue in
+  soit f (vname, vvalue) = Printf.sprintf "set %s=%s&" vname vvalue dans
   String.concat "" (List.map f !Debugger_config.environment)
 
 (* A generic function for launching the program *)
-let generic_exec_unix cmdline = function () ->
-  if !debug_loading then
+soit generic_exec_unix cmdline = fonction () ->
+  si !debug_loading alors
     prerr_endline "Launching program...";
-  let child =
-    try
+  soit child =
+    essaie
       fork ()
-    with x ->
+    avec x ->
       Unix_tools.report_error x;
-      raise Toplevel in
-  match child with
+      raise Toplevel dans
+  filtre child avec
     0 ->
-      begin try
-         match fork () with
+      début essaie
+         filtre fork () avec
            0 -> (* Try to detach the process from the controlling terminal,
                    so that it does not receive SIGINT on ctrl-C. *)
-                begin try ignore(setsid()) with Invalid_argument _ -> () end;
+                début essaie ignore(setsid()) avec Invalid_argument _ -> () fin;
                 execv shell [| shell; "-c"; cmdline() |]
          | _ -> exit 0
-       with x ->
+       avec x ->
          Unix_tools.report_error x;
          exit 1
-       end
+       fin
   | _ ->
-     match wait () with
+     filtre wait () avec
        (_, WEXITED 0) -> ()
      | _ -> raise Toplevel
 
-let generic_exec_win cmdline = function () ->
-  if !debug_loading then
+soit generic_exec_win cmdline = fonction () ->
+  si !debug_loading alors
     prerr_endline "Launching program...";
-  try ignore(create_process "cmd.exe" [| "/C"; cmdline() |] stdin stdout stderr)
-  with x ->
+  essaie ignore(create_process "cmd.exe" [| "/C"; cmdline() |] stdin stdout stderr)
+  avec x ->
     Unix_tools.report_error x;
     raise Toplevel
 
-let generic_exec =
-  match Sys.os_type with
+soit generic_exec =
+  filtre Sys.os_type avec
     "Win32" -> generic_exec_win
   | _ -> generic_exec_unix
 
 (* Execute the program by calling the runtime explicitly *)
-let exec_with_runtime =
+soit exec_with_runtime =
   generic_exec
-    (function () ->
-      match Sys.os_type with
+    (fonction () ->
+      filtre Sys.os_type avec
         "Win32" ->
           (* This would fail on a file name with spaces
              but quoting is even worse because Unix.create_process
@@ -113,10 +113,10 @@ let exec_with_runtime =
                      !arguments)
 
 (* Excute the program directly *)
-let exec_direct =
+soit exec_direct =
   generic_exec
-    (function () ->
-      match Sys.os_type with
+    (fonction () ->
+      filtre Sys.os_type avec
         "Win32" ->
           (* See the comment above *)
           Printf.sprintf "%sset CAML_DEBUG_SOCKET=%s& %s %s"
@@ -132,8 +132,8 @@ let exec_direct =
                      !arguments)
 
 (* Ask the user. *)
-let exec_manual =
-  function () ->
+soit exec_manual =
+  fonction () ->
     print_newline ();
     print_string "Waiting for connection...";
     print_string ("(the socket is " ^ !socket_name ^ ")");
@@ -143,20 +143,20 @@ let exec_manual =
 
 type launching_function = (unit -> unit)
 
-let loading_modes =
+soit loading_modes =
   ["direct", exec_direct;
    "runtime", exec_with_runtime;
    "manual", exec_manual]
 
-let set_launching_function func =
+soit set_launching_function func =
   launching_func := func
 
 (* Initialization *)
 
-let _ =
+soit _ =
   set_launching_function exec_direct
 
 (*** Connection. ***)
 
-let connection = ref Primitives.std_io
-let connection_opened = ref false
+soit connection = ref Primitives.std_io
+soit connection_opened = ref faux

@@ -14,13 +14,13 @@
 (* Original author: Berke Durak *)
 (* Glob_ast *)
 
-exception Parse_error of string
+exception Parse_error de string
 type pattern =
 | Epsilon
-| Star of pattern
-| Class of character_class
-| Concat of pattern * pattern
-| Union of pattern list
-| Word of string
-and character_class = (char * char) Bool.boolean
-type 'pattern atom = Constant of string | Pattern of 'pattern
+| Star de pattern
+| Class de character_class
+| Concat de pattern * pattern
+| Union de pattern list
+| Word de string
+et character_class = (char * char) Bool.boolean
+type 'pattern atom = Constant de string | Pattern de 'pattern

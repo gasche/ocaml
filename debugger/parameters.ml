@@ -13,27 +13,27 @@
 
 (* Miscellaneous parameters *)
 
-open Primitives
-open Config
-open Debugger_config
+ouvre Primitives
+ouvre Config
+ouvre Debugger_config
 
-let program_loaded = ref false
-let program_name = ref ""
-let socket_name = ref ""
-let arguments = ref ""
+soit program_loaded = ref faux
+soit program_name = ref ""
+soit socket_name = ref ""
+soit arguments = ref ""
 
-let default_load_path =
+soit default_load_path =
   ref [ Filename.current_dir_name; Config.standard_library ]
 
-let add_path dir =
+soit add_path dir =
   load_path := dir :: except dir !load_path;
   Envaux.reset_cache()
 
-let add_path_for mdl dir =
-  let old = try Hashtbl.find load_path_for mdl with Not_found -> [] in
+soit add_path_for mdl dir =
+  soit old = essaie Hashtbl.find load_path_for mdl avec Not_found -> [] dans
   Hashtbl.replace load_path_for mdl (dir :: old)
 
 (* Used by emacs ? *)
-let emacs = ref false
+soit emacs = ref faux
 
-let machine_readable = ref false
+soit machine_readable = ref faux

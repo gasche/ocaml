@@ -11,28 +11,28 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Types
-open Parser_aux
-open Format
+ouvre Types
+ouvre Parser_aux
+ouvre Format
 
 val expression :
     Instruct.debug_event option -> Env.t -> expression ->
     Debugcom.Remote_value.t * type_expr
 
 type error =
-  | Unbound_identifier of Ident.t
-  | Not_initialized_yet of Path.t
-  | Unbound_long_identifier of Longident.t
-  | Unknown_name of int
-  | Tuple_index of type_expr * int * int
-  | Array_index of int * int
-  | List_index of int * int
-  | String_index of string * int * int
-  | Wrong_item_type of type_expr * int
-  | Wrong_label of type_expr * string
-  | Not_a_record of type_expr
+  | Unbound_identifier de Ident.t
+  | Not_initialized_yet de Path.t
+  | Unbound_long_identifier de Longident.t
+  | Unknown_name de int
+  | Tuple_index de type_expr * int * int
+  | Array_index de int * int
+  | List_index de int * int
+  | String_index de string * int * int
+  | Wrong_item_type de type_expr * int
+  | Wrong_label de type_expr * string
+  | Not_a_record de type_expr
   | No_result
 
-exception Error of error
+exception Error de error
 
 val report_error: formatter -> error -> unit

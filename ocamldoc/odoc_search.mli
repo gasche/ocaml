@@ -14,18 +14,18 @@
 
 (** The type for an element of the result of a research. *)
 type result_element =
-    Res_module of Odoc_module.t_module
-  | Res_module_type of Odoc_module.t_module_type
-  | Res_class of Odoc_class.t_class
-  | Res_class_type of Odoc_class.t_class_type
-  | Res_value of Odoc_value.t_value
-  | Res_type of Odoc_type.t_type
-  | Res_exception of Odoc_exception.t_exception
-  | Res_attribute of Odoc_value.t_attribute
-  | Res_method of Odoc_value.t_method
-  | Res_section of string * Odoc_types.text
-  | Res_recfield of  Odoc_type.t_type * Odoc_type.record_field
-  | Res_const of  Odoc_type.t_type * Odoc_type.variant_constructor
+    Res_module de Odoc_module.t_module
+  | Res_module_type de Odoc_module.t_module_type
+  | Res_class de Odoc_class.t_class
+  | Res_class_type de Odoc_class.t_class_type
+  | Res_value de Odoc_value.t_value
+  | Res_type de Odoc_type.t_type
+  | Res_exception de Odoc_exception.t_exception
+  | Res_attribute de Odoc_value.t_attribute
+  | Res_method de Odoc_value.t_method
+  | Res_section de string * Odoc_types.text
+  | Res_recfield de  Odoc_type.t_type * Odoc_type.record_field
+  | Res_const de  Odoc_type.t_type * Odoc_type.variant_constructor
 
 (** The type representing a research result.*)
 type result = result_element list
@@ -50,11 +50,11 @@ module type Predicates =
     val p_attribute : Odoc_value.t_attribute -> t -> bool
     val p_method : Odoc_value.t_method -> t -> bool
     val p_section : string -> t -> bool
-  end
+  fin
 
 (** Search for elements verifying the predicates in the module in parameter.*)
 module Search :
-  functor (P : Predicates) ->
+  foncteur (P : Predicates) ->
     sig
       (** search in a section title *)
       val search_section : Odoc_types.text -> string -> P.t -> result_element list
@@ -100,7 +100,7 @@ module Search :
 
       (** search in a list of modules *)
       val search : Odoc_module.t_module list -> P.t -> result_element list
-    end
+    fin
 
 (** A module of predicates to search elements by name (and accepting regexps).*)
 module P_name :
@@ -119,7 +119,7 @@ module P_name :
     val p_exception : Odoc_exception.t_exception -> Str.regexp -> bool
     val p_attribute : Odoc_value.t_attribute -> Str.regexp -> bool
     val p_method : Odoc_value.t_method -> Str.regexp -> bool
-  end
+  fin
 
 (** A module to search elements by name. *)
 module Search_by_name :
@@ -143,7 +143,7 @@ module Search_by_name :
     val search_module :
       Odoc_module.t_module -> P_name.t -> result_element list
     val search : Odoc_module.t_module list -> P_name.t -> result_element list
-  end
+  fin
 
 (** A function to search all the values in a list of modules. *)
 val values : Odoc_module.t_module list -> Odoc_value.t_value list

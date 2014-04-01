@@ -12,7 +12,7 @@
 
 (* Pretty-printing of C-- code *)
 
-open Format
+ouvre Format
 
 val machtype_component : formatter -> Cmm.machtype_component -> unit
 val machtype : formatter -> Cmm.machtype_component array -> unit

@@ -11,15 +11,15 @@
 (*                                                                     *)
 (***********************************************************************)
 
-let generic_quote quotequote s =
-  let l = String.length s in
-  let b = Buffer.create (l + 20) in
+soit generic_quote quotequote s =
+  soit l = String.length s dans
+  soit b = Buffer.create (l + 20) dans
   Buffer.add_char b '\'';
-  for i = 0 to l - 1 do
-    if s.[i] = '\''
-    then Buffer.add_string b quotequote
-    else Buffer.add_char b  s.[i]
-  done;
+  pour i = 0 à l - 1 faire
+    si s.[i] = '\''
+    alors Buffer.add_string b quotequote
+    sinon Buffer.add_char b  s.[i]
+  fait;
   Buffer.add_char b '\'';
   Buffer.contents b
 
@@ -31,146 +31,146 @@ let generic_quote quotequote s =
   Step 6 is not implemented: we consider that the [suffix] operand is
     always absent.  Suffixes are handled by [chop_suffix] and [chop_extension].
 *)
-let generic_basename is_dir_sep current_dir_name name =
-  let rec find_end n =
-    if n < 0 then String.sub name 0 1
-    else if is_dir_sep name n then find_end (n - 1)
-    else find_beg n (n + 1)
-  and find_beg n p =
-    if n < 0 then String.sub name 0 p
-    else if is_dir_sep name n then String.sub name (n + 1) (p - n - 1)
-    else find_beg (n - 1) p
-  in
-  if name = ""
-  then current_dir_name
-  else find_end (String.length name - 1)
+soit generic_basename is_dir_sep current_dir_name name =
+  soit rec find_end n =
+    si n < 0 alors String.sub name 0 1
+    sinon si is_dir_sep name n alors find_end (n - 1)
+    sinon find_beg n (n + 1)
+  et find_beg n p =
+    si n < 0 alors String.sub name 0 p
+    sinon si is_dir_sep name n alors String.sub name (n + 1) (p - n - 1)
+    sinon find_beg (n - 1) p
+  dans
+  si name = ""
+  alors current_dir_name
+  sinon find_end (String.length name - 1)
 
 (* This function implements the Open Group specification found here:
   [[2]] http://pubs.opengroup.org/onlinepubs/9699919799/utilities/dirname.html
   In step 6 of [[2]], we choose to process "//" normally.
 *)
-let generic_dirname is_dir_sep current_dir_name name =
-  let rec trailing_sep n =
-    if n < 0 then String.sub name 0 1
-    else if is_dir_sep name n then trailing_sep (n - 1)
-    else base n
-  and base n =
-    if n < 0 then current_dir_name
-    else if is_dir_sep name n then intermediate_sep n
-    else base (n - 1)
-  and intermediate_sep n =
-    if n < 0 then String.sub name 0 1
-    else if is_dir_sep name n then intermediate_sep (n - 1)
-    else String.sub name 0 (n + 1)
-  in
-  if name = ""
-  then current_dir_name
-  else trailing_sep (String.length name - 1)
+soit generic_dirname is_dir_sep current_dir_name name =
+  soit rec trailing_sep n =
+    si n < 0 alors String.sub name 0 1
+    sinon si is_dir_sep name n alors trailing_sep (n - 1)
+    sinon base n
+  et base n =
+    si n < 0 alors current_dir_name
+    sinon si is_dir_sep name n alors intermediate_sep n
+    sinon base (n - 1)
+  et intermediate_sep n =
+    si n < 0 alors String.sub name 0 1
+    sinon si is_dir_sep name n alors intermediate_sep (n - 1)
+    sinon String.sub name 0 (n + 1)
+  dans
+  si name = ""
+  alors current_dir_name
+  sinon trailing_sep (String.length name - 1)
 
 module Unix = struct
-  let current_dir_name = "."
-  let parent_dir_name = ".."
-  let dir_sep = "/"
-  let is_dir_sep s i = s.[i] = '/'
-  let is_relative n = String.length n < 1 || n.[0] <> '/';;
-  let is_implicit n =
+  soit current_dir_name = "."
+  soit parent_dir_name = ".."
+  soit dir_sep = "/"
+  soit is_dir_sep s i = s.[i] = '/'
+  soit is_relative n = String.length n < 1 || n.[0] <> '/';;
+  soit is_implicit n =
     is_relative n
     && (String.length n < 2 || String.sub n 0 2 <> "./")
     && (String.length n < 3 || String.sub n 0 3 <> "../")
-  let check_suffix name suff =
+  soit check_suffix name suff =
     String.length name >= String.length suff &&
     String.sub name (String.length name - String.length suff)
                     (String.length suff) = suff
-  let temp_dir_name =
-    try Sys.getenv "TMPDIR" with Not_found -> "/tmp"
-  let quote = generic_quote "'\\''"
-  let basename = generic_basename is_dir_sep current_dir_name
-  let dirname = generic_dirname is_dir_sep current_dir_name
-end
+  soit temp_dir_name =
+    essaie Sys.getenv "TMPDIR" avec Not_found -> "/tmp"
+  soit quote = generic_quote "'\\''"
+  soit basename = generic_basename is_dir_sep current_dir_name
+  soit dirname = generic_dirname is_dir_sep current_dir_name
+fin
 
 module Win32 = struct
-  let current_dir_name = "."
-  let parent_dir_name = ".."
-  let dir_sep = "\\"
-  let is_dir_sep s i = let c = s.[i] in c = '/' || c = '\\' || c = ':'
-  let is_relative n =
+  soit current_dir_name = "."
+  soit parent_dir_name = ".."
+  soit dir_sep = "\\"
+  soit is_dir_sep s i = soit c = s.[i] dans c = '/' || c = '\\' || c = ':'
+  soit is_relative n =
     (String.length n < 1 || n.[0] <> '/')
     && (String.length n < 1 || n.[0] <> '\\')
     && (String.length n < 2 || n.[1] <> ':')
-  let is_implicit n =
+  soit is_implicit n =
     is_relative n
     && (String.length n < 2 || String.sub n 0 2 <> "./")
     && (String.length n < 2 || String.sub n 0 2 <> ".\\")
     && (String.length n < 3 || String.sub n 0 3 <> "../")
     && (String.length n < 3 || String.sub n 0 3 <> "..\\")
-  let check_suffix name suff =
+  soit check_suffix name suff =
    String.length name >= String.length suff &&
-   (let s = String.sub name (String.length name - String.length suff)
-                            (String.length suff) in
+   (soit s = String.sub name (String.length name - String.length suff)
+                            (String.length suff) dans
     String.lowercase s = String.lowercase suff)
-  let temp_dir_name =
-    try Sys.getenv "TEMP" with Not_found -> "."
-  let quote s =
-    let l = String.length s in
-    let b = Buffer.create (l + 20) in
+  soit temp_dir_name =
+    essaie Sys.getenv "TEMP" avec Not_found -> "."
+  soit quote s =
+    soit l = String.length s dans
+    soit b = Buffer.create (l + 20) dans
     Buffer.add_char b '\"';
-    let rec loop i =
-      if i = l then Buffer.add_char b '\"' else
-      match s.[i] with
+    soit rec loop i =
+      si i = l alors Buffer.add_char b '\"' sinon
+      filtre s.[i] avec
       | '\"' -> loop_bs 0 i;
       | '\\' -> loop_bs 0 i;
       | c    -> Buffer.add_char b c; loop (i+1);
-    and loop_bs n i =
-      if i = l then begin
+    et loop_bs n i =
+      si i = l alors début
         Buffer.add_char b '\"';
         add_bs n;
-      end else begin
-        match s.[i] with
+      fin sinon début
+        filtre s.[i] avec
         | '\"' -> add_bs (2*n+1); Buffer.add_char b '\"'; loop (i+1);
         | '\\' -> loop_bs (n+1) (i+1);
         | c    -> add_bs n; loop i
-      end
-    and add_bs n = for _j = 1 to n do Buffer.add_char b '\\'; done
-    in
+      fin
+    et add_bs n = pour _j = 1 à n faire Buffer.add_char b '\\'; fait
+    dans
     loop 0;
     Buffer.contents b
-  let has_drive s =
-    let is_letter = function
-      | 'A' .. 'Z' | 'a' .. 'z' -> true
-      | _ -> false
-    in
+  soit has_drive s =
+    soit is_letter = fonction
+      | 'A' .. 'Z' | 'a' .. 'z' -> vrai
+      | _ -> faux
+    dans
     String.length s >= 2 && is_letter s.[0] && s.[1] = ':'
-  let drive_and_path s =
-    if has_drive s
-    then (String.sub s 0 2, String.sub s 2 (String.length s - 2))
-    else ("", s)
-  let dirname s =
-    let (drive, path) = drive_and_path s in
-    let dir = generic_dirname is_dir_sep current_dir_name path in
+  soit drive_and_path s =
+    si has_drive s
+    alors (String.sub s 0 2, String.sub s 2 (String.length s - 2))
+    sinon ("", s)
+  soit dirname s =
+    soit (drive, path) = drive_and_path s dans
+    soit dir = generic_dirname is_dir_sep current_dir_name path dans
     drive ^ dir
-  let basename s =
-    let (drive, path) = drive_and_path s in
+  soit basename s =
+    soit (drive, path) = drive_and_path s dans
     generic_basename is_dir_sep current_dir_name path
-end
+fin
 
 module Cygwin = struct
-  let current_dir_name = "."
-  let parent_dir_name = ".."
-  let dir_sep = "/"
-  let is_dir_sep = Win32.is_dir_sep
-  let is_relative = Win32.is_relative
-  let is_implicit = Win32.is_implicit
-  let check_suffix = Win32.check_suffix
-  let temp_dir_name = Unix.temp_dir_name
-  let quote = Unix.quote
-  let basename = generic_basename is_dir_sep current_dir_name
-  let dirname = generic_dirname is_dir_sep current_dir_name
-end
+  soit current_dir_name = "."
+  soit parent_dir_name = ".."
+  soit dir_sep = "/"
+  soit is_dir_sep = Win32.is_dir_sep
+  soit is_relative = Win32.is_relative
+  soit is_implicit = Win32.is_implicit
+  soit check_suffix = Win32.check_suffix
+  soit temp_dir_name = Unix.temp_dir_name
+  soit quote = Unix.quote
+  soit basename = generic_basename is_dir_sep current_dir_name
+  soit dirname = generic_dirname is_dir_sep current_dir_name
+fin
 
-let (current_dir_name, parent_dir_name, dir_sep, is_dir_sep,
+soit (current_dir_name, parent_dir_name, dir_sep, is_dir_sep,
      is_relative, is_implicit, check_suffix, temp_dir_name, quote, basename,
      dirname) =
-  match Sys.os_type with
+  filtre Sys.os_type avec
     "Unix" ->
       (Unix.current_dir_name, Unix.parent_dir_name, Unix.dir_sep,
        Unix.is_dir_sep,
@@ -186,57 +186,57 @@ let (current_dir_name, parent_dir_name, dir_sep, is_dir_sep,
        Cygwin.is_dir_sep,
        Cygwin.is_relative, Cygwin.is_implicit, Cygwin.check_suffix,
        Cygwin.temp_dir_name, Cygwin.quote, Cygwin.basename, Cygwin.dirname)
-  | _ -> assert false
+  | _ -> affirme faux
 
-let concat dirname filename =
-  let l = String.length dirname in
-  if l = 0 || is_dir_sep dirname (l-1)
-  then dirname ^ filename
-  else dirname ^ dir_sep ^ filename
+soit concat dirname filename =
+  soit l = String.length dirname dans
+  si l = 0 || is_dir_sep dirname (l-1)
+  alors dirname ^ filename
+  sinon dirname ^ dir_sep ^ filename
 
-let chop_suffix name suff =
-  let n = String.length name - String.length suff in
-  if n < 0 then invalid_arg "Filename.chop_suffix" else String.sub name 0 n
+soit chop_suffix name suff =
+  soit n = String.length name - String.length suff dans
+  si n < 0 alors invalid_arg "Filename.chop_suffix" sinon String.sub name 0 n
 
-let chop_extension name =
-  let rec search_dot i =
-    if i < 0 || is_dir_sep name i then invalid_arg "Filename.chop_extension"
-    else if name.[i] = '.' then String.sub name 0 i
-    else search_dot (i - 1) in
+soit chop_extension name =
+  soit rec search_dot i =
+    si i < 0 || is_dir_sep name i alors invalid_arg "Filename.chop_extension"
+    sinon si name.[i] = '.' alors String.sub name 0 i
+    sinon search_dot (i - 1) dans
   search_dot (String.length name - 1)
 
-external open_desc: string -> open_flag list -> int -> int = "caml_sys_open"
-external close_desc: int -> unit = "caml_sys_close"
+dehors open_desc: string -> open_flag list -> int -> int = "caml_sys_open"
+dehors close_desc: int -> unit = "caml_sys_close"
 
-let prng = lazy(Random.State.make_self_init ());;
+soit prng = paresseux(Random.State.make_self_init ());;
 
-let temp_file_name temp_dir prefix suffix =
-  let rnd = (Random.State.bits (Lazy.force prng)) land 0xFFFFFF in
+soit temp_file_name temp_dir prefix suffix =
+  soit rnd = (Random.State.bits (Lazy.force prng)) etl 0xFFFFFF dans
   concat temp_dir (Printf.sprintf "%s%06x%s" prefix rnd suffix)
 ;;
 
-let current_temp_dir_name = ref temp_dir_name
+soit current_temp_dir_name = ref temp_dir_name
 
-let set_temp_dir_name s = current_temp_dir_name := s
-let get_temp_dir_name () = !current_temp_dir_name
+soit set_temp_dir_name s = current_temp_dir_name := s
+soit get_temp_dir_name () = !current_temp_dir_name
 
-let temp_file ?(temp_dir = !current_temp_dir_name) prefix suffix =
-  let rec try_name counter =
-    let name = temp_file_name temp_dir prefix suffix in
-    try
+soit temp_file ?(temp_dir = !current_temp_dir_name) prefix suffix =
+  soit rec try_name counter =
+    soit name = temp_file_name temp_dir prefix suffix dans
+    essaie
       close_desc(open_desc name [Open_wronly; Open_creat; Open_excl] 0o600);
       name
-    with Sys_error _ as e ->
-      if counter >= 1000 then raise e else try_name (counter + 1)
-  in try_name 0
+    avec Sys_error _ tel e ->
+      si counter >= 1000 alors raise e sinon try_name (counter + 1)
+  dans try_name 0
 
-let open_temp_file ?(mode = [Open_text]) ?(temp_dir = !current_temp_dir_name)
+soit open_temp_file ?(mode = [Open_text]) ?(temp_dir = !current_temp_dir_name)
                    prefix suffix =
-  let rec try_name counter =
-    let name = temp_file_name temp_dir prefix suffix in
-    try
+  soit rec try_name counter =
+    soit name = temp_file_name temp_dir prefix suffix dans
+    essaie
       (name,
        open_out_gen (Open_wronly::Open_creat::Open_excl::mode) 0o600 name)
-    with Sys_error _ as e ->
-      if counter >= 1000 then raise e else try_name (counter + 1)
-  in try_name 0
+    avec Sys_error _ tel e ->
+      si counter >= 1000 alors raise e sinon try_name (counter + 1)
+  dans try_name 0

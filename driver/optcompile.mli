@@ -12,7 +12,7 @@
 
 (* Compile a .ml or .mli file *)
 
-open Format
+ouvre Format
 
 val interface: formatter -> string -> string -> unit
 val implementation: formatter -> string -> string -> unit

@@ -10,19 +10,19 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Odoc_info
+ouvre Odoc_info
 module Naming = Odoc_html.Naming
-open Odoc_info.Value
-open Odoc_info.Module
+ouvre Odoc_info.Value
+ouvre Odoc_info.Module
 
-let p = Printf.bprintf
-let bp = Printf.bprintf
-let bs = Buffer.add_string
+soit p = Printf.bprintf
+soit bp = Printf.bprintf
+soit bs = Buffer.add_string
 
 module Html =
   (val
    (
-   match !Odoc_args.current_generator with
+   filtre !Odoc_args.current_generator avec
      None -> (module Odoc_html.Generator : Odoc_html.Html_generator)
    | Some (Odoc_gen.Html m) -> m
    | _ ->
@@ -33,30 +33,30 @@ module Html =
 
 module Generator =
 struct
-class html =
-  object (self)
-    inherit Html.html as html
+classe html =
+  objet (self)
+    hérite Html.html tel html
 
-    method private html_of_module_comment b text =
-      let br1, br2 =
-        match text with
-          [(Odoc_info.Title (n, l_opt, t))] -> false, false
-        | (Odoc_info.Title (n, l_opt, t)) :: _ -> false, true
-        | _ -> true, true
-      in
-      if br1 then p b "<br/>";
+    méthode privée html_of_module_comment b text =
+      soit br1, br2 =
+        filtre text avec
+          [(Odoc_info.Title (n, l_opt, t))] -> faux, faux
+        | (Odoc_info.Title (n, l_opt, t)) :: _ -> faux, vrai
+        | _ -> vrai, vrai
+      dans
+      si br1 alors p b "<br/>";
       self#html_of_text b text;
-      if br2 then p b "<br/><br/>\n"
+      si br2 alors p b "<br/><br/>\n"
 
-    method private html_of_Title b n l_opt t =
-      let label1 = self#create_title_label (n, l_opt, t) in
+    méthode privée html_of_Title b n l_opt t =
+      soit label1 = self#create_title_label (n, l_opt, t) dans
       p b "<a name=\"%s\"></a>\n" (Naming.label_target label1);
       p b "<h%d>" n;
       self#html_of_text b t;
       p b "</h%d>" n
 
-    val mutable code_id = 0
-    method private code_block b code =
+    val modifiable code_id = 0
+    méthode privée code_block b code =
       code_id <- code_id + 1;
       Printf.bprintf b
       "<span class=\"code_expand\" onclick=\"if(document.getElementById('code%d').style.display=='none') {document.getElementById('code%d').style.display='block';} else {document.getElementById('code%d').style.display='none';}\"><img src=\"expand_collapse.png\" alt=\"+/-\"/></span>" code_id code_id code_id;
@@ -65,7 +65,7 @@ class html =
       Printf.bprintf b "</div>"
 
     (** Print html code for a value. *)
-    method private html_of_value b v =
+    méthode privée html_of_value b v =
       Odoc_info.reset_type_names ();
       self#html_of_info b v.val_info;
       bs b "<pre>";
@@ -78,13 +78,13 @@ class html =
       self#html_of_type_expr b (Name.father v.val_name) v.val_type;
       bs b "</pre>";
       (
-       if !Odoc_html.with_parameter_list then
+       si !Odoc_html.with_parameter_list alors
          self#html_of_parameter_list b (Name.father v.val_name) v.val_parameters
-       else
+       sinon
          self#html_of_described_parameter_list b (Name.father v.val_name) v.val_parameters
       );
       (
-       match v.val_code with
+       filtre v.val_code avec
          None -> ()
        | Some code ->
            self#code_block b code
@@ -118,7 +118,7 @@ class html =
         self#html_of_info ~indent: false b m.m_info
 
 *)
-    initializer
+    initialisateur
       default_style_options <-
         ["a:visited {color : #416DFF; text-decoration : none; }" ;
           "a:link {color : #416DFF; text-decoration : none;}" ;
@@ -198,9 +198,9 @@ class html =
           "span.code_expand { color: blue; text-decoration: underline; cursor: pointer; "^
           "margin-left: 1em ; } ";
         ];
-  end
-end
+  fin
+fin
 
-let _ = Odoc_args.set_generator
+soit _ = Odoc_args.set_generator
  (Odoc_gen.Html (module Generator : Odoc_html.Html_generator))
  ;;

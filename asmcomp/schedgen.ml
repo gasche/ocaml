@@ -12,23 +12,23 @@
 
 (* Instruction scheduling *)
 
-open Reg
-open Mach
-open Linearize
+ouvre Reg
+ouvre Mach
+ouvre Linearize
 
 (* Representation of the code DAG. *)
 
 type code_dag_node =
   { instr: instruction;                 (* The instruction *)
     delay: int;           (* How many cycles before result is available *)
-    mutable sons: (code_dag_node * int) list;
+    modifiable sons: (code_dag_node * int) list;
                                         (* Instructions that depend on it *)
-    mutable date: int;                  (* Start date *)
-    mutable length: int;                (* Length of longest path to result *)
-    mutable ancestors: int;             (* Number of ancestors *)
-    mutable emitted_ancestors: int }    (* Number of emitted ancestors *)
+    modifiable date: int;                  (* Start date *)
+    modifiable length: int;                (* Length of longest path to result *)
+    modifiable ancestors: int;             (* Number of ancestors *)
+    modifiable emitted_ancestors: int }    (* Number of emitted ancestors *)
 
-let dummy_node =
+soit dummy_node =
   { instr = end_instr; delay = 0; sons = []; date = 0;
     length = -1; ancestors = 0; emitted_ancestors = 0 }
 
@@ -41,13 +41,13 @@ let dummy_node =
    - code_checkbounds contains the latest checkbound node not matched
      by a subsequent load or store. *)
 
-let code_results = (Hashtbl.create 31 : (location, code_dag_node) Hashtbl.t)
-let code_uses = (Hashtbl.create 31 : (location, code_dag_node) Hashtbl.t)
-let code_stores = ref ([] : code_dag_node list)
-let code_loads = ref ([] : code_dag_node list)
-let code_checkbounds = ref ([] : code_dag_node list)
+soit code_results = (Hashtbl.create 31 : (location, code_dag_node) Hashtbl.t)
+soit code_uses = (Hashtbl.create 31 : (location, code_dag_node) Hashtbl.t)
+soit code_stores = ref ([] : code_dag_node list)
+soit code_loads = ref ([] : code_dag_node list)
+soit code_checkbounds = ref ([] : code_dag_node list)
 
-let clear_code_dag () =
+soit clear_code_dag () =
   Hashtbl.clear code_results;
   Hashtbl.clear code_uses;
   code_stores := [];
@@ -56,195 +56,195 @@ let clear_code_dag () =
 
 (* Add an edge to the code DAG *)
 
-let add_edge ancestor son delay =
+soit add_edge ancestor son delay =
   ancestor.sons <- (son, delay) :: ancestor.sons;
   son.ancestors <- son.ancestors + 1
 
-let add_edge_after son ancestor = add_edge ancestor son 0
+soit add_edge_after son ancestor = add_edge ancestor son 0
 
 (* Add edges from all instructions that define a pseudoregister [arg] being used
    as argument to node [node] (RAW dependencies *)
 
-let add_RAW_dependencies node arg =
-  try
-    let ancestor = Hashtbl.find code_results arg.loc in
+soit add_RAW_dependencies node arg =
+  essaie
+    soit ancestor = Hashtbl.find code_results arg.loc dans
     add_edge ancestor node ancestor.delay
-  with Not_found ->
+  avec Not_found ->
     ()
 
 (* Add edges from all instructions that use a pseudoregister [res] that is
    defined by node [node] (WAR dependencies). *)
 
-let add_WAR_dependencies node res =
-  let ancestors = Hashtbl.find_all code_uses res.loc in
+soit add_WAR_dependencies node res =
+  soit ancestors = Hashtbl.find_all code_uses res.loc dans
   List.iter (add_edge_after node) ancestors
 
 (* Add edges from all instructions that have already defined a pseudoregister
    [res] that is defined by node [node] (WAW dependencies). *)
 
-let add_WAW_dependencies node res =
-  try
-    let ancestor = Hashtbl.find code_results res.loc in
+soit add_WAW_dependencies node res =
+  essaie
+    soit ancestor = Hashtbl.find code_results res.loc dans
     add_edge ancestor node 0
-  with Not_found ->
+  avec Not_found ->
     ()
 
 (* Compute length of longest path to a result.
    For leafs of the DAG, see whether their result is used in the instruction
    immediately following the basic block (a "critical" output). *)
 
-let is_critical critical_outputs results =
-  try
-    for i = 0 to Array.length results - 1 do
-      let r = results.(i).loc in
-      for j = 0 to Array.length critical_outputs - 1 do
-        if critical_outputs.(j).loc = r then raise Exit
-      done
-    done;
-    false
-  with Exit ->
-    true
+soit is_critical critical_outputs results =
+  essaie
+    pour i = 0 à Array.length results - 1 faire
+      soit r = results.(i).loc dans
+      pour j = 0 à Array.length critical_outputs - 1 faire
+        si critical_outputs.(j).loc = r alors raise Exit
+      fait
+    fait;
+    faux
+  avec Exit ->
+    vrai
 
-let rec longest_path critical_outputs node =
-  if node.length < 0 then begin
-    match node.sons with
+soit rec longest_path critical_outputs node =
+  si node.length < 0 alors début
+    filtre node.sons avec
       [] ->
         node.length <-
-          if is_critical critical_outputs node.instr.res
+          si is_critical critical_outputs node.instr.res
           || node.instr.desc = Lreloadretaddr (* alway critical *)
-          then node.delay
-          else 0
+          alors node.delay
+          sinon 0
     | sons ->
         node.length <-
           List.fold_left
-            (fun len (son, delay) ->
+            (fonc len (son, delay) ->
               max len (longest_path critical_outputs son + delay))
             0 sons
-  end;
+  fin;
   node.length
 
 (* Remove an instruction from the ready queue *)
 
-let rec remove_instr node = function
+soit rec remove_instr node = fonction
     [] -> []
   | instr :: rem ->
-      if instr == node then rem else instr :: remove_instr node rem
+      si instr == node alors rem sinon instr :: remove_instr node rem
 
 (* We treat Lreloadretaddr as a word-sized load *)
 
-let some_load = (Iload(Cmm.Word, Arch.identity_addressing))
+soit some_load = (Iload(Cmm.Word, Arch.identity_addressing))
 
 (* The generic scheduler *)
 
-class virtual scheduler_generic = object (self)
+classe virtuelle scheduler_generic = objet (self)
 
 (* Determine whether an operation ends a basic block or not.
    Can be overridden for some processors to signal specific instructions
    that terminate a basic block. *)
 
-method oper_in_basic_block = function
-    Icall_ind -> false
-  | Icall_imm _ -> false
-  | Itailcall_ind -> false
-  | Itailcall_imm _ -> false
-  | Iextcall _ -> false
-  | Istackoffset _ -> false
-  | Ialloc _ -> false
-  | _ -> true
+méthode oper_in_basic_block = fonction
+    Icall_ind -> faux
+  | Icall_imm _ -> faux
+  | Itailcall_ind -> faux
+  | Itailcall_imm _ -> faux
+  | Iextcall _ -> faux
+  | Istackoffset _ -> faux
+  | Ialloc _ -> faux
+  | _ -> vrai
 
 (* Determine whether an instruction ends a basic block or not *)
 
-method private instr_in_basic_block instr =
-  match instr.desc with
+méthode privée instr_in_basic_block instr =
+  filtre instr.desc avec
     Lop op -> self#oper_in_basic_block op
-  | Lreloadretaddr -> true
-  | _ -> false
+  | Lreloadretaddr -> vrai
+  | _ -> faux
 
 (* Determine whether an operation is a memory store or a memory load.
    Can be overridden for some processors to signal specific
    load or store instructions (e.g. on the I386). *)
 
-method is_store = function
-    Istore(_, _) -> true
-  | _ -> false
+méthode is_store = fonction
+    Istore(_, _) -> vrai
+  | _ -> faux
 
-method is_load = function
-    Iload(_, _) -> true
-  | _ -> false
+méthode is_load = fonction
+    Iload(_, _) -> vrai
+  | _ -> faux
 
-method is_checkbound = function
-    Iintop Icheckbound -> true
-  | Iintop_imm(Icheckbound, _) -> true
-  | _ -> false
+méthode is_checkbound = fonction
+    Iintop Icheckbound -> vrai
+  | Iintop_imm(Icheckbound, _) -> vrai
+  | _ -> faux
 
-method private instr_is_store instr =
-  match instr.desc with
+méthode privée instr_is_store instr =
+  filtre instr.desc avec
     Lop op -> self#is_store op
-  | _ -> false
+  | _ -> faux
 
-method private instr_is_load instr =
-  match instr.desc with
+méthode privée instr_is_load instr =
+  filtre instr.desc avec
     Lop op -> self#is_load op
-  | _ -> false
+  | _ -> faux
 
-method private instr_is_checkbound instr =
-  match instr.desc with
+méthode privée instr_is_checkbound instr =
+  filtre instr.desc avec
     Lop op -> self#is_checkbound op
-  | _ -> false
+  | _ -> faux
 
 (* Estimate the latency of an operation. *)
 
-method virtual oper_latency : Mach.operation -> int
+méthode virtuelle oper_latency : Mach.operation -> int
 
 (* Estimate the latency of a Lreloadretaddr operation. *)
 
-method reload_retaddr_latency = self#oper_latency some_load
+méthode reload_retaddr_latency = self#oper_latency some_load
 
 (* Estimate the delay needed to evaluate an instruction *)
 
-method private instr_latency instr =
-  match instr.desc with
+méthode privée instr_latency instr =
+  filtre instr.desc avec
     Lop op -> self#oper_latency op
   | Lreloadretaddr -> self#reload_retaddr_latency
-  | _ -> assert false
+  | _ -> affirme faux
 
 (* Estimate the number of cycles consumed by emitting an operation. *)
 
-method virtual oper_issue_cycles : Mach.operation -> int
+méthode virtuelle oper_issue_cycles : Mach.operation -> int
 
 (* Estimate the number of cycles consumed by emitting a Lreloadretaddr. *)
 
-method reload_retaddr_issue_cycles = self#oper_issue_cycles some_load
+méthode reload_retaddr_issue_cycles = self#oper_issue_cycles some_load
 
 (* Estimate the number of cycles consumed by emitting an instruction. *)
 
-method private instr_issue_cycles instr =
-  match instr.desc with
+méthode privée instr_issue_cycles instr =
+  filtre instr.desc avec
     Lop op -> self#oper_issue_cycles op
   | Lreloadretaddr -> self#reload_retaddr_issue_cycles
-  | _ -> assert false
+  | _ -> affirme faux
 
 (* Pseudoregisters destroyed by an instruction *)
 
-method private destroyed_by_instr instr =
-  match instr.desc with
+méthode privée destroyed_by_instr instr =
+  filtre instr.desc avec
   | Lop op -> Proc.destroyed_at_oper (Iop op)
   | Lreloadretaddr -> [||]
-  | _ -> assert false
+  | _ -> affirme faux
 
 (* Add an instruction to the code dag *)
 
-method private add_instruction ready_queue instr =
-  let delay = self#instr_latency instr in
-  let destroyed = self#destroyed_by_instr instr in
-  let node =
+méthode privée add_instruction ready_queue instr =
+  soit delay = self#instr_latency instr dans
+  soit destroyed = self#destroyed_by_instr instr dans
+  soit node =
     { instr = instr;
       delay = delay;
       sons = [];
       date = 0;
       length = -1;
       ancestors = 0;
-      emitted_ancestors = 0 } in
+      emitted_ancestors = 0 } dans
   (* Add edges from all instructions that define one of the registers used
      (RAW dependencies) *)
   Array.iter (add_RAW_dependencies node) instr.arg;
@@ -261,40 +261,40 @@ method private add_instruction ready_queue instr =
   (* If this is a load, add edges from the most recent store viewed so
      far (if any) and remember the load.  Also add edges from the most
      recent checkbound and forget that checkbound. *)
-  if self#instr_is_load instr then begin
+  si self#instr_is_load instr alors début
     List.iter (add_edge_after node) !code_stores;
     code_loads := node :: !code_loads;
     List.iter (add_edge_after node) !code_checkbounds;
     code_checkbounds := []
-  end
+  fin
   (* If this is a store, add edges from the most recent store,
      as well as all loads viewed since then, and also the most recent
      checkbound. Remember the store,
      discarding the previous stores, loads and checkbounds. *)
-  else if self#instr_is_store instr then begin
+  sinon si self#instr_is_store instr alors début
     List.iter (add_edge_after node) !code_stores;
     List.iter (add_edge_after node) !code_loads;
     List.iter (add_edge_after node) !code_checkbounds;
     code_stores := [node];
     code_loads := [];
     code_checkbounds := []
-  end
-  else if self#instr_is_checkbound instr then begin
+  fin
+  sinon si self#instr_is_checkbound instr alors début
     code_checkbounds := [node]
-  end;
+  fin;
   (* Remember the registers used and produced by this instruction *)
-  for i = 0 to Array.length instr.res - 1 do
+  pour i = 0 à Array.length instr.res - 1 faire
     Hashtbl.add code_results instr.res.(i).loc node
-  done;
-  for i = 0 to Array.length destroyed - 1 do
+  fait;
+  pour i = 0 à Array.length destroyed - 1 faire
     Hashtbl.add code_results destroyed.(i).loc node  (* PR#5731 *)
-  done;
-  for i = 0 to Array.length instr.arg - 1 do
+  fait;
+  pour i = 0 à Array.length instr.arg - 1 faire
     Hashtbl.add code_uses instr.arg.(i).loc node
-  done;
+  fait;
   (* If this is a root instruction (all arguments already computed),
      add it to the ready queue *)
-  if node.ancestors = 0 then node :: ready_queue else ready_queue
+  si node.ancestors = 0 alors node :: ready_queue sinon ready_queue
 
 (* Given a list of instructions and a date, choose one or several
    that are ready to be computed (start date <= current date)
@@ -302,81 +302,81 @@ method private add_instruction ready_queue instr =
    maximal distance to result.  If we can't find any, return None.
    This does not take multiple issues into account, though. *)
 
-method private ready_instruction date queue =
-  let rec extract best = function
+méthode privée ready_instruction date queue =
+  soit rec extract best = fonction
     [] ->
-      if best == dummy_node then None else Some best
+      si best == dummy_node alors None sinon Some best
   | instr :: rem ->
-      let new_best =
-        if instr.date <= date && instr.length > best.length
-        then instr else best in
-      extract new_best rem in
+      soit new_best =
+        si instr.date <= date && instr.length > best.length
+        alors instr sinon best dans
+      extract new_best rem dans
   extract dummy_node queue
 
 (* Schedule a basic block, adding its instructions in front of the given
    instruction sequence *)
 
-method private reschedule ready_queue date cont =
-  if ready_queue = [] then cont else begin
-    match self#ready_instruction date ready_queue with
+méthode privée reschedule ready_queue date cont =
+  si ready_queue = [] alors cont sinon début
+    filtre self#ready_instruction date ready_queue avec
       None ->
         self#reschedule ready_queue (date + 1) cont
     | Some node ->
         (* Remove node from queue *)
-        let new_queue = ref (remove_instr node ready_queue) in
+        soit new_queue = ref (remove_instr node ready_queue) dans
         (* Update the start date and number of ancestors emitted of
            all descendents of this node. Enter those that become ready
            in the queue. *)
-        let issue_cycles = self#instr_issue_cycles node.instr in
+        soit issue_cycles = self#instr_issue_cycles node.instr dans
         List.iter
-          (fun (son, delay) ->
-            let completion_date = date + issue_cycles + delay - 1 in
-            if son.date < completion_date then son.date <- completion_date;
+          (fonc (son, delay) ->
+            soit completion_date = date + issue_cycles + delay - 1 dans
+            si son.date < completion_date alors son.date <- completion_date;
             son.emitted_ancestors <- son.emitted_ancestors + 1;
-            if son.emitted_ancestors = son.ancestors then
+            si son.emitted_ancestors = son.ancestors alors
               new_queue := son :: !new_queue)
           node.sons;
-        { node.instr with next =
+        { node.instr avec next =
             self#reschedule !new_queue (date + issue_cycles) cont }
-  end
+  fin
 
 (* Entry point *)
 (* Don't bother to schedule for initialization code and the like. *)
 
-method schedule_fundecl f =
+méthode schedule_fundecl f =
 
-  let rec schedule i =
-    match i.desc with
+  soit rec schedule i =
+    filtre i.desc avec
       Lend -> i
     | _ ->
-        if self#instr_in_basic_block i then begin
+        si self#instr_in_basic_block i alors début
           clear_code_dag();
           schedule_block [] i
-        end else
-          { i with next = schedule i.next }
+        fin sinon
+          { i avec next = schedule i.next }
 
-  and schedule_block ready_queue i =
-    if self#instr_in_basic_block i then
+  et schedule_block ready_queue i =
+    si self#instr_in_basic_block i alors
       schedule_block (self#add_instruction ready_queue i) i.next
-    else begin
-      let critical_outputs =
-        match i.desc with
+    sinon début
+      soit critical_outputs =
+        filtre i.desc avec
           Lop(Icall_ind | Itailcall_ind) -> [| i.arg.(0) |]
         | Lop(Icall_imm _ | Itailcall_imm _ | Iextcall _) -> [||]
         | Lreturn -> [||]
-        | _ -> i.arg in
-      List.iter (fun x -> ignore (longest_path critical_outputs x)) ready_queue;
+        | _ -> i.arg dans
+      List.iter (fonc x -> ignore (longest_path critical_outputs x)) ready_queue;
       self#reschedule ready_queue 0 (schedule i)
-    end in
+    fin dans
 
-  if f.fun_fast then begin
-    let new_body = schedule f.fun_body in
+  si f.fun_fast alors début
+    soit new_body = schedule f.fun_body dans
     clear_code_dag();
     { fun_name = f.fun_name;
       fun_body = new_body;
       fun_fast = f.fun_fast;
       fun_dbg  = f.fun_dbg }
-  end else
+  fin sinon
     f
 
-end
+fin

@@ -12,107 +12,107 @@
 
 (* Insert load/stores for pseudoregs that got assigned to stack locations. *)
 
-open Misc
-open Reg
-open Mach
+ouvre Misc
+ouvre Reg
+ouvre Mach
 
-let access_stack r =
-  try
-    for i = 0 to Array.length r - 1 do
-      match r.(i).loc with Stack _ -> raise Exit | _ -> ()
-    done;
-    false
-  with Exit ->
-    true
+soit access_stack r =
+  essaie
+    pour i = 0 à Array.length r - 1 faire
+      filtre r.(i).loc avec Stack _ -> raise Exit | _ -> ()
+    fait;
+    faux
+  avec Exit ->
+    vrai
 
-let insert_move src dst next =
-  if src.loc = dst.loc
-  then next
-  else instr_cons (Iop Imove) [|src|] [|dst|] next
+soit insert_move src dst next =
+  si src.loc = dst.loc
+  alors next
+  sinon instr_cons (Iop Imove) [|src|] [|dst|] next
 
-let insert_moves src dst next =
-  let rec insmoves i =
-    if i >= Array.length src
-    then next
-    else insert_move src.(i) dst.(i) (insmoves (i+1))
-  in insmoves 0
+soit insert_moves src dst next =
+  soit rec insmoves i =
+    si i >= Array.length src
+    alors next
+    sinon insert_move src.(i) dst.(i) (insmoves (i+1))
+  dans insmoves 0
 
-class reload_generic = object (self)
+classe reload_generic = objet (self)
 
-val mutable redo_regalloc = false
+val modifiable redo_regalloc = faux
 
-method makereg r =
-  match r.loc with
+méthode makereg r =
+  filtre r.loc avec
     Unknown -> fatal_error "Reload.makereg"
   | Reg _ -> r
   | Stack _ ->
-      redo_regalloc <- true;
-      let newr = Reg.clone r in
+      redo_regalloc <- vrai;
+      soit newr = Reg.clone r dans
       (* Strongly discourage spilling this register *)
       newr.spill_cost <- 100000;
       newr
 
-method private makeregs rv =
-  let n = Array.length rv in
-  let newv = Array.create n Reg.dummy in
-  for i = 0 to n-1 do newv.(i) <- self#makereg rv.(i) done;
+méthode privée makeregs rv =
+  soit n = Array.length rv dans
+  soit newv = Array.create n Reg.dummy dans
+  pour i = 0 à n-1 faire newv.(i) <- self#makereg rv.(i) fait;
   newv
 
-method private makereg1 rv =
-  let newv = Array.copy rv in
+méthode privée makereg1 rv =
+  soit newv = Array.copy rv dans
   newv.(0) <- self#makereg rv.(0);
   newv
 
-method reload_operation op arg res =
+méthode reload_operation op arg res =
   (* By default, assume that arguments and results must reside
      in hardware registers. For moves, allow one arg or one
      res to be stack-allocated, but do something for
      stack-to-stack moves *)
-  match op with
+  filtre op avec
     Imove | Ireload | Ispill ->
-      begin match arg.(0), res.(0) with
-        {loc = Stack s1}, {loc = Stack s2} when s1 <> s2 ->
+      début filtre arg.(0), res.(0) avec
+        {loc = Stack s1}, {loc = Stack s2} quand s1 <> s2 ->
           ([| self#makereg arg.(0) |], res)
       | _ ->
           (arg, res)
-      end
+      fin
   | _ ->
       (self#makeregs arg, self#makeregs res)
 
-method reload_test tst args =
+méthode reload_test tst args =
   self#makeregs args
 
-method private reload i =
-  match i.desc with
+méthode privée reload i =
+  filtre i.desc avec
     (* For function calls, returns, etc: the arguments and results are
        already at the correct position (e.g. on stack for some arguments).
        However, something needs to be done for the function pointer in
        indirect calls. *)
     Iend | Ireturn | Iop(Itailcall_imm _) | Iraise _ -> i
   | Iop(Itailcall_ind) ->
-      let newarg = self#makereg1 i.arg in
+      soit newarg = self#makereg1 i.arg dans
       insert_moves i.arg newarg
-        {i with arg = newarg}
+        {i avec arg = newarg}
   | Iop(Icall_imm _ | Iextcall _) ->
-      {i with next = self#reload i.next}
+      {i avec next = self#reload i.next}
   | Iop(Icall_ind) ->
-      let newarg = self#makereg1 i.arg in
+      soit newarg = self#makereg1 i.arg dans
       insert_moves i.arg newarg
-        {i with arg = newarg; next = self#reload i.next}
+        {i avec arg = newarg; next = self#reload i.next}
   | Iop op ->
-      let (newarg, newres) = self#reload_operation op i.arg i.res in
+      soit (newarg, newres) = self#reload_operation op i.arg i.res dans
       insert_moves i.arg newarg
-        {i with arg = newarg; res = newres; next =
+        {i avec arg = newarg; res = newres; next =
           (insert_moves newres i.res
             (self#reload i.next))}
   | Iifthenelse(tst, ifso, ifnot) ->
-      let newarg = self#reload_test tst i.arg in
+      soit newarg = self#reload_test tst i.arg dans
       insert_moves i.arg newarg
         (instr_cons
           (Iifthenelse(tst, self#reload ifso, self#reload ifnot)) newarg [||]
           (self#reload i.next))
   | Iswitch(index, cases) ->
-      let newarg = self#makeregs i.arg in
+      soit newarg = self#makeregs i.arg dans
       insert_moves i.arg newarg
         (instr_cons (Iswitch(index, Array.map (self#reload) cases)) newarg [||]
           (self#reload i.next))
@@ -128,12 +128,12 @@ method private reload i =
       instr_cons (Itrywith(self#reload body, self#reload handler)) [||] [||]
         (self#reload i.next)
 
-method fundecl f =
-  redo_regalloc <- false;
-  let new_body = self#reload f.fun_body in
+méthode fundecl f =
+  redo_regalloc <- faux;
+  soit new_body = self#reload f.fun_body dans
   ({fun_name = f.fun_name; fun_args = f.fun_args;
     fun_body = new_body; fun_fast = f.fun_fast;
     fun_dbg  = f.fun_dbg},
    redo_regalloc)
 
-end
+fin

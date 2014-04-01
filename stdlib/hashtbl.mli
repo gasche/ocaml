@@ -207,7 +207,7 @@ module type HashedType =
               and handling {!Pervasives.nan} correctly
 -         ([(==)], {!Hashtbl.hash}) for comparing objects by physical
               equality (e.g. for mutable or cyclic objects). *)
-   end
+   fin
 (** The input signature of the functor {!Hashtbl.Make}. *)
 
 module type S =
@@ -228,10 +228,10 @@ module type S =
     val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
     val length : 'a t -> int
     val stats: 'a t -> statistics
-  end
+  fin
 (** The output signature of the functor {!Hashtbl.Make}. *)
 
-module Make (H : HashedType) : S with type key = H.t
+module Make (H : HashedType) : S avec type key = H.t
 (** Functor building an implementation of the hashtable structure.
     The functor [Hashtbl.Make] returns a structure containing
     a type [key] of keys and a type ['a t] of hash tables
@@ -255,7 +255,7 @@ module type SeededHashedType =
           then [hash seed x = hash seed y] for any value of [seed].
           A suitable choice for [hash] is the function {!Hashtbl.seeded_hash}
           below. *)
-  end
+  fin
 (** The input signature of the functor {!Hashtbl.MakeSeeded}.
     @since 4.00.0 *)
 
@@ -277,11 +277,11 @@ module type SeededS =
     val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
     val length : 'a t -> int
     val stats: 'a t -> statistics
-  end
+  fin
 (** The output signature of the functor {!Hashtbl.MakeSeeded}.
     @since 4.00.0 *)
 
-module MakeSeeded (H : SeededHashedType) : SeededS with type key = H.t
+module MakeSeeded (H : SeededHashedType) : SeededS avec type key = H.t
 (** Functor building an implementation of the hashtable structure.
     The functor [Hashtbl.MakeSeeded] returns a structure containing
     a type [key] of keys and a type ['a t] of hash tables

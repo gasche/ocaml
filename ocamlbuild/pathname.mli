@@ -12,6 +12,6 @@
 
 
 (* Original author: Nicolas Pouillard *)
-include Signatures.PATHNAME
+inclus Signatures.PATHNAME
 val link_to_dir : t -> t -> bool
 val normalize : t -> t

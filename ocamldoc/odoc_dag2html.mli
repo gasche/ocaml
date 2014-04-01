@@ -13,10 +13,10 @@
 (** The types and functions to create a html table representing a dag.
    Thanks to Daniel de Rauglaudre. *)
 
-type 'a dag = { mutable dag : 'a node array }
-and 'a node =
-  { mutable pare : idag list; valu : 'a; mutable chil : idag list }
-and idag = int
+type 'a dag = { modifiable dag : 'a node array }
+et 'a node =
+  { modifiable pare : idag list; valu : 'a; modifiable chil : idag list }
+et idag = int
 
 (** This function returns the html code to represent the given dag. *)
 val html_of_dag : string dag -> string

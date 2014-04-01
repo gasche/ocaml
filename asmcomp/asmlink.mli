@@ -12,7 +12,7 @@
 
 (* Link a set of .cmx/.o files and produce an executable or a plugin *)
 
-open Format
+ouvre Format
 
 val link: formatter -> string list -> string -> unit
 
@@ -25,16 +25,16 @@ val extract_crc_interfaces: unit -> (string * Digest.t) list
 val extract_crc_implementations: unit -> (string * Digest.t) list
 
 type error =
-    File_not_found of string
-  | Not_an_object_file of string
-  | Missing_implementations of (string * string list) list
-  | Inconsistent_interface of string * string * string
-  | Inconsistent_implementation of string * string * string
-  | Assembler_error of string
+    File_not_found de string
+  | Not_an_object_file de string
+  | Missing_implementations de (string * string list) list
+  | Inconsistent_interface de string * string * string
+  | Inconsistent_implementation de string * string * string
+  | Assembler_error de string
   | Linking_error
-  | Multiple_definition of string * string * string
-  | Missing_cmx of string * string
+  | Multiple_definition de string * string * string
+  | Missing_cmx de string * string
 
-exception Error of error
+exception Error de error
 
 val report_error: formatter -> error -> unit

@@ -13,14 +13,14 @@
 
 (***************************** Checkpoints *****************************)
 
-open Primitives
-open Debugcom
+ouvre Primitives
+ouvre Debugcom
 
 (*** A type for checkpoints. ***)
 
 type checkpoint_state =
     C_stopped
-  | C_running of int64
+  | C_running de int64
 
 (* `c_valid' is true if and only if the corresponding
  * process is connected to the debugger.
@@ -31,16 +31,16 @@ type checkpoint_state =
  * c_pid = -1 for kill checkpoints.
  *)
 type checkpoint =
-  {mutable c_time : int64;
-   mutable c_pid : int;
-   mutable c_fd : io_channel;
-   mutable c_valid : bool;
-   mutable c_report : report option;
-   mutable c_state : checkpoint_state;
-   mutable c_parent : checkpoint;
-   mutable c_breakpoint_version : int;
-   mutable c_breakpoints : (int * int ref) list;
-   mutable c_trap_barrier : int}
+  {modifiable c_time : int64;
+   modifiable c_pid : int;
+   modifiable c_fd : io_channel;
+   modifiable c_valid : bool;
+   modifiable c_report : report option;
+   modifiable c_state : checkpoint_state;
+   modifiable c_parent : checkpoint;
+   modifiable c_breakpoint_version : int;
+   modifiable c_breakpoints : (int * int ref) list;
+   modifiable c_trap_barrier : int}
 
 (*** Pseudo-checkpoint `root'. ***)
 (* --- Parents of all checkpoints which have no parent. *)

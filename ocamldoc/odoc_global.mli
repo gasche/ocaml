@@ -14,9 +14,9 @@
 
 (** The kind of source file in arguments. *)
 type source_file =
-    Impl_file of string
-  | Intf_file of string
-  | Text_file of string
+    Impl_file de string
+  | Intf_file de string
+  | Text_file de string
 
 (** The include_dirs in the OCaml compiler. *)
 val include_dirs : string list ref

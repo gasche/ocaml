@@ -15,44 +15,44 @@
 
 type t
 
-external repr : 'a -> t = "%identity"
-external obj : t -> 'a = "%identity"
-external magic : 'a -> 'b = "%identity"
-external is_block : t -> bool = "caml_obj_is_block"
-external is_int : t -> bool = "%obj_is_int"
-external tag : t -> int = "caml_obj_tag"
-external set_tag : t -> int -> unit = "caml_obj_set_tag"
-external size : t -> int = "%obj_size"
-external field : t -> int -> t = "%obj_field"
-external set_field : t -> int -> t -> unit = "%obj_set_field"
-let double_field x i = Array.get (obj x : float array) i
-let set_double_field x i v = Array.set (obj x : float array) i v
-external new_block : int -> int -> t = "caml_obj_block"
-external dup : t -> t = "caml_obj_dup"
-external truncate : t -> int -> unit = "caml_obj_truncate"
-external add_offset : t -> Int32.t -> t = "caml_obj_add_offset"
+dehors repr : 'a -> t = "%identity"
+dehors obj : t -> 'a = "%identity"
+dehors magic : 'a -> 'b = "%identity"
+dehors is_block : t -> bool = "caml_obj_is_block"
+dehors is_int : t -> bool = "%obj_is_int"
+dehors tag : t -> int = "caml_obj_tag"
+dehors set_tag : t -> int -> unit = "caml_obj_set_tag"
+dehors size : t -> int = "%obj_size"
+dehors field : t -> int -> t = "%obj_field"
+dehors set_field : t -> int -> t -> unit = "%obj_set_field"
+soit double_field x i = Array.get (obj x : float array) i
+soit set_double_field x i v = Array.set (obj x : float array) i v
+dehors new_block : int -> int -> t = "caml_obj_block"
+dehors dup : t -> t = "caml_obj_dup"
+dehors truncate : t -> int -> unit = "caml_obj_truncate"
+dehors add_offset : t -> Int32.t -> t = "caml_obj_add_offset"
 
-let marshal (obj : t) =
+soit marshal (obj : t) =
   Marshal.to_string obj []
-let unmarshal str pos =
+soit unmarshal str pos =
   (Marshal.from_string str pos, pos + Marshal.total_size str pos)
 
-let lazy_tag = 246
-let closure_tag = 247
-let object_tag = 248
-let infix_tag = 249
-let forward_tag = 250
+soit lazy_tag = 246
+soit closure_tag = 247
+soit object_tag = 248
+soit infix_tag = 249
+soit forward_tag = 250
 
-let no_scan_tag = 251
+soit no_scan_tag = 251
 
-let abstract_tag = 251
-let string_tag = 252
-let double_tag = 253
-let double_array_tag = 254
-let custom_tag = 255
-let final_tag = custom_tag
+soit abstract_tag = 251
+soit string_tag = 252
+soit double_tag = 253
+soit double_array_tag = 254
+soit custom_tag = 255
+soit final_tag = custom_tag
 
 
-let int_tag = 1000
-let out_of_heap_tag = 1001
-let unaligned_tag = 1002
+soit int_tag = 1000
+soit out_of_heap_tag = 1001
+soit unaligned_tag = 1002

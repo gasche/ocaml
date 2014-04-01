@@ -13,4 +13,4 @@
 
 (* Module [ListLabels]: labelled List module *)
 
-include List
+inclus List

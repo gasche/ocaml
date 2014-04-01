@@ -12,42 +12,42 @@
 
 
 (* Original author: Berke Durak *)
-open My_std
-open Log
-open Pathname.Operators
-open Command
-open Tools
-open Ocaml_specific
-open Format
+ouvre My_std
+ouvre Log
+ouvre Pathname.Operators
+ouvre Command
+ouvre Tools
+ouvre Ocaml_specific
+ouvre Format
 ;;
 
-exception Exit_build_error of string
+exception Exit_build_error de string
 exception Exit_silently
 
-let clean () =
+soit clean () =
   Log.finish ();
   Shell.rm_rf !Options.build_dir;
-  if !Options.make_links then begin
-    let entry =
-      Slurp.map (fun _ _ _ -> true)
+  si !Options.make_links alors début
+    soit entry =
+      Slurp.map (fonc _ _ _ -> vrai)
         (Slurp.slurp Filename.current_dir_name)
-    in
+    dans
     Slurp.force (Resource.clean_up_links entry)
-  end;
+  fin;
   raise Exit_silently
 ;;
 
-let show_tags () =
-  if List.length !Options.show_tags > 0 then
+soit show_tags () =
+  si List.length !Options.show_tags > 0 alors
     Log.eprintf "Warning: the following tags do not include \
     dynamically-generated tags, such as link, compile, pack, byte, native, c, \
     pdf... (this list is by no means exhaustive).\n";
-  List.iter begin fun path ->
+  List.iter début fonc path ->
     Log.eprintf "@[<2>Tags for %S:@ {. %a .}@]" path Tags.print (tags_of_pathname path)
-  end !Options.show_tags
+  fin !Options.show_tags
 ;;
 
-let show_documentation () =
+soit show_documentation () =
   Rule.show_documentation ();
   Flags.show_documentation ();
 ;;
@@ -55,28 +55,28 @@ let show_documentation () =
 (* these tags are used in an ad-hoc way by the ocamlbuild implementation;
    this means that even if they were not part of any flag declaration,
    they should be marked as useful, to avoid the "unused tag" warning. *)
-let builtin_useful_tags =
+soit builtin_useful_tags =
   Tags.of_list
     ["include"; "traverse"; "not_hygienic";
      "pack"; "ocamlmklib"; "native"; "thread"; "nopervasives"]
 ;;
 
-let proceed () =
+soit proceed () =
   Hooks.call_hook Hooks.Before_options;
   Options.init ();
-  if !Options.must_clean then clean ();
+  si !Options.must_clean alors clean ();
   Hooks.call_hook Hooks.After_options;
-  let options_wd = Sys.getcwd () in
-  let first_run_for_plugin =
+  soit options_wd = Sys.getcwd () dans
+  soit first_run_for_plugin =
     (* If we are in the first run before launching the plugin, we
        should skip the user-visible operations (hygiene) that may need
        information from the plugin to run as the user expects it.
        
        Note that we don't need to disable the [Hooks] call as they are
        no-ops anyway, before any plugin has registered hooks. *)
-    Plugin.we_need_a_plugin () && not !Options.just_plugin in
+    Plugin.we_need_a_plugin () && not !Options.just_plugin dans
 
-  let target_dirs = List.union [] (List.map Pathname.dirname !Options.targets) in
+  soit target_dirs = List.union [] (List.map Pathname.dirname !Options.targets) dans
 
   Configuration.parse_string
     "<**/*.ml> or <**/*.mli> or <**/*.mlpack> or <**/*.ml.depends>: ocaml\n\
@@ -91,68 +91,68 @@ let proceed () =
     ";
 
   Configuration.tag_any !Options.tags;
-  if !Options.recursive
+  si !Options.recursive
   || Sys.file_exists (* authorized since we're not in build *) "_tags"
   || Sys.file_exists (* authorized since we're not in build *) "myocamlbuild.ml"
-  then Configuration.tag_any ["traverse"];
+  alors Configuration.tag_any ["traverse"];
 
   (* options related to findlib *)
   List.iter
-    (fun pkg -> Configuration.tag_any [Param_tags.make "package" pkg])
+    (fonc pkg -> Configuration.tag_any [Param_tags.make "package" pkg])
     !Options.ocaml_pkgs;
 
-  begin match !Options.ocaml_syntax with
+  début filtre !Options.ocaml_syntax avec
   | Some syntax -> Configuration.tag_any [Param_tags.make "syntax" syntax]
-  | None -> () end;
+  | None -> () fin;
 
-  let newpwd = Sys.getcwd () in
+  soit newpwd = Sys.getcwd () dans
   Sys.chdir Pathname.pwd;
-  let entry_include_dirs = ref [] in
-  let entry =
+  soit entry_include_dirs = ref [] dans
+  soit entry =
     Slurp.filter
-      begin fun path name _ ->
-        let dir =
-          if path = Filename.current_dir_name then
+      début fonc path name _ ->
+        soit dir =
+          si path = Filename.current_dir_name alors
             None
-          else
+          sinon
             Some path
-        in
-        let path_name = path/name in
-        if name = "_tags" then
+        dans
+        soit path_name = path/name dans
+        si name = "_tags" alors
           ignore (Configuration.parse_file ?dir path_name);
 
         (List.mem name ["_oasis"] || (String.length name > 0 && name.[0] <> '_'))
         && (name <> !Options.build_dir && not (List.mem name !Options.exclude_dirs))
-        && begin
+        && début
           not (path_name <> Filename.current_dir_name && Pathname.is_directory path_name)
-          || begin
-            let tags = tags_of_pathname path_name in
-            (if Tags.mem "include" tags
-              || List.mem path_name !Options.include_dirs then
-              (entry_include_dirs := path_name :: !entry_include_dirs; true)
-            else
+          || début
+            soit tags = tags_of_pathname path_name dans
+            (si Tags.mem "include" tags
+              || List.mem path_name !Options.include_dirs alors
+              (entry_include_dirs := path_name :: !entry_include_dirs; vrai)
+            sinon
               Tags.mem "traverse" tags
               || List.exists (Pathname.is_prefix path_name) !Options.include_dirs
               || List.exists (Pathname.is_prefix path_name) target_dirs)
             && ((* beware: !Options.build_dir is an absolute directory *)
                 Pathname.normalize !Options.build_dir
                 <> Pathname.normalize (Pathname.pwd/path_name))
-          end
-        end
-      end
+          fin
+        fin
+      fin
       (Slurp.slurp Filename.current_dir_name)
-  in
+  dans
   Hooks.call_hook Hooks.Before_hygiene;
-  let hygiene_entry =
-    Slurp.map begin fun path name () ->
-      let tags = tags_of_pathname (path/name) in
+  soit hygiene_entry =
+    Slurp.map début fonc path name () ->
+      soit tags = tags_of_pathname (path/name) dans
       not (Tags.mem "not_hygienic" tags) && not (Tags.mem "precious" tags)
-    end entry in
-  if !Options.hygiene && not first_run_for_plugin then
+    fin entry dans
+  si !Options.hygiene && not first_run_for_plugin alors
     Fda.inspect hygiene_entry
-  else
+  sinon
     Slurp.force hygiene_entry;
-  let entry = hygiene_entry in
+  soit entry = hygiene_entry dans
   Hooks.call_hook Hooks.After_hygiene;
   Options.include_dirs := Pathname.current_dir_name :: List.rev !entry_include_dirs;
   dprintf 3 "include directories are:@ %a" print_string_list !Options.include_dirs;
@@ -178,35 +178,35 @@ let proceed () =
   Sys.chdir newpwd;
   (*let () = dprintf 0 "source_dir_path_set:@ %a" StringSet.print source_dir_path_set*)
 
-  if !Options.show_documentation then begin
+  si !Options.show_documentation alors début
     show_documentation ();
     raise Exit_silently
-  end;
+  fin;
 
-  let all_tags = Tags.union builtin_useful_tags (Flags.get_used_tags ()) in
+  soit all_tags = Tags.union builtin_useful_tags (Flags.get_used_tags ()) dans
   Configuration.check_tags_usage all_tags;
 
   Digest_cache.init ();
 
-  Sys.catch_break true;
+  Sys.catch_break vrai;
 
   show_tags ();
 
-  let targets =
-    List.map begin fun starget ->
-      let starget = Resource.import starget in
-      let target = path_and_context_of_string starget in
-      let ext = Pathname.get_extension starget in
+  soit targets =
+    List.map début fonc starget ->
+      soit starget = Resource.import starget dans
+      soit target = path_and_context_of_string starget dans
+      soit ext = Pathname.get_extension starget dans
       (target, starget, ext)
-    end !Options.targets in
+    fin !Options.targets dans
 
-  try
-    let targets =
-      List.map begin fun (target, starget, ext) ->
+  essaie
+    soit targets =
+      List.map début fonc (target, starget, ext) ->
         Shell.mkdir_p (Pathname.dirname starget);
-        let target = Solver.solve_target starget target in
+        soit target = Solver.solve_target starget target dans
         (target, ext)
-      end targets in
+      fin targets dans
 
     Command.dump_parallel_stats ();
 
@@ -214,55 +214,55 @@ let proceed () =
 
     Shell.chdir Pathname.pwd;
 
-    let call spec = sys_command (Command.string_of_command_spec spec) in
+    soit call spec = sys_command (Command.string_of_command_spec spec) dans
 
-    let cmds =
-      List.fold_right begin fun (target, ext) acc ->
-        let cmd = !Options.build_dir/target in
-        let link x =
-          if !Options.make_links then ignore (call (S [A"ln"; A"-sf"; P x; A Pathname.current_dir_name])) in
-        match ext with
+    soit cmds =
+      List.fold_right début fonc (target, ext) acc ->
+        soit cmd = !Options.build_dir/target dans
+        soit link x =
+          si !Options.make_links alors ignore (call (S [A"ln"; A"-sf"; P x; A Pathname.current_dir_name])) dans
+        filtre ext avec
         | "byte" | "native" | "top" ->
             link cmd; cmd :: acc
         | "html" ->
             link (Pathname.dirname cmd); acc
         | _ ->
-            if !Options.program_to_execute then
+            si !Options.program_to_execute alors
               eprintf "Warning: Won't execute %s whose extension is neither .byte nor .native" cmd;
             acc
-      end targets [] in
+      fin targets [] dans
 
-    if !Options.program_to_execute then
-      begin
-        match List.rev cmds with
+    si !Options.program_to_execute alors
+      début
+        filtre List.rev cmds avec
         | [] -> raise (Exit_usage "Using -- requires one target");
         | cmd :: rest ->
-          if rest <> [] then dprintf 0 "Warning: Using -- only run the last target";
-          let cmd_spec = S [P cmd; atomize !Options.program_args] in
+          si rest <> [] alors dprintf 0 "Warning: Using -- only run the last target";
+          soit cmd_spec = S [P cmd; atomize !Options.program_args] dans
           dprintf 3 "Running the user command:@ %a" Pathname.print cmd;
           raise (Exit_with_code (call cmd_spec)) (* Exit with the exit code of the called command *)
-      end
-    else
+      fin
+    sinon
       ()
-  with
+  avec
   | Ocaml_dependencies.Circular_dependencies(seen, p) ->
       raise
         (Exit_build_error
           (sbprintf "@[<2>Circular dependencies: %S already seen in@ %a@]@." p pp_l seen))
 ;;
 
-open Exit_codes;;
+ouvre Exit_codes;;
 
-let main () =
-  let exit rc =
-    Log.finish ~how:(if rc <> 0 then `Error else `Success) ();
+soit main () =
+  soit exit rc =
+    Log.finish ~how:(si rc <> 0 alors `Error sinon `Success) ();
     Pervasives.exit rc
-  in
-  try
+  dans
+  essaie
     proceed ()
-  with e ->
-    if !Options.catch_errors then
-      try raise e with
+  avec e ->
+    si !Options.catch_errors alors
+      essaie raise e avec
       | Exit_OK -> exit rc_ok
       | Fda.Exit_hygiene_failed ->
           Log.eprintf "Exiting due to hygiene violations.";
@@ -314,12 +314,12 @@ let main () =
           Log.eprintf "%s" msg;
           exit rc_ok
       | e ->
-          try
+          essaie
             Log.eprintf "%a" My_unix.report_error e;
             exit 100
-          with
+          avec
           | e ->
             Log.eprintf "Exception@ %s." (Printexc.to_string e);
             exit 100
-    else raise e
+    sinon raise e
 ;;

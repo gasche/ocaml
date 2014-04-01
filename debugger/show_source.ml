@@ -11,75 +11,75 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Debugger_config
-open Instruct
-open Parameters
-open Primitives
-open Printf
-open Source
+ouvre Debugger_config
+ouvre Instruct
+ouvre Parameters
+ouvre Primitives
+ouvre Printf
+ouvre Source
 
 (* Print a line; return the beginning of the next line *)
-let print_line buffer line_number start point before =
-  let next = next_linefeed buffer start
-  and content = buffer_content buffer
-  in
+soit print_line buffer line_number start point before =
+  soit next = next_linefeed buffer start
+  et content = buffer_content buffer
+  dans
     printf "%i " line_number;
-    if point <= next && point >= start then
+    si point <= next && point >= start alors
       (print_string (String.sub content start (point - start));
-       print_string (if before then event_mark_before else event_mark_after);
+       print_string (si before alors event_mark_before sinon event_mark_after);
        print_string (String.sub content point (next - point)))
-    else
+    sinon
       print_string (String.sub content start (next - start));
     print_newline ();
     next
 
 (* Tell Emacs we are nowhere in the source. *)
-let show_no_point () =
-  if !emacs then printf "\026\026H\n"
+soit show_no_point () =
+  si !emacs alors printf "\026\026H\n"
 
 (* Print the line containing the point *)
-let show_point ev selected =
-  let mdle = ev.ev_module in
-  let before = (ev.ev_kind = Event_before) in
-  if !emacs && selected then
-    begin try
-      let buffer = get_buffer (Events.get_pos ev) mdle in
-      let source = source_of_module ev.ev_loc.Location.loc_start mdle in
+soit show_point ev selected =
+  soit mdle = ev.ev_module dans
+  soit before = (ev.ev_kind = Event_before) dans
+  si !emacs && selected alors
+    début essaie
+      soit buffer = get_buffer (Events.get_pos ev) mdle dans
+      soit source = source_of_module ev.ev_loc.Location.loc_start mdle dans
       printf "\026\026M%s:%i:%i" source
         (snd (start_and_cnum buffer ev.ev_loc.Location.loc_start))
         (snd (start_and_cnum buffer ev.ev_loc.Location.loc_end));
-      printf "%s\n" (if before then ":before" else ":after")
-    with
+      printf "%s\n" (si before alors ":before" sinon ":after")
+    avec
       Out_of_range -> (* point_of_coord *)
         prerr_endline "Position out of range."
     | Not_found    -> (* Events.get_pos || get_buffer *)
         prerr_endline ("No source file for " ^ mdle ^ ".");
         show_no_point ()
-    end
-  else
-    begin try
-      let pos = Events.get_pos ev in
-      let buffer = get_buffer pos mdle in
-      let start, point = start_and_cnum buffer pos in
+    fin
+  sinon
+    début essaie
+      soit pos = Events.get_pos ev dans
+      soit buffer = get_buffer pos mdle dans
+      soit start, point = start_and_cnum buffer pos dans
       ignore(print_line buffer pos.Lexing.pos_lnum start point before)
-    with
+    avec
       Out_of_range -> (* point_of_coord *)
         prerr_endline "Position out of range."
     | Not_found    -> (* Events.get_pos || get_buffer *)
         prerr_endline ("No source file for " ^ mdle ^ ".")
-    end
+    fin
 
 (* Display part of the source. *)
-let show_listing pos mdle start stop point before =
-  try
-    let buffer = get_buffer pos mdle in
-      let rec aff (line_start, line_number) =
-        if line_number <= stop then
+soit show_listing pos mdle start stop point before =
+  essaie
+    soit buffer = get_buffer pos mdle dans
+      soit rec aff (line_start, line_number) =
+        si line_number <= stop alors
           aff (print_line buffer line_number line_start point before + 1,
                line_number + 1)
-      in
+      dans
         aff (pos_of_line buffer start)
-  with
+  avec
     Out_of_range -> (* pos_of_line *)
       prerr_endline "Position out of range."
   | Not_found    -> (* get_buffer *)

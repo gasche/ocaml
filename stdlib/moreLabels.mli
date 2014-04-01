@@ -46,7 +46,7 @@ module Hashtbl : sig
   module type S =
     sig
       type key
-      and 'a t
+      et 'a t
       val create : int -> 'a t
       val clear : 'a t -> unit
       val reset : 'a t -> unit
@@ -63,11 +63,11 @@ module Hashtbl : sig
           'a t -> init:'b -> 'b
       val length : 'a t -> int
       val stats: 'a t -> statistics
-    end
+    fin
   module type SeededS =
     sig
       type key
-      and 'a t
+      et 'a t
       val create : ?random:bool -> int -> 'a t
       val clear : 'a t -> unit
       val reset : 'a t -> unit
@@ -84,21 +84,21 @@ module Hashtbl : sig
           'a t -> init:'b -> 'b
       val length : 'a t -> int
       val stats: 'a t -> statistics
-    end
-  module Make : functor (H : HashedType) -> S with type key = H.t
-  module MakeSeeded (H : SeededHashedType) : SeededS with type key = H.t
+    fin
+  module Make : foncteur (H : HashedType) -> S avec type key = H.t
+  module MakeSeeded (H : SeededHashedType) : SeededS avec type key = H.t
   val hash : 'a -> int
   val seeded_hash : int -> 'a -> int
   val hash_param : int -> int -> 'a -> int
   val seeded_hash_param : int -> int -> int -> 'a -> int
-end
+fin
 
 module Map : sig
   module type OrderedType = Map.OrderedType
   module type S =
     sig
       type key
-      and (+'a) t
+      et (+'a) t
       val empty : 'a t
       val is_empty: 'a t -> bool
       val mem : key -> 'a t -> bool
@@ -126,16 +126,16 @@ module Map : sig
       val find : key -> 'a t -> 'a
       val map : f:('a -> 'b) -> 'a t -> 'b t
       val mapi : f:(key -> 'a -> 'b) -> 'a t -> 'b t
-  end
-  module Make : functor (Ord : OrderedType) -> S with type key = Ord.t
-end
+  fin
+  module Make : foncteur (Ord : OrderedType) -> S avec type key = Ord.t
+fin
 
 module Set : sig
   module type OrderedType = Set.OrderedType
   module type S =
     sig
       type elt
-      and t
+      et t
       val empty : t
       val is_empty : t -> bool
       val mem : elt -> t -> bool
@@ -162,6 +162,6 @@ module Set : sig
       val split: elt -> t -> t * bool * t
       val find: elt -> t -> elt
       val of_list: elt list -> t
-    end
-  module Make : functor (Ord : OrderedType) -> S with type elt = Ord.t
-end
+    fin
+  module Make : foncteur (Ord : OrderedType) -> S avec type elt = Ord.t
+fin

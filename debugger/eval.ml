@@ -11,158 +11,158 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Misc
-open Path
-open Instruct
-open Types
-open Parser_aux
+ouvre Misc
+ouvre Path
+ouvre Instruct
+ouvre Types
+ouvre Parser_aux
 
 type error =
-    Unbound_identifier of Ident.t
-  | Not_initialized_yet of Path.t
-  | Unbound_long_identifier of Longident.t
-  | Unknown_name of int
-  | Tuple_index of type_expr * int * int
-  | Array_index of int * int
-  | List_index of int * int
-  | String_index of string * int * int
-  | Wrong_item_type of type_expr * int
-  | Wrong_label of type_expr * string
-  | Not_a_record of type_expr
+    Unbound_identifier de Ident.t
+  | Not_initialized_yet de Path.t
+  | Unbound_long_identifier de Longident.t
+  | Unknown_name de int
+  | Tuple_index de type_expr * int * int
+  | Array_index de int * int
+  | List_index de int * int
+  | String_index de string * int * int
+  | Wrong_item_type de type_expr * int
+  | Wrong_label de type_expr * string
+  | Not_a_record de type_expr
   | No_result
 
-exception Error of error
+exception Error de error
 
-let abstract_type =
+soit abstract_type =
   Btype.newgenty (Tconstr (Pident (Ident.create "<abstr>"), [], ref Mnil))
 
-let rec path event = function
+soit rec path event = fonction
     Pident id ->
-      if Ident.global id then
-        try
+      si Ident.global id alors
+        essaie
           Debugcom.Remote_value.global (Symtable.get_global_position id)
-        with Symtable.Error _ -> raise(Error(Unbound_identifier id))
-      else
-        begin match event with
+        avec Symtable.Error _ -> raise(Error(Unbound_identifier id))
+      sinon
+        début filtre event avec
           Some ev ->
-            begin try
-              let pos = Ident.find_same id ev.ev_compenv.ce_stack in
+            début essaie
+              soit pos = Ident.find_same id ev.ev_compenv.ce_stack dans
               Debugcom.Remote_value.local (ev.ev_stacksize - pos)
-            with Not_found ->
-            try
-              let pos = Ident.find_same id ev.ev_compenv.ce_heap in
+            avec Not_found ->
+            essaie
+              soit pos = Ident.find_same id ev.ev_compenv.ce_heap dans
               Debugcom.Remote_value.from_environment pos
-            with Not_found ->
+            avec Not_found ->
               raise(Error(Unbound_identifier id))
-            end
+            fin
         | None ->
             raise(Error(Unbound_identifier id))
-        end
+        fin
   | Pdot(root, fieldname, pos) ->
-      let v = path event root in
-      if not (Debugcom.Remote_value.is_block v) then
+      soit v = path event root dans
+      si not (Debugcom.Remote_value.is_block v) alors
         raise(Error(Not_initialized_yet root));
       Debugcom.Remote_value.field v pos
   | Papply(p1, p2) ->
       fatal_error "Eval.path: Papply"
 
-let rec expression event env = function
+soit rec expression event env = fonction
     E_ident lid ->
-      begin try
-        let (p, valdesc) = Env.lookup_value lid env in
-        (begin match valdesc.val_kind with
+      début essaie
+        soit (p, valdesc) = Env.lookup_value lid env dans
+        (début filtre valdesc.val_kind avec
            Val_ivar (_, cl_num) ->
-             let (p0, _) =
+             soit (p0, _) =
                Env.lookup_value (Longident.Lident ("self-" ^ cl_num)) env
-             in
-             let v = path event p0 in
-             let i = path event p in
+             dans
+             soit v = path event p0 dans
+             soit i = path event p dans
              Debugcom.Remote_value.field v (Debugcom.Remote_value.obj i)
          | _ ->
              path event p
-         end,
+         fin,
          Ctype.correct_levels valdesc.val_type)
-      with Not_found ->
+      avec Not_found ->
         raise(Error(Unbound_long_identifier lid))
-      end
+      fin
   | E_result ->
-      begin match event with
+      début filtre event avec
         Some {ev_kind = Event_after ty; ev_typsubst = subst}
-        when !Frames.current_frame = 0 ->
+        quand !Frames.current_frame = 0 ->
           (Debugcom.Remote_value.accu(), Subst.type_expr subst ty)
       | _ ->
           raise(Error(No_result))
-      end
+      fin
   | E_name n ->
-      begin try
+      début essaie
         Printval.find_named_value n
-      with Not_found ->
+      avec Not_found ->
         raise(Error(Unknown_name n))
-      end
+      fin
   | E_item(arg, n) ->
-      let (v, ty) = expression event env arg in
-      begin match (Ctype.repr(Ctype.expand_head_opt env ty)).desc with
+      soit (v, ty) = expression event env arg dans
+      début filtre (Ctype.repr(Ctype.expand_head_opt env ty)).desc avec
         Ttuple ty_list ->
-          if n < 1 || n > List.length ty_list
-          then raise(Error(Tuple_index(ty, List.length ty_list, n)))
-          else (Debugcom.Remote_value.field v (n-1), List.nth ty_list (n-1))
-      | Tconstr(path, [ty_arg], _) when Path.same path Predef.path_array ->
-          let size = Debugcom.Remote_value.size v in
-          if n >= size
-          then raise(Error(Array_index(size, n)))
-          else (Debugcom.Remote_value.field v n, ty_arg)
-      | Tconstr(path, [ty_arg], _) when Path.same path Predef.path_list ->
-          let rec nth pos v =
-            if not (Debugcom.Remote_value.is_block v) then
+          si n < 1 || n > List.length ty_list
+          alors raise(Error(Tuple_index(ty, List.length ty_list, n)))
+          sinon (Debugcom.Remote_value.field v (n-1), List.nth ty_list (n-1))
+      | Tconstr(path, [ty_arg], _) quand Path.same path Predef.path_array ->
+          soit size = Debugcom.Remote_value.size v dans
+          si n >= size
+          alors raise(Error(Array_index(size, n)))
+          sinon (Debugcom.Remote_value.field v n, ty_arg)
+      | Tconstr(path, [ty_arg], _) quand Path.same path Predef.path_list ->
+          soit rec nth pos v =
+            si not (Debugcom.Remote_value.is_block v) alors
               raise(Error(List_index(pos, n)))
-            else if pos = n then
+            sinon si pos = n alors
               (Debugcom.Remote_value.field v 0, ty_arg)
-            else
+            sinon
               nth (pos + 1) (Debugcom.Remote_value.field v 1)
-          in nth 0 v
-      | Tconstr(path, [], _) when Path.same path Predef.path_string ->
-          let s = (Debugcom.Remote_value.obj v : string) in
-          if n >= String.length s
-          then raise(Error(String_index(s, String.length s, n)))
-          else (Debugcom.Remote_value.of_int(Char.code s.[n]),
+          dans nth 0 v
+      | Tconstr(path, [], _) quand Path.same path Predef.path_string ->
+          soit s = (Debugcom.Remote_value.obj v : string) dans
+          si n >= String.length s
+          alors raise(Error(String_index(s, String.length s, n)))
+          sinon (Debugcom.Remote_value.of_int(Char.code s.[n]),
                 Predef.type_char)
       | _ ->
           raise(Error(Wrong_item_type(ty, n)))
-      end
+      fin
   | E_field(arg, lbl) ->
-      let (v, ty) = expression event env arg in
-      begin match (Ctype.repr(Ctype.expand_head_opt env ty)).desc with
+      soit (v, ty) = expression event env arg dans
+      début filtre (Ctype.repr(Ctype.expand_head_opt env ty)).desc avec
         Tconstr(path, args, _) ->
-          let tydesc = Env.find_type path env in
-          begin match tydesc.type_kind with
+          soit tydesc = Env.find_type path env dans
+          début filtre tydesc.type_kind avec
             Type_record(lbl_list, repr) ->
-              let (pos, ty_res) =
-                find_label lbl env ty path tydesc 0 lbl_list in
+              soit (pos, ty_res) =
+                find_label lbl env ty path tydesc 0 lbl_list dans
               (Debugcom.Remote_value.field v pos, ty_res)
           | _ -> raise(Error(Not_a_record ty))
-          end
+          fin
       | _ -> raise(Error(Not_a_record ty))
-      end
+      fin
 
-and find_label lbl env ty path tydesc pos = function
+et find_label lbl env ty path tydesc pos = fonction
     [] ->
       raise(Error(Wrong_label(ty, lbl)))
   | {ld_id; ld_type} :: rem ->
-      if Ident.name ld_id = lbl then begin
-        let ty_res =
+      si Ident.name ld_id = lbl alors début
+        soit ty_res =
           Btype.newgenty(Tconstr(path, tydesc.type_params, ref Mnil))
-        in
+        dans
         (pos,
-         try Ctype.apply env [ty_res] ld_type [ty] with Ctype.Cannot_apply ->
+         essaie Ctype.apply env [ty_res] ld_type [ty] avec Ctype.Cannot_apply ->
            abstract_type)
-      end else
+      fin sinon
         find_label lbl env ty path tydesc (pos + 1) rem
 
 (* Error report *)
 
-open Format
+ouvre Format
 
-let report_error ppf = function
+soit report_error ppf = fonction
   | Unbound_identifier id ->
       fprintf ppf "@[Unbound identifier %s@]@." (Ident.name id)
   | Not_initialized_yet path ->

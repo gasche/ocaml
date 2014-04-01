@@ -31,30 +31,30 @@ type stat = {
 };;
 
 type control = {
-  mutable minor_heap_size : int;
-  mutable major_heap_increment : int;
-  mutable space_overhead : int;
-  mutable verbose : int;
-  mutable max_overhead : int;
-  mutable stack_limit : int;
-  mutable allocation_policy : int;
+  modifiable minor_heap_size : int;
+  modifiable major_heap_increment : int;
+  modifiable space_overhead : int;
+  modifiable verbose : int;
+  modifiable max_overhead : int;
+  modifiable stack_limit : int;
+  modifiable allocation_policy : int;
 };;
 
-external stat : unit -> stat = "caml_gc_stat";;
-external quick_stat : unit -> stat = "caml_gc_quick_stat";;
-external counters : unit -> (float * float * float) = "caml_gc_counters";;
-external get : unit -> control = "caml_gc_get";;
-external set : control -> unit = "caml_gc_set";;
-external minor : unit -> unit = "caml_gc_minor";;
-external major_slice : int -> int = "caml_gc_major_slice";;
-external major : unit -> unit = "caml_gc_major";;
-external full_major : unit -> unit = "caml_gc_full_major";;
-external compact : unit -> unit = "caml_gc_compaction";;
+dehors stat : unit -> stat = "caml_gc_stat";;
+dehors quick_stat : unit -> stat = "caml_gc_quick_stat";;
+dehors counters : unit -> (float * float * float) = "caml_gc_counters";;
+dehors get : unit -> control = "caml_gc_get";;
+dehors set : control -> unit = "caml_gc_set";;
+dehors minor : unit -> unit = "caml_gc_minor";;
+dehors major_slice : int -> int = "caml_gc_major_slice";;
+dehors major : unit -> unit = "caml_gc_major";;
+dehors full_major : unit -> unit = "caml_gc_full_major";;
+dehors compact : unit -> unit = "caml_gc_compaction";;
 
-open Printf;;
+ouvre Printf;;
 
-let print_stat c =
-  let st = stat () in
+soit print_stat c =
+  soit st = stat () dans
   fprintf c "minor_words: %.0f\n" st.minor_words;
   fprintf c "promoted_words: %.0f\n" st.promoted_words;
   fprintf c "major_words: %.0f\n" st.major_words;
@@ -72,29 +72,29 @@ let print_stat c =
   fprintf c "compactions: %d\n" st.compactions;
 ;;
 
-let allocated_bytes () =
-  let (mi, pro, ma) = counters () in
+soit allocated_bytes () =
+  soit (mi, pro, ma) = counters () dans
   (mi +. ma -. pro) *. float_of_int (Sys.word_size / 8)
 ;;
 
-external finalise : ('a -> unit) -> 'a -> unit = "caml_final_register";;
-external finalise_release : unit -> unit = "caml_final_release";;
+dehors finalise : ('a -> unit) -> 'a -> unit = "caml_final_register";;
+dehors finalise_release : unit -> unit = "caml_final_release";;
 
 
 type alarm = bool ref;;
 type alarm_rec = {active : alarm; f : unit -> unit};;
 
-let rec call_alarm arec =
-  if !(arec.active) then begin
+soit rec call_alarm arec =
+  si !(arec.active) alors début
     finalise call_alarm arec;
     arec.f ();
-  end;
+  fin;
 ;;
 
-let create_alarm f =
-  let arec = { active = ref true; f = f } in
+soit create_alarm f =
+  soit arec = { active = ref vrai; f = f } dans
   finalise call_alarm arec;
   arec.active
 ;;
 
-let delete_alarm a = a := false;;
+soit delete_alarm a = a := faux;;

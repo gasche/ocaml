@@ -14,7 +14,7 @@
 (* Original author: Berke Durak *)
 (* Ocamlbuild_executor *)
 
-open Unix;;
+ouvre Unix;;
 
 type error =
   | Subcommand_failed
@@ -33,110 +33,110 @@ type job = {
   job_stdin   : out_channel;
   job_stderr  : in_channel;
   job_buffer  : Buffer.t;
-  mutable job_dying : bool;
+  modifiable job_dying : bool;
 };;
 
-module JS = Set.Make(struct type t = job let compare = compare end);;
-module FDM = Map.Make(struct type t = file_descr let compare = compare end);;
+module JS = Set.Make(struct type t = job soit compare = compare fin);;
+module FDM = Map.Make(struct type t = file_descr soit compare = compare fin);;
 
-let sf = Printf.sprintf;;
-let fp = Printf.fprintf;;
+soit sf = Printf.sprintf;;
+soit fp = Printf.fprintf;;
 
 (*** print_unix_status *)
 (* FIXME never called *)
-let print_unix_status oc = function
+soit print_unix_status oc = fonction
   | WEXITED x -> fp oc "exit %d" x
   | WSIGNALED i -> fp oc "signal %d" i
   | WSTOPPED i -> fp oc "stop %d" i
 ;;
 (* ***)
 (*** print_job_id *)
-let print_job_id oc (x,y) = fp oc "%d.%d" x y;;
+soit print_job_id oc (x,y) = fp oc "%d.%d" x y;;
 (* ***)
 (*** output_lines *)
-let output_lines prefix oc buffer =
-  let u = Buffer.contents buffer in
-  let m = String.length u in
-  let output_line i j =
+soit output_lines prefix oc buffer =
+  soit u = Buffer.contents buffer dans
+  soit m = String.length u dans
+  soit output_line i j =
     output_string oc prefix;
     output oc u i (j - i);
     output_char oc '\n'
-  in
-  let rec loop i =
-    if i = m then
+  dans
+  soit rec loop i =
+    si i = m alors
       ()
-    else
-      begin
-        try
-          let j = String.index_from u i '\n' in
+    sinon
+      début
+        essaie
+          soit j = String.index_from u i '\n' dans
           output_line i j;
           loop (j + 1)
-        with
+        avec
         | Not_found ->
             output_line i m
-      end
-  in
+      fin
+  dans
   loop 0
 ;;
 (* ***)
 (*** execute *)
 (* XXX: Add test for non reentrancy *)
-let execute
+soit execute
   ?(max_jobs=max_int)
   ?(ticker=ignore)
   ?(period=0.1)
-  ?(display=(fun f -> f Pervasives.stdout))
+  ?(display=(fonc f -> f Pervasives.stdout))
   ~exit
   (commands : task list list)
     =
-  let batch_id = ref 0 in
-  let env = environment () in
-  let jobs = ref JS.empty in
-  let jobs_active = ref 0 in
-  let jobs_to_terminate = Queue.create () in
-  let commands_to_execute = Queue.create () in
-  let all_ok = ref true in
-  let results =
-    List.map (fun tasks ->
-      let result = ref false in
+  soit batch_id = ref 0 dans
+  soit env = environment () dans
+  soit jobs = ref JS.empty dans
+  soit jobs_active = ref 0 dans
+  soit jobs_to_terminate = Queue.create () dans
+  soit commands_to_execute = Queue.create () dans
+  soit all_ok = ref vrai dans
+  soit results =
+    List.map (fonc tasks ->
+      soit result = ref faux dans
       Queue.add (tasks, result) commands_to_execute;
       result)
       commands
-  in
-  let outputs = ref FDM.empty in
-  let doi = descr_of_in_channel in
-  let doo = descr_of_out_channel in
+  dans
+  soit outputs = ref FDM.empty dans
+  soit doi = descr_of_in_channel dans
+  soit doo = descr_of_out_channel dans
   (*** compute_fds *)
-  let compute_fds =
-    let fds = ref ([], [], []) in
-    let prev_jobs = ref JS.empty in
-    fun () ->
-      if not (!prev_jobs == !jobs) then
-        begin
+  soit compute_fds =
+    soit fds = ref ([], [], []) dans
+    soit prev_jobs = ref JS.empty dans
+    fonc () ->
+      si not (!prev_jobs == !jobs) alors
+        début
           prev_jobs := !jobs;
           fds :=
             JS.fold
-              begin fun job (rfds, wfds, xfds) ->
-                let ofd = doi job.job_stdout
-                and ifd = doo job.job_stdin
-                and efd = doi job.job_stderr
-                in
+              début fonc job (rfds, wfds, xfds) ->
+                soit ofd = doi job.job_stdout
+                et ifd = doo job.job_stdin
+                et efd = doi job.job_stderr
+                dans
                 (ofd :: efd :: rfds, wfds, ofd :: ifd :: efd :: xfds)
-              end
+              fin
               !jobs
               ([], [], [])
-        end;
+        fin;
       !fds
-  in
+  dans
   (* ***)
   (*** add_job *)
-  let add_job cmd rest result id =
+  soit add_job cmd rest result id =
     (*display begin fun oc -> fp oc "Job %a is %s\n%!" print_job_id id cmd; end;*)
-    let (stdout', stdin', stderr') = open_process_full cmd env in
+    soit (stdout', stdin', stderr') = open_process_full cmd env dans
     incr jobs_active;
     set_nonblock (doi stdout');
     set_nonblock (doi stderr');
-    let job =
+    soit job =
       { job_id          = id;
         job_command     = cmd;
         job_next        = rest;
@@ -145,200 +145,200 @@ let execute
         job_stdin       = stdin';
         job_stderr      = stderr';
         job_buffer      = Buffer.create 1024;
-        job_dying       = false }
-    in
+        job_dying       = faux }
+    dans
     outputs := FDM.add (doi stdout') job (FDM.add (doi stderr') job !outputs);
     jobs := JS.add job !jobs;
-  in
+  dans
   (* ***)
   (*** skip_empty_tasks *)
-  let rec skip_empty_tasks = function
+  soit rec skip_empty_tasks = fonction
     | [] -> None
     | task :: tasks ->
-        let cmd = task () in
-        if cmd = "" then skip_empty_tasks tasks else Some(cmd, tasks)
-  in
+        soit cmd = task () dans
+        si cmd = "" alors skip_empty_tasks tasks sinon Some(cmd, tasks)
+  dans
   (* ***)
   (*** add_some_jobs *)
-  let add_some_jobs () =
-    let (tasks, result) = Queue.take commands_to_execute in
-    match skip_empty_tasks tasks with
-    | None -> result := false
+  soit add_some_jobs () =
+    soit (tasks, result) = Queue.take commands_to_execute dans
+    filtre skip_empty_tasks tasks avec
+    | None -> result := faux
     | Some(cmd, rest) ->
-      let b_id = !batch_id in
+      soit b_id = !batch_id dans
       incr batch_id;
       add_job cmd rest result (b_id, 0)
-  in
+  dans
   (* ***)
   (*** terminate *)
-  let terminate ?(continue=true) job =
-    if not job.job_dying then
-      begin
-        job.job_dying <- true;
+  soit terminate ?(continue=vrai) job =
+    si not job.job_dying alors
+      début
+        job.job_dying <- vrai;
         Queue.add (job, continue) jobs_to_terminate
-      end
-    else
+      fin
+    sinon
       ()
-  in
+  dans
   (* ***)
   (*** add_more_jobs_if_possible *)
-  let add_more_jobs_if_possible () =
-    while !jobs_active < max_jobs && not (Queue.is_empty commands_to_execute) do
+  soit add_more_jobs_if_possible () =
+    pendant_que !jobs_active < max_jobs && not (Queue.is_empty commands_to_execute) faire
       add_some_jobs ()
-    done
-  in
+    fait
+  dans
   (* ***)
   (*** do_read *)
-  let do_read =
-    let u = String.create 4096 in
-    fun ?(loop=false) fd job ->
+  soit do_read =
+    soit u = String.create 4096 dans
+    fonc ?(loop=faux) fd job ->
       (*if job.job_dying then
         ()
       else*)
-        try
-          let rec iteration () =
-            let m =
-              try
+        essaie
+          soit rec iteration () =
+            soit m =
+              essaie
                 read fd u 0 (String.length u)
-              with
+              avec
               | Unix.Unix_error(_,_,_) -> 0
-            in
-            if m = 0 then
-              if job.job_dying then
+            dans
+            si m = 0 alors
+              si job.job_dying alors
                 ()
-              else
+              sinon
                 terminate job
-            else
-              begin
+            sinon
+              début
                 Buffer.add_substring job.job_buffer u 0 m;
-                if loop then
+                si loop alors
                   iteration ()
-                else
+                sinon
                   ()
-              end
-          in
+              fin
+          dans
           iteration ()
-        with
+        avec
         | x ->
             display
-              begin fun oc ->
+              début fonc oc ->
                 fp oc "Exception %s while reading output of command %S\n%!" job.job_command
                   (Printexc.to_string x);
-              end;
+              fin;
             exit Io_error
-  in
+  dans
   (* ***)
   (*** process_jobs_to_terminate *)
-  let process_jobs_to_terminate () =
-    while not (Queue.is_empty jobs_to_terminate) do
+  soit process_jobs_to_terminate () =
+    pendant_que not (Queue.is_empty jobs_to_terminate) faire
       ticker ();
-      let (job, continue) = Queue.take jobs_to_terminate in
+      soit (job, continue) = Queue.take jobs_to_terminate dans
 
       (*display begin fun oc -> fp oc "Terminating job %a\n%!" print_job_id job.job_id; end;*)
 
       decr jobs_active;
-      do_read ~loop:true (doi job.job_stdout) job;
-      do_read ~loop:true (doi job.job_stderr) job;
+      do_read ~loop:vrai (doi job.job_stdout) job;
+      do_read ~loop:vrai (doi job.job_stderr) job;
       outputs := FDM.remove (doi job.job_stdout) (FDM.remove (doi job.job_stderr) !outputs);
       jobs := JS.remove job !jobs;
-      let status = close_process_full (job.job_stdout, job.job_stdin, job.job_stderr) in
+      soit status = close_process_full (job.job_stdout, job.job_stdin, job.job_stderr) dans
 
-      let shown = ref false in
+      soit shown = ref faux dans
 
-      let show_command () =
-        if !shown then
+      soit show_command () =
+        si !shown alors
           ()
-        else
+        sinon
         display
-          begin fun oc ->
-            shown := true;
+          début fonc oc ->
+            shown := vrai;
             fp oc "+ %s\n" job.job_command;
             output_lines "" oc job.job_buffer
-          end
-      in
-      if Buffer.length job.job_buffer > 0 then show_command ();
-      begin
-        match status with
+          fin
+      dans
+      si Buffer.length job.job_buffer > 0 alors show_command ();
+      début
+        filtre status avec
         | Unix.WEXITED 0 ->
-            begin
-              if continue then
-                begin
-                  match skip_empty_tasks job.job_next with
-                  | None -> job.job_result := true
+            début
+              si continue alors
+                début
+                  filtre skip_empty_tasks job.job_next avec
+                  | None -> job.job_result := vrai
                   | Some(cmd, rest) ->
-                      let (b_id, s_id) = job.job_id in
+                      soit (b_id, s_id) = job.job_id dans
                       add_job cmd rest job.job_result (b_id, s_id + 1)
-                end
-              else
-                all_ok := false;
-            end
+                fin
+              sinon
+                all_ok := faux;
+            fin
         | Unix.WEXITED rc ->
             show_command ();
-            display (fun oc -> fp oc "Command exited with code %d.\n" rc);
-            all_ok := false;
+            display (fonc oc -> fp oc "Command exited with code %d.\n" rc);
+            all_ok := faux;
             exit Subcommand_failed
         | Unix.WSTOPPED s | Unix.WSIGNALED s ->
             show_command ();
-            all_ok := false;
-            display (fun oc -> fp oc "Command got signal %d.\n" s);
+            all_ok := faux;
+            display (fonc oc -> fp oc "Command got signal %d.\n" s);
             exit Subcommand_got_signal
-      end
-    done
-  in
+      fin
+    fait
+  dans
   (* ***)
   (*** terminate_all_jobs *)
-  let terminate_all_jobs () =
-    JS.iter (terminate ~continue:false) !jobs
-  in
+  soit terminate_all_jobs () =
+    JS.iter (terminate ~continue:faux) !jobs
+  dans
   (* ***)
   (*** loop *)
-  let rec loop () =
+  soit rec loop () =
     (*display (fun oc -> fp oc "Total %d jobs\n" !jobs_active);*)
     process_jobs_to_terminate ();
     add_more_jobs_if_possible ();
-    if JS.is_empty !jobs then
+    si JS.is_empty !jobs alors
       ()
-    else
-      begin
-        let (rfds, wfds, xfds) = compute_fds () in
+    sinon
+      début
+        soit (rfds, wfds, xfds) = compute_fds () dans
         ticker ();
-        let (chrfds, chwfds, chxfds) = select rfds wfds xfds period in
+        soit (chrfds, chwfds, chxfds) = select rfds wfds xfds period dans
         List.iter
-          begin fun (fdlist, hook) ->
+          début fonc (fdlist, hook) ->
             List.iter
-              begin fun fd ->
-                try
-                  let job = FDM.find fd !outputs in
+              début fonc fd ->
+                essaie
+                  soit job = FDM.find fd !outputs dans
                   ticker ();
                   hook fd job
-                with
+                avec
                 | Not_found -> () (* XXX *)
-              end
+              fin
               fdlist
-          end
-          [chrfds, do_read ~loop:false;
-           chwfds, (fun _ _ -> ());
+          fin
+          [chrfds, do_read ~loop:faux;
+           chwfds, (fonc _ _ -> ());
            chxfds,
-             begin fun _ _job ->
+             début fonc _ _job ->
                (*display (fun oc -> fp oc "Exceptional condition on command %S\n%!" job.job_command);
                exit Exceptional_condition*)
                () (* FIXME *)
-             end];
+             fin];
         loop ()
-      end
-  in
-  try
+      fin
+  dans
+  essaie
     loop ();
     None
-  with
+  avec
   | x ->
-      begin
-        try
+      début
+        essaie
           terminate_all_jobs ()
-        with
+        avec
         | x' ->
-            display (fun oc -> fp oc "Extra exception %s\n%!" (Printexc.to_string x'))
-      end;
+            display (fonc oc -> fp oc "Extra exception %s\n%!" (Printexc.to_string x'))
+      fin;
       Some(List.map (!) results, x)
 ;;
 (* ***)

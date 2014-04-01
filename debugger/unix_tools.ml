@@ -13,38 +13,38 @@
 
 (****************** Tools for Unix *************************************)
 
-open Misc
-open Unix
-open Primitives
+ouvre Misc
+ouvre Unix
+ouvre Primitives
 
 (*** Convert a socket name into a socket address. ***)
-let convert_address address =
-  try
-    let n = String.index address ':' in
-      let host = String.sub address 0 n
-      and port = String.sub address (n + 1) (String.length address - n - 1)
-      in
+soit convert_address address =
+  essaie
+    soit n = String.index address ':' dans
+      soit host = String.sub address 0 n
+      et port = String.sub address (n + 1) (String.length address - n - 1)
+      dans
         (PF_INET,
          ADDR_INET
-           ((try inet_addr_of_string host with Failure _ ->
-               try (gethostbyname host).h_addr_list.(0) with Not_found ->
+           ((essaie inet_addr_of_string host avec Failure _ ->
+               essaie (gethostbyname host).h_addr_list.(0) avec Not_found ->
                  prerr_endline ("Hôte inconnu: " ^ host);
                  failwith "Impossible de convertir l'adresse"),
-            (try int_of_string port with Failure _ ->
+            (essaie int_of_string port avec Failure _ ->
                prerr_endline "Le numéro du port doit être un entier";
                failwith "Impossible de convertir l'adresse")))
-  with Not_found ->
-    match Sys.os_type with
+  avec Not_found ->
+    filtre Sys.os_type avec
       "Win32" -> failwith "Les chausettes Unix ne sont pas supportées"
     | _ -> (PF_UNIX, ADDR_UNIX address)
 
 (*** Report a unix error. ***)
-let report_error = function
+soit report_error = fonction
   | Unix_error (err, fun_name, arg) ->
      prerr_string "Unix error: '";
      prerr_string fun_name;
      prerr_string "' failed";
-     if String.length arg > 0 then
+     si String.length arg > 0 alors
        (prerr_string " on '";
         prerr_string arg;
         prerr_string "'");
@@ -55,88 +55,88 @@ let report_error = function
 (* Find program `name' in `PATH'. *)
 (* Return the full path if found. *)
 (* Raise `Not_found' otherwise. *)
-let search_in_path name =
+soit search_in_path name =
   Printf.fprintf Pervasives.stderr "search_in_path [%s]\n%!" name;
-  let check name =
-    try access name [X_OK]; name with Unix_error _ -> raise Not_found
-  in
-    if not (Filename.is_implicit name) then
+  soit check name =
+    essaie access name [X_OK]; name avec Unix_error _ -> raise Not_found
+  dans
+    si not (Filename.is_implicit name) alors
       check name
-    else
-      let path = Sys.getenv "PATH" in
-        let length = String.length path in
-          let rec traverse pointer =
-            if (pointer >= length) || (path.[pointer] = ':') then
+    sinon
+      soit path = Sys.getenv "PATH" dans
+        soit length = String.length path dans
+          soit rec traverse pointer =
+            si (pointer >= length) || (path.[pointer] = ':') alors
               pointer
-            else
+            sinon
               traverse (pointer + 1)
-          in
-            let rec find pos =
-              let pos2 = traverse pos in
-                let directory = (String.sub path pos (pos2 - pos)) in
-                  let fullname =
-                    if directory = "" then name else directory ^ "/" ^ name
-                  in
-                    try check fullname with
+          dans
+            soit rec find pos =
+              soit pos2 = traverse pos dans
+                soit directory = (String.sub path pos (pos2 - pos)) dans
+                  soit fullname =
+                    si directory = "" alors name sinon directory ^ "/" ^ name
+                  dans
+                    essaie check fullname avec
                     | Not_found ->
-                        if pos2 < length then find (pos2 + 1)
-                        else raise Not_found
-          in
+                        si pos2 < length alors find (pos2 + 1)
+                        sinon raise Not_found
+          dans
             find 0
 
 (* Expand a path. *)
 (* ### path -> path' *)
-let rec expand_path ch =
-  let rec subst_variable ch =
-    try
-      let pos = String.index ch '$' in
-        if (pos + 1 < String.length ch) && (ch.[pos + 1] = '$') then
+soit rec expand_path ch =
+  soit rec subst_variable ch =
+    essaie
+      soit pos = String.index ch '$' dans
+        si (pos + 1 < String.length ch) && (ch.[pos + 1] = '$') alors
           (String.sub ch 0 (pos + 1))
             ^ (subst_variable
                  (String.sub ch (pos + 2) (String.length ch - pos - 2)))
-        else
+        sinon
           (String.sub ch 0 pos)
             ^ (subst2 (String.sub ch (pos + 1) (String.length ch - pos - 1)))
-    with Not_found ->
+    avec Not_found ->
       ch
-  and subst2 ch =
-    let suiv =
-      let i = ref 0 in
-        while !i < String.length ch &&
-              (let c = ch.[!i] in (c >= 'a' && c <= 'z')
+  et subst2 ch =
+    soit suiv =
+      soit i = ref 0 dans
+        pendant_que !i < String.length ch &&
+              (soit c = ch.[!i] dans (c >= 'a' && c <= 'z')
                                || (c >= 'A' && c <= 'Z')
                                || (c >= '0' && c <= '9')
                                || c = '_')
-        do incr i done;
+        faire incr i fait;
         !i
-    in (Sys.getenv (String.sub ch 0 suiv))
+    dans (Sys.getenv (String.sub ch 0 suiv))
        ^ (subst_variable (String.sub ch suiv (String.length ch - suiv)))
-  in
-    let ch = subst_variable ch in
-      let concat_root nom ch2 =
-        try Filename.concat (getpwnam nom).pw_dir ch2
-        with Not_found ->
+  dans
+    soit ch = subst_variable ch dans
+      soit concat_root nom ch2 =
+        essaie Filename.concat (getpwnam nom).pw_dir ch2
+        avec Not_found ->
           "~" ^ nom
-      in
-        if ch.[0] = '~' then
-          try
-            match String.index ch '/' with
+      dans
+        si ch.[0] = '~' alors
+          essaie
+            filtre String.index ch '/' avec
               1 ->
-                (let tail = String.sub ch 2 (String.length ch - 2)
-                 in
-                   try Filename.concat (Sys.getenv "HOME") tail
-                   with Not_found ->
+                (soit tail = String.sub ch 2 (String.length ch - 2)
+                 dans
+                   essaie Filename.concat (Sys.getenv "HOME") tail
+                   avec Not_found ->
                      concat_root (Sys.getenv "LOGNAME") tail)
             |  n -> concat_root
                       (String.sub ch 1 (n - 1))
                       (String.sub ch (n + 1) (String.length ch - n - 1))
-          with
+          avec
             Not_found ->
               expand_path (ch ^ "/")
-        else ch
+        sinon ch
 
-let make_absolute name =
-  if Filename.is_relative name
-  then Filename.concat (getcwd ()) name
-  else name
+soit make_absolute name =
+  si Filename.is_relative name
+  alors Filename.concat (getcwd ()) name
+  sinon name
 ;;

@@ -12,8 +12,8 @@
 
 
 (* Original author: Nicolas Pouillard *)
-open My_std
-open Resource
+ouvre My_std
+ouvre Resource
 
 type env = Pathname.t -> Pathname.t
 type builder = Pathname.t list list -> (Pathname.t, exn) Outcome.t list
@@ -42,13 +42,13 @@ val rule : string ->
   ?prod:string ->
   ?dep:string ->
   ?stamp:string ->
-  ?insert:[`top | `before of string | `after of string | `bottom] ->
+  ?insert:[`top | `before de string | `after de string | `bottom] ->
   ?doc:string ->
   action -> unit
 
 (** [copy_rule name ?insert source destination] *)
 val copy_rule : string ->
-  ?insert:[`top | `before of string | `after of string | `bottom] ->
+  ?insert:[`top | `before de string | `after de string | `bottom] ->
   string -> string -> unit
 
 module Common_commands : sig
@@ -60,7 +60,7 @@ module Common_commands : sig
   val rm_f : Pathname.t -> Command.t
   val chmod : Command.spec -> Pathname.t -> Command.t
   val cmp : Pathname.t -> Pathname.t -> Command.t
-end
+fin
 
 val print : Format.formatter -> rule -> unit
 val pretty_print : 'a rule_printer

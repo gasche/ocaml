@@ -12,7 +12,7 @@
 
 
 (* Original author: Nicolas Pouillard *)
-exception Error of (string * Loc.location)
+exception Error de (string * Loc.location)
 
 type conf_values =
   { plus_tags   : (string * Loc.location)  list;
@@ -38,8 +38,8 @@ val parse_environment_path_w : Lexing.lexbuf -> string list
 
 val conf_lines : string option -> Lexing.lexbuf -> conf
 val path_scheme : bool -> Lexing.lexbuf ->
-  [ `Word of string
-  | `Var of (string * Glob.globber)
+  [ `Word de string
+  | `Var de (string * Glob.globber)
   ] list
 
 val ocamlfind_query : Lexing.lexbuf ->

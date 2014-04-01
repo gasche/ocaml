@@ -13,15 +13,15 @@
 
 (*************************** Checkpoints *******************************)
 
-open Int64ops
-open Debugcom
-open Primitives
+ouvre Int64ops
+ouvre Debugcom
+ouvre Primitives
 
 (*** A type for checkpoints. ***)
 
 type checkpoint_state =
     C_stopped
-  | C_running of int64
+  | C_running de int64
 
 (* `c_valid' is true if and only if the corresponding
  * process is connected to the debugger.
@@ -32,25 +32,25 @@ type checkpoint_state =
  * c_pid = -1 for kill checkpoints.
  *)
 type checkpoint = {
-  mutable c_time : int64;
-  mutable c_pid : int;
-  mutable c_fd : io_channel;
-  mutable c_valid : bool;
-  mutable c_report : report option;
-  mutable c_state : checkpoint_state;
-  mutable c_parent : checkpoint;
-  mutable c_breakpoint_version : int;
-  mutable c_breakpoints : (int * int ref) list;
-  mutable c_trap_barrier : int
+  modifiable c_time : int64;
+  modifiable c_pid : int;
+  modifiable c_fd : io_channel;
+  modifiable c_valid : bool;
+  modifiable c_report : report option;
+  modifiable c_state : checkpoint_state;
+  modifiable c_parent : checkpoint;
+  modifiable c_breakpoint_version : int;
+  modifiable c_breakpoints : (int * int ref) list;
+  modifiable c_trap_barrier : int
   }
 
 (*** Pseudo-checkpoint `root'. ***)
 (* --- Parents of all checkpoints which have no parent. *)
-let rec root = {
+soit rec root = {
   c_time = _0;
   c_pid = -2;
   c_fd = std_io;
-  c_valid = false;
+  c_valid = faux;
   c_report = None;
   c_state = C_stopped;
   c_parent = root;
@@ -60,24 +60,24 @@ let rec root = {
   }
 
 (*** Current state ***)
-let checkpoints =
+soit checkpoints =
   ref ([] : checkpoint list)
 
-let current_checkpoint =
+soit current_checkpoint =
   ref root
 
-let current_time () =
+soit current_time () =
   !current_checkpoint.c_time
 
-let current_report () =
+soit current_report () =
   !current_checkpoint.c_report
 
-let current_pc () =
-  match current_report () with
+soit current_pc () =
+  filtre current_report () avec
     None | Some {rep_type = Exited | Uncaught_exc} -> None
   | Some {rep_program_pointer = pc } -> Some pc
 
-let current_pc_sp () =
-  match current_report () with
+soit current_pc_sp () =
+  filtre current_report () avec
     None | Some {rep_type = Exited | Uncaught_exc} -> None
   | Some {rep_program_pointer = pc; rep_stack_pointer = sp } -> Some (pc, sp)

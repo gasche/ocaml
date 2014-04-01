@@ -47,33 +47,33 @@ type 'a t = 'a lazy_t;;
 
 exception Undefined = CamlinternalLazy.Undefined;;
 
-external make_forward : 'a -> 'a lazy_t = "caml_lazy_make_forward";;
+dehors make_forward : 'a -> 'a lazy_t = "caml_lazy_make_forward";;
 
-external force : 'a t -> 'a = "%lazy_force";;
+dehors force : 'a t -> 'a = "%lazy_force";;
 
 (* let force = force;; *)
 
-let force_val = CamlinternalLazy.force_val;;
+soit force_val = CamlinternalLazy.force_val;;
 
-let from_fun (f : unit -> 'arg) =
-  let x = Obj.new_block Obj.lazy_tag 1 in
+soit from_fun (f : unit -> 'arg) =
+  soit x = Obj.new_block Obj.lazy_tag 1 dans
   Obj.set_field x 0 (Obj.repr f);
   (Obj.obj x : 'arg t)
 ;;
 
-let from_val (v : 'arg) =
-  let t = Obj.tag (Obj.repr v) in
-  if t = Obj.forward_tag || t = Obj.lazy_tag || t = Obj.double_tag then begin
+soit from_val (v : 'arg) =
+  soit t = Obj.tag (Obj.repr v) dans
+  si t = Obj.forward_tag || t = Obj.lazy_tag || t = Obj.double_tag alors début
     make_forward v
-  end else begin
+  fin sinon début
     (Obj.magic v : 'arg t)
-  end
+  fin
 ;;
 
-let is_val (l : 'arg t) = Obj.tag (Obj.repr l) <> Obj.lazy_tag;;
+soit is_val (l : 'arg t) = Obj.tag (Obj.repr l) <> Obj.lazy_tag;;
 
-let lazy_from_fun = from_fun;;
+soit lazy_from_fun = from_fun;;
 
-let lazy_from_val = from_val;;
+soit lazy_from_val = from_val;;
 
-let lazy_is_val = is_val;;
+soit lazy_is_val = is_val;;

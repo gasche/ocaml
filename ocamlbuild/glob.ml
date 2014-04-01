@@ -13,17 +13,17 @@
 
 (* Original author: Berke Durak *)
 (* Glob *)
-open My_std;;
-open Bool;;
-include Glob_ast;;
-open Glob_lexer;;
+ouvre My_std;;
+ouvre Bool;;
+inclus Glob_ast;;
+ouvre Glob_lexer;;
 
-let sf = Printf.sprintf;;
+soit sf = Printf.sprintf;;
 
-let brute_limit = 10;;
+soit brute_limit = 10;;
 
 (*** string_of_token *)
-let string_of_token = function
+soit string_of_token = fonction
 | ATOM _ -> "ATOM"
 | AND -> "AND"
 | OR -> "OR"
@@ -36,11 +36,11 @@ let string_of_token = function
 ;;
 (* ***)
 (*** match_character_class *)
-let match_character_class cl c =
+soit match_character_class cl c =
   Bool.eval
-    begin function (c1,c2) ->
+    début fonction (c1,c2) ->
       c1 <= c && c <= c2
-    end
+    fin
     cl
 ;;
 (* ***)
@@ -48,12 +48,12 @@ let match_character_class cl c =
 module NFA =
   struct
     type transition =
-    | QCLASS of character_class
+    | QCLASS de character_class
     | QEPSILON
     ;;
 
-    module IS = Set.Make(struct type t = int let compare (x:t) y = compare x y let print = Format.pp_print_int end);;
-    module ISM = Map.Make(struct type t = IS.t let compare = IS.compare let print = IS.print end);;
+    module IS = Set.Make(struct type t = int soit compare (x:t) y = compare x y soit print = Format.pp_print_int fin);;
+    module ISM = Map.Make(struct type t = IS.t soit compare = IS.compare soit print = IS.print fin);;
 
     type machine = {
       mc_qi : IS.t;
@@ -63,108 +63,108 @@ module NFA =
     }
 
     (*** build' *)
-    let build' p =
-      let count = ref 0 in
-      let transitions = ref [] in
-      let epsilons : (int * int) list ref = ref [] in
-      let state () = let id = !count in incr count; id in
-      let ( --> ) q1 t q2 =
-        match t with
+    soit build' p =
+      soit count = ref 0 dans
+      soit transitions = ref [] dans
+      soit epsilons : (int * int) list ref = ref [] dans
+      soit state () = soit id = !count dans incr count; id dans
+      soit ( --> ) q1 t q2 =
+        filtre t avec
         | QEPSILON -> epsilons := (q1,q2) :: !epsilons; q1
         | QCLASS cl -> transitions := (q1,cl,q2) :: !transitions; q1
-      in
+      dans
       (* Construit les transitions correspondant au motif donne et arrivant
        * sur l'etat qf.  Retourne l'etat d'origine. *)
-      let rec loop qf = function
+      soit rec loop qf = fonction
         | Epsilon  -> qf
         | Word u   ->
-            let m = String.length u in
-            let q0 = state () in
-            let rec loop q i =
-              if i = m then
+            soit m = String.length u dans
+            soit q0 = state () dans
+            soit rec loop q i =
+              si i = m alors
                 q0
-              else
-                begin
-                  let q' =
-                    if i = m - 1 then
+              sinon
+                début
+                  soit q' =
+                    si i = m - 1 alors
                       qf
-                    else
+                    sinon
                       state ()
-                  in
-                  let _ = (q --> QCLASS(Atom(u.[i], u.[i]))) q' in
+                  dans
+                  soit _ = (q --> QCLASS(Atom(u.[i], u.[i]))) q' dans
                   loop q' (i + 1)
-                end
-            in
+                fin
+            dans
             loop q0 0
         | Class cl ->
-            let q1 = state () in
+            soit q1 = state () dans
             (q1 --> QCLASS cl) qf
         | Star p ->
             (* The fucking Kleene star *)
-            let q2 = state () in
-            let q1 = loop q2 p in (* q1 -{p}-> q2 *)
-            let _ = (q1 --> QEPSILON) qf in
-            let _ = (q2 --> QEPSILON) q1 in
-            let _ = (q2 --> QEPSILON) q1 in
+            soit q2 = state () dans
+            soit q1 = loop q2 p dans (* q1 -{p}-> q2 *)
+            soit _ = (q1 --> QEPSILON) qf dans
+            soit _ = (q2 --> QEPSILON) q1 dans
+            soit _ = (q2 --> QEPSILON) q1 dans
             q1
         | Concat(p1,p2) ->
-            let q12 = state () in
-            let q1  = loop q12 p1 in (* q1  -{p1}-> q12 *)
-            let q2  = loop qf  p2 in (* q2  -{p2}-> qf *)
-            let _   = (q12 --> QEPSILON) q2 in
+            soit q12 = state () dans
+            soit q1  = loop q12 p1 dans (* q1  -{p1}-> q12 *)
+            soit q2  = loop qf  p2 dans (* q2  -{p2}-> qf *)
+            soit _   = (q12 --> QEPSILON) q2 dans
             q1
         | Union pl ->
-            let qi = state () in
+            soit qi = state () dans
             List.iter
-              begin fun p ->
-                let q = loop qf p in           (* q -{p2}-> qf *)
-                let _ = (qi --> QEPSILON) q in (* qi -{}---> q  *)
+              début fonc p ->
+                soit q = loop qf p dans           (* q -{p2}-> qf *)
+                soit _ = (qi --> QEPSILON) q dans (* qi -{}---> q  *)
                 ()
-              end
+              fin
               pl;
             qi
-      in
-      let qf = state () in
-      let qi = loop qf p in
-      let m = !count in
+      dans
+      soit qf = state () dans
+      soit qi = loop qf p dans
+      soit m = !count dans
 
       (* Compute epsilon closure *)
-      let graph = Array.make m IS.empty in
+      soit graph = Array.make m IS.empty dans
       List.iter
-        begin fun (q,q') ->
+        début fonc (q,q') ->
           graph.(q) <- IS.add q' graph.(q)
-        end
+        fin
         !epsilons;
 
-      let closure = Array.make m IS.empty in
-      let rec transitive past = function
+      soit closure = Array.make m IS.empty dans
+      soit rec transitive past = fonction
       | [] -> past
       | q :: future ->
-          let past' = IS.add q past in
-          let future' =
+          soit past' = IS.add q past dans
+          soit future' =
             IS.fold
-              begin fun q' future' ->
+              début fonc q' future' ->
                 (* q -{}--> q' *)
-                if IS.mem q' past' then
+                si IS.mem q' past' alors
                   future'
-                else
+                sinon
                   q' :: future'
-              end
+              fin
               graph.(q)
               future
-          in
+          dans
           transitive past' future'
-      in
-      for i = 0 to m - 1 do
+      dans
+      pour i = 0 à m - 1 faire
         closure.(i) <- transitive IS.empty [i] (* O(n^2), I know *)
-      done;
+      fait;
 
       (* Finally, build the table *)
-      let table = Array.make m [] in
+      soit table = Array.make m [] dans
       List.iter
-        begin fun (q,t,q') ->
+        début fonc (q,t,q') ->
           table.(q) <- (t, closure.(q')) :: table.(q)
-        end
+        fin
         !transitions;
 
       (graph, closure,
@@ -173,67 +173,67 @@ module NFA =
         mc_qf = qf;
         mc_power_table = Hashtbl.create 37 })
     ;;
-    let build x = let (_,_, machine) = build' x in machine;;
+    soit build x = soit (_,_, machine) = build' x dans machine;;
     (* ***)
     (*** run *)
-    let run ?(trace=false) machine u =
-      let m = String.length u in
-      let apply qs c =
-        try
-          let t = Hashtbl.find machine.mc_power_table c in
+    soit run ?(trace=faux) machine u =
+      soit m = String.length u dans
+      soit apply qs c =
+        essaie
+          soit t = Hashtbl.find machine.mc_power_table c dans
           ISM.find qs t
-        with
+        avec
         | Not_found ->
-            let qs' =
+            soit qs' =
               IS.fold
-                begin fun q qs' ->
+                début fonc q qs' ->
                   List.fold_left
-                    begin fun qs' (cl,qs'') ->
-                      if match_character_class cl c then
+                    début fonc qs' (cl,qs'') ->
+                      si match_character_class cl c alors
                         IS.union qs' qs''
-                      else
+                      sinon
                         qs'
-                    end
+                    fin
                     qs'
                     machine.mc_table.(q)
-                end
+                fin
                 qs
                 IS.empty
-            in
-            let t =
-              try
+            dans
+            soit t =
+              essaie
                 Hashtbl.find machine.mc_power_table c
-              with
+              avec
               | Not_found -> ISM.empty
-            in
+            dans
             Hashtbl.replace machine.mc_power_table c (ISM.add qs qs' t);
             qs'
-      in
-      let rec loop qs i =
-        if IS.is_empty qs then
-          false
-        else
-          begin
-            if i = m then
+      dans
+      soit rec loop qs i =
+        si IS.is_empty qs alors
+          faux
+        sinon
+          début
+            si i = m alors
               IS.mem machine.mc_qf qs
-            else
-              begin
-                let c = u.[i] in
-                if trace then
-                  begin
+            sinon
+              début
+                soit c = u.[i] dans
+                si trace alors
+                  début
                     Printf.printf "%d %C {" i c;
-                    IS.iter (fun q -> Printf.printf " %d" q) qs;
+                    IS.iter (fonc q -> Printf.printf " %d" q) qs;
                     Printf.printf " }\n%!"
-                  end;
-                let qs' = apply qs c in
+                  fin;
+                soit qs' = apply qs c dans
                 loop qs' (i + 1)
-              end
-          end
-      in
+              fin
+          fin
+      dans
       loop machine.mc_qi 0
     ;;
     (* ***)
-  end
+  fin
 ;;
 (* ***)
 (*** Brute *)
@@ -244,65 +244,65 @@ module Brute =
     exception Too_hard;;
 
     (*** match_pattern *)
-    let match_pattern counter p u =
-      let m = String.length u in
+    soit match_pattern counter p u =
+      soit m = String.length u dans
       (** [loop i n p] returns [true] iff the word [u.(i .. i + n - 1)] is in the
        ** language generated by the pattern [p].
        ** We must have 0 <= i and i + n <= m *)
-      let rec loop (i,n,p) =
-        assert (0 <= i && 0 <= n && i + n <= m);
+      soit rec loop (i,n,p) =
+        affirme (0 <= i && 0 <= n && i + n <= m);
         incr counter;
-        if !counter >= brute_limit then raise Too_hard;
-        match p with
+        si !counter >= brute_limit alors raise Too_hard;
+        filtre p avec
         | Word v   ->
             String.length v = n &&
-            begin
-              let rec check j = j = n || (v.[j] = u.[i + j] && check (j + 1))
-              in
+            début
+              soit rec check j = j = n || (v.[j] = u.[i + j] && check (j + 1))
+              dans
               check 0
-            end
+            fin
         | Epsilon  -> n = 0
-        | Star(Class True) -> true
+        | Star(Class True) -> vrai
         | Star(Class cl) ->
-            let rec check k =
-              if k = n then
-                true
-              else
+            soit rec check k =
+              si k = n alors
+                vrai
+              sinon
                 (match_character_class cl u.[i + k]) && check (k + 1)
-            in
+            dans
             check 0
         | Star _ -> raise Too_hard
         | Class cl -> n = 1 && match_character_class cl u.[i]
         | Concat(p1,p2) ->
-            let rec scan j =
+            soit rec scan j =
               j <= n && ((loop (i,j,p1) && loop (i+j, n - j,p2)) || scan (j + 1))
-            in
+            dans
             scan 0
-        | Union pl -> List.exists (fun p' -> loop (i,n,p')) pl
-      in
+        | Union pl -> List.exists (fonc p' -> loop (i,n,p')) pl
+      dans
       loop (0,m,p)
     ;;
     (* ***)
-end
+fin
 ;;
 (* ***)
 (*** fast_pattern_contents, fast_pattern, globber *)
 type fast_pattern_contents =
-| Brute of int ref * pattern
-| Machine of NFA.machine
+| Brute de int ref * pattern
+| Machine de NFA.machine
 ;;
 type fast_pattern = fast_pattern_contents ref;;
 type globber = fast_pattern atom Bool.boolean;;
 (* ***)
 (*** fast_pattern_of_pattern *)
-let fast_pattern_of_pattern p = ref (Brute(ref 0, p));;
+soit fast_pattern_of_pattern p = ref (Brute(ref 0, p));;
 (* ***)
 (*** add_dir *)
-let add_dir dir x =
-  match dir with
+soit add_dir dir x =
+  filtre dir avec
   | None -> x
   | Some(dir) ->
-      match x with
+      filtre x avec
       | Constant(s) ->
           Constant(My_std.filename_concat dir s)
       | Pattern(p) ->
@@ -310,99 +310,99 @@ let add_dir dir x =
 ;;
 (* ***)
 (*** add_ast_dir *)
-let add_ast_dir dir x =
-  match dir with
+soit add_ast_dir dir x =
+  filtre dir avec
   | None -> x
   | Some dir ->
-      let slash = Class(Atom('/','/')) in
-      let any = Class True in
-      let q = Union[Epsilon; Concat(slash, Star any)] in (* ( /** )? *)
+      soit slash = Class(Atom('/','/')) dans
+      soit any = Class True dans
+      soit q = Union[Epsilon; Concat(slash, Star any)] dans (* ( /** )? *)
       And[Atom(Pattern(ref (Brute(ref 0, Concat(Word dir, q))))); x]
 ;;
 (* ***)
 (*** parse *)
-let parse ?dir u =
-  let l = Lexing.from_string u in
-  let tok = ref None in
-  let f =
-    fun () ->
-      match !tok with
+soit parse ?dir u =
+  soit l = Lexing.from_string u dans
+  soit tok = ref None dans
+  soit f =
+    fonc () ->
+      filtre !tok avec
       | None -> token l
       | Some x ->
           tok := None;
           x
-  in
-  let g t =
-    match !tok with
+  dans
+  soit g t =
+    filtre !tok avec
     | None -> tok := Some t
     | Some t' ->
         raise (Parse_error(sf "Trying to unput token %s while %s is active" (string_of_token t) (string_of_token t')))
-  in
-  let read x =
-    let y = f () in
-    if x = y then
+  dans
+  soit read x =
+    soit y = f () dans
+    si x = y alors
       ()
-    else
+    sinon
       raise (Parse_error(sf "Unexpected token, expecting %s, got %s" (string_of_token x) (string_of_token y)))
-  in
-  let rec atomizer continuation = match f () with
-  | NOT    -> atomizer (fun x -> continuation (Not x))
+  dans
+  soit rec atomizer continuation = filtre f () avec
+  | NOT    -> atomizer (fonc x -> continuation (Not x))
   | ATOM x ->
-      begin
-        let a =
-          match add_dir dir x with
+      début
+        soit a =
+          filtre add_dir dir x avec
           | Constant u -> Constant u
           | Pattern p -> Pattern(fast_pattern_of_pattern p)
-        in
+        dans
         continuation (Atom a)
-      end
+      fin
   | TRUE   -> continuation True
   | FALSE  -> continuation False
   | LPAR   ->
-      let y = parse_s () in
+      soit y = parse_s () dans
       read RPAR;
       continuation y
   | t      -> raise (Parse_error(sf "Unexpected token %s in atomizer" (string_of_token t)))
-  and parse_s1 x = match f () with
-  | OR     -> let y = parse_s () in Or[x; y]
+  et parse_s1 x = filtre f () avec
+  | OR     -> soit y = parse_s () dans Or[x; y]
   | AND    -> parse_t x
   | t      -> g t; x
-  and parse_t1 x y = match f () with
-  | OR     -> let z = parse_s () in Or[And[x;y]; z]
+  et parse_t1 x y = filtre f () avec
+  | OR     -> soit z = parse_s () dans Or[And[x;y]; z]
   | AND    -> parse_t (And[x;y])
   | t      -> g t; And[x;y]
-  and parse_s () = atomizer parse_s1
-  and parse_t x = atomizer (parse_t1 x)
-  in
-  let x = parse_s () in
+  et parse_s () = atomizer parse_s1
+  et parse_t x = atomizer (parse_t1 x)
+  dans
+  soit x = parse_s () dans
   read EOF;
   add_ast_dir dir x
 ;;
 (* ***)
 (*** eval *)
-let eval g u =
+soit eval g u =
   Bool.eval
-    begin function
+    début fonction
       | Constant v -> u = v
       | Pattern kind ->
-          match !kind with
+          filtre !kind avec
           | Brute(count, p) ->
-            begin
-              let do_nfa () =
-                let m = NFA.build p in
+            début
+              soit do_nfa () =
+                soit m = NFA.build p dans
                 kind := Machine m;
                 NFA.run m u
-              in
-              if !count >= brute_limit then
+              dans
+              si !count >= brute_limit alors
                 do_nfa ()
-              else
-                try
+              sinon
+                essaie
                   Brute.match_pattern count p u
-                with
+                avec
                 | Brute.Too_hard -> do_nfa ()
-            end
+            fin
           | Machine m -> NFA.run m u
-    end
+    fin
     g
 (* ***)
 (*** Debug *)

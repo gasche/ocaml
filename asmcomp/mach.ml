@@ -13,21 +13,21 @@
 (* Representation of machine code by sequences of pseudoinstructions *)
 
 type integer_comparison =
-    Isigned of Cmm.comparison
-  | Iunsigned of Cmm.comparison
+    Isigned de Cmm.comparison
+  | Iunsigned de Cmm.comparison
 
 type integer_operation =
     Iadd | Isub | Imul | Imulh | Idiv | Imod
   | Iand | Ior | Ixor | Ilsl | Ilsr | Iasr
-  | Icomp of integer_comparison
+  | Icomp de integer_comparison
   | Icheckbound
 
 type test =
     Itruetest
   | Ifalsetest
-  | Iinttest of integer_comparison
-  | Iinttest_imm of integer_comparison * int
-  | Ifloattest of Cmm.comparison * bool
+  | Iinttest de integer_comparison
+  | Iinttest_imm de integer_comparison * int
+  | Ifloattest de Cmm.comparison * bool
   | Ioddtest
   | Ieventest
 
@@ -35,24 +35,24 @@ type operation =
     Imove
   | Ispill
   | Ireload
-  | Iconst_int of nativeint
-  | Iconst_float of string
-  | Iconst_symbol of string
-  | Iconst_blockheader of nativeint
+  | Iconst_int de nativeint
+  | Iconst_float de string
+  | Iconst_symbol de string
+  | Iconst_blockheader de nativeint
   | Icall_ind
-  | Icall_imm of string
+  | Icall_imm de string
   | Itailcall_ind
-  | Itailcall_imm of string
-  | Iextcall of string * bool
-  | Istackoffset of int
-  | Iload of Cmm.memory_chunk * Arch.addressing_mode
-  | Istore of Cmm.memory_chunk * Arch.addressing_mode
-  | Ialloc of int
-  | Iintop of integer_operation
-  | Iintop_imm of integer_operation * int
+  | Itailcall_imm de string
+  | Iextcall de string * bool
+  | Istackoffset de int
+  | Iload de Cmm.memory_chunk * Arch.addressing_mode
+  | Istore de Cmm.memory_chunk * Arch.addressing_mode
+  | Ialloc de int
+  | Iintop de integer_operation
+  | Iintop_imm de integer_operation * int
   | Inegf | Iabsf | Iaddf | Isubf | Imulf | Idivf
   | Ifloatofint | Iintoffloat
-  | Ispecific of Arch.specific_operation
+  | Ispecific de Arch.specific_operation
 
 type instruction =
   { desc: instruction_desc;
@@ -60,19 +60,19 @@ type instruction =
     arg: Reg.t array;
     res: Reg.t array;
     dbg: Debuginfo.t;
-    mutable live: Reg.Set.t }
+    modifiable live: Reg.Set.t }
 
-and instruction_desc =
+et instruction_desc =
     Iend
-  | Iop of operation
+  | Iop de operation
   | Ireturn
-  | Iifthenelse of test * instruction * instruction
-  | Iswitch of int array * instruction array
-  | Iloop of instruction
-  | Icatch of int * instruction * instruction
-  | Iexit of int
-  | Itrywith of instruction * instruction
-  | Iraise of Lambda.raise_kind
+  | Iifthenelse de test * instruction * instruction
+  | Iswitch de int array * instruction array
+  | Iloop de instruction
+  | Icatch de int * instruction * instruction
+  | Iexit de int
+  | Itrywith de instruction * instruction
+  | Iraise de Lambda.raise_kind
 
 type fundecl =
   { fun_name: string;
@@ -81,7 +81,7 @@ type fundecl =
     fun_fast: bool;
     fun_dbg : Debuginfo.t }
 
-let rec dummy_instr =
+soit rec dummy_instr =
   { desc = Iend;
     next = dummy_instr;
     arg = [||];
@@ -89,7 +89,7 @@ let rec dummy_instr =
     dbg = Debuginfo.none;
     live = Reg.Set.empty }
 
-let end_instr () =
+soit end_instr () =
   { desc = Iend;
     next = dummy_instr;
     arg = [||];
@@ -97,27 +97,27 @@ let end_instr () =
     dbg = Debuginfo.none;
     live = Reg.Set.empty }
 
-let instr_cons d a r n =
+soit instr_cons d a r n =
   { desc = d; next = n; arg = a; res = r;
     dbg = Debuginfo.none; live = Reg.Set.empty }
 
-let instr_cons_debug d a r dbg n =
+soit instr_cons_debug d a r dbg n =
   { desc = d; next = n; arg = a; res = r; dbg = dbg; live = Reg.Set.empty }
 
-let rec instr_iter f i =
-  match i.desc with
+soit rec instr_iter f i =
+  filtre i.desc avec
     Iend -> ()
   | _ ->
       f i;
-      match i.desc with
+      filtre i.desc avec
         Iend -> ()
       | Ireturn | Iop(Itailcall_ind) | Iop(Itailcall_imm _) -> ()
       | Iifthenelse(tst, ifso, ifnot) ->
           instr_iter f ifso; instr_iter f ifnot; instr_iter f i.next
       | Iswitch(index, cases) ->
-          for i = 0 to Array.length cases - 1 do
+          pour i = 0 à Array.length cases - 1 faire
             instr_iter f cases.(i)
-          done;
+          fait;
           instr_iter f i.next
       | Iloop(body) ->
           instr_iter f body; instr_iter f i.next

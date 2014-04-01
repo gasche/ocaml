@@ -19,15 +19,15 @@ module type OrderedTypePrintable = sig
   type t
   val compare : t -> t -> int
   val print : Format.formatter -> t -> unit
-end
+fin
 
 module type SET = sig
-  include Set.S
+  inclus Set.S
   val find_elt : (elt -> bool) -> t -> elt
   val map : (elt -> elt) -> t -> t
   val of_list : elt list -> t
   val print : Format.formatter -> t -> unit
-end
+fin
 
 module type LIST = sig
   (* Added functions *)
@@ -36,8 +36,8 @@ module type LIST = sig
   val union : 'a list -> 'a list -> 'a list
   val ordered_unique : 'a list -> 'a list
   (* Original functions *)
-  include module type of List
-end
+  inclus module type de List
+fin
 
 module type STRING = sig
   val print : Format.formatter -> string -> unit
@@ -90,11 +90,11 @@ module type STRING = sig
   val explode : string -> char list
 
   (** The following are original functions from the [String] module. *)
-  include module type of String
-end
+  inclus module type de String
+fin
 
 module type TAGS = sig
-  include Set.S with type elt = string
+  inclus Set.S avec type elt = string
   (** [Tags.elt] represents a tag, which is simply a string, usually
       lowercase, for example "ocaml" or "native".  The set of tags
       attached to a file is computed by applying the tagging rules to
@@ -109,8 +109,8 @@ module type TAGS = sig
     val ( -- ) : t -> elt -> t
     val ( +++ ) : t -> elt option -> t
     val ( --- ) : t -> elt option -> t
-  end
-end
+  fin
+fin
 
 module type PATHNAME = sig
   type t = string
@@ -156,8 +156,8 @@ module type PATHNAME = sig
   module Operators : sig
     val ( / ) : t -> t -> t
     val ( -.- ) : t -> string -> t
-  end
-end
+  fin
+fin
 
 (** Provides an abstract type for easily building complex shell
     commands without making quotation mistakes.  *)
@@ -168,29 +168,29 @@ module type COMMAND = sig
   (** The type [t] provides some basic combinators and command primitives.
       Other commands can be made of command specifications ([spec]). *)
   type t =
-    | Seq of t list (** A sequence of commands (like the `;' in shell) *)
-    | Cmd of spec   (** A command is made of command specifications ([spec]) *)
-    | Echo of string list * pathname
+    | Seq de t list (** A sequence of commands (like the `;' in shell) *)
+    | Cmd de spec   (** A command is made of command specifications ([spec]) *)
+    | Echo de string list * pathname
     (** Write the given strings (w/ any formatting) to the given file *)
     | Nop           (** The command that does nothing *)
 
   (** The type for command specifications. That is pieces of command. *)
-  and spec =
+  et spec =
     | N              (** No operation. *)
-    | S of spec list (** A sequence.  This gets flattened in the last stages *)
-    | A of string    (** An atom. *)
-    | P of pathname  (** A pathname. *)
-    | Px of pathname (** A pathname, that will also be given to the
+    | S de spec list (** A sequence.  This gets flattened in the last stages *)
+    | A de string    (** An atom. *)
+    | P de pathname  (** A pathname. *)
+    | Px de pathname (** A pathname, that will also be given to the
                          call_with_target hook. *)
-    | Sh of string   (** A bit of raw shell code, that will not be escaped. *)
-    | T of tags      (** A set of tags, that describe properties and
+    | Sh de string   (** A bit of raw shell code, that will not be escaped. *)
+    | T de tags      (** A set of tags, that describe properties and
                          some semantics information about the
                          command, afterward these tags will be
                          replaced by command [spec]s (flags for
                          instance). *)
-    | V of string    (** A virtual command, that will be resolved at
+    | V de string    (** A virtual command, that will be resolved at
                          execution using [resolve_virtuals] *)
-    | Quote of spec  (** A string that should be quoted like a
+    | Quote de spec  (** A string that should be quoted like a
                            filename but isn't really one. *)
 
   (*type v = [ `Seq of v list | `Cmd of vspec | `Nop ]
@@ -243,7 +243,7 @@ module type COMMAND = sig
   (** Build a string representation of a command that can be passed to the
       system calls. *)
   val string_of_command_spec : spec -> string
-end
+fin
 
 (** A self-contained module implementing extended shell glob patterns who have an expressive power
     equal to boolean combinations of regular expressions.  *)
@@ -290,14 +290,14 @@ module type GLOB = sig
   val parse : ?dir:string -> string -> globber
 
   (** A descriptive exception raised when an invalid glob pattern description is given. *)
-  exception Parse_error of string
+  exception Parse_error de string
 
   (** [eval g u] returns [true] if and only if the string [u] matches the given glob expression.  Avoid reparsing
       the same pattern, since the automaton implementing the pattern is optimized on the fly.  The first few evaluations
       are done using a time-inefficient but memory-efficient algorithm.  It then compiles the pattern into an efficient
       but more memory-hungry data structure. *)
   val eval : globber -> string -> bool
-end
+fin
 
 (** Module for modulating the logging output with the logging level. *)
 module type LOG = sig
@@ -317,17 +317,17 @@ module type LOG = sig
 
   (** Same as dprintf but without the format wrapping. *)
   val raw_dprintf : int -> ('a, Format.formatter, unit) format -> 'a
-end
+fin
 
 module type OUTCOME = sig
   type ('a,'b) t =
-    | Good of 'a
-    | Bad of 'b
+    | Good de 'a
+    | Bad de 'b
 
   val wrap : ('a -> 'b) -> 'a -> ('b, exn) t
   val ignore_good : ('a, exn) t -> unit
   val good : ('a, exn) t -> 'a
-end
+fin
 
 module type MISC = sig
   val opt_print :
@@ -364,7 +364,7 @@ module type MISC = sig
   val memo2 : ('a -> 'b -> 'c) -> ('a -> 'b -> 'c)
 
   val memo3 : ('a -> 'b -> 'c -> 'd) -> ('a -> 'b -> 'c -> 'd)
-end
+fin
 
 module type OPTIONS = sig
   type command_spec
@@ -422,19 +422,19 @@ module type OPTIONS = sig
   val exe : string ref
 
   val add : string * Arg.spec * string -> unit
-end
+fin
 
 module type ARCH = sig
-  type 'a arch = private
-    | Arch_dir of string * 'a * 'a arch list
-    | Arch_dir_pack of string * 'a * 'a arch list
-    | Arch_file of string * 'a
+  type 'a arch = privée
+    | Arch_dir de string * 'a * 'a arch list
+    | Arch_dir_pack de string * 'a * 'a arch list
+    | Arch_file de string * 'a
 
   val dir : string -> unit arch list -> unit arch
   val dir_pack : string -> unit arch list -> unit arch
   val file : string -> unit arch
 
-  type info = private {
+  type info = privée {
     current_path : string;
     include_dirs : string list;
     for_pack : string;
@@ -455,7 +455,7 @@ module type ARCH = sig
     info arch -> (string, string list) Hashtbl.t * (string, string) Hashtbl.t
   val print_table :
     (Format.formatter -> 'a -> unit) -> Format.formatter -> (string, 'a) Hashtbl.t -> unit
-end
+fin
 
 module type FINDLIB = sig
   (** Findlib / Ocamlfind tools. *)
@@ -464,11 +464,11 @@ module type FINDLIB = sig
 
   type error =
     | Cannot_run_ocamlfind
-    | Dependency_not_found of string * string (* package, dependency *)
-    | Package_not_found of string
-    | Cannot_parse_query of string * string (* package, explaination *)
+    | Dependency_not_found de string * string (* package, dependency *)
+    | Package_not_found de string
+    | Cannot_parse_query de string * string (* package, explaination *)
 
-  exception Findlib_error of error
+  exception Findlib_error de error
 
   val string_of_error: error -> string
     (** Return a string message describing an error. *)
@@ -518,34 +518,34 @@ include directories, libraries and special link options. *)
 
   val link_flags_native: package list -> command_spec
     (** Same as [link_flags_byte] but for native mode. *)
-end
+fin
 
 (** This module contains the functions and values that can be used by
     plugins. *)
 module type PLUGIN = sig
   module Pathname  : PATHNAME
   module Tags      : TAGS
-  module Command   : COMMAND with type tags = Tags.t and type pathname = Pathname.t
+  module Command   : COMMAND avec type tags = Tags.t et type pathname = Pathname.t
   module Outcome   : OUTCOME
   module String    : STRING
   module List      : LIST
-  module StringSet : Set.S with type elt = String.t
-  module Options   : OPTIONS with type command_spec = Command.spec
+  module StringSet : Set.S avec type elt = String.t
+  module Options   : OPTIONS avec type command_spec = Command.spec
   module Arch      : ARCH
-  module Findlib   : FINDLIB with type command_spec = Command.spec
-  include MISC
+  module Findlib   : FINDLIB avec type command_spec = Command.spec
+  inclus MISC
 
   (** See {!COMMAND.t} for the description of this type. *)
   type command = Command.t =
-    | Seq of command list
-    | Cmd of spec
-    | Echo of string list * Pathname.t
+    | Seq de command list
+    | Cmd de spec
+    | Echo de string list * Pathname.t
     | Nop
 
   (** See {!COMMAND.spec} for the description of this type. *)
-  and spec = Command.spec =
-    | N | S of spec list | A of string | P of string | Px of string
-    | Sh of string | T of Tags.t | V of string | Quote of spec
+  et spec = Command.spec =
+    | N | S de spec list | A de string | P de string | Px de string
+    | Sh de string | T de Tags.t | V de string | Quote de spec
 
   (** [path1/path2] Join the given path names. *)
   val ( / ) : Pathname.t -> Pathname.t -> Pathname.t
@@ -617,13 +617,13 @@ module type PLUGIN = sig
     ?prod:string ->
     ?dep:string ->
     ?stamp:string ->
-    ?insert:[`top | `before of string | `after of string | `bottom] ->
+    ?insert:[`top | `before de string | `after de string | `bottom] ->
     ?doc:string ->
     action -> unit
 
   (** [copy_rule name ?insert source destination] *)
   val copy_rule : string ->
-    ?insert:[`top | `before of string | `after of string | `bottom] ->
+    ?insert:[`top | `before de string | `after de string | `bottom] ->
     string -> string -> unit
 
   (** Empties the list of rules of the ocamlbuild engine. *)
@@ -794,4 +794,4 @@ module type PLUGIN = sig
       plugin must call it with a [hook_handler] where all calls to plugin
       functions lives. *)
   val dispatch : (hook -> unit) -> unit
-end
+fin

@@ -12,13 +12,13 @@
 
 
 (* Original author: Nicolas Pouillard *)
-open My_std
+ouvre My_std
 
-open Pathname
+ouvre Pathname
 type resource_pattern
 type env
 
-module Resources : Set.S with type elt = t
+module Resources : Set.S avec type elt = t
 
 module Cache :
   sig
@@ -29,7 +29,7 @@ module Cache :
       | Bbuilt
       | Bcannot_be_built
       | Bnot_built_yet
-      | Bsuspension of suspension
+      | Bsuspension de suspension
 
     val clean : unit -> unit
     val resource_state : t -> build_status
@@ -51,7 +51,7 @@ module Cache :
     val dependencies : t -> Resources.t
     val print_cache : Format.formatter -> unit -> unit
     val print_dependencies : Format.formatter -> unit -> unit
-  end
+  fin
 
 val digest : t -> string
 val exists_in_source_dir : t -> bool

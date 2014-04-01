@@ -30,7 +30,7 @@ val flag_and_dep : Tags.elt list -> Command.spec -> unit
 val pflag_and_dep : Tags.elt list -> Tags.elt -> (string -> Command.spec) ->
   unit
 
-exception Ocamldep_error of string
+exception Ocamldep_error de string
 
 (* Takes a path and returns a list of modules *)
 val path_dependencies_of : Pathname.t -> ([ `mandatory | `just_try ] * string) list

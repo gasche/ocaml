@@ -16,13 +16,13 @@
 val package_files: Format.formatter -> string list -> string -> unit
 
 type error =
-    Illegal_renaming of string * string * string
-  | Forward_reference of string * string
-  | Wrong_for_pack of string * string
+    Illegal_renaming de string * string * string
+  | Forward_reference de string * string
+  | Wrong_for_pack de string * string
   | Linking_error
-  | Assembler_error of string
-  | File_not_found of string
+  | Assembler_error de string
+  | File_not_found de string
 
-exception Error of error
+exception Error de error
 
 val report_error: Format.formatter -> error -> unit

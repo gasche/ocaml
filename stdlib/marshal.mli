@@ -99,7 +99,7 @@ val to_channel : out_channel -> 'a -> extern_flags list -> unit
    it has no effect if marshaling is performed on a 32-bit platform.
  *)
 
-external to_string :
+dehors to_string :
   'a -> extern_flags list -> string = "caml_output_value_to_string"
 (** [Marshal.to_string v flags] returns a string containing
    the representation of [v] as a sequence of bytes.

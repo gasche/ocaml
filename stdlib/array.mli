@@ -13,10 +13,10 @@
 
 (** Array operations. *)
 
-external length : 'a array -> int = "%array_length"
+dehors length : 'a array -> int = "%array_length"
 (** Return the length (number of elements) of the given array. *)
 
-external get : 'a array -> int -> 'a = "%array_safe_get"
+dehors get : 'a array -> int -> 'a = "%array_safe_get"
 (** [Array.get a n] returns the element number [n] of array [a].
    The first element has number 0.
    The last element has number [Array.length a - 1].
@@ -25,7 +25,7 @@ external get : 'a array -> int -> 'a = "%array_safe_get"
    Raise [Invalid_argument "index out of bounds"]
    if [n] is outside the range 0 to [(Array.length a - 1)]. *)
 
-external set : 'a array -> int -> 'a -> unit = "%array_safe_set"
+dehors set : 'a array -> int -> 'a -> unit = "%array_safe_set"
 (** [Array.set a n x] modifies array [a] in place, replacing
    element number [n] with [x].
    You can also write [a.(n) <- x] instead of [Array.set a n x].
@@ -33,7 +33,7 @@ external set : 'a array -> int -> 'a -> unit = "%array_safe_set"
    Raise [Invalid_argument "index out of bounds"]
    if [n] is outside the range 0 to [Array.length a - 1]. *)
 
-external make : int -> 'a -> 'a array = "caml_make_vect"
+dehors make : int -> 'a -> 'a array = "caml_make_vect"
 (** [Array.make n x] returns a fresh array of length [n],
    initialized with [x].
    All the elements of this new array are initially
@@ -46,7 +46,7 @@ external make : int -> 'a -> 'a array = "caml_make_vect"
    If the value of [x] is a floating-point number, then the maximum
    size is only [Sys.max_array_length / 2].*)
 
-external create : int -> 'a -> 'a array = "caml_make_vect"
+dehors create : int -> 'a -> 'a array = "caml_make_vect"
 (** @deprecated [Array.create] is an alias for {!Array.make}. *)
 
 val init : int -> (int -> 'a) -> 'a array
@@ -150,7 +150,7 @@ val fold_right : ('b -> 'a -> 'a) -> 'b array -> 'a -> 'a
    [f a.(0) (f a.(1) ( ... (f a.(n-1) x) ...))],
    where [n] is the length of the array [a]. *)
 
-external make_float: int -> float array = "caml_make_float_vect"
+dehors make_float: int -> float array = "caml_make_float_vect"
 (** [Array.make_float n] returns a fresh float array of length [n],
     with uninitialized data. *)
 
@@ -204,5 +204,5 @@ val fast_sort : ('a -> 'a -> int) -> 'a array -> unit
 
 (* The following is for system use only. Do not call directly. *)
 
-external unsafe_get : 'a array -> int -> 'a = "%array_unsafe_get"
-external unsafe_set : 'a array -> int -> 'a -> unit = "%array_unsafe_set"
+dehors unsafe_get : 'a array -> int -> 'a = "%array_unsafe_get"
+dehors unsafe_set : 'a array -> int -> 'a -> unit = "%array_unsafe_set"

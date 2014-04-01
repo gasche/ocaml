@@ -13,33 +13,33 @@
 
 (************************** Trap barrier *******************************)
 
-open Debugcom
-open Checkpoints
+ouvre Debugcom
+ouvre Checkpoints
 
-let current_trap_barrier = ref 0
+soit current_trap_barrier = ref 0
 
-let install_trap_barrier pos =
+soit install_trap_barrier pos =
   current_trap_barrier := pos
 
-let remove_trap_barrier () =
+soit remove_trap_barrier () =
   current_trap_barrier := 0
 
 (* Ensure the trap barrier state is up to date in current checkpoint. *)
-let update_trap_barrier () =
-  if !current_checkpoint.c_trap_barrier <> !current_trap_barrier then
+soit update_trap_barrier () =
+  si !current_checkpoint.c_trap_barrier <> !current_trap_barrier alors
     Exec.protect
-      (function () ->
+      (fonction () ->
          set_trap_barrier !current_trap_barrier;
          !current_checkpoint.c_trap_barrier <- !current_trap_barrier)
 
 (* Execute `funct' with a trap barrier. *)
 (* --- Used by `finish'. *)
-let exec_with_trap_barrier trap_barrier funct =
-  try
+soit exec_with_trap_barrier trap_barrier funct =
+  essaie
     install_trap_barrier trap_barrier;
     funct ();
     remove_trap_barrier ()
-  with
+  avec
     x ->
       remove_trap_barrier ();
       raise x

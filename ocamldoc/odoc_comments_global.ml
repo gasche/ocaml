@@ -12,29 +12,29 @@
 
 (** The global variables used by the special comment parser.*)
 
-let nb_chars = ref 0
+soit nb_chars = ref 0
 
-let authors = ref ([] : string list)
+soit authors = ref ([] : string list)
 
-let version = ref (None : string option)
+soit version = ref (None : string option)
 
-let sees = ref ([] : string list)
+soit sees = ref ([] : string list)
 
-let since = ref (None : string option)
+soit since = ref (None : string option)
 
-let before = ref []
+soit before = ref []
 
-let deprecated = ref (None : string option)
+soit deprecated = ref (None : string option)
 
-let params = ref ([] : (string * string) list)
+soit params = ref ([] : (string * string) list)
 
-let raised_exceptions = ref ([] : (string * string) list)
+soit raised_exceptions = ref ([] : (string * string) list)
 
-let return_value = ref (None : string option)
+soit return_value = ref (None : string option)
 
-let customs = ref []
+soit customs = ref []
 
-let init () =
+soit init () =
   nb_chars := 0;
   authors := [];
   version := None;

@@ -13,4 +13,4 @@
 
 (* Module [ArrayLabels]: labelled Array module *)
 
-include Array
+inclus Array

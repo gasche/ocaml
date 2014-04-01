@@ -15,30 +15,30 @@
 module Raw_name : sig
   type t
   val create_from_ident : Ident.t -> t
-end
+fin
 
 type t =
-  { mutable raw_name: Raw_name.t;       (* Name *)
+  { modifiable raw_name: Raw_name.t;       (* Name *)
     stamp: int;                         (* Unique stamp *)
     typ: Cmm.machtype_component;        (* Type of contents *)
-    mutable loc: location;              (* Actual location *)
-    mutable spill: bool;                (* "true" to force stack allocation  *)
-    mutable part: int option;           (* Zero-based index of part of value *)
-    mutable interf: t list;             (* Other regs live simultaneously *)
-    mutable prefer: (t * int) list;     (* Preferences for other regs *)
-    mutable degree: int;                (* Number of other regs live sim. *)
-    mutable spill_cost: int;            (* Estimate of spilling cost *)
-    mutable visited: bool }             (* For graph walks *)
+    modifiable loc: location;              (* Actual location *)
+    modifiable spill: bool;                (* "true" to force stack allocation  *)
+    modifiable part: int option;           (* Zero-based index of part of value *)
+    modifiable interf: t list;             (* Other regs live simultaneously *)
+    modifiable prefer: (t * int) list;     (* Preferences for other regs *)
+    modifiable degree: int;                (* Number of other regs live sim. *)
+    modifiable spill_cost: int;            (* Estimate of spilling cost *)
+    modifiable visited: bool }             (* For graph walks *)
 
-and location =
+et location =
     Unknown
-  | Reg of int
-  | Stack of stack_location
+  | Reg de int
+  | Stack de stack_location
 
-and stack_location =
-    Local of int
-  | Incoming of int
-  | Outgoing of int
+et stack_location =
+    Local de int
+  | Incoming de int
+  | Outgoing de int
 
 val dummy: t
 val create: Cmm.machtype_component -> t
@@ -52,8 +52,8 @@ val anonymous : t -> bool
 (* Name for printing *)
 val name : t -> string
 
-module Set: Set.S with type elt = t
-module Map: Map.S with type key = t
+module Set: Set.S avec type elt = t
+module Map: Map.S avec type key = t
 
 val add_set_array: Set.t -> t array -> Set.t
 val diff_set_array: Set.t -> t array -> Set.t

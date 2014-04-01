@@ -13,10 +13,10 @@
 
 (********************************* Events ******************************)
 
-open Instruct
+ouvre Instruct
 
-let get_pos ev =
-  match ev.ev_kind with
+soit get_pos ev =
+  filtre ev.ev_kind avec
   | Event_before -> ev.ev_loc.Location.loc_start
   | Event_after _ -> ev.ev_loc.Location.loc_end
   | _ -> ev.ev_loc.Location.loc_start
@@ -26,21 +26,21 @@ let get_pos ev =
 (*** Current events. ***)
 
 (* Event at current position *)
-let current_event =
+soit current_event =
   ref (None : debug_event option)
 
 (* Current position in source. *)
 (* Raise `Not_found' if not on an event (beginning or end of program). *)
-let get_current_event () =
-  match !current_event with
+soit get_current_event () =
+  filtre !current_event avec
   | None -> raise Not_found
   | Some ev -> ev
 
-let current_event_is_before () =
-  match !current_event with
+soit current_event_is_before () =
+  filtre !current_event avec
     None ->
       raise Not_found
   | Some {ev_kind = Event_before} ->
-      true
+      vrai
   | _ ->
-      false
+      faux

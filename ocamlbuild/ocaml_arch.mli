@@ -13,5 +13,5 @@
 
 (* Original author: Nicolas Pouillard *)
 
-include Signatures.ARCH
+inclus Signatures.ARCH
 val forpack_flags_of_pathname : string -> Command.spec

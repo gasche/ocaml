@@ -13,144 +13,144 @@
 
 (* Manage the loading of the program *)
 
-open Int64ops
-open Unix
-open Unix_tools
-open Debugger_config
-open Primitives
-open Parameters
-open Input_handling
-open Question
-open Program_loading
-open Time_travel
+ouvre Int64ops
+ouvre Unix
+ouvre Unix_tools
+ouvre Debugger_config
+ouvre Primitives
+ouvre Parameters
+ouvre Input_handling
+ouvre Question
+ouvre Program_loading
+ouvre Time_travel
 
 (*** Connection opening and control. ***)
 
 (* Name of the file if the socket is in the unix domain.*)
-let file_name = ref (None : string option)
+soit file_name = ref (None : string option)
 
 (* Default connection handler. *)
-let buffer = String.create 1024
-let control_connection pid fd =
-  if (read fd.io_fd buffer 0 1024) = 0 then
+soit buffer = String.create 1024
+soit control_connection pid fd =
+  si (read fd.io_fd buffer 0 1024) = 0 alors
     forget_process fd pid
-  else begin
+  sinon début
     prerr_string "Garbage data from process ";
     prerr_int pid;
     prerr_endline ""
-    end
+    fin
 
 (* Accept a connection from another process. *)
-let accept_connection continue fd =
-  let (sock, _) = accept fd.io_fd in
-  let io_chan = io_channel_of_descr sock in
-  let pid = input_binary_int io_chan.io_in in
-  if pid = -1 then begin
-    let pid' = input_binary_int io_chan.io_in in
+soit accept_connection continue fd =
+  soit (sock, _) = accept fd.io_fd dans
+  soit io_chan = io_channel_of_descr sock dans
+  soit pid = input_binary_int io_chan.io_in dans
+  si pid = -1 alors début
+    soit pid' = input_binary_int io_chan.io_in dans
     new_checkpoint pid' io_chan;
     Input_handling.add_file io_chan (control_connection pid');
     continue ()
-    end
-  else begin
-    if set_file_descriptor pid io_chan then
+    fin
+  sinon début
+    si set_file_descriptor pid io_chan alors
       Input_handling.add_file io_chan (control_connection pid)
-    end
+    fin
 
 (* Initialize the socket. *)
-let open_connection address continue =
-  try
-    let (sock_domain, sock_address) = convert_address address in
+soit open_connection address continue =
+  essaie
+    soit (sock_domain, sock_address) = convert_address address dans
       file_name :=
-        (match sock_address with
+        (filtre sock_address avec
            ADDR_UNIX file ->
              Some file
          | _ ->
              None);
-      let sock = socket sock_domain SOCK_STREAM 0 in
-        (try
+      soit sock = socket sock_domain SOCK_STREAM 0 dans
+        (essaie
            bind sock sock_address;
-           setsockopt sock SO_REUSEADDR true;
+           setsockopt sock SO_REUSEADDR vrai;
            listen sock 3;
            connection := io_channel_of_descr sock;
            Input_handling.add_file !connection (accept_connection continue);
-           connection_opened := true
-         with x -> close sock; raise x)
-  with
+           connection_opened := vrai
+         avec x -> close sock; raise x)
+  avec
     Failure _ -> raise Toplevel
-  | (Unix_error _) as err -> report_error err; raise Toplevel
+  | (Unix_error _) tel err -> report_error err; raise Toplevel
 
 (* Close the socket. *)
-let close_connection () =
-  if !connection_opened then begin
-    connection_opened := false;
+soit close_connection () =
+  si !connection_opened alors début
+    connection_opened := faux;
     Input_handling.remove_file !connection;
     close_io !connection;
-    match !file_name with
+    filtre !file_name avec
       Some file ->
         unlink file
     | None ->
         ()
-    end
+    fin
 
 (*** Kill program. ***)
-let loaded = ref false
+soit loaded = ref faux
 
-let kill_program () =
+soit kill_program () =
   Breakpoints.remove_all_breakpoints ();
   History.empty_history ();
   kill_all_checkpoints ();
-  loaded := false;
+  loaded := faux;
   close_connection ()
 
-let ask_kill_program () =
-  if not !loaded then
-    true
-  else
-    let answer = yes_or_no "A program is being debugged already. Kill it" in
-      if answer then
+soit ask_kill_program () =
+  si not !loaded alors
+    vrai
+  sinon
+    soit answer = yes_or_no "A program is being debugged already. Kill it" dans
+      si answer alors
         kill_program ();
       answer
 
 (*** Program loading and initializations. ***)
 
-let initialize_loading () =
-  if !debug_loading then begin
+soit initialize_loading () =
+  si !debug_loading alors début
     prerr_endline "Loading debugging information...";
     Printf.fprintf Pervasives.stderr "\tProgram: [%s]\n%!" !program_name;
-  end;
-  begin try access !program_name [F_OK]
-  with Unix_error _ ->
+  fin;
+  début essaie access !program_name [F_OK]
+  avec Unix_error _ ->
     prerr_endline "Program not found.";
     raise Toplevel;
-  end;
+  fin;
   Symbols.read_symbols !program_name;
-  if !debug_loading then
+  si !debug_loading alors
     prerr_endline "Opening a socket...";
   open_connection !socket_name
-    (function () ->
+    (fonction () ->
       go_to _0;
       Symbols.set_all_events();
       exit_main_loop ())
 
 (* Ensure the program is already loaded. *)
-let ensure_loaded () =
-  if not !loaded then begin
+soit ensure_loaded () =
+  si not !loaded alors début
     print_string "Loading program... ";
     flush Pervasives.stdout;
-    if !program_name = "" then begin
+    si !program_name = "" alors début
       prerr_endline "No program specified.";
       raise Toplevel
-    end;
-    try
+    fin;
+    essaie
       initialize_loading();
       !launching_func ();
-      if !debug_loading then
+      si !debug_loading alors
         prerr_endline "Waiting for connection...";
       main_loop ();
-      loaded := true;
+      loaded := vrai;
       prerr_endline "done."
-    with
+    avec
       x ->
         kill_program();
         raise x
-  end
+  fin

@@ -14,15 +14,15 @@
 (* Original author: Berke Durak *)
 (* Report *)
 
-open My_std
-open Log
-open Format
-open Solver
+ouvre My_std
+ouvre Log
+ouvre Format
+ouvre Solver
 
-let sources_glob = Glob.parse "<*.ml> or <*.mli> or <*.c> or <*.h>";;
+soit sources_glob = Glob.parse "<*.ml> or <*.mli> or <*.c> or <*.h>";;
 
-let rec analyze f bt =
-  match bt with
+soit rec analyze f bt =
+  filtre bt avec
   | Leaf r ->
       fprintf f "Ocamlbuild knows of no rules that apply to a target named %a. \
                  This can happen if you ask Ocamlbuild to build a target with the \
@@ -30,23 +30,23 @@ let rec analyze f bt =
                  files live in directories that have not been specified as \
                  include directories."
               Resource.print r;
-      false
+      faux
   | Depth(r, bt) ->
-      if Glob.eval sources_glob r then
-        begin
+      si Glob.eval sources_glob r alors
+        début
           fprintf f "Ocamlbuild cannot find or build %a.  A file with such a name would \
                      usually be a source file.  I suspect you have given a wrong target \
                      name to Ocamlbuild."
                   Resource.print r;
-          false
-        end
-      else
+          faux
+        fin
+      sinon
         analyze f bt
   | Choice bl -> List.for_all (analyze f) bl
   | Target(_, bt) -> analyze f bt
 
-let rec print_backtrace f =
-  function
+soit rec print_backtrace f =
+  fonction
   | Target (name, backtrace) ->
       fprintf f "@\n- @[<2>Failed to build the target %s%a@]" name print_backtrace backtrace
   | Leaf r ->
@@ -59,4 +59,4 @@ let rec print_backtrace f =
       List.iter (print_backtrace f) backtraces;
       fprintf f "@]"
 
-let print_backtrace_analyze f bt = ignore (analyze f bt)
+soit print_backtrace_analyze f bt = ignore (analyze f bt)

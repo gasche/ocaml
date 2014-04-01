@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Format
+ouvre Format
 
 val max_printer_depth : int ref
 val max_printer_steps : int ref

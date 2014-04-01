@@ -19,6 +19,6 @@ type fast_pattern
 
 (** A self-contained module implementing extended shell glob patterns who have an expressive power
     equal to boolean combinations of regular expressions.  *)
-include Signatures.GLOB with type globber = fast_pattern Glob_ast.atom Bool.boolean
+inclus Signatures.GLOB avec type globber = fast_pattern Glob_ast.atom Bool.boolean
 
 val fast_pattern_of_pattern : Glob_ast.pattern -> fast_pattern

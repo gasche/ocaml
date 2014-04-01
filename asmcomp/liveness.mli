@@ -13,6 +13,6 @@
 (* Liveness analysis.
    Annotate mach code with the set of regs live at each point. *)
 
-open Format
+ouvre Format
 
 val fundecl: formatter -> Mach.fundecl -> unit

@@ -12,67 +12,67 @@
 
 
 (* Original author: Nicolas Pouillard *)
-open Command
-open Bool (* FIXME remove me *)
-open Tags.Operators
+ouvre Command
+ouvre Bool (* FIXME remove me *)
+ouvre Tags.Operators
 
 type decl = {
   tags: Tags.t;
   flags: Command.spec;
   deprecated: bool;
 }
-let flags_of_decl { flags; _ } = flags
-let tags_of_decl { tags; _ } = tags
+soit flags_of_decl { flags; _ } = flags
+soit tags_of_decl { tags; _ } = tags
 
-let all_decls = ref []
+soit all_decls = ref []
 
-let of_tags matched_tags =
-  S begin
-    List.fold_left begin fun acc { tags; flags; _ } ->
-      if Tags.does_match matched_tags tags then flags :: acc
-      else acc
-    end [] !all_decls
-  end
+soit of_tags matched_tags =
+  S début
+    List.fold_left début fonc acc { tags; flags; _ } ->
+      si Tags.does_match matched_tags tags alors flags :: acc
+      sinon acc
+    fin [] !all_decls
+  fin
 
-let () = Command.tag_handler := of_tags
+soit () = Command.tag_handler := of_tags
 
-let of_tag_list x = of_tags (Tags.of_list x)
+soit of_tag_list x = of_tags (Tags.of_list x)
 
-let add_decl decl =
+soit add_decl decl =
   all_decls := decl :: !all_decls
 
-let flag ?(deprecated=false) tags flags =
-  let tags = Tags.of_list tags in
+soit flag ?(deprecated=faux) tags flags =
+  soit tags = Tags.of_list tags dans
   add_decl { tags; flags; deprecated }
 
-let pflag tags ptag flags =
+soit pflag tags ptag flags =
   Param_tags.declare ptag
-    (fun param -> flag (Param_tags.make ptag param :: tags) (flags param))
+    (fonc param -> flag (Param_tags.make ptag param :: tags) (flags param))
 
-let add x xs = x :: xs
-let remove me = List.filter (fun x -> me <> x)
+soit add x xs = x :: xs
+soit remove me = List.filter (fonc x -> me <> x)
 
-let pretty_print { tags; flags; deprecated } =
-  let sflag = Command.string_of_command_spec flags in
-  let header = if deprecated then "deprecated flag" else "flag" in
-  let pp fmt = Log.raw_dprintf (-1) fmt in
+soit pretty_print { tags; flags; deprecated } =
+  soit sflag = Command.string_of_command_spec flags dans
+  soit header = si deprecated alors "deprecated flag" sinon "flag" dans
+  soit pp fmt = Log.raw_dprintf (-1) fmt dans
   pp "@[<2>%s@ {. %a .}@ %S@]@\n@\n" header Tags.print tags sflag
 
-let show_documentation () =
+soit show_documentation () =
   List.iter
-    (fun decl -> if not decl.deprecated then pretty_print decl)
+    (fonc decl -> si not decl.deprecated alors pretty_print decl)
     !all_decls;
   List.iter
-    (fun decl -> if decl.deprecated then pretty_print decl)
+    (fonc decl -> si decl.deprecated alors pretty_print decl)
     !all_decls;
-  let pp fmt = Log.raw_dprintf (-1) fmt in
+  soit pp fmt = Log.raw_dprintf (-1) fmt dans
   pp "@."
 
-let used_tags = ref Tags.empty
+soit used_tags = ref Tags.empty
 
-let mark_tag_used tag =
+soit mark_tag_used tag =
   used_tags := Tags.add tag !used_tags
 
-let get_used_tags () =
-  List.fold_left (fun acc decl -> Tags.union acc decl.tags)
+soit get_used_tags () =
+  List.fold_left (fonc acc decl -> Tags.union acc decl.tags)
     !used_tags !all_decls

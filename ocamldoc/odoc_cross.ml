@@ -13,13 +13,13 @@
 (** Cross referencing. *)
 
 module Name = Odoc_name
-open Odoc_module
-open Odoc_class
-open Odoc_exception
-open Odoc_types
-open Odoc_value
-open Odoc_type
-open Odoc_parameter
+ouvre Odoc_module
+ouvre Odoc_class
+ouvre Odoc_exception
+ouvre Odoc_types
+ouvre Odoc_value
+ouvre Odoc_type
+ouvre Odoc_parameter
 
 (*** Replacements of aliases : if e1 = e2 and e2 = e3, then replace e2 by e3 to have e1 = e3,
    in order to associate the element with complete information. *)
@@ -28,43 +28,43 @@ open Odoc_parameter
 module S = Set.Make
     (
      struct type t = string * ref_kind option
-       let compare = Pervasives.compare
-     end
+       soit compare = Pervasives.compare
+     fin
     )
 
-let verified_refs = ref S.empty
+soit verified_refs = ref S.empty
 
-let add_verified v = verified_refs := S.add v !verified_refs
-let was_verified v = S.mem v !verified_refs
+soit add_verified v = verified_refs := S.add v !verified_refs
+soit was_verified v = S.mem v !verified_refs
 
 (** The module with the predicates used to get the aliased modules, classes and exceptions. *)
 module P_alias =
   struct
     type t = int
 
-    let p_module m _ =
-      (true,
-       match m.m_kind with
-         Module_alias _ -> true
-       | _ -> false
+    soit p_module m _ =
+      (vrai,
+       filtre m.m_kind avec
+         Module_alias _ -> vrai
+       | _ -> faux
       )
-    let p_module_type mt _ =
-      (true,
-       match mt.mt_kind with
-         Some (Module_type_alias _) -> true
-       | _ -> false
+    soit p_module_type mt _ =
+      (vrai,
+       filtre mt.mt_kind avec
+         Some (Module_type_alias _) -> vrai
+       | _ -> faux
       )
-    let p_class c _ = (false, false)
-    let p_class_type ct _ = (false, false)
-    let p_value v _ = false
-    let p_recfield _ _ _ = false
-    let p_const _ _ _ = false
-    let p_type t _ = (false, false)
-    let p_exception e _ = e.ex_alias <> None
-    let p_attribute a _ = false
-    let p_method m _ = false
-    let p_section s _ = false
-  end
+    soit p_class c _ = (faux, faux)
+    soit p_class_type ct _ = (faux, faux)
+    soit p_value v _ = faux
+    soit p_recfield _ _ _ = faux
+    soit p_const _ _ _ = faux
+    soit p_type t _ = (faux, faux)
+    soit p_exception e _ = e.ex_alias <> None
+    soit p_attribute a _ = faux
+    soit p_method m _ = faux
+    soit p_section s _ = faux
+  fin
 
 (** The module used to get the aliased elements. *)
 module Search_alias = Odoc_search.Search (P_alias)
@@ -74,19 +74,19 @@ type alias_state =
   | Alias_to_resolve
 
 (** Couples of module name aliases. *)
-let (module_aliases : (Name.t, Name.t * alias_state) Hashtbl.t) = Hashtbl.create 13 ;;
+soit (module_aliases : (Name.t, Name.t * alias_state) Hashtbl.t) = Hashtbl.create 13 ;;
 
 (** Couples of module or module type name aliases. *)
-let module_and_modtype_aliases = Hashtbl.create 13;;
+soit module_and_modtype_aliases = Hashtbl.create 13;;
 
 (** Couples of exception name aliases. *)
-let exception_aliases = Hashtbl.create 13;;
+soit exception_aliases = Hashtbl.create 13;;
 
-let rec build_alias_list = function
+soit rec build_alias_list = fonction
     [] -> ()
   | (Odoc_search.Res_module m) :: q ->
       (
-       match m.m_kind with
+       filtre m.m_kind avec
          Module_alias ma ->
            Hashtbl.add module_aliases m.m_name (ma.ma_name, Alias_to_resolve);
            Hashtbl.add module_and_modtype_aliases m.m_name (ma.ma_name, Alias_to_resolve)
@@ -95,7 +95,7 @@ let rec build_alias_list = function
       build_alias_list q
   | (Odoc_search.Res_module_type mt) :: q ->
       (
-       match mt.mt_kind with
+       filtre mt.mt_kind avec
          Some (Module_type_alias mta) ->
            Hashtbl.add module_and_modtype_aliases
              mt.mt_name (mta.mta_name, Alias_to_resolve)
@@ -104,7 +104,7 @@ let rec build_alias_list = function
       build_alias_list q
   | (Odoc_search.Res_exception e) :: q ->
       (
-       match e.ex_alias with
+       filtre e.ex_alias avec
          None -> ()
        | Some ea ->
            Hashtbl.add exception_aliases
@@ -116,195 +116,195 @@ let rec build_alias_list = function
 
 (** Retrieve the aliases for modules, module types and exceptions
    and put them in global hash tables. *)
-let get_alias_names module_list =
+soit get_alias_names module_list =
   Hashtbl.clear module_aliases;
   Hashtbl.clear module_and_modtype_aliases;
   Hashtbl.clear exception_aliases;
   build_alias_list (Search_alias.search module_list 0)
 
-exception Found of string
-let name_alias =
-  let rec f t name =
-    try
-      match Hashtbl.find t name with
+exception Found de string
+soit name_alias =
+  soit rec f t name =
+    essaie
+      filtre Hashtbl.find t name avec
         (s, Alias_resolved) -> s
       | (s, Alias_to_resolve) -> f t s
-    with
+    avec
       Not_found ->
-        try
+        essaie
           Hashtbl.iter
-            (fun n2 (n3, _) ->
-              if Name.prefix n2 name then
-                let ln2 = String.length n2 in
-                let s = n3^(String.sub name ln2 ((String.length name) - ln2)) in
+            (fonc n2 (n3, _) ->
+              si Name.prefix n2 name alors
+                soit ln2 = String.length n2 dans
+                soit s = n3^(String.sub name ln2 ((String.length name) - ln2)) dans
                 raise (Found s)
             )
             t ;
           Hashtbl.replace t name (name, Alias_resolved);
           name
-        with
+        avec
           Found s ->
-            let s2 = f t s in
+            soit s2 = f t s dans
             Hashtbl.replace t s2 (s2, Alias_resolved);
             s2
-  in
-  fun name alias_tbl ->
+  dans
+  fonc name alias_tbl ->
     f alias_tbl name
 
 
 module Map_ord =
   struct
     type t = string
-    let compare (x:t) y = Pervasives.compare x y
-  end
+    soit compare (x:t) y = Pervasives.compare x y
+  fin
 
 module Ele_map = Map.Make (Map_ord)
 
-let known_elements = ref Ele_map.empty
-let add_known_element name k =
-  try
-    let l = Ele_map.find name !known_elements in
-    let s = Ele_map.remove name !known_elements in
+soit known_elements = ref Ele_map.empty
+soit add_known_element name k =
+  essaie
+    soit l = Ele_map.find name !known_elements dans
+    soit s = Ele_map.remove name !known_elements dans
     known_elements := Ele_map.add name (k::l) s
-  with
+  avec
     Not_found ->
       known_elements := Ele_map.add name [k] !known_elements
 
-let rec get_known_elements name =
-  try Ele_map.find name !known_elements
-  with Not_found -> []
+soit rec get_known_elements name =
+  essaie Ele_map.find name !known_elements
+  avec Not_found -> []
 
-let kind_name_exists kind =
-  let pred =
-    match kind with
-      RK_module -> (fun e -> match e with Odoc_search.Res_module _ -> true | _ -> false)
-    | RK_module_type -> (fun e -> match e with Odoc_search.Res_module_type _ -> true | _ -> false)
-    | RK_class -> (fun e -> match e with Odoc_search.Res_class _ -> true | _ -> false)
-    | RK_class_type -> (fun e -> match e with Odoc_search.Res_class_type _ -> true | _ -> false)
-    | RK_value -> (fun e -> match e with Odoc_search.Res_value _ -> true | _ -> false)
-    | RK_type -> (fun e -> match e with Odoc_search.Res_type _ -> true | _ -> false)
-    | RK_exception -> (fun e -> match e with Odoc_search.Res_exception _ -> true | _ -> false)
-    | RK_attribute -> (fun e -> match e with Odoc_search.Res_attribute _ -> true | _ -> false)
-    | RK_method -> (fun e -> match e with Odoc_search.Res_method _ -> true | _ -> false)
-    | RK_section _ -> assert false
-    | RK_recfield -> (fun e -> match e with Odoc_search.Res_recfield _ -> true | _ -> false)
-    | RK_const -> (fun e -> match e with Odoc_search.Res_const _ -> true | _ -> false)
-  in
-  fun name ->
-    try List.exists pred (get_known_elements name)
-    with Not_found -> false
+soit kind_name_exists kind =
+  soit pred =
+    filtre kind avec
+      RK_module -> (fonc e -> filtre e avec Odoc_search.Res_module _ -> vrai | _ -> faux)
+    | RK_module_type -> (fonc e -> filtre e avec Odoc_search.Res_module_type _ -> vrai | _ -> faux)
+    | RK_class -> (fonc e -> filtre e avec Odoc_search.Res_class _ -> vrai | _ -> faux)
+    | RK_class_type -> (fonc e -> filtre e avec Odoc_search.Res_class_type _ -> vrai | _ -> faux)
+    | RK_value -> (fonc e -> filtre e avec Odoc_search.Res_value _ -> vrai | _ -> faux)
+    | RK_type -> (fonc e -> filtre e avec Odoc_search.Res_type _ -> vrai | _ -> faux)
+    | RK_exception -> (fonc e -> filtre e avec Odoc_search.Res_exception _ -> vrai | _ -> faux)
+    | RK_attribute -> (fonc e -> filtre e avec Odoc_search.Res_attribute _ -> vrai | _ -> faux)
+    | RK_method -> (fonc e -> filtre e avec Odoc_search.Res_method _ -> vrai | _ -> faux)
+    | RK_section _ -> affirme faux
+    | RK_recfield -> (fonc e -> filtre e avec Odoc_search.Res_recfield _ -> vrai | _ -> faux)
+    | RK_const -> (fonc e -> filtre e avec Odoc_search.Res_const _ -> vrai | _ -> faux)
+  dans
+  fonc name ->
+    essaie List.exists pred (get_known_elements name)
+    avec Not_found -> faux
 
-let module_exists = kind_name_exists RK_module
-let module_type_exists = kind_name_exists RK_module_type
-let class_exists = kind_name_exists RK_class
-let class_type_exists = kind_name_exists RK_class_type
-let value_exists = kind_name_exists RK_value
-let type_exists = kind_name_exists RK_type
-let exception_exists = kind_name_exists RK_exception
-let attribute_exists = kind_name_exists RK_attribute
-let method_exists = kind_name_exists RK_method
-let recfield_exists = kind_name_exists RK_recfield
-let const_exists = kind_name_exists RK_const
+soit module_exists = kind_name_exists RK_module
+soit module_type_exists = kind_name_exists RK_module_type
+soit class_exists = kind_name_exists RK_class
+soit class_type_exists = kind_name_exists RK_class_type
+soit value_exists = kind_name_exists RK_value
+soit type_exists = kind_name_exists RK_type
+soit exception_exists = kind_name_exists RK_exception
+soit attribute_exists = kind_name_exists RK_attribute
+soit method_exists = kind_name_exists RK_method
+soit recfield_exists = kind_name_exists RK_recfield
+soit const_exists = kind_name_exists RK_const
 
-let lookup_module name =
-  match List.find
-      (fun k -> match k with Odoc_search.Res_module _ -> true | _ -> false)
+soit lookup_module name =
+  filtre List.find
+      (fonc k -> filtre k avec Odoc_search.Res_module _ -> vrai | _ -> faux)
       (get_known_elements name)
-  with
+  avec
   | Odoc_search.Res_module m -> m
-  | _ -> assert false
+  | _ -> affirme faux
 
-let lookup_module_type name =
-  match List.find
-      (fun k -> match k with Odoc_search.Res_module_type _ -> true | _ -> false)
+soit lookup_module_type name =
+  filtre List.find
+      (fonc k -> filtre k avec Odoc_search.Res_module_type _ -> vrai | _ -> faux)
       (get_known_elements name)
-  with
+  avec
   | Odoc_search.Res_module_type m -> m
-  | _ -> assert false
+  | _ -> affirme faux
 
-let lookup_class name =
-  match List.find
-      (fun k -> match k with Odoc_search.Res_class _ -> true | _ -> false)
+soit lookup_class name =
+  filtre List.find
+      (fonc k -> filtre k avec Odoc_search.Res_class _ -> vrai | _ -> faux)
       (get_known_elements name)
-  with
+  avec
   | Odoc_search.Res_class c -> c
-  | _ -> assert false
+  | _ -> affirme faux
 
-let lookup_class_type name =
-  match List.find
-      (fun k -> match k with Odoc_search.Res_class_type _ -> true | _ -> false)
+soit lookup_class_type name =
+  filtre List.find
+      (fonc k -> filtre k avec Odoc_search.Res_class_type _ -> vrai | _ -> faux)
       (get_known_elements name)
-  with
+  avec
   | Odoc_search.Res_class_type c -> c
-  | _ -> assert false
+  | _ -> affirme faux
 
-let lookup_exception name =
-  match List.find
-      (fun k -> match k with Odoc_search.Res_exception _ -> true | _ -> false)
+soit lookup_exception name =
+  filtre List.find
+      (fonc k -> filtre k avec Odoc_search.Res_exception _ -> vrai | _ -> faux)
       (get_known_elements name)
-  with
+  avec
   | Odoc_search.Res_exception e -> e
-  | _ -> assert false
+  | _ -> affirme faux
 
-class scan =
-  object
-    inherit Odoc_scan.scanner
-    method! scan_value v =
+classe scan =
+  objet
+    hérite Odoc_scan.scanner
+    méthode! scan_value v =
       add_known_element v.val_name (Odoc_search.Res_value v)
-    method! scan_type_recfield t f =
+    méthode! scan_type_recfield t f =
       add_known_element
         (Printf.sprintf "%s.%s" t.ty_name f.rf_name)
         (Odoc_search.Res_recfield (t, f))
-    method! scan_type_const t f =
+    méthode! scan_type_const t f =
       add_known_element
         (Printf.sprintf "%s.%s" t.ty_name f.vc_name)
         (Odoc_search.Res_const (t, f))
-    method! scan_type_pre t =
+    méthode! scan_type_pre t =
       add_known_element t.ty_name (Odoc_search.Res_type t);
-      true
-    method! scan_exception e =
+      vrai
+    méthode! scan_exception e =
       add_known_element e.ex_name (Odoc_search.Res_exception e)
-    method! scan_attribute a =
+    méthode! scan_attribute a =
       add_known_element a.att_value.val_name
         (Odoc_search.Res_attribute a)
-    method! scan_method m =
+    méthode! scan_method m =
       add_known_element m.met_value.val_name
         (Odoc_search.Res_method m)
-    method! scan_class_pre c =
+    méthode! scan_class_pre c =
       add_known_element c.cl_name (Odoc_search.Res_class c);
-      true
-    method! scan_class_type_pre c =
+      vrai
+    méthode! scan_class_type_pre c =
       add_known_element c.clt_name (Odoc_search.Res_class_type c);
-      true
-    method! scan_module_pre m =
+      vrai
+    méthode! scan_module_pre m =
       add_known_element m.m_name (Odoc_search.Res_module m);
-      true
-    method! scan_module_type_pre m =
+      vrai
+    méthode! scan_module_type_pre m =
       add_known_element m.mt_name (Odoc_search.Res_module_type m);
-      true
+      vrai
 
-  end
+  fin
 
-let init_known_elements_map module_list =
-  let c = new scan in
+soit init_known_elements_map module_list =
+  soit c = nouv scan dans
   c#scan_module_list module_list
 
 
 (** The type to describe the names not found. *)
 type not_found_name =
-    NF_m of Name.t
-  | NF_mt of Name.t
-  | NF_mmt of Name.t
-  | NF_c of Name.t
-  | NF_ct of Name.t
-  | NF_cct of Name.t
-  | NF_ex of Name.t
+    NF_m de Name.t
+  | NF_mt de Name.t
+  | NF_mmt de Name.t
+  | NF_c de Name.t
+  | NF_ct de Name.t
+  | NF_cct de Name.t
+  | NF_ex de Name.t
 
 (** Functions to find and associate aliases elements. *)
 
-let rec associate_in_module module_list (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found) m =
-  let rec iter_kind (acc_b, acc_inc, acc_names) k =
-    match k with
+soit rec associate_in_module module_list (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found) m =
+  soit rec iter_kind (acc_b, acc_inc, acc_names) k =
+    filtre k avec
       Module_struct elements ->
         List.fold_left
           (associate_in_module_element module_list m.m_name)
@@ -313,29 +313,29 @@ let rec associate_in_module module_list (acc_b_modif, acc_incomplete_top_module_
 
     | Module_alias ma ->
         (
-         match ma.ma_module with
+         filtre ma.ma_module avec
            Some _ ->
              (acc_b, acc_inc, acc_names)
          | None ->
-             let mmt_opt =
-               try Some (Mod (lookup_module ma.ma_name))
-               with Not_found ->
-                 try Some (Modtype (lookup_module_type ma.ma_name))
-                 with Not_found -> None
-             in
-             match mmt_opt with
+             soit mmt_opt =
+               essaie Some (Mod (lookup_module ma.ma_name))
+               avec Not_found ->
+                 essaie Some (Modtype (lookup_module_type ma.ma_name))
+                 avec Not_found -> None
+             dans
+             filtre mmt_opt avec
                None -> (acc_b, (Name.head m.m_name) :: acc_inc,
                         (* we don't want to output warning messages for
                            "sig ... end" or "struct ... end" modules not found *)
-                        (if ma.ma_name = Odoc_messages.struct_end ||
-                          ma.ma_name = Odoc_messages.sig_end then
+                        (si ma.ma_name = Odoc_messages.struct_end ||
+                          ma.ma_name = Odoc_messages.sig_end alors
                           acc_names
-                        else
+                        sinon
                           (NF_mmt ma.ma_name) :: acc_names)
                        )
              | Some mmt ->
                  ma.ma_module <- Some mmt ;
-                 (true, acc_inc, acc_names)
+                 (vrai, acc_inc, acc_names)
         )
 
     | Module_functor (_, k) ->
@@ -344,53 +344,53 @@ let rec associate_in_module module_list (acc_b_modif, acc_incomplete_top_module_
     | Module_with (tk, _) ->
         associate_in_module_type module_list (acc_b, acc_inc, acc_names)
           { mt_name = "" ; mt_info = None ; mt_type = None ;
-            mt_is_interface = false ; mt_file = ""; mt_kind = Some tk ;
+            mt_is_interface = faux ; mt_file = ""; mt_kind = Some tk ;
             mt_loc = Odoc_types.dummy_loc }
 
     | Module_apply (k1, k2) ->
-        let (acc_b2, acc_inc2, acc_names2) = iter_kind (acc_b, acc_inc, acc_names) k1 in
+        soit (acc_b2, acc_inc2, acc_names2) = iter_kind (acc_b, acc_inc, acc_names) k1 dans
         iter_kind (acc_b2, acc_inc2, acc_names2) k2
 
     | Module_constraint (k, tk) ->
-        let (acc_b2, acc_inc2, acc_names2) = iter_kind (acc_b, acc_inc, acc_names) k in
+        soit (acc_b2, acc_inc2, acc_names2) = iter_kind (acc_b, acc_inc, acc_names) k dans
         associate_in_module_type module_list (acc_b2, acc_inc2, acc_names2)
           { mt_name = "" ; mt_info = None ; mt_type = None ;
-            mt_is_interface = false ; mt_file = "" ; mt_kind = Some tk ;
+            mt_is_interface = faux ; mt_file = "" ; mt_kind = Some tk ;
             mt_loc = Odoc_types.dummy_loc }
 
      | Module_typeof _ ->
         (acc_b, acc_inc, acc_names)
 
      | Module_unpack (code, mta) ->
-        begin
-          match mta.mta_module with
+        début
+          filtre mta.mta_module avec
             Some _ ->
               (acc_b, acc_inc, acc_names)
           | None ->
-              let mt_opt =
-                try Some (lookup_module_type mta.mta_name)
-                with Not_found -> None
-              in
-              match mt_opt with
+              soit mt_opt =
+                essaie Some (lookup_module_type mta.mta_name)
+                avec Not_found -> None
+              dans
+              filtre mt_opt avec
                 None -> (acc_b, (Name.head m.m_name) :: acc_inc,
                    (* we don't want to output warning messages for
                       "sig ... end" or "struct ... end" modules not found *)
-                   (if mta.mta_name = Odoc_messages.struct_end ||
-                      mta.mta_name = Odoc_messages.sig_end then
+                   (si mta.mta_name = Odoc_messages.struct_end ||
+                      mta.mta_name = Odoc_messages.sig_end alors
                       acc_names
-                    else
+                    sinon
                       (NF_mt mta.mta_name) :: acc_names)
                   )
               | Some mt ->
                   mta.mta_module <- Some mt ;
-                  (true, acc_inc, acc_names)
-        end
-  in
+                  (vrai, acc_inc, acc_names)
+        fin
+  dans
   iter_kind (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found) m.m_kind
 
-and associate_in_module_type module_list (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found) mt =
-  let rec iter_kind (acc_b, acc_inc, acc_names) k =
-    match k with
+et associate_in_module_type module_list (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found) mt =
+  soit rec iter_kind (acc_b, acc_inc, acc_names) k =
+    filtre k avec
       Module_type_struct elements ->
         List.fold_left
           (associate_in_module_element module_list mt.mt_name)
@@ -404,226 +404,226 @@ and associate_in_module_type module_list (acc_b_modif, acc_incomplete_top_module
         iter_kind (acc_b, acc_inc, acc_names) k
 
     | Module_type_alias mta ->
-        begin
-          match mta.mta_module with
+        début
+          filtre mta.mta_module avec
             Some _ ->
               (acc_b, acc_inc, acc_names)
           | None ->
-              let mt_opt =
-                try Some (lookup_module_type mta.mta_name)
-                with Not_found -> None
-              in
-              match mt_opt with
+              soit mt_opt =
+                essaie Some (lookup_module_type mta.mta_name)
+                avec Not_found -> None
+              dans
+              filtre mt_opt avec
                 None -> (acc_b, (Name.head mt.mt_name) :: acc_inc,
                    (* we don't want to output warning messages for
                       "sig ... end" or "struct ... end" modules not found *)
-                   (if mta.mta_name = Odoc_messages.struct_end ||
-                      mta.mta_name = Odoc_messages.sig_end then
+                   (si mta.mta_name = Odoc_messages.struct_end ||
+                      mta.mta_name = Odoc_messages.sig_end alors
                       acc_names
-                    else
+                    sinon
                       (NF_mt mta.mta_name) :: acc_names)
                   )
               | Some mt ->
                   mta.mta_module <- Some mt ;
-                  (true, acc_inc, acc_names)
-        end
+                  (vrai, acc_inc, acc_names)
+        fin
     | Module_type_typeof _ ->
         (acc_b, acc_inc, acc_names)
-  in
-  match mt.mt_kind with
+  dans
+  filtre mt.mt_kind avec
     None -> (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found)
   | Some k -> iter_kind (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found) k
 
-and associate_in_module_element module_list m_name (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found) element =
-   match element with
+et associate_in_module_element module_list m_name (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found) element =
+   filtre element avec
      Element_module m -> associate_in_module module_list (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found) m
    | Element_module_type mt -> associate_in_module_type module_list (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found) mt
    | Element_included_module im ->
        (
-        match im.im_module with
+        filtre im.im_module avec
           Some _ -> (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found)
         | None ->
-            let mmt_opt =
-              try Some (Mod (lookup_module im.im_name))
-              with Not_found ->
-                try Some (Modtype (lookup_module_type im.im_name))
-                with Not_found -> None
-            in
-            match mmt_opt with
+            soit mmt_opt =
+              essaie Some (Mod (lookup_module im.im_name))
+              avec Not_found ->
+                essaie Some (Modtype (lookup_module_type im.im_name))
+                avec Not_found -> None
+            dans
+            filtre mmt_opt avec
               None -> (acc_b_modif, (Name.head m_name) :: acc_incomplete_top_module_names,
                        (* we don't want to output warning messages for
                            "sig ... end" or "struct ... end" modules not found *)
-                        (if im.im_name = Odoc_messages.struct_end ||
-                          im.im_name = Odoc_messages.sig_end then
+                        (si im.im_name = Odoc_messages.struct_end ||
+                          im.im_name = Odoc_messages.sig_end alors
                           acc_names_not_found
-                        else
+                        sinon
                           (NF_mmt im.im_name) :: acc_names_not_found)
                       )
             | Some mmt ->
                 im.im_module <- Some mmt ;
-                (true, acc_incomplete_top_module_names, acc_names_not_found)
+                (vrai, acc_incomplete_top_module_names, acc_names_not_found)
        )
    | Element_class cl -> associate_in_class module_list (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found) cl
    | Element_class_type ct -> associate_in_class_type module_list (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found) ct
    | Element_value _ -> (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found)
    | Element_exception ex ->
        (
-        match ex.ex_alias with
+        filtre ex.ex_alias avec
           None -> (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found)
         | Some ea ->
-            match ea.ea_ex with
+            filtre ea.ea_ex avec
               Some _ ->
                 (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found)
             | None ->
-                let ex_opt =
-                  try Some (lookup_exception ea.ea_name)
-                  with Not_found -> None
-                in
-                match ex_opt with
+                soit ex_opt =
+                  essaie Some (lookup_exception ea.ea_name)
+                  avec Not_found -> None
+                dans
+                filtre ex_opt avec
                   None -> (acc_b_modif, (Name.head m_name) :: acc_incomplete_top_module_names, (NF_ex ea.ea_name) :: acc_names_not_found)
                 | Some e ->
                     ea.ea_ex <- Some e ;
-                    (true, acc_incomplete_top_module_names, acc_names_not_found)
+                    (vrai, acc_incomplete_top_module_names, acc_names_not_found)
        )
    | Element_type _ -> (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found)
    | Element_module_comment _ -> (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found)
 
-and associate_in_class module_list (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found) c =
-  let rec iter_kind (acc_b, acc_inc, acc_names) k =
-    match k with
+et associate_in_class module_list (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found) c =
+  soit rec iter_kind (acc_b, acc_inc, acc_names) k =
+    filtre k avec
       Class_structure (inher_l, _) ->
-        let f (acc_b2, acc_inc2, acc_names2) ic =
-          match ic.ic_class with
+        soit f (acc_b2, acc_inc2, acc_names2) ic =
+          filtre ic.ic_class avec
           Some _ -> (acc_b2, acc_inc2, acc_names2)
         | None ->
-            let cct_opt =
-              try Some (Cl (lookup_class ic.ic_name))
-              with Not_found ->
-                try Some (Cltype (lookup_class_type ic.ic_name, []))
-                with Not_found -> None
-            in
-            match cct_opt with
+            soit cct_opt =
+              essaie Some (Cl (lookup_class ic.ic_name))
+              avec Not_found ->
+                essaie Some (Cltype (lookup_class_type ic.ic_name, []))
+                avec Not_found -> None
+            dans
+            filtre cct_opt avec
               None -> (acc_b2, (Name.head c.cl_name) :: acc_inc2,
                        (* we don't want to output warning messages for "object ... end" classes not found *)
-                       (if ic.ic_name = Odoc_messages.object_end then acc_names2 else (NF_cct ic.ic_name) :: acc_names2))
+                       (si ic.ic_name = Odoc_messages.object_end alors acc_names2 sinon (NF_cct ic.ic_name) :: acc_names2))
             | Some cct ->
                 ic.ic_class <- Some cct ;
-                (true, acc_inc2, acc_names2)
-        in
+                (vrai, acc_inc2, acc_names2)
+        dans
         List.fold_left f (acc_b, acc_inc, acc_names) inher_l
 
     | Class_apply capp ->
         (
-         match capp.capp_class with
+         filtre capp.capp_class avec
            Some _ ->  (acc_b, acc_inc, acc_names)
          | None ->
-             let cl_opt =
-               try Some (lookup_class capp.capp_name)
-               with Not_found -> None
-             in
-             match cl_opt with
+             soit cl_opt =
+               essaie Some (lookup_class capp.capp_name)
+               avec Not_found -> None
+             dans
+             filtre cl_opt avec
                None -> (acc_b, (Name.head c.cl_name) :: acc_inc,
                         (* we don't want to output warning messages for "object ... end" classes not found *)
-                        (if capp.capp_name = Odoc_messages.object_end then acc_names else (NF_c capp.capp_name) :: acc_names))
+                        (si capp.capp_name = Odoc_messages.object_end alors acc_names sinon (NF_c capp.capp_name) :: acc_names))
              | Some c ->
                  capp.capp_class <- Some c ;
-                 (true, acc_inc, acc_names)
+                 (vrai, acc_inc, acc_names)
         )
 
     | Class_constr cco ->
         (
-         match cco.cco_class with
+         filtre cco.cco_class avec
            Some _ ->  (acc_b, acc_inc, acc_names)
          | None ->
-             let cl_opt =
-               try Some (lookup_class cco.cco_name)
-               with Not_found -> None
-             in
-             match cl_opt with
+             soit cl_opt =
+               essaie Some (lookup_class cco.cco_name)
+               avec Not_found -> None
+             dans
+             filtre cl_opt avec
                None ->
                  (
-                  let clt_opt =
-                    try Some (lookup_class_type cco.cco_name)
-                    with Not_found -> None
-                  in
-                  match clt_opt with
+                  soit clt_opt =
+                    essaie Some (lookup_class_type cco.cco_name)
+                    avec Not_found -> None
+                  dans
+                  filtre clt_opt avec
                     None ->
                       (acc_b, (Name.head c.cl_name) :: acc_inc,
                         (* we don't want to output warning messages for "object ... end" classes not found *)
-                       (if cco.cco_name = Odoc_messages.object_end then acc_names else (NF_cct cco.cco_name) :: acc_names))
+                       (si cco.cco_name = Odoc_messages.object_end alors acc_names sinon (NF_cct cco.cco_name) :: acc_names))
                   | Some ct ->
                       cco.cco_class <- Some (Cltype (ct, [])) ;
-                      (true, acc_inc, acc_names)
+                      (vrai, acc_inc, acc_names)
                  )
              | Some c ->
                  cco.cco_class <- Some (Cl c) ;
-                 (true, acc_inc, acc_names)
+                 (vrai, acc_inc, acc_names)
         )
     | Class_constraint (ckind, ctkind) ->
-        let (acc_b2, acc_inc2, acc_names2) = iter_kind (acc_b, acc_inc, acc_names) ckind in
+        soit (acc_b2, acc_inc2, acc_names2) = iter_kind (acc_b, acc_inc, acc_names) ckind dans
         associate_in_class_type module_list (acc_b2, acc_inc2, acc_names2)
             { clt_name = "" ; clt_info = None ;
               clt_type = c.cl_type ; (* should be ok *)
               clt_type_parameters = [] ;
-              clt_virtual = false ;
+              clt_virtual = faux ;
               clt_kind = ctkind ;
               clt_loc = Odoc_types.dummy_loc }
-  in
+  dans
   iter_kind (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found) c.cl_kind
 
-and associate_in_class_type module_list (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found) ct =
-  let rec iter_kind (acc_b, acc_inc, acc_names) k =
-    match k with
+et associate_in_class_type module_list (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found) ct =
+  soit rec iter_kind (acc_b, acc_inc, acc_names) k =
+    filtre k avec
       Class_signature (inher_l, _) ->
-        let f (acc_b2, acc_inc2, acc_names2) ic =
-          match ic.ic_class with
+        soit f (acc_b2, acc_inc2, acc_names2) ic =
+          filtre ic.ic_class avec
             Some _ -> (acc_b2, acc_inc2, acc_names2)
           | None ->
-              let cct_opt =
-                try Some (Cltype (lookup_class_type ic.ic_name, []))
-                with Not_found ->
-                  try Some (Cl (lookup_class ic.ic_name))
-                  with Not_found -> None
-              in
-              match cct_opt with
+              soit cct_opt =
+                essaie Some (Cltype (lookup_class_type ic.ic_name, []))
+                avec Not_found ->
+                  essaie Some (Cl (lookup_class ic.ic_name))
+                  avec Not_found -> None
+              dans
+              filtre cct_opt avec
                 None -> (acc_b2, (Name.head ct.clt_name) :: acc_inc2,
                          (* we don't want to output warning messages for "object ... end" class types not found *)
-                         (if ic.ic_name = Odoc_messages.object_end then acc_names2 else (NF_cct ic.ic_name) :: acc_names2))
+                         (si ic.ic_name = Odoc_messages.object_end alors acc_names2 sinon (NF_cct ic.ic_name) :: acc_names2))
               | Some cct ->
                   ic.ic_class <- Some cct ;
-                  (true, acc_inc2, acc_names2)
-        in
+                  (vrai, acc_inc2, acc_names2)
+        dans
         List.fold_left f (acc_b, acc_inc, acc_names) inher_l
 
     | Class_type cta ->
         (
-         match cta.cta_class with
+         filtre cta.cta_class avec
            Some _ ->  (acc_b, acc_inc, acc_names)
          | None ->
-             let cct_opt =
-               try Some (Cltype (lookup_class_type cta.cta_name, []))
-               with Not_found ->
-                 try Some (Cl (lookup_class cta.cta_name))
-                 with Not_found -> None
-             in
-             match cct_opt with
+             soit cct_opt =
+               essaie Some (Cltype (lookup_class_type cta.cta_name, []))
+               avec Not_found ->
+                 essaie Some (Cl (lookup_class cta.cta_name))
+                 avec Not_found -> None
+             dans
+             filtre cct_opt avec
                None -> (acc_b, (Name.head ct.clt_name) :: acc_inc,
                         (* we don't want to output warning messages for "object ... end" class types not found *)
-                        (if cta.cta_name = Odoc_messages.object_end then acc_names else (NF_cct cta.cta_name) :: acc_names))
+                        (si cta.cta_name = Odoc_messages.object_end alors acc_names sinon (NF_cct cta.cta_name) :: acc_names))
              | Some c ->
                  cta.cta_class <- Some c ;
-                 (true, acc_inc, acc_names)
+                 (vrai, acc_inc, acc_names)
         )
-  in
+  dans
   iter_kind (acc_b_modif, acc_incomplete_top_module_names, acc_names_not_found) ct.clt_kind
 
 (*************************************************************)
 (** Association of types to elements referenced in comments .*)
 
-let ao = Odoc_misc.apply_opt
+soit ao = Odoc_misc.apply_opt
 
-let not_found_of_kind kind name =
-  (match kind with
+soit not_found_of_kind kind name =
+  (filtre kind avec
     RK_module -> Odoc_messages.cross_module_not_found
   | RK_module_type -> Odoc_messages.cross_module_type_not_found
   | RK_class -> Odoc_messages.cross_class_not_found
@@ -638,8 +638,8 @@ let not_found_of_kind kind name =
   | RK_const -> Odoc_messages.cross_const_not_found
   ) name
 
-let rec assoc_comments_text_elements parent_name module_list t_ele =
-  match t_ele with
+soit rec assoc_comments_text_elements parent_name module_list t_ele =
+  filtre t_ele avec
   | Raw _
   | Code _
   | CodePre _
@@ -661,26 +661,26 @@ let rec assoc_comments_text_elements parent_name module_list t_ele =
   | Link (s, t) -> Link (s, (assoc_comments_text parent_name module_list t))
   | Ref (initial_name, None, text_option) ->
       (
-       let rec iter_parent ?parent_name name =
-         let name = Odoc_name.normalize_name name in
-         let res =
-           match get_known_elements name with
+       soit rec iter_parent ?parent_name name =
+         soit name = Odoc_name.normalize_name name dans
+         soit res =
+           filtre get_known_elements name avec
              [] ->
                (
-                try
-                  let re = Str.regexp ("^"^(Str.quote name)^"$") in
-                  let t = Odoc_search.find_section module_list re in
-                  let v2 = (name, Some (RK_section t)) in
+                essaie
+                  soit re = Str.regexp ("^"^(Str.quote name)^"$") dans
+                  soit t = Odoc_search.find_section module_list re dans
+                  soit v2 = (name, Some (RK_section t)) dans
                   add_verified v2 ;
                   (name, Some (RK_section t))
-              with
+              avec
                   Not_found ->
                     (name, None)
                )
            | ele :: _ ->
            (* we look for the first element with this name *)
-               let (name, kind) =
-                 match ele with
+               soit (name, kind) =
+                 filtre ele avec
                    Odoc_search.Res_module m -> (m.m_name, RK_module)
                  | Odoc_search.Res_module_type mt -> (mt.mt_name, RK_module_type)
                  | Odoc_search.Res_class c -> (c.cl_name, RK_class)
@@ -690,57 +690,57 @@ let rec assoc_comments_text_elements parent_name module_list t_ele =
                  | Odoc_search.Res_exception e -> (e.ex_name, RK_exception)
                  | Odoc_search.Res_attribute a -> (a.att_value.val_name, RK_attribute)
                  | Odoc_search.Res_method m -> (m.met_value.val_name, RK_method)
-                 | Odoc_search.Res_section (_ ,t)-> assert false
+                 | Odoc_search.Res_section (_ ,t)-> affirme faux
                  | Odoc_search.Res_recfield (t, f) ->
                      (Printf.sprintf "%s.%s" t.ty_name f.rf_name, RK_recfield)
                  | Odoc_search.Res_const (t, f) ->
                      (Printf.sprintf "%s.%s" t.ty_name f.vc_name, RK_const)
-               in
+               dans
                add_verified (name, Some kind) ;
                (name, Some kind)
-         in
-         match res with
+         dans
+         filtre res avec
          | (name, Some k) -> Ref (name, Some k, text_option)
          | (_, None) ->
-             match parent_name with
+             filtre parent_name avec
                None ->
                  Odoc_global.pwarning (Odoc_messages.cross_element_not_found initial_name);
                  Ref (initial_name, None, text_option)
              | Some p ->
-                 let parent_name =
-                   match Name.father p with
+                 soit parent_name =
+                   filtre Name.father p avec
                      "" -> None
                    | s -> Some s
-                 in
+                 dans
                  iter_parent ?parent_name (Name.concat p initial_name)
-       in
+       dans
        iter_parent ~parent_name initial_name
       )
   | Ref (initial_name, Some kind, text_option) ->
       (
-       let rec iter_parent ?parent_name name =
-         let v = (name, Some kind) in
-         if was_verified v then
+       soit rec iter_parent ?parent_name name =
+         soit v = (name, Some kind) dans
+         si was_verified v alors
            Ref (name, Some kind, text_option)
-         else
-           let res =
-             match kind with
+         sinon
+           soit res =
+             filtre kind avec
              | RK_section _ ->
                  (
                   (** we just verify that we find an element of this kind with this name *)
-                  try
-                    let re = Str.regexp ("^"^(Str.quote name)^"$") in
-                    let t = Odoc_search.find_section module_list re in
-                    let v2 = (name, Some (RK_section t)) in
+                  essaie
+                    soit re = Str.regexp ("^"^(Str.quote name)^"$") dans
+                    soit t = Odoc_search.find_section module_list re dans
+                    soit v2 = (name, Some (RK_section t)) dans
                     add_verified v2 ;
                     (name, Some (RK_section t))
-                  with
+                  avec
                     Not_found ->
                       (name, None)
                  )
              | _ ->
-                 let f =
-                   match kind with
+                 soit f =
+                   filtre kind avec
                      RK_module -> module_exists
                    | RK_module_type -> module_type_exists
                    | RK_class -> class_exists
@@ -750,33 +750,33 @@ let rec assoc_comments_text_elements parent_name module_list t_ele =
                    | RK_exception -> exception_exists
                    | RK_attribute -> attribute_exists
                    | RK_method -> method_exists
-                   | RK_section _ -> assert false
+                   | RK_section _ -> affirme faux
                    | RK_recfield -> recfield_exists
                    | RK_const -> const_exists
-                 in
-                 if f name then
+                 dans
+                 si f name alors
                    (
                     add_verified v ;
                     (name, Some kind)
                    )
-                 else
+                 sinon
                    (name, None)
-           in
-           match res with
+           dans
+           filtre res avec
            | (name, Some k) -> Ref (name, Some k, text_option)
            | (_, None) ->
-               match parent_name with
+               filtre parent_name avec
                  None ->
                    Odoc_global.pwarning (not_found_of_kind kind initial_name);
                    Ref (initial_name, None, text_option)
                | Some p ->
-                   let parent_name =
-                     match Name.father p with
+                   soit parent_name =
+                     filtre Name.father p avec
                        "" -> None
                      | s -> Some s
-                   in
+                   dans
                    iter_parent ?parent_name (Name.concat p initial_name)
-       in
+       dans
        iter_parent ~parent_name initial_name
       )
   | Module_list l ->
@@ -786,25 +786,25 @@ let rec assoc_comments_text_elements parent_name module_list t_ele =
   | Custom (s,t) -> Custom (s, (assoc_comments_text parent_name module_list t))
   | Target (target, code) -> Target (target, code)
 
-and assoc_comments_text parent_name module_list text =
+et assoc_comments_text parent_name module_list text =
   List.map (assoc_comments_text_elements parent_name module_list) text
 
-and assoc_comments_info parent_name module_list i =
-  let ft = assoc_comments_text parent_name module_list in
+et assoc_comments_info parent_name module_list i =
+  soit ft = assoc_comments_text parent_name module_list dans
   {
-    i with
+    i avec
     i_desc = ao ft i.i_desc ;
-    i_sees = List.map (fun (sr, t) -> (sr, ft t)) i.i_sees;
+    i_sees = List.map (fonc (sr, t) -> (sr, ft t)) i.i_sees;
     i_deprecated = ao ft i.i_deprecated ;
-    i_params = List.map (fun (name, t) -> (name, ft t)) i.i_params;
-    i_raised_exceptions = List.map (fun (name, t) -> (name, ft t)) i.i_raised_exceptions;
+    i_params = List.map (fonc (name, t) -> (name, ft t)) i.i_params;
+    i_raised_exceptions = List.map (fonc (name, t) -> (name, ft t)) i.i_raised_exceptions;
     i_return_value = ao ft i.i_return_value ;
-    i_custom = List.map (fun (tag, t) -> (tag, ft t)) i.i_custom ;
+    i_custom = List.map (fonc (tag, t) -> (tag, ft t)) i.i_custom ;
   }
 
 
-let rec assoc_comments_module_element parent_name module_list m_ele =
-  match m_ele with
+soit rec assoc_comments_module_element parent_name module_list m_ele =
+  filtre m_ele avec
     Element_module m ->
       Element_module (assoc_comments_module module_list m)
   | Element_module_type mt ->
@@ -824,8 +824,8 @@ let rec assoc_comments_module_element parent_name module_list m_ele =
   | Element_module_comment t ->
       Element_module_comment (assoc_comments_text parent_name module_list t)
 
-and assoc_comments_class_element parent_name module_list c_ele =
-  match c_ele with
+et assoc_comments_class_element parent_name module_list c_ele =
+  filtre c_ele avec
     Class_attribute a ->
       Class_attribute (assoc_comments_attribute module_list a)
   | Class_method m ->
@@ -833,8 +833,8 @@ and assoc_comments_class_element parent_name module_list c_ele =
   | Class_comment t ->
       Class_comment (assoc_comments_text parent_name module_list t)
 
-and assoc_comments_module_kind parent_name module_list mk =
-  match mk with
+et assoc_comments_module_kind parent_name module_list mk =
+  filtre mk avec
   | Module_struct eles ->
       Module_struct
         (List.map (assoc_comments_module_element parent_name module_list) eles)
@@ -853,8 +853,8 @@ and assoc_comments_module_kind parent_name module_list mk =
   | Module_typeof _ -> mk
   | Module_unpack _ -> mk
 
-and assoc_comments_module_type_kind parent_name module_list mtk =
-  match mtk with
+et assoc_comments_module_type_kind parent_name module_list mtk =
+  filtre mtk avec
   | Module_type_struct eles ->
       Module_type_struct
         (List.map (assoc_comments_module_element parent_name module_list) eles)
@@ -868,16 +868,16 @@ and assoc_comments_module_type_kind parent_name module_list mtk =
         (assoc_comments_module_type_kind parent_name module_list mtk1, s)
   | Module_type_typeof _ -> mtk
 
-and assoc_comments_class_kind parent_name module_list ck =
-  match ck with
+et assoc_comments_class_kind parent_name module_list ck =
+  filtre ck avec
     Class_structure (inher, eles) ->
-      let inher2 =
+      soit inher2 =
         List.map
-          (fun ic ->
-            { ic with
+          (fonc ic ->
+            { ic avec
               ic_text = ao (assoc_comments_text parent_name module_list) ic.ic_text })
           inher
-      in
+      dans
       Class_structure
         (inher2, List.map (assoc_comments_class_element parent_name module_list) eles)
 
@@ -887,131 +887,131 @@ and assoc_comments_class_kind parent_name module_list ck =
       Class_constraint (assoc_comments_class_kind parent_name module_list ck1,
                         assoc_comments_class_type_kind parent_name module_list ctk)
 
-and assoc_comments_class_type_kind parent_name module_list ctk =
-  match ctk with
+et assoc_comments_class_type_kind parent_name module_list ctk =
+  filtre ctk avec
     Class_signature (inher, eles) ->
-      let inher2 =
+      soit inher2 =
         List.map
-          (fun ic -> { ic with
+          (fonc ic -> { ic avec
                        ic_text = ao (assoc_comments_text parent_name module_list) ic.ic_text })
           inher
-      in
+      dans
       Class_signature (inher2, List.map (assoc_comments_class_element parent_name module_list) eles)
 
   | Class_type _ -> ctk
 
 
-and assoc_comments_module module_list m =
+et assoc_comments_module module_list m =
   m.m_info <- ao (assoc_comments_info m.m_name module_list) m.m_info ;
   m.m_kind <- assoc_comments_module_kind m.m_name module_list m.m_kind ;
   m
 
-and assoc_comments_module_type module_list mt =
+et assoc_comments_module_type module_list mt =
   mt.mt_info <- ao (assoc_comments_info mt.mt_name module_list) mt.mt_info ;
   mt.mt_kind <- ao (assoc_comments_module_type_kind mt.mt_name module_list) mt.mt_kind ;
   mt
 
-and assoc_comments_class module_list c =
+et assoc_comments_class module_list c =
   c.cl_info <- ao (assoc_comments_info c.cl_name module_list) c.cl_info ;
   c.cl_kind <- assoc_comments_class_kind c.cl_name module_list c.cl_kind ;
   assoc_comments_parameter_list c.cl_name module_list c.cl_parameters;
   c
 
-and assoc_comments_class_type module_list ct =
+et assoc_comments_class_type module_list ct =
   ct.clt_info <- ao (assoc_comments_info ct.clt_name module_list) ct.clt_info ;
   ct.clt_kind <- assoc_comments_class_type_kind ct.clt_name module_list ct.clt_kind ;
   ct
 
-and assoc_comments_parameter parent_name module_list p =
-  match p with
+et assoc_comments_parameter parent_name module_list p =
+  filtre p avec
     Simple_name sn ->
       sn.sn_text <- ao (assoc_comments_text parent_name module_list) sn.sn_text
   | Tuple (l, t) ->
       List.iter (assoc_comments_parameter parent_name module_list) l
 
-and assoc_comments_parameter_list parent_name module_list pl =
+et assoc_comments_parameter_list parent_name module_list pl =
   List.iter (assoc_comments_parameter parent_name module_list) pl
 
-and assoc_comments_value module_list v =
-  let parent = Name.father v.val_name in
+et assoc_comments_value module_list v =
+  soit parent = Name.father v.val_name dans
   v.val_info <- ao (assoc_comments_info parent module_list) v.val_info ;
   assoc_comments_parameter_list parent module_list v.val_parameters;
   v
 
-and assoc_comments_exception module_list e =
-  let parent = Name.father e.ex_name in
+et assoc_comments_exception module_list e =
+  soit parent = Name.father e.ex_name dans
   e.ex_info <- ao (assoc_comments_info parent module_list) e.ex_info ;
   e
 
-and assoc_comments_type module_list t =
-  let parent = Name.father t.ty_name in
+et assoc_comments_type module_list t =
+  soit parent = Name.father t.ty_name dans
   t.ty_info <- ao (assoc_comments_info parent module_list) t.ty_info ;
-  (match t.ty_kind with
+  (filtre t.ty_kind avec
     Type_abstract -> ()
   | Type_variant vl ->
       List.iter
-        (fun vc -> vc.vc_text <- ao (assoc_comments_info parent module_list) vc.vc_text)
+        (fonc vc -> vc.vc_text <- ao (assoc_comments_info parent module_list) vc.vc_text)
         vl
   | Type_record fl ->
       List.iter
-        (fun rf -> rf.rf_text <- ao (assoc_comments_info parent module_list) rf.rf_text)
+        (fonc rf -> rf.rf_text <- ao (assoc_comments_info parent module_list) rf.rf_text)
         fl
   );
   t
 
-and assoc_comments_attribute module_list a =
-  let _ = assoc_comments_value module_list a.att_value in
+et assoc_comments_attribute module_list a =
+  soit _ = assoc_comments_value module_list a.att_value dans
   a
 
-and assoc_comments_method module_list m =
-  let parent_name = Name.father m.met_value.val_name in
-  let _ = assoc_comments_value module_list m.met_value in
+et assoc_comments_method module_list m =
+  soit parent_name = Name.father m.met_value.val_name dans
+  soit _ = assoc_comments_value module_list m.met_value dans
   assoc_comments_parameter_list parent_name module_list m.met_value.val_parameters;
   m
 
 
-let associate_type_of_elements_in_comments module_list =
+soit associate_type_of_elements_in_comments module_list =
   List.map (assoc_comments_module module_list) module_list
 
 
 (***********************************************************)
 (** The function which performs all the cross referencing. *)
-let associate module_list =
+soit associate module_list =
   get_alias_names module_list ;
   init_known_elements_map module_list;
-  let rec remove_doubles acc = function
+  soit rec remove_doubles acc = fonction
       [] -> acc
     | h :: q ->
-        if List.mem h acc then remove_doubles acc q
-        else remove_doubles (h :: acc) q
-  in
-  let rec iter incomplete_modules =
-    let (b_modif, remaining_inc_modules, acc_names_not_found) =
-      List.fold_left (associate_in_module module_list) (false, [], []) incomplete_modules
-    in
-    let remaining_no_doubles = remove_doubles [] remaining_inc_modules in
-    let remaining_modules = List.filter
-        (fun m -> List.mem m.m_name remaining_no_doubles)
+        si List.mem h acc alors remove_doubles acc q
+        sinon remove_doubles (h :: acc) q
+  dans
+  soit rec iter incomplete_modules =
+    soit (b_modif, remaining_inc_modules, acc_names_not_found) =
+      List.fold_left (associate_in_module module_list) (faux, [], []) incomplete_modules
+    dans
+    soit remaining_no_doubles = remove_doubles [] remaining_inc_modules dans
+    soit remaining_modules = List.filter
+        (fonc m -> List.mem m.m_name remaining_no_doubles)
         incomplete_modules
-    in
-    if b_modif then
+    dans
+    si b_modif alors
       (* we may be able to associate something else *)
       iter remaining_modules
-    else
+    sinon
       (* nothing changed, we won't be able to associate any more *)
       acc_names_not_found
-  in
-  let names_not_found = iter module_list in
+  dans
+  soit names_not_found = iter module_list dans
   (
-   match names_not_found with
+   filtre names_not_found avec
      [] ->
        ()
    | l ->
        List.iter
-         (fun nf ->
+         (fonc nf ->
            Odoc_global.pwarning
              (
-              match nf with
+              filtre nf avec
                 NF_m n -> Odoc_messages.cross_module_not_found n
               | NF_mt n -> Odoc_messages.cross_module_type_not_found n
               | NF_mmt n -> Odoc_messages.cross_module_or_module_type_not_found n

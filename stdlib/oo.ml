@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-let copy = CamlinternalOO.copy
-external id : < .. > -> int = "%field1"
-let new_method = CamlinternalOO.public_method_label
-let public_method_label = CamlinternalOO.public_method_label
+soit copy = CamlinternalOO.copy
+dehors id : < .. > -> int = "%field1"
+soit new_method = CamlinternalOO.public_method_label
+soit public_method_label = CamlinternalOO.public_method_label

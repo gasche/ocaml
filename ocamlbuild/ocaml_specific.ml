@@ -12,56 +12,56 @@
 
 
 (* Original author: Nicolas Pouillard *)
-open My_std
-open Format
-open Log
-open Pathname.Operators
-open Tags.Operators
-open Rule
-open Tools
-open Rule.Common_commands
-open Outcome
-open Command;;
+ouvre My_std
+ouvre Format
+ouvre Log
+ouvre Pathname.Operators
+ouvre Tags.Operators
+ouvre Rule
+ouvre Tools
+ouvre Rule.Common_commands
+ouvre Outcome
+ouvre Command;;
 
-open Ocaml_utils
+ouvre Ocaml_utils
 
 module C_tools = struct
-  let link_C_library clib a libname env build =
-    let clib = env clib and a = env a and libname = env libname in
-    let objs = string_list_of_file clib in
-    let include_dirs = Pathname.include_dirs_of (Pathname.dirname a) in
-    let obj_of_o x =
-      if Filename.check_suffix x ".o" && !Options.ext_obj <> "o" then
+  soit link_C_library clib a libname env build =
+    soit clib = env clib et a = env a et libname = env libname dans
+    soit objs = string_list_of_file clib dans
+    soit include_dirs = Pathname.include_dirs_of (Pathname.dirname a) dans
+    soit obj_of_o x =
+      si Filename.check_suffix x ".o" && !Options.ext_obj <> "o" alors
         Pathname.update_extension !Options.ext_obj x
-      else x in
-    let resluts = build (List.map (fun o -> List.map (fun dir -> dir / obj_of_o o) include_dirs) objs) in
-    let objs = List.map begin function
+      sinon x dans
+    soit resluts = build (List.map (fonc o -> List.map (fonc dir -> dir / obj_of_o o) include_dirs) objs) dans
+    soit objs = List.map début fonction
       | Good o -> o
       | Bad exn -> raise exn
-    end resluts in
+    fin resluts dans
     Cmd(S[!Options.ocamlmklib; A"-o"; Px libname; T(tags_of_pathname a++"c"++"ocamlmklib"); atomize objs]);;
-end
+fin
 
-open Flags
-open Command
-open Rule
+ouvre Flags
+ouvre Command
+ouvre Rule
 
-let init () = let module M = struct
+soit init () = soit module M = struct
 
-let ext_lib = !Options.ext_lib;;
-let ext_obj = !Options.ext_obj;;
-let ext_dll = !Options.ext_dll;;
-let x_o = "%"-.-ext_obj;;
-let x_a = "%"-.-ext_lib;;
-let x_dll = "%"-.-ext_dll;;
-let x_p_o = "%.p"-.-ext_obj;;
-let x_p_a = "%.p"-.-ext_lib;;
-let x_p_dll = "%.p"-.-ext_dll;;
+soit ext_lib = !Options.ext_lib;;
+soit ext_obj = !Options.ext_obj;;
+soit ext_dll = !Options.ext_dll;;
+soit x_o = "%"-.-ext_obj;;
+soit x_a = "%"-.-ext_lib;;
+soit x_dll = "%"-.-ext_dll;;
+soit x_p_o = "%.p"-.-ext_obj;;
+soit x_p_a = "%.p"-.-ext_lib;;
+soit x_p_dll = "%.p"-.-ext_dll;;
 
 (* -output-obj targets *)
-let x_byte_c = "%.byte.c";;
-let x_byte_o = "%.byte"-.-ext_obj;;
-let x_native_o = "%.native"-.-ext_obj;;
+soit x_byte_c = "%.byte.c";;
+soit x_byte_o = "%.byte"-.-ext_obj;;
+soit x_native_o = "%.native"-.-ext_obj;;
 
 rule "target files"
   ~dep:"%.itarget"
@@ -69,18 +69,18 @@ rule "target files"
   ~doc:"If foo.itarget contains a list of ocamlbuild targets, \
         asking ocamlbuild to produce foo.otarget will \
         build each of those targets in turn."
-  begin fun env build ->
-    let itarget = env "%.itarget" in
-    let dir = Pathname.dirname itarget in
-    let targets = string_list_of_file itarget in
-    List.iter ignore_good (build (List.map (fun x -> [dir/x]) targets));
-    if !Options.make_links then
-      let link x =
-        Cmd (S [A"ln"; A"-sf"; P (!Options.build_dir/x); A Pathname.parent_dir_name]) in
-      Seq (List.map (fun x -> link (dir/x)) targets)
-    else
+  début fonc env build ->
+    soit itarget = env "%.itarget" dans
+    soit dir = Pathname.dirname itarget dans
+    soit targets = string_list_of_file itarget dans
+    List.iter ignore_good (build (List.map (fonc x -> [dir/x]) targets));
+    si !Options.make_links alors
+      soit link x =
+        Cmd (S [A"ln"; A"-sf"; P (!Options.build_dir/x); A Pathname.parent_dir_name]) dans
+      Seq (List.map (fonc x -> link (dir/x)) targets)
+    sinon
       Nop
-  end;;
+  fin;;
 
 rule "ocaml: mli -> cmi"
   ~prod:"%.cmi"
@@ -269,9 +269,9 @@ rule "ocaml: cmo* -> cma"
 
 rule "ocaml C stubs: clib & (o|obj)* -> (a|lib) & (so|dll)"
   ~prods:(["%(path:<**/>)lib%(libname:<*> and not <*.*>)"-.-ext_lib] @
-          if Ocamlbuild_config.supports_shared_libraries then
+          si Ocamlbuild_config.supports_shared_libraries alors
             ["%(path:<**/>)dll%(libname:<*> and not <*.*>)"-.-ext_dll]
-          else
+          sinon
 	    [])
   ~dep:"%(path)lib%(libname).clib"
   ?doc:None (* TODO document *)
@@ -421,7 +421,7 @@ rule "ocamldoc: document ocaml project odocl & *odoc -> man|latex|dot..."
 
 (* To use menhir give the -use-menhir option at command line,
    Or put true: use_menhir in your tag file. *)
-if !Options.use_menhir || Configuration.has_tag "use_menhir" then begin
+si !Options.use_menhir || Configuration.has_tag "use_menhir" alors début
   (* Automatic handling of menhir modules, given a
      description file %.mlypack                         *)
   rule "ocaml: modular menhir (mlypack)"
@@ -453,7 +453,7 @@ if !Options.use_menhir || Configuration.has_tag "use_menhir" then begin
     ~dep:"%.mly"
     (Ocaml_tools.menhir_ocamldep_command "%.mly" "%.mly.depends");
 
-end else
+fin sinon
   rule "ocamlyacc"
     ~prods:["%.ml"; "%.mli"]
     ~dep:"%.mly"
@@ -468,14 +468,14 @@ rule "ocaml C stubs: c -> o"
   ~prod:x_o
   ~dep:"%.c"
   ?doc:None (* TODO document *)
-  begin fun env _build ->
-    let c = env "%.c" in
-    let o = env x_o in
-    let comp = if Tags.mem "native" (tags_of_pathname c) then !Options.ocamlopt else !Options.ocamlc in
-    let cc = Cmd(S[comp; T(tags_of_pathname c++"c"++"compile"); A"-c"; Px c]) in
-    if Pathname.dirname o = Pathname.current_dir_name then cc
-    else Seq[cc; mv (Pathname.basename o) o]
-  end;;
+  début fonc env _build ->
+    soit c = env "%.c" dans
+    soit o = env x_o dans
+    soit comp = si Tags.mem "native" (tags_of_pathname c) alors !Options.ocamlopt sinon !Options.ocamlc dans
+    soit cc = Cmd(S[comp; T(tags_of_pathname c++"c"++"compile"); A"-c"; Px c]) dans
+    si Pathname.dirname o = Pathname.current_dir_name alors cc
+    sinon Seq[cc; mv (Pathname.basename o) o]
+  fin;;
 
 rule "ocaml: ml & ml.depends & *cmi -> .inferred.mli"
   ~prod:"%.inferred.mli"
@@ -504,25 +504,25 @@ rule "preprocess: ml -> pp.ml"
         corresponding file to produce a .cmx or .cmo will still work well."
   (Ocaml_tools.camlp4 "pp.ml" "%.ml" "%.pp.ml");;
 
-flag ["ocaml"; "pp"] begin
-  S (List.fold_right (fun x acc -> Sh x :: acc) !Options.ocaml_ppflags [])
-end;;
+flag ["ocaml"; "pp"] début
+  S (List.fold_right (fonc x acc -> Sh x :: acc) !Options.ocaml_ppflags [])
+fin;;
 
-flag ["ocaml"; "compile"] begin
+flag ["ocaml"; "compile"] début
   atomize !Options.ocaml_cflags
-end;;
+fin;;
 
-flag ["c"; "compile"] begin
+flag ["c"; "compile"] début
   atomize !Options.ocaml_cflags
-end;;
+fin;;
 
-flag ["ocaml"; "link"] begin
+flag ["ocaml"; "link"] début
   atomize !Options.ocaml_lflags
-end;;
+fin;;
 
-flag ["c"; "link"] begin
+flag ["c"; "link"] début
   atomize !Options.ocaml_lflags
-end;;
+fin;;
 
 flag ["ocaml"; "ocamlyacc"] (atomize !Options.ocaml_yaccflags);;
 flag ["ocaml"; "menhir"] (atomize !Options.ocaml_yaccflags);;
@@ -536,30 +536,30 @@ flag ["ocaml"; "ocamllex"] (atomize !Options.ocaml_lexflags);;
 (* Tell ocamllex to generate ml code *)
 flag [ "ocaml" ; "ocamllex" ; "generate_ml" ] (S[A "-ml"]);;
 
-flag ["ocaml"; "byte"; "link"] begin
-  S (List.map (fun x -> A (x^".cma")) !Options.ocaml_libs)
-end;;
+flag ["ocaml"; "byte"; "link"] début
+  S (List.map (fonc x -> A (x^".cma")) !Options.ocaml_libs)
+fin;;
 
-flag ["ocaml"; "native"; "link"] begin
-  S (List.map (fun x -> A (x^".cmxa")) !Options.ocaml_libs)
-end;;
+flag ["ocaml"; "native"; "link"] début
+  S (List.map (fonc x -> A (x^".cmxa")) !Options.ocaml_libs)
+fin;;
 
-flag ["ocaml"; "byte"; "link"] begin
-  S (List.map (fun x -> A (x^".cmo")) !Options.ocaml_mods)
-end;;
+flag ["ocaml"; "byte"; "link"] début
+  S (List.map (fonc x -> A (x^".cmo")) !Options.ocaml_mods)
+fin;;
 
-flag ["ocaml"; "native"; "link"] begin
-  S (List.map (fun x -> A (x^".cmx")) !Options.ocaml_mods)
-end;;
+flag ["ocaml"; "native"; "link"] début
+  S (List.map (fonc x -> A (x^".cmx")) !Options.ocaml_mods)
+fin;;
 
 (* findlib *)
-let () =
-  if !Options.use_ocamlfind then begin
+soit () =
+  si !Options.use_ocamlfind alors début
     (* Ocamlfind will link the archives for us. *)
     flag ["ocaml"; "link"; "program"] & A"-linkpkg";
     flag ["ocaml"; "link"; "toplevel"] & A"-linkpkg";
 
-    let all_tags = [
+    soit all_tags = [
       ["ocaml"; "byte"; "compile"];
       ["ocaml"; "native"; "compile"];
       ["ocaml"; "byte"; "link"];
@@ -568,85 +568,85 @@ let () =
       ["ocaml"; "doc"];
       ["ocaml"; "mktop"];
       ["ocaml"; "infer_interface"];
-    ] in
+    ] dans
 
     (* tags package(X), predicate(X) and syntax(X) *)
-    List.iter begin fun tags ->
-      pflag tags "package" (fun pkg -> S [A "-package"; A pkg]);
-      if not (List.mem "ocamldep" tags) then
+    List.iter début fonc tags ->
+      pflag tags "package" (fonc pkg -> S [A "-package"; A pkg]);
+      si not (List.mem "ocamldep" tags) alors
         (* PR#6184: 'ocamlfind ocamldep' does not support -predicate *)
-        pflag tags "predicate" (fun pkg -> S [A "-predicates"; A pkg]);
-      pflag tags "syntax" (fun pkg -> S [A "-syntax"; A pkg])
-    end all_tags
-  end else begin
-    try
+        pflag tags "predicate" (fonc pkg -> S [A "-predicates"; A pkg]);
+      pflag tags "syntax" (fonc pkg -> S [A "-syntax"; A pkg])
+    fin all_tags
+  fin sinon début
+    essaie
       (* Note: if there is no -pkg option, ocamlfind won't be called *)
-      let pkgs = List.map Findlib.query !Options.ocaml_pkgs in
+      soit pkgs = List.map Findlib.query !Options.ocaml_pkgs dans
       flag ["ocaml"; "byte"; "compile"] (Findlib.compile_flags_byte pkgs);
       flag ["ocaml"; "native"; "compile"] (Findlib.compile_flags_native pkgs);
       flag ["ocaml"; "byte"; "link"] (Findlib.link_flags_byte pkgs);
       flag ["ocaml"; "native"; "link"] (Findlib.link_flags_native pkgs)
-    with Findlib.Findlib_error e ->
+    avec Findlib.Findlib_error e ->
       Findlib.report_error e
-  end
+  fin
 
 (* parameterized tags *)
-let () =
+soit () =
   pflag ["ocaml"; "native"; "compile"] "for-pack"
-    (fun param -> S [A "-for-pack"; A param]);
+    (fonc param -> S [A "-for-pack"; A param]);
   pflag ["ocaml"; "native"; "pack"] "for-pack"
-    (fun param -> S [A "-for-pack"; A param]);
+    (fonc param -> S [A "-for-pack"; A param]);
   pflag ["ocaml"; "native"; "compile"] "inline"
-    (fun param -> S [A "-inline"; A param]);
+    (fonc param -> S [A "-inline"; A param]);
   pflag ["ocaml"; "compile"] "pp"
-    (fun param -> S [A "-pp"; A param]);
+    (fonc param -> S [A "-pp"; A param]);
   pflag ["ocaml"; "ocamldep"] "pp"
-    (fun param -> S [A "-pp"; A param]);
+    (fonc param -> S [A "-pp"; A param]);
   pflag ["ocaml"; "doc"] "pp"
-    (fun param -> S [A "-pp"; A param]);
+    (fonc param -> S [A "-pp"; A param]);
   pflag ["ocaml"; "infer_interface"] "pp"
-    (fun param -> S [A "-pp"; A param]);
+    (fonc param -> S [A "-pp"; A param]);
   pflag ["ocaml";"compile";] "warn"
-    (fun param -> S [A "-w"; A param]);
+    (fonc param -> S [A "-w"; A param]);
   pflag ["ocaml";"compile";] "warn_error"
-    (fun param -> S [A "-warn-error"; A param]);
+    (fonc param -> S [A "-warn-error"; A param]);
   ()
 
-let camlp4_flags camlp4s =
-  List.iter begin fun camlp4 ->
+soit camlp4_flags camlp4s =
+  List.iter début fonc camlp4 ->
     flag ["ocaml"; "pp"; camlp4] (A camlp4)
-  end camlp4s;;
+  fin camlp4s;;
 
-let p4_series =  ["camlp4o"; "camlp4r"; "camlp4of"; "camlp4rf"; "camlp4orf"; "camlp4oof"];;
-let p4_opt_series = List.map (fun f -> f ^ ".opt") p4_series;;
+soit p4_series =  ["camlp4o"; "camlp4r"; "camlp4of"; "camlp4rf"; "camlp4orf"; "camlp4oof"];;
+soit p4_opt_series = List.map (fonc f -> f ^ ".opt") p4_series;;
 
 camlp4_flags p4_series;;
 camlp4_flags p4_opt_series;;
 
-let camlp4_flags' camlp4s =
-  List.iter begin fun (camlp4, flags) ->
+soit camlp4_flags' camlp4s =
+  List.iter début fonc (camlp4, flags) ->
     flag ["ocaml"; "pp"; camlp4] flags
-  end camlp4s;;
+  fin camlp4s;;
 
 camlp4_flags' ["camlp4orr", S[A"camlp4of"; A"-parser"; A"reloaded"];
                "camlp4rrr", S[A"camlp4rf"; A"-parser"; A"reloaded"]];;
 
 flag ["ocaml"; "pp"; "camlp4:no_quot"] (A"-no_quot");;
 
-ocaml_lib ~extern:true "dynlink";;
-ocaml_lib ~extern:true "unix";;
-ocaml_lib ~extern:true "str";;
-ocaml_lib ~extern:true "bigarray";;
-ocaml_lib ~extern:true "nums";;
-ocaml_lib ~extern:true "dbm";;
-ocaml_lib ~extern:true "graphics";;
-ocaml_lib ~extern:true ~tag_name:"use_toplevel" "toplevellib";;
-ocaml_lib ~extern:true ~dir:"+ocamldoc" "ocamldoc";;
-ocaml_lib ~extern:true ~dir:"+ocamlbuild" ~tag_name:"use_ocamlbuild" "ocamlbuildlib";;
+ocaml_lib ~extern:vrai "dynlink";;
+ocaml_lib ~extern:vrai "unix";;
+ocaml_lib ~extern:vrai "str";;
+ocaml_lib ~extern:vrai "bigarray";;
+ocaml_lib ~extern:vrai "nums";;
+ocaml_lib ~extern:vrai "dbm";;
+ocaml_lib ~extern:vrai "graphics";;
+ocaml_lib ~extern:vrai ~tag_name:"use_toplevel" "toplevellib";;
+ocaml_lib ~extern:vrai ~dir:"+ocamldoc" "ocamldoc";;
+ocaml_lib ~extern:vrai ~dir:"+ocamlbuild" ~tag_name:"use_ocamlbuild" "ocamlbuildlib";;
 
-ocaml_lib ~extern:true ~dir:"+camlp4" ~tag_name:"use_camlp4" "camlp4lib";;
-ocaml_lib ~extern:true ~dir:"+camlp4" ~tag_name:"use_old_camlp4" "camlp4";;
-ocaml_lib ~extern:true ~dir:"+camlp4" ~tag_name:"use_camlp4_full" "camlp4fulllib";;
+ocaml_lib ~extern:vrai ~dir:"+camlp4" ~tag_name:"use_camlp4" "camlp4lib";;
+ocaml_lib ~extern:vrai ~dir:"+camlp4" ~tag_name:"use_old_camlp4" "camlp4";;
+ocaml_lib ~extern:vrai ~dir:"+camlp4" ~tag_name:"use_camlp4_full" "camlp4fulllib";;
 flag ["ocaml"; "compile"; "use_camlp4_full"]
      (S[A"-I"; A"+camlp4/Camlp4Parsers";
         A"-I"; A"+camlp4/Camlp4Printers";
@@ -682,13 +682,13 @@ flag ["ocaml"; "compile"; "profile"; "native"] (A "-p");;
 (* threads, with or without findlib *)
 flag ["ocaml"; "compile"; "thread"] (A "-thread");;
 flag ["ocaml"; "link"; "thread"] (A "-thread");;
-if not !Options.use_ocamlfind then begin
+si not !Options.use_ocamlfind alors début
   flag ["ocaml"; "doc"; "thread"] (S[A"-I"; A"+threads"]);
   flag ["ocaml"; "link"; "thread"; "native"; "program"] (A "threads.cmxa");
   flag ["ocaml"; "link"; "thread"; "byte"; "program"] (A "threads.cma");
   flag ["ocaml"; "link"; "thread"; "native"; "toplevel"] (A "threads.cmxa");
   flag ["ocaml"; "link"; "thread"; "byte"; "toplevel"] (A "threads.cma");
-end;;
+fin;;
 
 flag ["ocaml"; "compile"; "nopervasives"] (A"-nopervasives");;
 flag ["ocaml"; "compile"; "nolabels"] (A"-nolabels");;
@@ -696,23 +696,23 @@ flag ["ocaml"; "compile"; "nolabels"] (A"-nolabels");;
 (*flag ["ocaml"; "ocamlyacc"; "quiet"] (A"-q");;*)
 flag ["ocaml"; "ocamllex"; "quiet"] (A"-q");;
 
-let ocaml_warn_flag c =
-  flag ~deprecated:true
+soit ocaml_warn_flag c =
+  flag ~deprecated:vrai
     ["ocaml"; "compile"; sprintf "warn_%c" (Char.uppercase c)]
     (S[A"-w"; A (sprintf "%c" (Char.uppercase c))]);
-  flag ~deprecated:true
+  flag ~deprecated:vrai
     ["ocaml"; "compile"; sprintf "warn_error_%c" (Char.uppercase c)]
     (S[A"-warn-error"; A (sprintf "%c" (Char.uppercase c))]);
-  flag ~deprecated:true
+  flag ~deprecated:vrai
     ["ocaml"; "compile"; sprintf "warn_%c" (Char.lowercase c)]
     (S[A"-w"; A (sprintf "%c" (Char.lowercase c))]);
-  flag ~deprecated:true
+  flag ~deprecated:vrai
     ["ocaml"; "compile"; sprintf "warn_error_%c" (Char.lowercase c)]
     (S[A"-warn-error"; A (sprintf "%c" (Char.lowercase c))]);;
 
 List.iter ocaml_warn_flag ['A'; 'C'; 'D'; 'E'; 'F'; 'K'; 'L'; 'M'; 'P'; 'R'; 'S'; 'U'; 'V'; 'X'; 'Y'; 'Z'];;
 
-flag ~deprecated:true
+flag ~deprecated:vrai
   ["ocaml"; "compile"; "strict-sequence"] (A "-strict-sequence");;
 flag ["ocaml"; "compile"; "strict_sequence"] (A "-strict-sequence");;
 
@@ -726,4 +726,4 @@ flag ["ocaml"; "doc"; "docfile"; "extension:texi"] (A"-texi");;
 ocaml_lib "ocamlbuildlib";;
 ocaml_lib "ocamlbuildlightlib";;
 
-end in ()
+fin dans ()

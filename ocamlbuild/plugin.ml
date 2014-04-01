@@ -12,78 +12,78 @@
 
 
 (* Original author: Nicolas Pouillard *)
-open My_std
-open Format
-open Log
-open Pathname.Operators
-open Tags.Operators
-open Rule
-open Tools
-open Command
+ouvre My_std
+ouvre Format
+ouvre Log
+ouvre Pathname.Operators
+ouvre Tags.Operators
+ouvre Rule
+ouvre Tools
+ouvre Command
 ;;
 
 
-let plugin                = "myocamlbuild"
-let plugin_file           = plugin^".ml"
-let plugin_config_file    = plugin^"_config.ml"
-let plugin_config_file_interface = plugin^"_config.mli"
-let we_need_a_plugin ()      = !Options.plugin && sys_file_exists plugin_file
-let we_have_a_plugin ()      = sys_file_exists ((!Options.build_dir/plugin)^(!Options.exe))
-let we_have_a_config_file () = sys_file_exists plugin_config_file
-let we_have_a_config_file_interface () = sys_file_exists plugin_config_file_interface
+soit plugin                = "myocamlbuild"
+soit plugin_file           = plugin^".ml"
+soit plugin_config_file    = plugin^"_config.ml"
+soit plugin_config_file_interface = plugin^"_config.mli"
+soit we_need_a_plugin ()      = !Options.plugin && sys_file_exists plugin_file
+soit we_have_a_plugin ()      = sys_file_exists ((!Options.build_dir/plugin)^(!Options.exe))
+soit we_have_a_config_file () = sys_file_exists plugin_config_file
+soit we_have_a_config_file_interface () = sys_file_exists plugin_config_file_interface
 
-module Make(U:sig end) =
+module Make(U:sig fin) =
   struct
-    let we_need_a_plugin = we_need_a_plugin ()
-    let we_have_a_plugin = we_have_a_plugin ()
-    let we_have_a_config_file = we_have_a_config_file ()
-    let we_have_a_config_file_interface = we_have_a_config_file_interface ()
-    let up_to_date_or_copy fn =
-      let fn' = !Options.build_dir/fn in
+    soit we_need_a_plugin = we_need_a_plugin ()
+    soit we_have_a_plugin = we_have_a_plugin ()
+    soit we_have_a_config_file = we_have_a_config_file ()
+    soit we_have_a_config_file_interface = we_have_a_config_file_interface ()
+    soit up_to_date_or_copy fn =
+      soit fn' = !Options.build_dir/fn dans
       Pathname.exists fn &&
-        begin
+        début
           Pathname.exists fn' && Pathname.same_contents fn fn' ||
-          begin
+          début
             Shell.cp fn fn';
-            false
-          end
-        end
+            faux
+          fin
+        fin
 
-    let rebuild_plugin_if_needed () =
-      let a = up_to_date_or_copy plugin_file in
-      let b = (not we_have_a_config_file) || up_to_date_or_copy plugin_config_file in
-      let c = (not we_have_a_config_file_interface) || up_to_date_or_copy plugin_config_file_interface in
-      if a && b && c && we_have_a_plugin then
+    soit rebuild_plugin_if_needed () =
+      soit a = up_to_date_or_copy plugin_file dans
+      soit b = (not we_have_a_config_file) || up_to_date_or_copy plugin_config_file dans
+      soit c = (not we_have_a_config_file_interface) || up_to_date_or_copy plugin_config_file_interface dans
+      si a && b && c && we_have_a_plugin alors
         () (* Up to date *)
            (* FIXME: remove ocamlbuild_config.ml in _build/ if removed in parent *)
-      else begin
-        if !Options.native_plugin
-            && not (sys_file_exists ((!Ocamlbuild_where.libdir)/"ocamlbuildlib.cmxa")) then
-          begin
-            Options.native_plugin := false;
+      sinon début
+        si !Options.native_plugin
+            && not (sys_file_exists ((!Ocamlbuild_where.libdir)/"ocamlbuildlib.cmxa")) alors
+          début
+            Options.native_plugin := faux;
             eprintf "Warning: Won't be able to compile a native plugin"
-          end;
-        let plugin_config =
-          if we_have_a_config_file then
-            if we_have_a_config_file_interface then
+          fin;
+        soit plugin_config =
+          si we_have_a_config_file alors
+            si we_have_a_config_file_interface alors
               S[P plugin_config_file_interface; P plugin_config_file]
-            else P plugin_config_file
-          else N in
+            sinon P plugin_config_file
+          sinon N dans
 
-        let cma, cmo, compiler, byte_or_native =
-          if !Options.native_plugin then
+        soit cma, cmo, compiler, byte_or_native =
+          si !Options.native_plugin alors
             "cmxa", "cmx", !Options.ocamlopt, "native"
-          else
+          sinon
             "cma", "cmo", !Options.ocamlc, "byte"
-        in
+        dans
 
 
-        let (unix_spec, ocamlbuild_lib_spec, ocamlbuild_module_spec) =
+        soit (unix_spec, ocamlbuild_lib_spec, ocamlbuild_module_spec) =
 
-          let use_light_mode =
-            not !Options.native_plugin && !*My_unix.is_degraded in
-          let use_ocamlfind_pkgs =
-            !Options.use_ocamlfind && !Options.plugin_tags <> [] in
+          soit use_light_mode =
+            not !Options.native_plugin && !*My_unix.is_degraded dans
+          soit use_ocamlfind_pkgs =
+            !Options.use_ocamlfind && !Options.plugin_tags <> [] dans
           (* The plugin has the following dependencies that must be
              included during compilation:
 
@@ -159,42 +159,42 @@ module Make(U:sig end) =
              of ocamlbuildlib.
           *)
 
-          let unix_lib =
-            if use_ocamlfind_pkgs then `Package "unix"
-            else if use_light_mode then `Nothing
-            else `Lib "unix" in
+          soit unix_lib =
+            si use_ocamlfind_pkgs alors `Package "unix"
+            sinon si use_light_mode alors `Nothing
+            sinon `Lib "unix" dans
 
-          let ocamlbuild_lib =
-            if use_ocamlfind_pkgs then `Package "ocamlbuild"
-            else if use_light_mode then `Local_lib "ocamlbuildlightlib"
-            else `Local_lib "ocamlbuildlib" in
+          soit ocamlbuild_lib =
+            si use_ocamlfind_pkgs alors `Package "ocamlbuild"
+            sinon si use_light_mode alors `Local_lib "ocamlbuildlightlib"
+            sinon `Local_lib "ocamlbuildlib" dans
 
-          let ocamlbuild_module =
-            if use_light_mode then `Local_mod "ocamlbuildlight"
-            else `Local_mod "ocamlbuild" in
+          soit ocamlbuild_module =
+            si use_light_mode alors `Local_mod "ocamlbuildlight"
+            sinon `Local_mod "ocamlbuild" dans
 
-          let dir = !Ocamlbuild_where.libdir in
-          let dir = if Pathname.is_implicit dir then Pathname.pwd/dir else dir in
+          soit dir = !Ocamlbuild_where.libdir dans
+          soit dir = si Pathname.is_implicit dir alors Pathname.pwd/dir sinon dir dans
 
-          let in_dir file =
-            let path = dir/file in
-            if not (sys_file_exists path) then failwith
+          soit in_dir file =
+            soit path = dir/file dans
+            si not (sys_file_exists path) alors failwith
               (sprintf "Cannot find %S in ocamlbuild -where directory" file);
-            path in
+            path dans
 
-          let spec = function
+          soit spec = fonction
             | `Nothing -> N
             | `Package pkg -> S[A "-package"; A pkg]
             | `Lib lib -> P (lib -.- cma)
             | `Local_lib llib -> S [A "-I"; A dir; P (in_dir (llib -.- cma))]
-            | `Local_mod lmod -> P (in_dir (lmod -.- cmo)) in
+            | `Local_mod lmod -> P (in_dir (lmod -.- cmo)) dans
 
           (spec unix_lib, spec ocamlbuild_lib, spec ocamlbuild_module)
-        in
+        dans
 
-        let plugin_tags =
+        soit plugin_tags =
           Tags.of_list !Options.plugin_tags
-          ++ "ocaml" ++ "program" ++ "link" ++ byte_or_native in
+          ++ "ocaml" ++ "program" ++ "link" ++ byte_or_native dans
 
         (* The plugin is compiled before [Param_tags.init()] is called
            globally, which means that parametrized tags have not been
@@ -204,7 +204,7 @@ module Make(U:sig end) =
         *)
         Param_tags.partial_init plugin_tags;
 
-        let cmd =
+        soit cmd =
           (* The argument order is important: we carefully put the
              plugin source files before the ocamlbuild.cm{o,x} module
              doing the main initialization, so that user global
@@ -224,39 +224,39 @@ module Make(U:sig end) =
                 plugin_config; P plugin_file;
                 ocamlbuild_module_spec;
                 A"-o"; Px (plugin^(!Options.exe))])
-        in
+        dans
         Shell.chdir !Options.build_dir;
         Shell.rm_f (plugin^(!Options.exe));
         Command.execute cmd;
-        if !Options.just_plugin then begin
+        si !Options.just_plugin alors début
           Log.finish ();
           raise Exit_OK;
-        end;
-      end
+        fin;
+      fin
 
-    let execute_plugin_if_needed () =
-      if we_need_a_plugin then
-        begin
+    soit execute_plugin_if_needed () =
+      si we_need_a_plugin alors
+        début
           rebuild_plugin_if_needed ();
           Shell.chdir Pathname.pwd;
-          let runner = if !Options.native_plugin then N else !Options.ocamlrun in
-          let argv = List.tl (Array.to_list Sys.argv) in
-          let passed_argv = List.filter (fun s -> s <> "-plugin-option") argv in
-          let spec = S[runner; P(!Options.build_dir/plugin^(!Options.exe));
-                       A"-no-plugin"; atomize passed_argv] in
+          soit runner = si !Options.native_plugin alors N sinon !Options.ocamlrun dans
+          soit argv = List.tl (Array.to_list Sys.argv) dans
+          soit passed_argv = List.filter (fonc s -> s <> "-plugin-option") argv dans
+          soit spec = S[runner; P(!Options.build_dir/plugin^(!Options.exe));
+                       A"-no-plugin"; atomize passed_argv] dans
           Log.finish ();
-          let rc = sys_command (Command.string_of_command_spec spec) in
+          soit rc = sys_command (Command.string_of_command_spec spec) dans
           raise (Exit_silently_with_code rc);
-        end
-      else if not (sys_file_exists plugin_file) && !Options.plugin_tags <> [] then
+        fin
+      sinon si not (sys_file_exists plugin_file) && !Options.plugin_tags <> [] alors
         eprintf "Warning: option -plugin-tag(s) has no effect \
                  in absence of plugin file %S" plugin_file
-      else
+      sinon
         ()
-  end
+  fin
 ;;
 
-let execute_plugin_if_needed () =
-  let module P = Make(struct end) in
+soit execute_plugin_if_needed () =
+  soit module P = Make(struct fin) dans
   P.execute_plugin_if_needed ()
 ;;

@@ -13,7 +13,7 @@
 
 (* Original author: Nicolas Pouillard *)
 
-include Signatures.OPTIONS with type command_spec = Command.spec
+inclus Signatures.OPTIONS avec type command_spec = Command.spec
 
 (* this option is not in Signatures.OPTIONS yet because adding tags to
    the compilation of the plugin is a recent feature that may still be

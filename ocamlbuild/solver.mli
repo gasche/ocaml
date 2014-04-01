@@ -12,13 +12,13 @@
 
 
 (* Original author: Nicolas Pouillard *)
-type backtrace = private
-  | Leaf of Pathname.t
-  | Choice of backtrace list
-  | Depth of Pathname.t * backtrace
-  | Target of string * backtrace
-exception Failed of backtrace
-exception Circular of Pathname.t * Pathname.t list
+type backtrace = privée
+  | Leaf de Pathname.t
+  | Choice de backtrace list
+  | Depth de Pathname.t * backtrace
+  | Target de string * backtrace
+exception Failed de backtrace
+exception Circular de Pathname.t * Pathname.t list
 
 val solve : Pathname.t -> unit
 val solve_target : string -> Pathname.t list -> Pathname.t

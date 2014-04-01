@@ -46,17 +46,17 @@ val dummy_pos : position;;
 
 type lexbuf =
   { refill_buff : lexbuf -> unit;
-    mutable lex_buffer : string;
-    mutable lex_buffer_len : int;
-    mutable lex_abs_pos : int;
-    mutable lex_start_pos : int;
-    mutable lex_curr_pos : int;
-    mutable lex_last_pos : int;
-    mutable lex_last_action : int;
-    mutable lex_eof_reached : bool;
-    mutable lex_mem : int array;
-    mutable lex_start_p : position;
-    mutable lex_curr_p : position;
+    modifiable lex_buffer : string;
+    modifiable lex_buffer_len : int;
+    modifiable lex_abs_pos : int;
+    modifiable lex_start_pos : int;
+    modifiable lex_curr_pos : int;
+    modifiable lex_last_pos : int;
+    modifiable lex_last_action : int;
+    modifiable lex_eof_reached : bool;
+    modifiable lex_mem : int array;
+    modifiable lex_start_p : position;
+    modifiable lex_curr_p : position;
   }
 (** The type of lexer buffers. A lexer buffer is the argument passed
    to the scanning functions defined by the generated scanners.

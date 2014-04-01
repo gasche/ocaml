@@ -12,82 +12,82 @@
 
 (** Analysis of comments. *)
 
-open Odoc_types
+ouvre Odoc_types
 
-let print_DEBUG s = print_string s ; print_newline ();;
+soit print_DEBUG s = print_string s ; print_newline ();;
 
 (** This variable contains the regular expression representing a blank but not a '\n'.*)
-let simple_blank = "[ \013\009\012]"
+soit simple_blank = "[ \013\009\012]"
 
 module type Texter =
     sig
       (** Return a text structure from a string. *)
       val text_of_string : string -> text
-    end
+    fin
 
 module Info_retriever =
-  functor (MyTexter : Texter) ->
+  foncteur (MyTexter : Texter) ->
   struct
-    let create_see s =
-      try
-        let lexbuf = Lexing.from_string s in
-        let (see_ref, s) = Odoc_parser.see_info Odoc_see_lexer.main lexbuf in
+    soit create_see s =
+      essaie
+        soit lexbuf = Lexing.from_string s dans
+        soit (see_ref, s) = Odoc_parser.see_info Odoc_see_lexer.main lexbuf dans
         (see_ref, MyTexter.text_of_string s)
-      with
+      avec
       | Odoc_text.Text_syntax (l, c, s) ->
           raise (Failure (Odoc_messages.text_parse_error l c s))
       | _ ->
           raise (Failure ("Unknown error while parsing @see tag: "^s))
 
-    let retrieve_info fun_lex file (s : string) =
-      try
-        let _ = Odoc_comments_global.init () in
+    soit retrieve_info fun_lex file (s : string) =
+      essaie
+        soit _ = Odoc_comments_global.init () dans
         Odoc_lexer.comments_level := 0;
-        let lexbuf = Lexing.from_string s in
-        match Odoc_parser.main fun_lex lexbuf with
+        soit lexbuf = Lexing.from_string s dans
+        filtre Odoc_parser.main fun_lex lexbuf avec
           None ->
             (0, None)
         | Some (desc, remain_opt) ->
-            let mem_nb_chars = !Odoc_comments_global.nb_chars in
-            let _ =
-              match remain_opt with
+            soit mem_nb_chars = !Odoc_comments_global.nb_chars dans
+            soit _ =
+              filtre remain_opt avec
                 None ->
                   ()
               | Some s ->
                   (*DEBUG*)print_string ("remain: "^s); print_newline();
-                  let lexbuf2 = Lexing.from_string s in
+                  soit lexbuf2 = Lexing.from_string s dans
                   Odoc_parser.info_part2 Odoc_lexer.elements lexbuf2
-            in
+            dans
             (mem_nb_chars,
              Some
                {
-                 i_desc = (match desc with "" -> None | _ -> Some (MyTexter.text_of_string desc));
+                 i_desc = (filtre desc avec "" -> None | _ -> Some (MyTexter.text_of_string desc));
                  i_authors = !Odoc_comments_global.authors;
                  i_version = !Odoc_comments_global.version;
                  i_sees = (List.map create_see !Odoc_comments_global.sees) ;
                  i_since = !Odoc_comments_global.since;
                  i_before = Odoc_merge.merge_before_tags
-                     (List.map (fun (n, s) ->
+                     (List.map (fonc (n, s) ->
                          (n, MyTexter.text_of_string s)) !Odoc_comments_global.before)
                    ;
                  i_deprecated =
-                 (match !Odoc_comments_global.deprecated with
+                 (filtre !Odoc_comments_global.deprecated avec
                    None -> None | Some s -> Some (MyTexter.text_of_string s));
                  i_params =
-                 (List.map (fun (n, s) ->
+                 (List.map (fonc (n, s) ->
                    (n, MyTexter.text_of_string s)) !Odoc_comments_global.params);
                  i_raised_exceptions =
-                 (List.map (fun (n, s) ->
+                 (List.map (fonc (n, s) ->
                    (n, MyTexter.text_of_string s)) !Odoc_comments_global.raised_exceptions);
                  i_return_value =
-                 (match !Odoc_comments_global.return_value with
+                 (filtre !Odoc_comments_global.return_value avec
                    None -> None | Some s -> Some (MyTexter.text_of_string s)) ;
                  i_custom = (List.map
-                               (fun (tag, s) -> (tag, MyTexter.text_of_string s))
+                               (fonc (tag, s) -> (tag, MyTexter.text_of_string s))
                                !Odoc_comments_global.customs)
                }
             )
-               with
+               avec
                  Failure s ->
                    incr Odoc_global.errors ;
                     Printf.eprintf "File %S, line %d:\n%s\n%!" file (!Odoc_lexer.line_number + 1) s;
@@ -104,219 +104,219 @@ module Info_retriever =
     (** This function takes a string where a simple comment may has been found. It returns
        false if there is a blank line or the first comment is a special one, or if there is
        no comment if the string.*)
-    let nothing_before_simple_comment s =
+    soit nothing_before_simple_comment s =
       (* get the position of the first "(*" *)
-      try
+      essaie
         print_DEBUG ("comment_is_attached: "^s);
-        let pos = Str.search_forward (Str.regexp "(\\*") s 0 in
-        let next_char = if (String.length s) >= (pos + 1) then s.[pos + 2] else '_' in
+        soit pos = Str.search_forward (Str.regexp "(\\*") s 0 dans
+        soit next_char = si (String.length s) >= (pos + 1) alors s.[pos + 2] sinon '_' dans
         (next_char <> '*') &&
         (
          (* there is no special comment between the constructor and the coment we got *)
-         let s2 = String.sub s 0 pos in
+         soit s2 = String.sub s 0 pos dans
          print_DEBUG ("s2="^s2);
-         try
-           let _ = Str.search_forward (Str.regexp ("['\n']"^simple_blank^"*['\n']")) s2 0 in
+         essaie
+           soit _ = Str.search_forward (Str.regexp ("['\n']"^simple_blank^"*['\n']")) s2 0 dans
            (* a blank line was before the comment *)
-           false
-         with
+           faux
+         avec
            Not_found ->
-             true
+             vrai
         )
-      with
+      avec
         Not_found ->
-          false
+          faux
 
     (** Return true if the given string contains a blank line. *)
-    let blank_line s =
-      try
-        let _ = Str.search_forward (Str.regexp ("['\n']"^simple_blank^"*['\n']")) s 0 in
+    soit blank_line s =
+      essaie
+        soit _ = Str.search_forward (Str.regexp ("['\n']"^simple_blank^"*['\n']")) s 0 dans
         (* a blank line was before the comment *)
-        true
-      with
+        vrai
+      avec
         Not_found ->
-          false
+          faux
 
-    let retrieve_info_special file (s : string) =
+    soit retrieve_info_special file (s : string) =
       retrieve_info Odoc_lexer.main file s
 
-    let retrieve_info_simple file (s : string) =
-      let _ = Odoc_comments_global.init () in
+    soit retrieve_info_simple file (s : string) =
+      soit _ = Odoc_comments_global.init () dans
       Odoc_lexer.comments_level := 0;
-      let lexbuf = Lexing.from_string s in
-      match Odoc_parser.main Odoc_lexer.simple lexbuf with
+      soit lexbuf = Lexing.from_string s dans
+      filtre Odoc_parser.main Odoc_lexer.simple lexbuf avec
         None ->
           (0, None)
       | Some (desc, remain_opt) ->
           (!Odoc_comments_global.nb_chars, Some Odoc_types.dummy_info)
 
     (** Return true if the given string contains a blank line outside a simple comment. *)
-    let blank_line_outside_simple file s =
-      let rec iter s2 =
-        match retrieve_info_simple file s2 with
+    soit blank_line_outside_simple file s =
+      soit rec iter s2 =
+        filtre retrieve_info_simple file s2 avec
           (_, None) ->
             blank_line s2
         | (len, Some _) ->
-            try
-              let pos = Str.search_forward (Str.regexp_string "(*") s2 0 in
-              let s_before = String.sub s2 0 pos in
-              let s_after = String.sub s2 len ((String.length s2) - len) in
+            essaie
+              soit pos = Str.search_forward (Str.regexp_string "(*") s2 0 dans
+              soit s_before = String.sub s2 0 pos dans
+              soit s_after = String.sub s2 len ((String.length s2) - len) dans
               (blank_line s_before) || (iter s_after)
-            with
+            avec
               Not_found ->
                 (* we shouldn't get here *)
-                false
-      in
+                faux
+      dans
       iter s
 
     (** This function returns the first simple comment in
        the given string. If strict is [true] then no
        comment is returned if a blank line or a special
        comment is found before the simple comment. *)
-    let retrieve_first_info_simple ?(strict=true) file (s : string) =
-      match retrieve_info_simple file s with
+    soit retrieve_first_info_simple ?(strict=vrai) file (s : string) =
+      filtre retrieve_info_simple file s avec
         (_, None) ->
           (0, None)
       | (len, Some d) ->
           (* we check if the comment we got was really attached to the constructor,
              i.e. that there was no blank line or any special comment "(**" before *)
-          if (not strict) || (nothing_before_simple_comment s) then
+          si (not strict) || (nothing_before_simple_comment s) alors
             (* ok, we attach the comment to the constructor *)
             (len, Some d)
-          else
+          sinon
             (* a blank line or special comment was before the comment,
                so we must not attach this comment to the constructor. *)
             (0, None)
 
-    let retrieve_last_info_simple file (s : string) =
+    soit retrieve_last_info_simple file (s : string) =
       print_DEBUG ("retrieve_last_info_simple:"^s);
-      let rec f cur_len cur_d =
-        try
-          let s2 = String.sub s cur_len ((String.length s) - cur_len) in
+      soit rec f cur_len cur_d =
+        essaie
+          soit s2 = String.sub s cur_len ((String.length s) - cur_len) dans
           print_DEBUG ("retrieve_last_info_simple.f:"^s2);
-          match retrieve_info_simple file s2 with
+          filtre retrieve_info_simple file s2 avec
             (len, None) ->
               print_DEBUG "retrieve_last_info_simple: None";
               (cur_len + len, cur_d)
           | (len, Some d) ->
               print_DEBUG "retrieve_last_info_simple: Some";
               f (len + cur_len) (Some d)
-        with
+        avec
           _ ->
             print_DEBUG "retrieve_last_info_simple : Erreur String.sub";
             (cur_len, cur_d)
-      in
+      dans
       f 0 None
 
-    let retrieve_last_special_no_blank_after file (s : string) =
+    soit retrieve_last_special_no_blank_after file (s : string) =
       print_DEBUG ("retrieve_last_special_no_blank_after:"^s);
-      let rec f cur_len cur_d =
-        try
-          let s2 = String.sub s cur_len ((String.length s) - cur_len) in
+      soit rec f cur_len cur_d =
+        essaie
+          soit s2 = String.sub s cur_len ((String.length s) - cur_len) dans
           print_DEBUG ("retrieve_last_special_no_blank_after.f:"^s2);
-          match retrieve_info_special file s2 with
+          filtre retrieve_info_special file s2 avec
             (len, None) ->
               print_DEBUG "retrieve_last_special_no_blank_after: None";
               (cur_len + len, cur_d)
           | (len, Some d) ->
               print_DEBUG "retrieve_last_special_no_blank_after: Some";
               f (len + cur_len) (Some d)
-        with
+        avec
           _ ->
             print_DEBUG "retrieve_last_special_no_blank_after : Erreur String.sub";
             (cur_len, cur_d)
-      in
+      dans
       f 0 None
 
-    let all_special file s =
+    soit all_special file s =
       print_DEBUG ("all_special: "^s);
-      let rec iter acc n s2 =
-        match retrieve_info_special file s2 with
+      soit rec iter acc n s2 =
+        filtre retrieve_info_special file s2 avec
           (_, None) ->
             (n, acc)
         | (n2, Some i) ->
             print_DEBUG ("all_special: avant String.sub new_s="^s2);
             print_DEBUG ("n2="^(string_of_int n2)) ;
             print_DEBUG ("len(s2)="^(string_of_int (String.length s2))) ;
-            let new_s = String.sub s2 n2 ((String.length s2) - n2) in
+            soit new_s = String.sub s2 n2 ((String.length s2) - n2) dans
             print_DEBUG ("all_special: apres String.sub new_s="^new_s);
             iter (acc @ [i]) (n + n2) new_s
-      in
-      let res = iter [] 0 s in
+      dans
+      soit res = iter [] 0 s dans
       print_DEBUG ("all_special: end");
       res
 
-    let just_after_special file s =
+    soit just_after_special file s =
       print_DEBUG ("just_after_special: "^s);
-      let res = match retrieve_info_special file s with
+      soit res = filtre retrieve_info_special file s avec
         (_, None) ->
           (0, None)
       | (len, Some d) ->
           (* we must not have a simple comment or a blank line before. *)
-          match retrieve_info_simple file (String.sub s 0 len) with
+          filtre retrieve_info_simple file (String.sub s 0 len) avec
             (_, None) ->
               (
-               try
+               essaie
                  (* if the special comment is the stop comment (**/**),
                     then we must not associate it. *)
-                 let pos = Str.search_forward (Str.regexp_string "(**") s 0 in
-                 if blank_line (String.sub s 0 pos) ||
+                 soit pos = Str.search_forward (Str.regexp_string "(**") s 0 dans
+                 si blank_line (String.sub s 0 pos) ||
                    d.Odoc_types.i_desc = Some [Odoc_types.Raw "/*"]
-                 then
+                 alors
                    (0, None)
-                 else
+                 sinon
                    (len, Some d)
-               with
+               avec
                  Not_found ->
                    (* should not occur *)
                    (0, None)
               )
           | (len2, Some d2) ->
               (0, None)
-      in
+      dans
       print_DEBUG ("just_after_special:end");
       res
 
-    let first_special file s =
+    soit first_special file s =
       retrieve_info_special file s
 
-    let get_comments f_create_ele file s =
-      let (assoc_com, ele_coms) =
+    soit get_comments f_create_ele file s =
+      soit (assoc_com, ele_coms) =
         (* get the comments *)
-        let (len, special_coms) =  all_special file s in
+        soit (len, special_coms) =  all_special file s dans
         (* if there is no blank line after the special comments, and
            if the last special comment is not the stop special comment, then the
            last special comments must be associated to the element. *)
-        match List.rev special_coms with
+        filtre List.rev special_coms avec
           [] ->
             (None, [])
         |  h :: q ->
-            if (blank_line_outside_simple file
+            si (blank_line_outside_simple file
                   (String.sub s len ((String.length s) - len)) )
                 || h.Odoc_types.i_desc = Some [Odoc_types.Raw "/*"]
-            then
+            alors
               (None, special_coms)
-            else
+            sinon
               (Some h, List.rev q)
-      in
-      let ele_comments =
+      dans
+      soit ele_comments =
         List.fold_left
-          (fun acc -> fun sc ->
-            match sc.Odoc_types.i_desc with
+          (fonc acc -> fonc sc ->
+            filtre sc.Odoc_types.i_desc avec
               None ->
                 acc
             | Some t ->
                 acc @ [f_create_ele t])
           []
           ele_coms
-      in
+      dans
       (assoc_com, ele_comments)
-  end
+  fin
 
 module Basic_info_retriever = Info_retriever (Odoc_text.Texter)
 
-let info_of_string s =
-  let dummy =
+soit info_of_string s =
+  soit dummy =
     {
       i_desc = None ;
       i_authors = [] ;
@@ -330,18 +330,18 @@ let info_of_string s =
       i_return_value = None ;
       i_custom = [] ;
     }
-  in
-  let s2 = Printf.sprintf "(** %s *)" s in
-  let (_, i_opt) = Basic_info_retriever.first_special "-" s2 in
-  match i_opt with
+  dans
+  soit s2 = Printf.sprintf "(** %s *)" s dans
+  soit (_, i_opt) = Basic_info_retriever.first_special "-" s2 dans
+  filtre i_opt avec
     None -> dummy
   | Some i -> i
 
-let info_of_comment_file modlist f =
-  try
-    let s = Odoc_misc.input_file_as_string f in
-    let i = info_of_string s in
+soit info_of_comment_file modlist f =
+  essaie
+    soit s = Odoc_misc.input_file_as_string f dans
+    soit i = info_of_string s dans
     Odoc_cross.assoc_comments_info "" modlist i
-  with
+  avec
     Sys_error s ->
       failwith s

@@ -13,27 +13,27 @@
 
 (* The parsing engine *)
 
-open Lexing
+ouvre Lexing
 
 (* Internal interface to the parsing engine *)
 
 type parser_env =
-  { mutable s_stack : int array;        (* States *)
-    mutable v_stack : Obj.t array;      (* Semantic attributes *)
-    mutable symb_start_stack : position array; (* Start positions *)
-    mutable symb_end_stack : position array;   (* End positions *)
-    mutable stacksize : int;            (* Size of the stacks *)
-    mutable stackbase : int;            (* Base sp for current parse *)
-    mutable curr_char : int;            (* Last token read *)
-    mutable lval : Obj.t;               (* Its semantic attribute *)
-    mutable symb_start : position;      (* Start pos. of the current symbol*)
-    mutable symb_end : position;        (* End pos. of the current symbol *)
-    mutable asp : int;                  (* The stack pointer for attributes *)
-    mutable rule_len : int;             (* Number of rhs items in the rule *)
-    mutable rule_number : int;          (* Rule number to reduce by *)
-    mutable sp : int;                   (* Saved sp for parse_engine *)
-    mutable state : int;                (* Saved state for parse_engine *)
-    mutable errflag : int }             (* Saved error flag for parse_engine *)
+  { modifiable s_stack : int array;        (* States *)
+    modifiable v_stack : Obj.t array;      (* Semantic attributes *)
+    modifiable symb_start_stack : position array; (* Start positions *)
+    modifiable symb_end_stack : position array;   (* End positions *)
+    modifiable stacksize : int;            (* Size of the stacks *)
+    modifiable stackbase : int;            (* Base sp for current parse *)
+    modifiable curr_char : int;            (* Last token read *)
+    modifiable lval : Obj.t;               (* Its semantic attribute *)
+    modifiable symb_start : position;      (* Start pos. of the current symbol*)
+    modifiable symb_end : position;        (* End pos. of the current symbol *)
+    modifiable asp : int;                  (* The stack pointer for attributes *)
+    modifiable rule_len : int;             (* Number of rhs items in the rule *)
+    modifiable rule_number : int;          (* Rule number to reduce by *)
+    modifiable sp : int;                   (* Saved sp for parse_engine *)
+    modifiable state : int;                (* Saved state for parse_engine *)
+    modifiable errflag : int }             (* Saved error flag for parse_engine *)
 
 type parse_tables =
   { actions : (parser_env -> Obj.t) array;
@@ -53,7 +53,7 @@ type parse_tables =
     names_const : string;
     names_block : string }
 
-exception YYexit of Obj.t
+exception YYexit de Obj.t
 exception Parse_error
 
 type parser_input =
@@ -73,17 +73,17 @@ type parser_output =
   | Call_error_function
 
 (* to avoid warnings *)
-let _ = [Read_token; Raise_parse_error; Grow_stacks_1; Grow_stacks_2;
+soit _ = [Read_token; Raise_parse_error; Grow_stacks_1; Grow_stacks_2;
          Compute_semantic_action; Call_error_function]
 
-external parse_engine :
+dehors parse_engine :
     parse_tables -> parser_env -> parser_input -> Obj.t -> parser_output
     = "caml_parse_engine"
 
-external set_trace: bool -> bool
+dehors set_trace: bool -> bool
     = "caml_set_parser_trace"
 
-let env =
+soit env =
   { s_stack = Array.create 100 0;
     v_stack = Array.create 100 (Obj.repr ());
     symb_start_stack = Array.create 100 dummy_pos;
@@ -101,13 +101,13 @@ let env =
     state = 0;
     errflag = 0 }
 
-let grow_stacks() =
-  let oldsize = env.stacksize in
-  let newsize = oldsize * 2 in
-  let new_s = Array.create newsize 0
-  and new_v = Array.create newsize (Obj.repr ())
-  and new_start = Array.create newsize dummy_pos
-  and new_end = Array.create newsize dummy_pos in
+soit grow_stacks() =
+  soit oldsize = env.stacksize dans
+  soit newsize = oldsize * 2 dans
+  soit new_s = Array.create newsize 0
+  et new_v = Array.create newsize (Obj.repr ())
+  et new_start = Array.create newsize dummy_pos
+  et new_end = Array.create newsize dummy_pos dans
     Array.blit env.s_stack 0 new_s 0 oldsize;
     env.s_stack <- new_s;
     Array.blit env.v_stack 0 new_v 0 oldsize;
@@ -118,28 +118,28 @@ let grow_stacks() =
     env.symb_end_stack <- new_end;
     env.stacksize <- newsize
 
-let clear_parser() =
+soit clear_parser() =
   Array.fill env.v_stack 0 env.stacksize (Obj.repr ());
   env.lval <- Obj.repr ()
 
-let current_lookahead_fun = ref (fun (x : Obj.t) -> false)
+soit current_lookahead_fun = ref (fonc (x : Obj.t) -> faux)
 
-let yyparse tables start lexer lexbuf =
-  let rec loop cmd arg =
-    match parse_engine tables env cmd arg with
+soit yyparse tables start lexer lexbuf =
+  soit rec loop cmd arg =
+    filtre parse_engine tables env cmd arg avec
       Read_token ->
-        let t = Obj.repr(lexer lexbuf) in
+        soit t = Obj.repr(lexer lexbuf) dans
         env.symb_start <- lexbuf.lex_start_p;
         env.symb_end <- lexbuf.lex_curr_p;
         loop Token_read t
     | Raise_parse_error ->
         raise Parse_error
     | Compute_semantic_action ->
-        let (action, value) =
-          try
+        soit (action, value) =
+          essaie
             (Semantic_action_computed, tables.actions.(env.rule_number) env)
-          with Parse_error ->
-            (Error_detected, Obj.repr ()) in
+          avec Parse_error ->
+            (Error_detected, Obj.repr ()) dans
         loop action value
     | Grow_stacks_1 ->
         grow_stacks(); loop Stacks_grown_1 (Obj.repr ())
@@ -147,21 +147,21 @@ let yyparse tables start lexer lexbuf =
         grow_stacks(); loop Stacks_grown_2 (Obj.repr ())
     | Call_error_function ->
         tables.error_function "syntax error";
-        loop Error_detected (Obj.repr ()) in
-  let init_asp = env.asp
-  and init_sp = env.sp
-  and init_stackbase = env.stackbase
-  and init_state = env.state
-  and init_curr_char = env.curr_char
-  and init_lval = env.lval
-  and init_errflag = env.errflag in
+        loop Error_detected (Obj.repr ()) dans
+  soit init_asp = env.asp
+  et init_sp = env.sp
+  et init_stackbase = env.stackbase
+  et init_state = env.state
+  et init_curr_char = env.curr_char
+  et init_lval = env.lval
+  et init_errflag = env.errflag dans
   env.stackbase <- env.sp + 1;
   env.curr_char <- start;
   env.symb_end <- lexbuf.lex_curr_p;
-  try
+  essaie
     loop Start (Obj.repr ())
-  with exn ->
-    let curr_char = env.curr_char in
+  avec exn ->
+    soit curr_char = env.curr_char dans
     env.asp <- init_asp;
     env.sp <- init_sp;
     env.stackbase <- init_stackbase;
@@ -169,41 +169,41 @@ let yyparse tables start lexer lexbuf =
     env.curr_char <- init_curr_char;
     env.lval <- init_lval;
     env.errflag <- init_errflag;
-    match exn with
+    filtre exn avec
       YYexit v ->
         Obj.magic v
     | _ ->
         current_lookahead_fun :=
-          (fun tok ->
-            if Obj.is_block tok
-            then tables.transl_block.(Obj.tag tok) = curr_char
-            else tables.transl_const.(Obj.magic tok) = curr_char);
+          (fonc tok ->
+            si Obj.is_block tok
+            alors tables.transl_block.(Obj.tag tok) = curr_char
+            sinon tables.transl_const.(Obj.magic tok) = curr_char);
         raise exn
 
-let peek_val env n =
+soit peek_val env n =
   Obj.magic env.v_stack.(env.asp - n)
 
-let symbol_start_pos () =
-  let rec loop i =
-    if i <= 0 then env.symb_end_stack.(env.asp)
-    else begin
-      let st = env.symb_start_stack.(env.asp - i + 1) in
-      let en = env.symb_end_stack.(env.asp - i + 1) in
-      if st <> en then st else loop (i - 1)
-    end
-  in
+soit symbol_start_pos () =
+  soit rec loop i =
+    si i <= 0 alors env.symb_end_stack.(env.asp)
+    sinon début
+      soit st = env.symb_start_stack.(env.asp - i + 1) dans
+      soit en = env.symb_end_stack.(env.asp - i + 1) dans
+      si st <> en alors st sinon loop (i - 1)
+    fin
+  dans
   loop env.rule_len
 ;;
-let symbol_end_pos () = env.symb_end_stack.(env.asp);;
-let rhs_start_pos n = env.symb_start_stack.(env.asp - (env.rule_len - n));;
-let rhs_end_pos n = env.symb_end_stack.(env.asp - (env.rule_len - n));;
+soit symbol_end_pos () = env.symb_end_stack.(env.asp);;
+soit rhs_start_pos n = env.symb_start_stack.(env.asp - (env.rule_len - n));;
+soit rhs_end_pos n = env.symb_end_stack.(env.asp - (env.rule_len - n));;
 
-let symbol_start () = (symbol_start_pos ()).pos_cnum;;
-let symbol_end () = (symbol_end_pos ()).pos_cnum;;
-let rhs_start n = (rhs_start_pos n).pos_cnum;;
-let rhs_end n = (rhs_end_pos n).pos_cnum;;
+soit symbol_start () = (symbol_start_pos ()).pos_cnum;;
+soit symbol_end () = (symbol_end_pos ()).pos_cnum;;
+soit rhs_start n = (rhs_start_pos n).pos_cnum;;
+soit rhs_end n = (rhs_end_pos n).pos_cnum;;
 
-let is_current_lookahead tok =
+soit is_current_lookahead tok =
   (!current_lookahead_fun)(Obj.repr tok)
 
-let parse_error (msg : string) = ()
+soit parse_error (msg : string) = ()

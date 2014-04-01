@@ -39,22 +39,22 @@
 *)
 
 type spec =
-  | Unit of (unit -> unit)     (** Call the function with unit argument *)
-  | Bool of (bool -> unit)     (** Call the function with a bool argument *)
-  | Set of bool ref            (** Set the reference to true *)
-  | Clear of bool ref          (** Set the reference to false *)
-  | String of (string -> unit) (** Call the function with a string argument *)
-  | Set_string of string ref   (** Set the reference to the string argument *)
-  | Int of (int -> unit)       (** Call the function with an int argument *)
-  | Set_int of int ref         (** Set the reference to the int argument *)
-  | Float of (float -> unit)   (** Call the function with a float argument *)
-  | Set_float of float ref     (** Set the reference to the float argument *)
-  | Tuple of spec list         (** Take several arguments according to the
+  | Unit de (unit -> unit)     (** Call the function with unit argument *)
+  | Bool de (bool -> unit)     (** Call the function with a bool argument *)
+  | Set de bool ref            (** Set the reference to true *)
+  | Clear de bool ref          (** Set the reference to false *)
+  | String de (string -> unit) (** Call the function with a string argument *)
+  | Set_string de string ref   (** Set the reference to the string argument *)
+  | Int de (int -> unit)       (** Call the function with an int argument *)
+  | Set_int de int ref         (** Set the reference to the int argument *)
+  | Float de (float -> unit)   (** Call the function with a float argument *)
+  | Set_float de float ref     (** Set the reference to the float argument *)
+  | Tuple de spec list         (** Take several arguments according to the
                                    spec list *)
-  | Symbol of string list * (string -> unit)
+  | Symbol de string list * (string -> unit)
                                (** Take one of the symbols as argument and
                                    call the function with the symbol *)
-  | Rest of (string -> unit)   (** Stop interpreting keywords and call the
+  | Rest de (string -> unit)   (** Stop interpreting keywords and call the
                                    function with each remaining argument *)
 (** The concrete type describing the behavior associated
    with a keyword. *)
@@ -122,10 +122,10 @@ val parse_argv_dynamic : ?current:int ref -> string array ->
     See {!Arg.parse_dynamic}.
 *)
 
-exception Help of string
+exception Help de string
 (** Raised by [Arg.parse_argv] when the user asks for help. *)
 
-exception Bad of string
+exception Bad de string
 (** Functions in [spec] or [anon_fun] can raise [Arg.Bad] with an error
     message to reject invalid arguments.
     [Arg.Bad] is also raised by [Arg.parse_argv] in case of an error. *)

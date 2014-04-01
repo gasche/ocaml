@@ -20,8 +20,8 @@ type message =
   | Before_rules
   | After_rules
 
-let hooks = ref ignore
+soit hooks = ref ignore
 
-let setup_hooks f = hooks := f
+soit setup_hooks f = hooks := f
 
-let call_hook m = !hooks m
+soit call_hook m = !hooks m

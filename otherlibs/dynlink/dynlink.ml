@@ -13,32 +13,32 @@
 
 (* Dynamic loading of .cmo files *)
 
-open Dynlinkaux  (* REMOVE_ME for ../../debugger/dynlink.ml *)
-open Cmo_format
+ouvre Dynlinkaux  (* REMOVE_ME for ../../debugger/dynlink.ml *)
+ouvre Cmo_format
 
 type linking_error =
-    Undefined_global of string
-  | Unavailable_primitive of string
-  | Uninitialized_global of string
+    Undefined_global de string
+  | Unavailable_primitive de string
+  | Uninitialized_global de string
 
 type error =
-    Not_a_bytecode_file of string
-  | Inconsistent_import of string
-  | Unavailable_unit of string
+    Not_a_bytecode_file de string
+  | Inconsistent_import de string
+  | Unavailable_unit de string
   | Unsafe_file
-  | Linking_error of string * linking_error
-  | Corrupted_interface of string
-  | File_not_found of string
-  | Cannot_open_dll of string
-  | Inconsistent_implementation of string
+  | Linking_error de string * linking_error
+  | Corrupted_interface de string
+  | File_not_found de string
+  | Cannot_open_dll de string
+  | Inconsistent_implementation de string
 
-exception Error of error
+exception Error de error
 
-let () =
+soit () =
   Printexc.register_printer
-    (function
+    (fonction
       | Error err ->
-          let msg = match err with
+          soit msg = filtre err avec
           | Not_a_bytecode_file s ->
               Printf.sprintf "Not_a_bytecode_file %S" s
           | Inconsistent_import s ->
@@ -63,141 +63,141 @@ let () =
           | Cannot_open_dll s ->
               Printf.sprintf "Cannot_open_dll %S" s
           | Inconsistent_implementation s ->
-              Printf.sprintf "Inconsistent_implementation %S" s in
+              Printf.sprintf "Inconsistent_implementation %S" s dans
           Some (Printf.sprintf "Dynlink.Error(Dynlink.%s)" msg)
       | _ -> None)
 
 (* Management of interface CRCs *)
 
-let crc_interfaces = ref (Consistbl.create ())
-let allow_extension = ref true
+soit crc_interfaces = ref (Consistbl.create ())
+soit allow_extension = ref vrai
 
 (* Check that the object file being loaded has been compiled against
    the same interfaces as the program itself. In addition, check that
    only authorized compilation units are referenced. *)
 
-let check_consistency file_name cu =
-  try
+soit check_consistency file_name cu =
+  essaie
     List.iter
-      (fun (name, crc) ->
-        if name = cu.cu_name then
+      (fonc (name, crc) ->
+        si name = cu.cu_name alors
           Consistbl.set !crc_interfaces name crc file_name
-        else if !allow_extension then
+        sinon si !allow_extension alors
           Consistbl.check !crc_interfaces name crc file_name
-        else
+        sinon
           Consistbl.check_noadd !crc_interfaces name crc file_name)
       cu.cu_imports
-  with Consistbl.Inconsistency(name, user, auth) ->
+  avec Consistbl.Inconsistency(name, user, auth) ->
          raise(Error(Inconsistent_import name))
      | Consistbl.Not_available(name) ->
          raise(Error(Unavailable_unit name))
 
 (* Empty the crc_interfaces table *)
 
-let clear_available_units () =
+soit clear_available_units () =
   Consistbl.clear !crc_interfaces;
-  allow_extension := false
+  allow_extension := faux
 
 (* Allow only access to the units with the given names *)
 
-let allow_only names =
-  Consistbl.filter (fun name -> List.mem name names) !crc_interfaces;
-  allow_extension := false
+soit allow_only names =
+  Consistbl.filter (fonc name -> List.mem name names) !crc_interfaces;
+  allow_extension := faux
 
 (* Prohibit access to the units with the given names *)
 
-let prohibit names =
-  Consistbl.filter (fun name -> not (List.mem name names)) !crc_interfaces;
-  allow_extension := false
+soit prohibit names =
+  Consistbl.filter (fonc name -> not (List.mem name names)) !crc_interfaces;
+  allow_extension := faux
 
 (* Initialize the crc_interfaces table with a list of units with fixed CRCs *)
 
-let add_available_units units =
-  List.iter (fun (unit, crc) -> Consistbl.set !crc_interfaces unit crc "")
+soit add_available_units units =
+  List.iter (fonc (unit, crc) -> Consistbl.set !crc_interfaces unit crc "")
             units
 
 (* Default interface CRCs: those found in the current executable *)
-let default_crcs = ref []
+soit default_crcs = ref []
 
-let default_available_units () =
+soit default_available_units () =
   clear_available_units();
   add_available_units !default_crcs;
-  allow_extension := true
+  allow_extension := vrai
 
 (* Initialize the linker tables and everything *)
 
-let inited = ref false
+soit inited = ref faux
 
-let init () =
-  if not !inited then begin
+soit init () =
+  si not !inited alors début
     default_crcs := Symtable.init_toplevel();
     default_available_units ();
-    inited := true;
-  end
+    inited := vrai;
+  fin
 
-let clear_available_units () = init(); clear_available_units ()
-let allow_only l = init(); allow_only l
-let prohibit l = init(); prohibit l
-let add_available_units l = init(); add_available_units l
-let default_available_units () = init(); default_available_units ()
+soit clear_available_units () = init(); clear_available_units ()
+soit allow_only l = init(); allow_only l
+soit prohibit l = init(); prohibit l
+soit add_available_units l = init(); add_available_units l
+soit default_available_units () = init(); default_available_units ()
 
 (* Read the CRC of an interface from its .cmi file *)
 
-let digest_interface unit loadpath =
-  let filename =
-    let shortname = unit ^ ".cmi" in
-    try
+soit digest_interface unit loadpath =
+  soit filename =
+    soit shortname = unit ^ ".cmi" dans
+    essaie
       Misc.find_in_path_uncap loadpath shortname
-    with Not_found ->
-      raise (Error(File_not_found shortname)) in
-  let ic = open_in_bin filename in
-  try
-    let buffer = Misc.input_bytes ic (String.length Config.cmi_magic_number) in
-    if buffer <> Config.cmi_magic_number then begin
+    avec Not_found ->
+      raise (Error(File_not_found shortname)) dans
+  soit ic = open_in_bin filename dans
+  essaie
+    soit buffer = Misc.input_bytes ic (String.length Config.cmi_magic_number) dans
+    si buffer <> Config.cmi_magic_number alors début
       close_in ic;
       raise(Error(Corrupted_interface filename))
-    end;
-    let cmi = Cmi_format.input_cmi ic in
+    fin;
+    soit cmi = Cmi_format.input_cmi ic dans
     close_in ic;
-    let crc =
-      match cmi.Cmi_format.cmi_crcs with
+    soit crc =
+      filtre cmi.Cmi_format.cmi_crcs avec
         (_, crc) :: _ -> crc
       | _             -> raise(Error(Corrupted_interface filename))
-    in
+    dans
     crc
-  with End_of_file | Failure _ ->
+  avec End_of_file | Failure _ ->
     close_in ic;
     raise(Error(Corrupted_interface filename))
 
 (* Initialize the crc_interfaces table with a list of units.
    Their CRCs are read from their interfaces. *)
 
-let add_interfaces units loadpath =
+soit add_interfaces units loadpath =
   add_available_units
-    (List.map (fun unit -> (unit, digest_interface unit loadpath)) units)
+    (List.map (fonc unit -> (unit, digest_interface unit loadpath)) units)
 
 (* Check whether the object file being loaded was compiled in unsafe mode *)
 
-let unsafe_allowed = ref false
+soit unsafe_allowed = ref faux
 
-let allow_unsafe_modules b =
+soit allow_unsafe_modules b =
   unsafe_allowed := b
 
-let check_unsafe_module cu =
-  if (not !unsafe_allowed) && cu.cu_primitives <> []
-  then raise(Error(Unsafe_file))
+soit check_unsafe_module cu =
+  si (not !unsafe_allowed) && cu.cu_primitives <> []
+  alors raise(Error(Unsafe_file))
 
 (* Load in-core and execute a bytecode object file *)
 
-external register_code_fragment: string -> int -> string -> unit
+dehors register_code_fragment: string -> int -> string -> unit
                                = "caml_register_code_fragment"
 
-let load_compunit ic file_name file_digest compunit =
+soit load_compunit ic file_name file_digest compunit =
   check_consistency file_name compunit;
   check_unsafe_module compunit;
   seek_in ic compunit.cu_pos;
-  let code_size = compunit.cu_codesize + 8 in
-  let code = Meta.static_alloc code_size in
+  soit code_size = compunit.cu_codesize + 8 dans
+  soit code = Meta.static_alloc code_size dans
   unsafe_really_input ic code 0 compunit.cu_codesize;
   String.unsafe_set code compunit.cu_codesize (Char.chr Opcodes.opRETURN);
   String.unsafe_set code (compunit.cu_codesize + 1) '\000';
@@ -207,83 +207,83 @@ let load_compunit ic file_name file_digest compunit =
   String.unsafe_set code (compunit.cu_codesize + 5) '\000';
   String.unsafe_set code (compunit.cu_codesize + 6) '\000';
   String.unsafe_set code (compunit.cu_codesize + 7) '\000';
-  let initial_symtable = Symtable.current_state() in
-  begin try
+  soit initial_symtable = Symtable.current_state() dans
+  début essaie
     Symtable.patch_object code compunit.cu_reloc;
     Symtable.check_global_initialized compunit.cu_reloc;
     Symtable.update_global_table()
-  with Symtable.Error error ->
-    let new_error =
-      match error with
+  avec Symtable.Error error ->
+    soit new_error =
+      filtre error avec
         Symtable.Undefined_global s -> Undefined_global s
       | Symtable.Unavailable_primitive s -> Unavailable_primitive s
       | Symtable.Uninitialized_global s -> Uninitialized_global s
-      | _ -> assert false in
+      | _ -> affirme faux dans
     raise(Error(Linking_error (file_name, new_error)))
-  end;
+  fin;
   (* PR#5215: identify this code fragment by
      digest of file contents + unit name.
      Unit name is needed for .cma files, which produce several code fragments.*)
-  let digest = Digest.string (file_digest ^ compunit.cu_name) in
+  soit digest = Digest.string (file_digest ^ compunit.cu_name) dans
   register_code_fragment code code_size digest;
-  begin try
+  début essaie
     ignore((Meta.reify_bytecode code code_size) ())
-  with exn ->
+  avec exn ->
     Symtable.restore_state initial_symtable;
     raise exn
-  end
+  fin
 
-let loadfile file_name =
+soit loadfile file_name =
   init();
-  if not (Sys.file_exists file_name)
-    then raise (Error (File_not_found file_name));
-  let ic = open_in_bin file_name in
-  let file_digest = Digest.channel ic (-1) in
+  si not (Sys.file_exists file_name)
+    alors raise (Error (File_not_found file_name));
+  soit ic = open_in_bin file_name dans
+  soit file_digest = Digest.channel ic (-1) dans
   seek_in ic 0;
-  try
-    let buffer =
-      try Misc.input_bytes ic (String.length Config.cmo_magic_number)
-      with End_of_file -> raise (Error (Not_a_bytecode_file file_name))
-    in
-    if buffer = Config.cmo_magic_number then begin
-      let compunit_pos = input_binary_int ic in  (* Go to descriptor *)
+  essaie
+    soit buffer =
+      essaie Misc.input_bytes ic (String.length Config.cmo_magic_number)
+      avec End_of_file -> raise (Error (Not_a_bytecode_file file_name))
+    dans
+    si buffer = Config.cmo_magic_number alors début
+      soit compunit_pos = input_binary_int ic dans  (* Go to descriptor *)
       seek_in ic compunit_pos;
-      let cu = (input_value ic : compilation_unit) in
+      soit cu = (input_value ic : compilation_unit) dans
       load_compunit ic file_name file_digest cu
-    end else
-    if buffer = Config.cma_magic_number then begin
-      let toc_pos = input_binary_int ic in  (* Go to table of contents *)
+    fin sinon
+    si buffer = Config.cma_magic_number alors début
+      soit toc_pos = input_binary_int ic dans  (* Go to table of contents *)
       seek_in ic toc_pos;
-      let lib = (input_value ic : library) in
-      begin try
+      soit lib = (input_value ic : library) dans
+      début essaie
         Dll.open_dlls Dll.For_execution
                       (List.map Dll.extract_dll_name lib.lib_dllibs)
-      with Failure reason ->
+      avec Failure reason ->
         raise(Error(Cannot_open_dll reason))
-      end;
+      fin;
       List.iter (load_compunit ic file_name file_digest) lib.lib_units
-    end else
+    fin sinon
       raise(Error(Not_a_bytecode_file file_name));
     close_in ic
-  with exc ->
+  avec exc ->
     close_in ic; raise exc
 
-let loadfile_private file_name =
+soit loadfile_private file_name =
   init();
-  let initial_symtable = Symtable.current_state()
-  and initial_crc = !crc_interfaces in
-  try
+  soit initial_symtable = Symtable.current_state()
+  et initial_crc = !crc_interfaces dans
+  essaie
     loadfile file_name;
     Symtable.hide_additions initial_symtable;
     crc_interfaces := initial_crc
-  with exn ->
+  avec exn ->
     Symtable.hide_additions initial_symtable;
     crc_interfaces := initial_crc;
     raise exn
 
 (* Error report *)
 
-let error_message = function
+soit error_message = fonction
     Not_a_bytecode_file name ->
       name ^ " is not a bytecode object file"
   | Inconsistent_import name ->
@@ -310,5 +310,5 @@ let error_message = function
   | Inconsistent_implementation name ->
       "implementation mismatch on " ^ name
 
-let is_native = false
-let adapt_filename f = f
+soit is_native = faux
+soit adapt_filename f = f

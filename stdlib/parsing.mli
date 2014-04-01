@@ -94,7 +94,7 @@ type parse_tables =
     names_const : string;
     names_block : string }
 
-exception YYexit of Obj.t
+exception YYexit de Obj.t
 
 val yyparse :
   parse_tables -> int -> (Lexing.lexbuf -> 'a) -> Lexing.lexbuf -> 'b

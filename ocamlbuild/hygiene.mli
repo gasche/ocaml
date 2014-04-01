@@ -18,16 +18,16 @@
 
 (** Sanity rules to abide.  Not to be confused with compilation rules. *)
 type rule =
-  Implies_not of pattern * pattern (** The rule [Implies_not(".mll",".ml")] is broken if there is a file [foo.mll]
+  Implies_not de pattern * pattern (** The rule [Implies_not(".mll",".ml")] is broken if there is a file [foo.mll]
                                        together with a file [foo.ml] int the same directory.  The second file can
                                        get sanitized. *)
-| Not of pattern (* No files with suffix [pattern] will be tolerated. *)
+| Not de pattern (* No files with suffix [pattern] will be tolerated. *)
 
 (** Suffix matching is enough for the purpose of this module. *)
-and pattern = suffix
+et pattern = suffix
 
 (** And a suffix is a string. *)
-and suffix = string
+et suffix = string
 
 (** A warning is simply displayed.  A failures stops the compilation. *)
 type penalty = Warn | Fail

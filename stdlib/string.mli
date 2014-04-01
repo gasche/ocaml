@@ -51,24 +51,24 @@
 
  *)
 
-external length : string -> int = "%string_length"
+dehors length : string -> int = "%string_length"
 (** Return the length (number of characters) of the given string. *)
 
-external get : string -> int -> char = "%string_safe_get"
+dehors get : string -> int -> char = "%string_safe_get"
 (** [String.get s n] returns character number [n] in string [s].
    You can also write [s.[n]] instead of [String.get s n].
 
    Raise [Invalid_argument] if [n] not a valid character number in [s]. *)
 
 
-external set : string -> int -> char -> unit = "%string_safe_set"
+dehors set : string -> int -> char -> unit = "%string_safe_set"
 (** [String.set s n c] modifies string [s] in place,
    replacing the character number [n] by [c].
    You can also write [s.[n] <- c] instead of [String.set s n c].
 
    Raise [Invalid_argument] if [n] is not a valid character number in [s]. *)
 
-external create : int -> string = "caml_create_string"
+dehors create : int -> string = "caml_create_string"
 (** [String.create n] returns a fresh string of length [n].
    The string initially contains arbitrary characters.
 
@@ -223,9 +223,9 @@ val compare: t -> t -> int
 
 (* The following is for system use only. Do not call directly. *)
 
-external unsafe_get : string -> int -> char = "%string_unsafe_get"
-external unsafe_set : string -> int -> char -> unit = "%string_unsafe_set"
-external unsafe_blit :
+dehors unsafe_get : string -> int -> char = "%string_unsafe_get"
+dehors unsafe_set : string -> int -> char -> unit = "%string_unsafe_set"
+dehors unsafe_blit :
   string -> int -> string -> int -> int -> unit = "caml_blit_string" "noalloc"
-external unsafe_fill :
+dehors unsafe_fill :
   string -> int -> int -> char -> unit = "caml_fill_string" "noalloc"

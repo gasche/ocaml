@@ -18,6 +18,6 @@ val compile_implementation :
 val compile_phrase :
     Format.formatter -> Cmm.phrase -> unit
 
-type error = Assembler_error of string
-exception Error of error
+type error = Assembler_error de string
+exception Error de error
 val report_error: Format.formatter -> error -> unit

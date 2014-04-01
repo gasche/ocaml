@@ -13,285 +13,285 @@
 
 (* List operations *)
 
-let rec length_aux len = function
+soit rec length_aux len = fonction
     [] -> len
   | a::l -> length_aux (len + 1) l
 
-let length l = length_aux 0 l
+soit length l = length_aux 0 l
 
-let hd = function
+soit hd = fonction
     [] -> failwith "hd"
   | a::l -> a
 
-let tl = function
+soit tl = fonction
     [] -> failwith "tl"
   | a::l -> l
 
-let nth l n =
-  if n < 0 then invalid_arg "List.nth" else
-  let rec nth_aux l n =
-    match l with
+soit nth l n =
+  si n < 0 alors invalid_arg "List.nth" sinon
+  soit rec nth_aux l n =
+    filtre l avec
     | [] -> failwith "nth"
-    | a::l -> if n = 0 then a else nth_aux l (n-1)
-  in nth_aux l n
+    | a::l -> si n = 0 alors a sinon nth_aux l (n-1)
+  dans nth_aux l n
 
-let append = (@)
+soit append = (@)
 
-let rec rev_append l1 l2 =
-  match l1 with
+soit rec rev_append l1 l2 =
+  filtre l1 avec
     [] -> l2
   | a :: l -> rev_append l (a :: l2)
 
-let rev l = rev_append l []
+soit rev l = rev_append l []
 
-let rec flatten = function
+soit rec flatten = fonction
     [] -> []
   | l::r -> l @ flatten r
 
-let concat = flatten
+soit concat = flatten
 
-let rec map f = function
+soit rec map f = fonction
     [] -> []
-  | a::l -> let r = f a in r :: map f l
+  | a::l -> soit r = f a dans r :: map f l
 
-let rec mapi i f = function
+soit rec mapi i f = fonction
     [] -> []
-  | a::l -> let r = f i a in r :: mapi (i + 1) f l
+  | a::l -> soit r = f i a dans r :: mapi (i + 1) f l
 
-let mapi f l = mapi 0 f l
+soit mapi f l = mapi 0 f l
 
-let rev_map f l =
-  let rec rmap_f accu = function
+soit rev_map f l =
+  soit rec rmap_f accu = fonction
     | [] -> accu
     | a::l -> rmap_f (f a :: accu) l
-  in
+  dans
   rmap_f [] l
 ;;
 
-let rec iter f = function
+soit rec iter f = fonction
     [] -> ()
   | a::l -> f a; iter f l
 
-let rec iteri i f = function
+soit rec iteri i f = fonction
     [] -> ()
   | a::l -> f i a; iteri (i + 1) f l
 
-let iteri f l = iteri 0 f l
+soit iteri f l = iteri 0 f l
 
-let rec fold_left f accu l =
-  match l with
+soit rec fold_left f accu l =
+  filtre l avec
     [] -> accu
   | a::l -> fold_left f (f accu a) l
 
-let rec fold_right f l accu =
-  match l with
+soit rec fold_right f l accu =
+  filtre l avec
     [] -> accu
   | a::l -> f a (fold_right f l accu)
 
-let rec map2 f l1 l2 =
-  match (l1, l2) with
+soit rec map2 f l1 l2 =
+  filtre (l1, l2) avec
     ([], []) -> []
-  | (a1::l1, a2::l2) -> let r = f a1 a2 in r :: map2 f l1 l2
+  | (a1::l1, a2::l2) -> soit r = f a1 a2 dans r :: map2 f l1 l2
   | (_, _) -> invalid_arg "List.map2"
 
-let rev_map2 f l1 l2 =
-  let rec rmap2_f accu l1 l2 =
-    match (l1, l2) with
+soit rev_map2 f l1 l2 =
+  soit rec rmap2_f accu l1 l2 =
+    filtre (l1, l2) avec
     | ([], []) -> accu
     | (a1::l1, a2::l2) -> rmap2_f (f a1 a2 :: accu) l1 l2
     | (_, _) -> invalid_arg "List.rev_map2"
-  in
+  dans
   rmap2_f [] l1 l2
 ;;
 
-let rec iter2 f l1 l2 =
-  match (l1, l2) with
+soit rec iter2 f l1 l2 =
+  filtre (l1, l2) avec
     ([], []) -> ()
   | (a1::l1, a2::l2) -> f a1 a2; iter2 f l1 l2
   | (_, _) -> invalid_arg "List.iter2"
 
-let rec fold_left2 f accu l1 l2 =
-  match (l1, l2) with
+soit rec fold_left2 f accu l1 l2 =
+  filtre (l1, l2) avec
     ([], []) -> accu
   | (a1::l1, a2::l2) -> fold_left2 f (f accu a1 a2) l1 l2
   | (_, _) -> invalid_arg "List.fold_left2"
 
-let rec fold_right2 f l1 l2 accu =
-  match (l1, l2) with
+soit rec fold_right2 f l1 l2 accu =
+  filtre (l1, l2) avec
     ([], []) -> accu
   | (a1::l1, a2::l2) -> f a1 a2 (fold_right2 f l1 l2 accu)
   | (_, _) -> invalid_arg "List.fold_right2"
 
-let rec for_all p = function
-    [] -> true
+soit rec for_all p = fonction
+    [] -> vrai
   | a::l -> p a && for_all p l
 
-let rec exists p = function
-    [] -> false
+soit rec exists p = fonction
+    [] -> faux
   | a::l -> p a || exists p l
 
-let rec for_all2 p l1 l2 =
-  match (l1, l2) with
-    ([], []) -> true
+soit rec for_all2 p l1 l2 =
+  filtre (l1, l2) avec
+    ([], []) -> vrai
   | (a1::l1, a2::l2) -> p a1 a2 && for_all2 p l1 l2
   | (_, _) -> invalid_arg "List.for_all2"
 
-let rec exists2 p l1 l2 =
-  match (l1, l2) with
-    ([], []) -> false
+soit rec exists2 p l1 l2 =
+  filtre (l1, l2) avec
+    ([], []) -> faux
   | (a1::l1, a2::l2) -> p a1 a2 || exists2 p l1 l2
   | (_, _) -> invalid_arg "List.exists2"
 
-let rec mem x = function
-    [] -> false
+soit rec mem x = fonction
+    [] -> faux
   | a::l -> compare a x = 0 || mem x l
 
-let rec memq x = function
-    [] -> false
+soit rec memq x = fonction
+    [] -> faux
   | a::l -> a == x || memq x l
 
-let rec assoc x = function
+soit rec assoc x = fonction
     [] -> raise Not_found
-  | (a,b)::l -> if compare a x = 0 then b else assoc x l
+  | (a,b)::l -> si compare a x = 0 alors b sinon assoc x l
 
-let rec assq x = function
+soit rec assq x = fonction
     [] -> raise Not_found
-  | (a,b)::l -> if a == x then b else assq x l
+  | (a,b)::l -> si a == x alors b sinon assq x l
 
-let rec mem_assoc x = function
-  | [] -> false
+soit rec mem_assoc x = fonction
+  | [] -> faux
   | (a, b) :: l -> compare a x = 0 || mem_assoc x l
 
-let rec mem_assq x = function
-  | [] -> false
+soit rec mem_assq x = fonction
+  | [] -> faux
   | (a, b) :: l -> a == x || mem_assq x l
 
-let rec remove_assoc x = function
+soit rec remove_assoc x = fonction
   | [] -> []
-  | (a, b as pair) :: l ->
-      if compare a x = 0 then l else pair :: remove_assoc x l
+  | (a, b tel pair) :: l ->
+      si compare a x = 0 alors l sinon pair :: remove_assoc x l
 
-let rec remove_assq x = function
+soit rec remove_assq x = fonction
   | [] -> []
-  | (a, b as pair) :: l -> if a == x then l else pair :: remove_assq x l
+  | (a, b tel pair) :: l -> si a == x alors l sinon pair :: remove_assq x l
 
-let rec find p = function
+soit rec find p = fonction
   | [] -> raise Not_found
-  | x :: l -> if p x then x else find p l
+  | x :: l -> si p x alors x sinon find p l
 
-let find_all p =
-  let rec find accu = function
+soit find_all p =
+  soit rec find accu = fonction
   | [] -> rev accu
-  | x :: l -> if p x then find (x :: accu) l else find accu l in
+  | x :: l -> si p x alors find (x :: accu) l sinon find accu l dans
   find []
 
-let filter = find_all
+soit filter = find_all
 
-let partition p l =
-  let rec part yes no = function
+soit partition p l =
+  soit rec part yes no = fonction
   | [] -> (rev yes, rev no)
-  | x :: l -> if p x then part (x :: yes) no l else part yes (x :: no) l in
+  | x :: l -> si p x alors part (x :: yes) no l sinon part yes (x :: no) l dans
   part [] [] l
 
-let rec split = function
+soit rec split = fonction
     [] -> ([], [])
   | (x,y)::l ->
-      let (rx, ry) = split l in (x::rx, y::ry)
+      soit (rx, ry) = split l dans (x::rx, y::ry)
 
-let rec combine l1 l2 =
-  match (l1, l2) with
+soit rec combine l1 l2 =
+  filtre (l1, l2) avec
     ([], []) -> []
   | (a1::l1, a2::l2) -> (a1, a2) :: combine l1 l2
   | (_, _) -> invalid_arg "List.combine"
 
 (** sorting *)
 
-let rec merge cmp l1 l2 =
-  match l1, l2 with
+soit rec merge cmp l1 l2 =
+  filtre l1, l2 avec
   | [], l2 -> l2
   | l1, [] -> l1
   | h1 :: t1, h2 :: t2 ->
-      if cmp h1 h2 <= 0
-      then h1 :: merge cmp t1 l2
-      else h2 :: merge cmp l1 t2
+      si cmp h1 h2 <= 0
+      alors h1 :: merge cmp t1 l2
+      sinon h2 :: merge cmp l1 t2
 ;;
 
-let rec chop k l =
-  if k = 0 then l else begin
-    match l with
+soit rec chop k l =
+  si k = 0 alors l sinon début
+    filtre l avec
     | x::t -> chop (k-1) t
-    | _ -> assert false
-  end
+    | _ -> affirme faux
+  fin
 ;;
 
-let stable_sort cmp l =
-  let rec rev_merge l1 l2 accu =
-    match l1, l2 with
+soit stable_sort cmp l =
+  soit rec rev_merge l1 l2 accu =
+    filtre l1, l2 avec
     | [], l2 -> rev_append l2 accu
     | l1, [] -> rev_append l1 accu
     | h1::t1, h2::t2 ->
-        if cmp h1 h2 <= 0
-        then rev_merge t1 l2 (h1::accu)
-        else rev_merge l1 t2 (h2::accu)
-  in
-  let rec rev_merge_rev l1 l2 accu =
-    match l1, l2 with
+        si cmp h1 h2 <= 0
+        alors rev_merge t1 l2 (h1::accu)
+        sinon rev_merge l1 t2 (h2::accu)
+  dans
+  soit rec rev_merge_rev l1 l2 accu =
+    filtre l1, l2 avec
     | [], l2 -> rev_append l2 accu
     | l1, [] -> rev_append l1 accu
     | h1::t1, h2::t2 ->
-        if cmp h1 h2 > 0
-        then rev_merge_rev t1 l2 (h1::accu)
-        else rev_merge_rev l1 t2 (h2::accu)
-  in
-  let rec sort n l =
-    match n, l with
+        si cmp h1 h2 > 0
+        alors rev_merge_rev t1 l2 (h1::accu)
+        sinon rev_merge_rev l1 t2 (h2::accu)
+  dans
+  soit rec sort n l =
+    filtre n, l avec
     | 2, x1 :: x2 :: _ ->
-       if cmp x1 x2 <= 0 then [x1; x2] else [x2; x1]
+       si cmp x1 x2 <= 0 alors [x1; x2] sinon [x2; x1]
     | 3, x1 :: x2 :: x3 :: _ ->
-       if cmp x1 x2 <= 0 then begin
-         if cmp x2 x3 <= 0 then [x1; x2; x3]
-         else if cmp x1 x3 <= 0 then [x1; x3; x2]
-         else [x3; x1; x2]
-       end else begin
-         if cmp x1 x3 <= 0 then [x2; x1; x3]
-         else if cmp x2 x3 <= 0 then [x2; x3; x1]
-         else [x3; x2; x1]
-       end
+       si cmp x1 x2 <= 0 alors début
+         si cmp x2 x3 <= 0 alors [x1; x2; x3]
+         sinon si cmp x1 x3 <= 0 alors [x1; x3; x2]
+         sinon [x3; x1; x2]
+       fin sinon début
+         si cmp x1 x3 <= 0 alors [x2; x1; x3]
+         sinon si cmp x2 x3 <= 0 alors [x2; x3; x1]
+         sinon [x3; x2; x1]
+       fin
     | n, l ->
-       let n1 = n asr 1 in
-       let n2 = n - n1 in
-       let l2 = chop n1 l in
-       let s1 = rev_sort n1 l in
-       let s2 = rev_sort n2 l2 in
+       soit n1 = n dda 1 dans
+       soit n2 = n - n1 dans
+       soit l2 = chop n1 l dans
+       soit s1 = rev_sort n1 l dans
+       soit s2 = rev_sort n2 l2 dans
        rev_merge_rev s1 s2 []
-  and rev_sort n l =
-    match n, l with
+  et rev_sort n l =
+    filtre n, l avec
     | 2, x1 :: x2 :: _ ->
-       if cmp x1 x2 > 0 then [x1; x2] else [x2; x1]
+       si cmp x1 x2 > 0 alors [x1; x2] sinon [x2; x1]
     | 3, x1 :: x2 :: x3 :: _ ->
-       if cmp x1 x2 > 0 then begin
-         if cmp x2 x3 > 0 then [x1; x2; x3]
-         else if cmp x1 x3 > 0 then [x1; x3; x2]
-         else [x3; x1; x2]
-       end else begin
-         if cmp x1 x3 > 0 then [x2; x1; x3]
-         else if cmp x2 x3 > 0 then [x2; x3; x1]
-         else [x3; x2; x1]
-       end
+       si cmp x1 x2 > 0 alors début
+         si cmp x2 x3 > 0 alors [x1; x2; x3]
+         sinon si cmp x1 x3 > 0 alors [x1; x3; x2]
+         sinon [x3; x1; x2]
+       fin sinon début
+         si cmp x1 x3 > 0 alors [x2; x1; x3]
+         sinon si cmp x2 x3 > 0 alors [x2; x3; x1]
+         sinon [x3; x2; x1]
+       fin
     | n, l ->
-       let n1 = n asr 1 in
-       let n2 = n - n1 in
-       let l2 = chop n1 l in
-       let s1 = sort n1 l in
-       let s2 = sort n2 l2 in
+       soit n1 = n dda 1 dans
+       soit n2 = n - n1 dans
+       soit l2 = chop n1 l dans
+       soit s1 = sort n1 l dans
+       soit s2 = sort n2 l2 dans
        rev_merge s1 s2 []
-  in
-  let len = length l in
-  if len < 2 then l else sort len l
+  dans
+  soit len = length l dans
+  si len < 2 alors l sinon sort len l
 ;;
 
-let sort = stable_sort;;
-let fast_sort = stable_sort;;
+soit sort = stable_sort;;
+soit fast_sort = stable_sort;;
 
 (* Note: on a list of length between about 100000 (depending on the minor
    heap size and the type of the list) and Sys.max_array_size, it is
@@ -328,102 +328,102 @@ let stable_sort cmp l =
 
 (** sorting + removing duplicates *)
 
-let sort_uniq cmp l =
-  let rec rev_merge l1 l2 accu =
-    match l1, l2 with
+soit sort_uniq cmp l =
+  soit rec rev_merge l1 l2 accu =
+    filtre l1, l2 avec
     | [], l2 -> rev_append l2 accu
     | l1, [] -> rev_append l1 accu
     | h1::t1, h2::t2 ->
-        let c = cmp h1 h2 in
-        if c = 0 then rev_merge t1 t2 (h1::accu)
-        else if c < 0
-        then rev_merge t1 l2 (h1::accu)
-        else rev_merge l1 t2 (h2::accu)
-  in
-  let rec rev_merge_rev l1 l2 accu =
-    match l1, l2 with
+        soit c = cmp h1 h2 dans
+        si c = 0 alors rev_merge t1 t2 (h1::accu)
+        sinon si c < 0
+        alors rev_merge t1 l2 (h1::accu)
+        sinon rev_merge l1 t2 (h2::accu)
+  dans
+  soit rec rev_merge_rev l1 l2 accu =
+    filtre l1, l2 avec
     | [], l2 -> rev_append l2 accu
     | l1, [] -> rev_append l1 accu
     | h1::t1, h2::t2 ->
-        let c = cmp h1 h2 in
-        if c = 0 then rev_merge_rev t1 t2 (h1::accu)
-        else if c > 0
-        then rev_merge_rev t1 l2 (h1::accu)
-        else rev_merge_rev l1 t2 (h2::accu)
-  in
-  let rec sort n l =
-    match n, l with
+        soit c = cmp h1 h2 dans
+        si c = 0 alors rev_merge_rev t1 t2 (h1::accu)
+        sinon si c > 0
+        alors rev_merge_rev t1 l2 (h1::accu)
+        sinon rev_merge_rev l1 t2 (h2::accu)
+  dans
+  soit rec sort n l =
+    filtre n, l avec
     | 2, x1 :: x2 :: _ ->
-       let c = cmp x1 x2 in
-       if c = 0 then [x1]
-       else if c < 0 then [x1; x2] else [x2; x1]
+       soit c = cmp x1 x2 dans
+       si c = 0 alors [x1]
+       sinon si c < 0 alors [x1; x2] sinon [x2; x1]
     | 3, x1 :: x2 :: x3 :: _ ->
-       let c = cmp x1 x2 in
-       if c = 0 then begin
-         let c = cmp x2 x3 in
-         if c = 0 then [x2]
-         else if c < 0 then [x2; x3] else [x3; x2]
-       end else if c < 0 then begin
-         let c = cmp x2 x3 in
-         if c = 0 then [x1; x2]
-         else if c < 0 then [x1; x2; x3]
-         else let c = cmp x1 x3 in
-         if c = 0 then [x1; x2]
-         else if c < 0 then [x1; x3; x2]
-         else [x3; x1; x2]
-       end else begin
-         let c = cmp x1 x3 in
-         if c = 0 then [x2; x1]
-         else if c < 0 then [x2; x1; x3]
-         else let c = cmp x2 x3 in
-         if c = 0 then [x2; x1]
-         else if c < 0 then [x2; x3; x1]
-         else [x3; x2; x1]
-       end
+       soit c = cmp x1 x2 dans
+       si c = 0 alors début
+         soit c = cmp x2 x3 dans
+         si c = 0 alors [x2]
+         sinon si c < 0 alors [x2; x3] sinon [x3; x2]
+       fin sinon si c < 0 alors début
+         soit c = cmp x2 x3 dans
+         si c = 0 alors [x1; x2]
+         sinon si c < 0 alors [x1; x2; x3]
+         sinon soit c = cmp x1 x3 dans
+         si c = 0 alors [x1; x2]
+         sinon si c < 0 alors [x1; x3; x2]
+         sinon [x3; x1; x2]
+       fin sinon début
+         soit c = cmp x1 x3 dans
+         si c = 0 alors [x2; x1]
+         sinon si c < 0 alors [x2; x1; x3]
+         sinon soit c = cmp x2 x3 dans
+         si c = 0 alors [x2; x1]
+         sinon si c < 0 alors [x2; x3; x1]
+         sinon [x3; x2; x1]
+       fin
     | n, l ->
-       let n1 = n asr 1 in
-       let n2 = n - n1 in
-       let l2 = chop n1 l in
-       let s1 = rev_sort n1 l in
-       let s2 = rev_sort n2 l2 in
+       soit n1 = n dda 1 dans
+       soit n2 = n - n1 dans
+       soit l2 = chop n1 l dans
+       soit s1 = rev_sort n1 l dans
+       soit s2 = rev_sort n2 l2 dans
        rev_merge_rev s1 s2 []
-  and rev_sort n l =
-    match n, l with
+  et rev_sort n l =
+    filtre n, l avec
     | 2, x1 :: x2 :: _ ->
-       let c = cmp x1 x2 in
-       if c = 0 then [x1]
-       else if c > 0 then [x1; x2] else [x2; x1]
+       soit c = cmp x1 x2 dans
+       si c = 0 alors [x1]
+       sinon si c > 0 alors [x1; x2] sinon [x2; x1]
     | 3, x1 :: x2 :: x3 :: _ ->
-       let c = cmp x1 x2 in
-       if c = 0 then begin
-         let c = cmp x2 x3 in
-         if c = 0 then [x2]
-         else if c > 0 then [x2; x3] else [x3; x2]
-       end else if c > 0 then begin
-         let c = cmp x2 x3 in
-         if c = 0 then [x1; x2]
-         else if c > 0 then [x1; x2; x3]
-         else let c = cmp x1 x3 in
-         if c = 0 then [x1; x2]
-         else if c > 0 then [x1; x3; x2]
-         else [x3; x1; x2]
-       end else begin
-         let c = cmp x1 x3 in
-         if c = 0 then [x2; x1]
-         else if c > 0 then [x2; x1; x3]
-         else let c = cmp x2 x3 in
-         if c = 0 then [x2; x1]
-         else if c > 0 then [x2; x3; x1]
-         else [x3; x2; x1]
-       end
+       soit c = cmp x1 x2 dans
+       si c = 0 alors début
+         soit c = cmp x2 x3 dans
+         si c = 0 alors [x2]
+         sinon si c > 0 alors [x2; x3] sinon [x3; x2]
+       fin sinon si c > 0 alors début
+         soit c = cmp x2 x3 dans
+         si c = 0 alors [x1; x2]
+         sinon si c > 0 alors [x1; x2; x3]
+         sinon soit c = cmp x1 x3 dans
+         si c = 0 alors [x1; x2]
+         sinon si c > 0 alors [x1; x3; x2]
+         sinon [x3; x1; x2]
+       fin sinon début
+         soit c = cmp x1 x3 dans
+         si c = 0 alors [x2; x1]
+         sinon si c > 0 alors [x2; x1; x3]
+         sinon soit c = cmp x2 x3 dans
+         si c = 0 alors [x2; x1]
+         sinon si c > 0 alors [x2; x3; x1]
+         sinon [x3; x2; x1]
+       fin
     | n, l ->
-       let n1 = n asr 1 in
-       let n2 = n - n1 in
-       let l2 = chop n1 l in
-       let s1 = sort n1 l in
-       let s2 = sort n2 l2 in
+       soit n1 = n dda 1 dans
+       soit n2 = n - n1 dans
+       soit l2 = chop n1 l dans
+       soit s1 = sort n1 l dans
+       soit s2 = sort n2 l2 dans
        rev_merge s1 s2 []
-  in
-  let len = length l in
-  if len < 2 then l else sort len l
+  dans
+  soit len = length l dans
+  si len < 2 alors l sinon sort len l
 ;;

@@ -68,7 +68,7 @@ module Signature_search :
         @raise Not_found if error.*)
       val search_method_type :
           string -> Types.class_signature -> Types.type_expr
-    end
+    fin
 
 (** Functions to retrieve simple and special comments from strings. *)
 module type Info_retriever =
@@ -104,10 +104,10 @@ module type Info_retriever =
     val get_comments :
         (Odoc_types.text -> 'a) -> string -> string -> (Odoc_types.info option * 'a list)
 
-  end
+  fin
 
 module Analyser :
-  functor (My_ir : Info_retriever) ->
+  foncteur (My_ir : Info_retriever) ->
     sig
       (** This variable is used to load a file as a string and retrieve characters from it.*)
       val file : string ref
@@ -173,4 +173,4 @@ module Analyser :
       val analyse_signature :
         string -> string ->
         Parsetree.signature -> Types.signature -> Odoc_module.t_module
-    end
+    fin

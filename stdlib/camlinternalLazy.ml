@@ -15,28 +15,28 @@
 
 exception Undefined;;
 
-let raise_undefined = Obj.repr (fun () -> raise Undefined);;
+soit raise_undefined = Obj.repr (fonc () -> raise Undefined);;
 
 (* Assume [blk] is a block with tag lazy *)
-let force_lazy_block (blk : 'arg lazy_t) =
-  let closure = (Obj.obj (Obj.field (Obj.repr blk) 0) : unit -> 'arg) in
+soit force_lazy_block (blk : 'arg lazy_t) =
+  soit closure = (Obj.obj (Obj.field (Obj.repr blk) 0) : unit -> 'arg) dans
   Obj.set_field (Obj.repr blk) 0 raise_undefined;
-  try
-    let result = closure () in
+  essaie
+    soit result = closure () dans
     (* do set_field BEFORE set_tag *)
     Obj.set_field (Obj.repr blk) 0 (Obj.repr result);
     Obj.set_tag (Obj.repr blk) Obj.forward_tag;
     result
-  with e ->
-    Obj.set_field (Obj.repr blk) 0 (Obj.repr (fun () -> raise e));
+  avec e ->
+    Obj.set_field (Obj.repr blk) 0 (Obj.repr (fonc () -> raise e));
     raise e
 ;;
 
 (* Assume [blk] is a block with tag lazy *)
-let force_val_lazy_block (blk : 'arg lazy_t) =
-  let closure = (Obj.obj (Obj.field (Obj.repr blk) 0) : unit -> 'arg) in
+soit force_val_lazy_block (blk : 'arg lazy_t) =
+  soit closure = (Obj.obj (Obj.field (Obj.repr blk) 0) : unit -> 'arg) dans
   Obj.set_field (Obj.repr blk) 0 raise_undefined;
-  let result = closure () in
+  soit result = closure () dans
   (* do set_field BEFORE set_tag *)
   Obj.set_field (Obj.repr blk) 0 (Obj.repr result);
   Obj.set_tag (Obj.repr blk) (Obj.forward_tag);
@@ -47,18 +47,18 @@ let force_val_lazy_block (blk : 'arg lazy_t) =
    whose code inlines the tag tests of its argument.  This function is
    here for the sake of completeness, and for debugging purpose. *)
 
-let force (lzv : 'arg lazy_t) =
-  let x = Obj.repr lzv in
-  let t = Obj.tag x in
-  if t = Obj.forward_tag then (Obj.obj (Obj.field x 0) : 'arg) else
-  if t <> Obj.lazy_tag then (Obj.obj x : 'arg)
-  else force_lazy_block lzv
+soit force (lzv : 'arg lazy_t) =
+  soit x = Obj.repr lzv dans
+  soit t = Obj.tag x dans
+  si t = Obj.forward_tag alors (Obj.obj (Obj.field x 0) : 'arg) sinon
+  si t <> Obj.lazy_tag alors (Obj.obj x : 'arg)
+  sinon force_lazy_block lzv
 ;;
 
-let force_val (lzv : 'arg lazy_t) =
-  let x = Obj.repr lzv in
-  let t = Obj.tag x in
-  if t = Obj.forward_tag then (Obj.obj (Obj.field x 0) : 'arg) else
-  if t <> Obj.lazy_tag then (Obj.obj x : 'arg)
-  else force_val_lazy_block lzv
+soit force_val (lzv : 'arg lazy_t) =
+  soit x = Obj.repr lzv dans
+  soit t = Obj.tag x dans
+  si t = Obj.forward_tag alors (Obj.obj (Obj.field x 0) : 'arg) sinon
+  si t <> Obj.lazy_tag alors (Obj.obj x : 'arg)
+  sinon force_val_lazy_block lzv
 ;;

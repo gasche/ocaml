@@ -10,8 +10,8 @@
 (*                                                                     *)
 (***********************************************************************)
 
-include Ocamlbuild_pack.Signatures.PLUGIN
-  with module Pathname = Ocamlbuild_pack.Pathname
-   and module Outcome  = Ocamlbuild_pack.My_std.Outcome
-   and module Tags     = Ocamlbuild_pack.Tags
-   and module Command  = Ocamlbuild_pack.Command
+inclus Ocamlbuild_pack.Signatures.PLUGIN
+  avec module Pathname = Ocamlbuild_pack.Pathname
+   et module Outcome  = Ocamlbuild_pack.My_std.Outcome
+   et module Tags     = Ocamlbuild_pack.Tags
+   et module Command  = Ocamlbuild_pack.Command

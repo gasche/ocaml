@@ -11,43 +11,43 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Printf;;
+ouvre Printf;;
 
-let printers = ref []
+soit printers = ref []
 
-let locfmt = format_of_string "File \"%s\", line %d, characters %d-%d: %s";;
+soit locfmt = format_of_string "File \"%s\", line %d, characters %d-%d: %s";;
 
-let field x i =
-  let f = Obj.field x i in
-  if not (Obj.is_block f) then
+soit field x i =
+  soit f = Obj.field x i dans
+  si not (Obj.is_block f) alors
     sprintf "%d" (Obj.magic f : int)           (* can also be a char *)
-  else if Obj.tag f = Obj.string_tag then
+  sinon si Obj.tag f = Obj.string_tag alors
     sprintf "%S" (Obj.magic f : string)
-  else if Obj.tag f = Obj.double_tag then
+  sinon si Obj.tag f = Obj.double_tag alors
     string_of_float (Obj.magic f : float)
-  else
+  sinon
     "_"
 ;;
-let rec other_fields x i =
-  if i >= Obj.size x then ""
-  else sprintf ", %s%s" (field x i) (other_fields x (i+1))
+soit rec other_fields x i =
+  si i >= Obj.size x alors ""
+  sinon sprintf ", %s%s" (field x i) (other_fields x (i+1))
 ;;
-let fields x =
-  match Obj.size x with
+soit fields x =
+  filtre Obj.size x avec
   | 0 -> ""
   | 1 -> ""
   | 2 -> sprintf "(%s)" (field x 1)
   | n -> sprintf "(%s%s)" (field x 1) (other_fields x 2)
 ;;
 
-let to_string x =
-  let rec conv = function
+soit to_string x =
+  soit rec conv = fonction
     | hd :: tl ->
-        (match try hd x with _ -> None with
+        (filtre essaie hd x avec _ -> None avec
         | Some s -> s
         | None -> conv tl)
     | [] ->
-        match x with
+        filtre x avec
         | Out_of_memory -> "Out of memory"
         | Stack_overflow -> "Stack overflow"
         | Match_failure(file, line, char) ->
@@ -57,64 +57,64 @@ let to_string x =
         | Undefined_recursive_module(file, line, char) ->
             sprintf locfmt file line char (char+6) "Undefined recursive module"
         | _ ->
-            let x = Obj.repr x in
-            if Obj.tag x <> 0 then
+            soit x = Obj.repr x dans
+            si Obj.tag x <> 0 alors
               (Obj.magic (Obj.field x 0) : string)
-            else
-              let constructor =
-                (Obj.magic (Obj.field (Obj.field x 0) 0) : string) in
-              constructor ^ (fields x) in
+            sinon
+              soit constructor =
+                (Obj.magic (Obj.field (Obj.field x 0) 0) : string) dans
+              constructor ^ (fields x) dans
   conv !printers
 
-let print fct arg =
-  try
+soit print fct arg =
+  essaie
     fct arg
-  with x ->
+  avec x ->
     eprintf "Uncaught exception: %s\n" (to_string x);
     flush stderr;
     raise x
 
-let catch fct arg =
-  try
+soit catch fct arg =
+  essaie
     fct arg
-  with x ->
+  avec x ->
     flush stdout;
     eprintf "Uncaught exception: %s\n" (to_string x);
     exit 2
 
 type raw_backtrace
 
-external get_raw_backtrace:
+dehors get_raw_backtrace:
   unit -> raw_backtrace = "caml_get_exception_raw_backtrace"
 
 type loc_info =
-  | Known_location of bool   (* is_raise *)
+  | Known_location de bool   (* is_raise *)
                     * string (* filename *)
                     * int    (* line number *)
                     * int    (* start char *)
                     * int    (* end char *)
-  | Unknown_location of bool (*is_raise*)
+  | Unknown_location de bool (*is_raise*)
 
 (* to avoid warning *)
-let _ = [Known_location (false, "", 0, 0, 0); Unknown_location false]
+soit _ = [Known_location (faux, "", 0, 0, 0); Unknown_location faux]
 
 type backtrace = loc_info array
 
-external convert_raw_backtrace:
+dehors convert_raw_backtrace:
   raw_backtrace -> backtrace option = "caml_convert_raw_backtrace"
 
-let format_loc_info pos li =
-  let is_raise =
-    match li with
+soit format_loc_info pos li =
+  soit is_raise =
+    filtre li avec
     | Known_location(is_raise, _, _, _, _) -> is_raise
-    | Unknown_location(is_raise) -> is_raise in
-  let info =
-    if is_raise then
-      if pos = 0 then "Raised at" else "Re-raised at"
-    else
-      if pos = 0 then "Raised by primitive operation at" else "Called from"
-  in
-  match li with
+    | Unknown_location(is_raise) -> is_raise dans
+  soit info =
+    si is_raise alors
+      si pos = 0 alors "Raised at" sinon "Re-raised at"
+    sinon
+      si pos = 0 alors "Raised by primitive operation at" sinon "Called from"
+  dans
+  filtre li avec
   | Known_location(is_raise, filename, lineno, startchar, endchar) ->
       sprintf "%s file \"%s\", line %d, characters %d-%d"
               info filename lineno startchar endchar
@@ -122,65 +122,65 @@ let format_loc_info pos li =
       sprintf "%s unknown location"
               info
 
-let print_exception_backtrace outchan backtrace =
-  match backtrace with
+soit print_exception_backtrace outchan backtrace =
+  filtre backtrace avec
   | None ->
       fprintf outchan
         "(Program not linked with -g, cannot print stack backtrace)\n"
   | Some a ->
-      for i = 0 to Array.length a - 1 do
-        if a.(i) <> Unknown_location true then
+      pour i = 0 à Array.length a - 1 faire
+        si a.(i) <> Unknown_location vrai alors
           fprintf outchan "%s\n" (format_loc_info i a.(i))
-      done
+      fait
 
-let print_raw_backtrace outchan raw_backtrace =
+soit print_raw_backtrace outchan raw_backtrace =
   print_exception_backtrace outchan (convert_raw_backtrace raw_backtrace)
 
 (* confusingly named: prints the global current backtrace *)
-let print_backtrace outchan =
+soit print_backtrace outchan =
   print_raw_backtrace outchan (get_raw_backtrace ())
 
-let backtrace_to_string backtrace =
-  match backtrace with
+soit backtrace_to_string backtrace =
+  filtre backtrace avec
   | None ->
      "(Program not linked with -g, cannot print stack backtrace)\n"
   | Some a ->
-      let b = Buffer.create 1024 in
-      for i = 0 to Array.length a - 1 do
-        if a.(i) <> Unknown_location true then
+      soit b = Buffer.create 1024 dans
+      pour i = 0 à Array.length a - 1 faire
+        si a.(i) <> Unknown_location vrai alors
           bprintf b "%s\n" (format_loc_info i a.(i))
-      done;
+      fait;
       Buffer.contents b
 
-let raw_backtrace_to_string raw_backtrace =
+soit raw_backtrace_to_string raw_backtrace =
   backtrace_to_string (convert_raw_backtrace raw_backtrace)
 
 (* confusingly named:
    returns the *string* corresponding to the global current backtrace *)
-let get_backtrace () =
+soit get_backtrace () =
   (* we could use the caml_get_exception_backtrace primitive here, but
      we hope to deprecate it so it's better to just compose the
      raw stuff *)
   backtrace_to_string (convert_raw_backtrace (get_raw_backtrace ()))
 
-external record_backtrace: bool -> unit = "caml_record_backtrace"
-external backtrace_status: unit -> bool = "caml_backtrace_status"
+dehors record_backtrace: bool -> unit = "caml_record_backtrace"
+dehors backtrace_status: unit -> bool = "caml_backtrace_status"
 
-let register_printer fn =
+soit register_printer fn =
   printers := fn :: !printers
 
 
-external get_callstack: int -> raw_backtrace = "caml_get_current_callstack"
+dehors get_callstack: int -> raw_backtrace = "caml_get_current_callstack"
 
 
-let exn_slot x =
-  let x = Obj.repr x in
-  if Obj.tag x = 0 then Obj.field x 0 else x
+soit exn_slot x =
+  soit x = Obj.repr x dans
+  si Obj.tag x = 0 alors Obj.field x 0 sinon x
 
-let exn_slot_id x =
-  let slot = exn_slot x in
+soit exn_slot_id x =
+  soit slot = exn_slot x dans
   (Obj.obj (Obj.field slot 1) : int)
 
-let exn_slot_name x =
-  let slot = exn_slot x in
+soit exn_slot_name x =
+  soit slot = exn_slot x dans
   (Obj.obj (Obj.field slot 0) : string)

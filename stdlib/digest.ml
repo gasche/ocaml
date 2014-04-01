@@ -15,56 +15,56 @@
 
 type t = string
 
-let compare = String.compare
+soit compare = String.compare
 
-external unsafe_string: string -> int -> int -> t = "caml_md5_string"
-external channel: in_channel -> int -> t = "caml_md5_chan"
+dehors unsafe_string: string -> int -> int -> t = "caml_md5_string"
+dehors channel: in_channel -> int -> t = "caml_md5_chan"
 
-let string str =
+soit string str =
   unsafe_string str 0 (String.length str)
 
-let substring str ofs len =
-  if ofs < 0 || len < 0 || ofs > String.length str - len
-  then invalid_arg "Digest.substring"
-  else unsafe_string str ofs len
+soit substring str ofs len =
+  si ofs < 0 || len < 0 || ofs > String.length str - len
+  alors invalid_arg "Digest.substring"
+  sinon unsafe_string str ofs len
 
-let file filename =
-  let ic = open_in_bin filename in
-  let d = channel ic (-1) in
+soit file filename =
+  soit ic = open_in_bin filename dans
+  soit d = channel ic (-1) dans
   close_in ic;
   d
 
-let output chan digest =
+soit output chan digest =
   output chan digest 0 16
 
-let input chan =
-  let digest = String.create 16 in
+soit input chan =
+  soit digest = String.create 16 dans
   really_input chan digest 0 16;
   digest
 
-let char_hex n = Char.unsafe_chr (n + if n < 10 then Char.code '0' else (Char.code 'a' - 10))
+soit char_hex n = Char.unsafe_chr (n + si n < 10 alors Char.code '0' sinon (Char.code 'a' - 10))
 
-let to_hex d =
-  let result = String.create 32 in
-  for i = 0 to 15 do
-    let x = Char.code d.[i] in
-    String.unsafe_set result (i*2) (char_hex (x lsr 4));
-    String.unsafe_set result (i*2+1) (char_hex (x land 0x0f));
-  done;
+soit to_hex d =
+  soit result = String.create 32 dans
+  pour i = 0 à 15 faire
+    soit x = Char.code d.[i] dans
+    String.unsafe_set result (i*2) (char_hex (x ddl 4));
+    String.unsafe_set result (i*2+1) (char_hex (x etl 0x0f));
+  fait;
   result
 
-let from_hex s =
-  if String.length s <> 32 then raise (Invalid_argument "Digest.from_hex");
-  let digit c =
-    match c with
+soit from_hex s =
+  si String.length s <> 32 alors raise (Invalid_argument "Digest.from_hex");
+  soit digit c =
+    filtre c avec
     | '0'..'9' -> Char.code c - Char.code '0'
     | 'A'..'F' -> Char.code c - Char.code 'A' + 10
     | 'a'..'f' -> Char.code c - Char.code 'a' + 10
     | _ -> raise (Invalid_argument "Digest.from_hex")
-  in
-  let byte i = digit s.[i] lsl 4 + digit s.[i+1] in
-  let result = String.create 16 in
-  for i = 0 to 15 do
+  dans
+  soit byte i = digit s.[i] dgl 4 + digit s.[i+1] dans
+  soit result = String.create 16 dans
+  pour i = 0 à 15 faire
     result.[i] <- Char.chr (byte (2 * i));
-  done;
+  fait;
   result

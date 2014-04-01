@@ -20,42 +20,42 @@ type ref_kind =
   | RK_exception
   | RK_attribute
   | RK_method
-  | RK_section of text
+  | RK_section de text
   | RK_recfield
   | RK_const
 
-and text_element =
-  | Raw of string
-  | Code of string
-  | CodePre of string
-  | Verbatim of string
-  | Bold of text
-  | Italic of text
-  | Emphasize of text
-  | Center of text
-  | Left of text
-  | Right of text
-  | List of text list
-  | Enum of text list
+et text_element =
+  | Raw de string
+  | Code de string
+  | CodePre de string
+  | Verbatim de string
+  | Bold de text
+  | Italic de text
+  | Emphasize de text
+  | Center de text
+  | Left de text
+  | Right de text
+  | List de text list
+  | Enum de text list
   | Newline
-  | Block of text
-  | Title of int * string option * text
-  | Latex of string
-  | Link of string * text
-  | Ref of string * ref_kind option * text option
-  | Superscript of text
-  | Subscript of text
-  | Module_list of string list
+  | Block de text
+  | Title de int * string option * text
+  | Latex de string
+  | Link de string * text
+  | Ref de string * ref_kind option * text option
+  | Superscript de text
+  | Subscript de text
+  | Module_list de string list
   | Index_list
-  | Custom of string * text
-  | Target of string * string
+  | Custom de string * text
+  | Target de string * string
 
-and text = text_element list
+et text = text_element list
 
 type see_ref =
-    See_url of string
-  | See_file of string
-  | See_doc of string
+    See_url de string
+  | See_file de string
+  | See_doc de string
 
 type see = see_ref * text
 
@@ -77,7 +77,7 @@ type info = {
     i_custom : (string * text) list ;
   }
 
-let dummy_info = {
+soit dummy_info = {
   i_desc = None ;
   i_authors = [] ;
   i_version = None ;
@@ -96,7 +96,7 @@ type location = {
     loc_inter : Location.t option ;
   }
 
-let dummy_loc = { loc_impl = None ; loc_inter = None }
+soit dummy_loc = { loc_impl = None ; loc_inter = None }
 
 type merge_option =
   | Merge_description
@@ -111,7 +111,7 @@ type merge_option =
   | Merge_return_value
   | Merge_custom
 
-let all_merge_options = [
+soit all_merge_options = [
   Merge_description ;
   Merge_author ;
   Merge_version ;
@@ -127,13 +127,13 @@ let all_merge_options = [
 
 type magic = string
 
-let magic = Odoc_messages.magic
+soit magic = Odoc_messages.magic
 
-type 'a dump = Dump of magic * 'a
+type 'a dump = Dump de magic * 'a
 
-let make_dump a = Dump (magic, a)
+soit make_dump a = Dump (magic, a)
 
-let open_dump = function
+soit open_dump = fonction
     Dump (m, a) ->
-      if m = magic then a
-      else raise (Failure Odoc_messages.bad_magic_number)
+      si m = magic alors a
+      sinon raise (Failure Odoc_messages.bad_magic_number)

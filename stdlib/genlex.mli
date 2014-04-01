@@ -52,12 +52,12 @@
    [+], [*], etc); and [Kwd] for keywords (either identifiers or
    single 'special characters' such as [(], [}], etc). *)
 type token =
-    Kwd of string
-  | Ident of string
-  | Int of int
-  | Float of float
-  | String of string
-  | Char of char
+    Kwd de string
+  | Ident de string
+  | Int de int
+  | Float de float
+  | String de string
+  | Char de char
 
 val make_lexer : string list -> char Stream.t -> token Stream.t
 (** Construct the lexer function. The first argument is the list of

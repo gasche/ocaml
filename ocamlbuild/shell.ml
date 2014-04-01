@@ -12,76 +12,76 @@
 
 
 (* Original author: Nicolas Pouillard *)
-open My_std
+ouvre My_std
 
-let is_simple_filename s =
-  let ls = String.length s in
+soit is_simple_filename s =
+  soit ls = String.length s dans
   ls <> 0 &&
-  let rec loop pos =
-    if pos >= ls then true else
-    match s.[pos] with
+  soit rec loop pos =
+    si pos >= ls alors vrai sinon
+    filtre s.[pos] avec
     | 'a'..'z' | 'A'..'Z' | '0'..'9' | '.' | '-' | '/' | '_' | ':' | '@' | '+' | ',' -> loop (pos + 1)
-    | _ -> false in
+    | _ -> faux dans
   loop 0
-let quote_filename_if_needed s =
-  if is_simple_filename s then s
+soit quote_filename_if_needed s =
+  si is_simple_filename s alors s
   (* We should probably be using [Filename.unix_quote] except that function
    * isn't exported. Users on Windows will have to live with not being able to
    * install OCaml into c:\o'caml. Too bad. *)
-  else if Sys.os_type = "Win32" then Printf.sprintf "'%s'" s
-  else Filename.quote s
-let chdir dir =
+  sinon si Sys.os_type = "Win32" alors Printf.sprintf "'%s'" s
+  sinon Filename.quote s
+soit chdir dir =
   reset_filesys_cache ();
   Sys.chdir dir
-let run args target =
+soit run args target =
   reset_readdir_cache ();
-  let cmd = String.concat " " (List.map quote_filename_if_needed args) in
-  if !*My_unix.is_degraded || Sys.os_type = "Win32" then
-    begin
+  soit cmd = String.concat " " (List.map quote_filename_if_needed args) dans
+  si !*My_unix.is_degraded || Sys.os_type = "Win32" alors
+    début
       Log.event cmd target Tags.empty;
-      let st = sys_command cmd in
-      if st <> 0 then
+      soit st = sys_command cmd dans
+      si st <> 0 alors
         failwith (Printf.sprintf "Erreur pendant la commande `%s'.\nCode de sortie %d.\n" cmd st)
-      else
+      sinon
         ()
-    end
-  else
-    match My_unix.execute_many ~ticker:Log.update ~display:Log.display [[(fun () -> cmd)]] with
+    fin
+  sinon
+    filtre My_unix.execute_many ~ticker:Log.update ~display:Log.display [[(fonc () -> cmd)]] avec
     | None -> ()
     | Some(_, x) ->
       failwith (Printf.sprintf "Erreur pendant la commande %S: %s" cmd (Printexc.to_string x))
-let rm = sys_remove
-let rm_f x =
-  if sys_file_exists x then rm x
-let mkdir dir =
+soit rm = sys_remove
+soit rm_f x =
+  si sys_file_exists x alors rm x
+soit mkdir dir =
   reset_filesys_cache_for_file dir;
   (*Sys.mkdir dir (* MISSING in ocaml *) *)
   run ["mkdir"; dir] dir
-let try_mkdir dir = if not (sys_file_exists dir) then mkdir dir
-let rec mkdir_p dir =
-  if sys_file_exists dir then ()
-  else (mkdir_p (Filename.dirname dir); mkdir dir)
+soit try_mkdir dir = si not (sys_file_exists dir) alors mkdir dir
+soit rec mkdir_p dir =
+  si sys_file_exists dir alors ()
+  sinon (mkdir_p (Filename.dirname dir); mkdir dir)
 
-let cp_pf src dest =
+soit cp_pf src dest =
   reset_filesys_cache_for_file dest;
   run["cp";"-pf";src;dest] dest
 
 (* L'Arrete du 2007-03-07 prend en consideration
    differement les archives. Pour les autres fichiers
    le decret du 2007-02-01 est toujours valable :-) *)
-let cp src dst =
-  if Filename.check_suffix src ".a"
+soit cp src dst =
+  si Filename.check_suffix src ".a"
   && Filename.check_suffix dst ".a"
-  then cp_pf src dst
+  alors cp_pf src dst
   (* try to make a hard link *)
-  else copy_file src dst
+  sinon copy_file src dst
 
-let readlink = My_unix.readlink
-let is_link = My_unix.is_link
-let rm_rf x =
+soit readlink = My_unix.readlink
+soit is_link = My_unix.is_link
+soit rm_rf x =
   reset_filesys_cache ();
   run["rm";"-Rf";x] x
-let mv src dest =
+soit mv src dest =
   reset_filesys_cache_for_file src;
   reset_filesys_cache_for_file dest;
   run["mv"; src; dest] dest

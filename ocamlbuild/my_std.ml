@@ -12,269 +12,269 @@
 
 
 (* Original author: Nicolas Pouillard *)
-open Format
+ouvre Format
 
 exception Exit_OK
-exception Exit_usage of string
-exception Exit_system_error of string
-exception Exit_with_code of int
-exception Exit_silently_with_code of int
+exception Exit_usage de string
+exception Exit_system_error de string
+exception Exit_with_code de int
+exception Exit_silently_with_code de int
 
 module Outcome = struct
   type ('a,'b) t =
-    | Good of 'a
-    | Bad of 'b
+    | Good de 'a
+    | Bad de 'b
 
-  let ignore_good =
-    function
+  soit ignore_good =
+    fonction
     | Good _ -> ()
     | Bad e -> raise e
 
-  let good =
-    function
+  soit good =
+    fonction
     | Good x -> x
     | Bad exn -> raise exn
 
-  let wrap f x =
-    try Good (f x) with e -> Bad e
+  soit wrap f x =
+    essaie Good (f x) avec e -> Bad e
 
-end
+fin
 
-let opt_print elt ppf =
-  function
+soit opt_print elt ppf =
+  fonction
   | Some x -> fprintf ppf "@[<2>Some@ %a@]" elt x
   | None -> pp_print_string ppf "None"
 
-open Format
-let ksbprintf g fmt =
-  let buff = Buffer.create 42 in
-  let f = formatter_of_buffer buff in
-  kfprintf (fun f -> (pp_print_flush f (); g (Buffer.contents buff))) f fmt
-let sbprintf fmt = ksbprintf (fun x -> x) fmt
+ouvre Format
+soit ksbprintf g fmt =
+  soit buff = Buffer.create 42 dans
+  soit f = formatter_of_buffer buff dans
+  kfprintf (fonc f -> (pp_print_flush f (); g (Buffer.contents buff))) f fmt
+soit sbprintf fmt = ksbprintf (fonc x -> x) fmt
 
 (** Some extensions of the standard library *)
 module Set = struct
 
   module type OrderedTypePrintable = sig
-    include Set.OrderedType
+    inclus Set.OrderedType
     val print : formatter -> t -> unit
-  end
+  fin
 
   module type S = sig
-    include Set.S
+    inclus Set.S
     val find_elt : (elt -> bool) -> t -> elt
     val map : (elt -> elt) -> t -> t
     val of_list : elt list -> t
     val print : formatter -> t -> unit
-  end
+  fin
 
-  module Make (M : OrderedTypePrintable) : S with type elt = M.t = struct
-    include Set.Make(M)
-    exception Found of elt
-    let find_elt p set =
-      try
-        iter begin fun elt ->
-          if p elt then raise (Found elt)
-        end set; raise Not_found
-      with Found elt -> elt
-    let map f set = fold (fun x -> add (f x)) set empty
-    let of_list l = List.fold_right add l empty
-    let print f s =
-      let () = fprintf f "@[<hv0>@[<hv2>{.@ " in
-      let _ =
-        fold begin fun elt first ->
-          if not first then fprintf f ",@ ";
+  module Make (M : OrderedTypePrintable) : S avec type elt = M.t = struct
+    inclus Set.Make(M)
+    exception Found de elt
+    soit find_elt p set =
+      essaie
+        iter début fonc elt ->
+          si p elt alors raise (Found elt)
+        fin set; raise Not_found
+      avec Found elt -> elt
+    soit map f set = fold (fonc x -> add (f x)) set empty
+    soit of_list l = List.fold_right add l empty
+    soit print f s =
+      soit () = fprintf f "@[<hv0>@[<hv2>{.@ " dans
+      soit _ =
+        fold début fonc elt first ->
+          si not first alors fprintf f ",@ ";
           M.print f elt;
-          false
-        end s true in
+          faux
+        fin s vrai dans
       fprintf f "@]@ .}@]"
-  end
-end
+  fin
+fin
 
 module List = struct
-  include List
-  let print pp_elt f ls =
+  inclus List
+  soit print pp_elt f ls =
     fprintf f "@[<2>[@ ";
-    let _ =
-      fold_left begin fun first elt ->
-        if not first then fprintf f ";@ ";
+    soit _ =
+      fold_left début fonc first elt ->
+        si not first alors fprintf f ";@ ";
         pp_elt f elt;
-        false
-      end true ls in
+        faux
+      fin vrai ls dans
     fprintf f "@ ]@]"
 
-  let filter_opt f xs =
-    List.fold_right begin fun x acc ->
-      match f x with
+  soit filter_opt f xs =
+    List.fold_right début fonc x acc ->
+      filtre f x avec
       | Some x -> x :: acc
       | None -> acc
-    end xs []
+    fin xs []
 
-  let rec rev_append_uniq acc =
-    function
+  soit rec rev_append_uniq acc =
+    fonction
     | [] -> acc
     | x :: xs ->
-        if mem x acc then rev_append_uniq acc xs
-        else rev_append_uniq (x :: acc) xs
+        si mem x acc alors rev_append_uniq acc xs
+        sinon rev_append_uniq (x :: acc) xs
 
-  let union a b =
+  soit union a b =
     rev (rev_append_uniq (rev_append_uniq [] a) b)
 
-  let ordered_unique (type el) (lst : el list)  =
-    let module Set = Set.Make(struct
+  soit ordered_unique (type el) (lst : el list)  =
+    soit module Set = Set.Make(struct
       type t = el
-      let compare = Pervasives.compare
-      let print _ _ = ()
-    end)
-    in
-    let _, lst =
-      List.fold_left (fun (set,acc) el ->
-        if Set.mem el set
-        then set, acc
-        else Set.add el set, el :: acc) (Set.empty,[]) lst
-    in
+      soit compare = Pervasives.compare
+      soit print _ _ = ()
+    fin)
+    dans
+    soit _, lst =
+      List.fold_left (fonc (set,acc) el ->
+        si Set.mem el set
+        alors set, acc
+        sinon Set.add el set, el :: acc) (Set.empty,[]) lst
+    dans
     List.rev lst
 
-end
+fin
 
 module String = struct
-  include String
+  inclus String
 
-  let print f s = fprintf f "%S" s
+  soit print f s = fprintf f "%S" s
 
-  let chomp s =
-    let is_nl_char = function '\n' | '\r' -> true | _ -> false in
-    let rec cut n =
-      if n = 0 then 0 else if is_nl_char s.[n-1] then cut (n-1) else n
-    in
-    let ls = length s in
-    let n = cut ls in
-    if n = ls then s else sub s 0 n
+  soit chomp s =
+    soit is_nl_char = fonction '\n' | '\r' -> vrai | _ -> faux dans
+    soit rec cut n =
+      si n = 0 alors 0 sinon si is_nl_char s.[n-1] alors cut (n-1) sinon n
+    dans
+    soit ls = length s dans
+    soit n = cut ls dans
+    si n = ls alors s sinon sub s 0 n
 
-  let before s pos = sub s 0 pos
-  let after s pos = sub s pos (length s - pos)
-  let first_chars s n = sub s 0 n
-  let last_chars s n = sub s (length s - n) n
+  soit before s pos = sub s 0 pos
+  soit after s pos = sub s pos (length s - pos)
+  soit first_chars s n = sub s 0 n
+  soit last_chars s n = sub s (length s - n) n
 
-  let rec eq_sub_strings s1 p1 s2 p2 len =
-    if len > 0 then s1.[p1] = s2.[p2] && eq_sub_strings s1 (p1+1) s2 (p2+1) (len-1)
-    else true
+  soit rec eq_sub_strings s1 p1 s2 p2 len =
+    si len > 0 alors s1.[p1] = s2.[p2] && eq_sub_strings s1 (p1+1) s2 (p2+1) (len-1)
+    sinon vrai
 
-  let rec contains_string s1 p1 s2 =
-    let ls1 = length s1 in
-    let ls2 = length s2 in
-    try let pos = index_from s1 p1 s2.[0] in
-        if ls1 - pos < ls2 then None
-        else if eq_sub_strings s1 pos s2 0 ls2 then
-        Some pos else contains_string s1 (pos + 1) s2
-    with Not_found -> None
+  soit rec contains_string s1 p1 s2 =
+    soit ls1 = length s1 dans
+    soit ls2 = length s2 dans
+    essaie soit pos = index_from s1 p1 s2.[0] dans
+        si ls1 - pos < ls2 alors None
+        sinon si eq_sub_strings s1 pos s2 0 ls2 alors
+        Some pos sinon contains_string s1 (pos + 1) s2
+    avec Not_found -> None
 
-  let subst patt repl s =
-    let lpatt = length patt in
-    let lrepl = length repl in
-    let rec loop s from =
-      match contains_string s from patt with
+  soit subst patt repl s =
+    soit lpatt = length patt dans
+    soit lrepl = length repl dans
+    soit rec loop s from =
+      filtre contains_string s from patt avec
       | Some pos ->
           loop (before s pos ^ repl ^ after s (pos + lpatt)) (pos + lrepl)
       | None -> s
-    in loop s 0
+    dans loop s 0
 
-  let tr patt subst text =
-    let len = length text in
-    let text = copy text in
-    let rec loop pos =
-      if pos < len then begin
-        (if text.[pos] = patt then text.[pos] <- subst);
+  soit tr patt subst text =
+    soit len = length text dans
+    soit text = copy text dans
+    soit rec loop pos =
+      si pos < len alors début
+        (si text.[pos] = patt alors text.[pos] <- subst);
         loop (pos + 1)
-      end
-    in loop 0; text
+      fin
+    dans loop 0; text
 
   (*** is_prefix : is u a prefix of v ? *)
-  let is_prefix u v =
-    let m = String.length u
-    and n = String.length v
-    in
+  soit is_prefix u v =
+    soit m = String.length u
+    et n = String.length v
+    dans
     m <= n &&
-      let rec loop i = i = m || u.[i] = v.[i] && loop (i + 1) in
+      soit rec loop i = i = m || u.[i] = v.[i] && loop (i + 1) dans
       loop 0
   (* ***)
 
   (*** is_suffix : is v a suffix of u ? *)
-  let is_suffix u v =
-    let m = String.length u
-    and n = String.length v
-    in
+  soit is_suffix u v =
+    soit m = String.length u
+    et n = String.length v
+    dans
     n <= m &&
-      let rec loop i = i = n || u.[m - 1 - i] = v.[n - 1 - i] && loop (i + 1) in
+      soit rec loop i = i = n || u.[m - 1 - i] = v.[n - 1 - i] && loop (i + 1) dans
       loop 0
   (* ***)
 
-  let rev s =
-    let sl = String.length s in
-    let s' = String.create sl in
-    for i = 0 to sl - 1 do
+  soit rev s =
+    soit sl = String.length s dans
+    soit s' = String.create sl dans
+    pour i = 0 à sl - 1 faire
       s'.[i] <- s.[sl - i - 1]
-    done;
+    fait;
     s';;
 
-  let implode l =
-    match l with
+  soit implode l =
+    filtre l avec
     | [] -> ""
     | cs ->
-        let r = create (List.length cs) in
-        let pos = ref 0 in
-        List.iter begin fun c ->
+        soit r = create (List.length cs) dans
+        soit pos = ref 0 dans
+        List.iter début fonc c ->
           unsafe_set r !pos c;
           incr pos
-        end cs;
+        fin cs;
         r
 
-  let explode s =
-    let sl = String.length s in
-    let rec go pos =
-      if pos >= sl then [] else unsafe_get s pos :: go (pos + 1)
-    in go 0
-end
+  soit explode s =
+    soit sl = String.length s dans
+    soit rec go pos =
+      si pos >= sl alors [] sinon unsafe_get s pos :: go (pos + 1)
+    dans go 0
+fin
 
 module StringSet = Set.Make(String)
 
-let sys_readdir, reset_readdir_cache, reset_readdir_cache_for =
-  let cache = Hashtbl.create 103 in
-  let sys_readdir dir =
-    try Hashtbl.find cache dir with Not_found ->
-      let res = Outcome.wrap Sys.readdir dir in
+soit sys_readdir, reset_readdir_cache, reset_readdir_cache_for =
+  soit cache = Hashtbl.create 103 dans
+  soit sys_readdir dir =
+    essaie Hashtbl.find cache dir avec Not_found ->
+      soit res = Outcome.wrap Sys.readdir dir dans
       (Hashtbl.add cache dir res; res)
-  and reset_readdir_cache () =
+  et reset_readdir_cache () =
     Hashtbl.clear cache
-  and reset_readdir_cache_for dir =
-    Hashtbl.remove cache dir in
+  et reset_readdir_cache_for dir =
+    Hashtbl.remove cache dir dans
   (sys_readdir, reset_readdir_cache, reset_readdir_cache_for)
 
-let sys_file_exists x =
-  let dirname = Filename.dirname x in
-  let basename = Filename.basename x in
-  match sys_readdir dirname with
-  | Outcome.Bad _ -> false
+soit sys_file_exists x =
+  soit dirname = Filename.dirname x dans
+  soit basename = Filename.basename x dans
+  filtre sys_readdir dirname avec
+  | Outcome.Bad _ -> faux
   | Outcome.Good a ->
-      if basename = Filename.current_dir_name then true else
-      try Array.iter (fun x -> if x = basename then raise Exit) a; false
-      with Exit -> true
+      si basename = Filename.current_dir_name alors vrai sinon
+      essaie Array.iter (fonc x -> si x = basename alors raise Exit) a; faux
+      avec Exit -> vrai
 
-let sys_command =
-  match Sys.os_type with
-  | "Win32" -> fun cmd ->
-      if cmd = "" then 0 else
-      let cmd = "bash --norc -c "^Filename.quote cmd in
+soit sys_command =
+  filtre Sys.os_type avec
+  | "Win32" -> fonc cmd ->
+      si cmd = "" alors 0 sinon
+      soit cmd = "bash --norc -c "^Filename.quote cmd dans
       Sys.command cmd
-  | _ -> fun cmd -> if cmd = "" then 0 else Sys.command cmd
+  | _ -> fonc cmd -> si cmd = "" alors 0 sinon Sys.command cmd
 
 (* FIXME warning fix and use Filename.concat *)
-let filename_concat x y =
-  if x = Filename.current_dir_name || x = "" then y else
-  if Sys.os_type = "Win32" && (x.[String.length x - 1] = '\\') || x.[String.length x - 1] = '/' then
-    if y = "" then x
-    else x ^ y
-  else
+soit filename_concat x y =
+  si x = Filename.current_dir_name || x = "" alors y sinon
+  si Sys.os_type = "Win32" && (x.[String.length x - 1] = '\\') || x.[String.length x - 1] = '/' alors
+    si y = "" alors x
+    sinon x ^ y
+  sinon
     x ^ "/" ^ y
 
 (* let reslash =
@@ -282,69 +282,69 @@ let filename_concat x y =
   | "Win32" -> tr '\\' '/'
   | _ -> (fun x -> x) *)
 
-open Format
+ouvre Format
 
-let invalid_arg' fmt = ksbprintf invalid_arg fmt
+soit invalid_arg' fmt = ksbprintf invalid_arg fmt
 
-let the = function Some x -> x | None -> invalid_arg "the: Some est attendu, pas None"
+soit the = fonction Some x -> x | None -> invalid_arg "the: Some est attendu, pas None"
 
-let getenv ?default var =
-  try Sys.getenv var
-  with Not_found ->
-    match default with
+soit getenv ?default var =
+  essaie Sys.getenv var
+  avec Not_found ->
+    filtre default avec
     | Some x -> x
     | None -> failwith (sprintf "Cette commande doit avoir %S dans son environnement" var);;
 
-let with_input_file ?(bin=false) x f =
-  let ic = (if bin then open_in_bin else open_in) x in
-  try let res = f ic in close_in ic; res with e -> (close_in ic; raise e)
+soit with_input_file ?(bin=faux) x f =
+  soit ic = (si bin alors open_in_bin sinon open_in) x dans
+  essaie soit res = f ic dans close_in ic; res avec e -> (close_in ic; raise e)
 
-let with_output_file ?(bin=false) x f =
+soit with_output_file ?(bin=faux) x f =
   reset_readdir_cache_for (Filename.dirname x);
-  let oc = (if bin then open_out_bin else open_out) x in
-  try let res = f oc in close_out oc; res with e -> (close_out oc; raise e)
+  soit oc = (si bin alors open_out_bin sinon open_out) x dans
+  essaie soit res = f oc dans close_out oc; res avec e -> (close_out oc; raise e)
 
-let read_file x =
-  with_input_file ~bin:true x begin fun ic ->
-    let len = in_channel_length ic in
-    let buf = String.create len in
-    let () = really_input ic buf 0 len in
+soit read_file x =
+  with_input_file ~bin:vrai x début fonc ic ->
+    soit len = in_channel_length ic dans
+    soit buf = String.create len dans
+    soit () = really_input ic buf 0 len dans
     buf
-  end
+  fin
 
-let copy_chan ic oc =
-  let m = in_channel_length ic in
-  let m = (m lsr 12) lsl 12 in
-  let m = max 16384 (min Sys.max_string_length m) in
-  let buf = String.create m in
-  let rec loop () =
-    let len = input ic buf 0 m in
-    if len > 0 then begin
+soit copy_chan ic oc =
+  soit m = in_channel_length ic dans
+  soit m = (m ddl 12) dgl 12 dans
+  soit m = max 16384 (min Sys.max_string_length m) dans
+  soit buf = String.create m dans
+  soit rec loop () =
+    soit len = input ic buf 0 m dans
+    si len > 0 alors début
       output oc buf 0 len;
       loop ()
-    end
-  in loop ()
+    fin
+  dans loop ()
 
-let copy_file src dest =
+soit copy_file src dest =
   reset_readdir_cache_for (Filename.dirname dest);
-  with_input_file ~bin:true src begin fun ic ->
-    with_output_file ~bin:true dest begin fun oc ->
+  with_input_file ~bin:vrai src début fonc ic ->
+    with_output_file ~bin:vrai dest début fonc oc ->
       copy_chan ic oc
-    end
-  end
+    fin
+  fin
 
-let ( !* ) = Lazy.force
+soit ( !* ) = Lazy.force
 
-let ( @:= ) ref list = ref := !ref @ list
+soit ( @:= ) ref list = ref := !ref @ list
 
-let ( & ) f x = f x
+soit ( & ) f x = f x
 
-let ( |> ) x f = f x
+soit ( |> ) x f = f x
 
-let print_string_list = List.print String.print
+soit print_string_list = List.print String.print
 
 module Digest = struct
-  include Digest
+  inclus Digest
 (* USEFUL FOR DIGEST DEBUGING
   let digest_log_hash = Hashtbl.create 103;;
   let digest_log = "digest.log";;
@@ -368,54 +368,54 @@ module Digest = struct
   let to_hex x = x
 *)
 
-  let digest_cache = Hashtbl.create 103
-  let reset_digest_cache () = Hashtbl.clear digest_cache
-  let reset_digest_cache_for file = Hashtbl.remove digest_cache file
-  let file f =
-    try Hashtbl.find digest_cache f
-    with Not_found ->
-      let res = file f in
+  soit digest_cache = Hashtbl.create 103
+  soit reset_digest_cache () = Hashtbl.clear digest_cache
+  soit reset_digest_cache_for file = Hashtbl.remove digest_cache file
+  soit file f =
+    essaie Hashtbl.find digest_cache f
+    avec Not_found ->
+      soit res = file f dans
       (Hashtbl.add digest_cache f res; res)
-end
+fin
 
-let reset_filesys_cache () =
+soit reset_filesys_cache () =
   Digest.reset_digest_cache ();
   reset_readdir_cache ()
 
-let reset_filesys_cache_for_file file =
+soit reset_filesys_cache_for_file file =
   Digest.reset_digest_cache_for file;
   reset_readdir_cache_for (Filename.dirname file)
 
-let sys_remove x =
+soit sys_remove x =
   reset_filesys_cache_for_file x;
   Sys.remove x
 
-let with_temp_file pre suf fct =
-  let tmp = Filename.temp_file pre suf in
+soit with_temp_file pre suf fct =
+  soit tmp = Filename.temp_file pre suf dans
   (* Sys.remove is used instead of sys_remove since we know that the tempfile is not that important *)
-  try let res = fct tmp in Sys.remove tmp; res
-  with e -> (Sys.remove tmp; raise e)
+  essaie soit res = fct tmp dans Sys.remove tmp; res
+  avec e -> (Sys.remove tmp; raise e)
 
-let memo f =
-  let cache = Hashtbl.create 103 in
-  fun x ->
-    try Hashtbl.find cache x
-    with Not_found ->
-      let res = f x in
+soit memo f =
+  soit cache = Hashtbl.create 103 dans
+  fonc x ->
+    essaie Hashtbl.find cache x
+    avec Not_found ->
+      soit res = f x dans
       (Hashtbl.add cache x res; res)
 
-let memo2 f =
-  let cache = Hashtbl.create 103 in
-  fun x y ->
-    try Hashtbl.find cache (x,y)
-    with Not_found ->
-      let res = f x y in
+soit memo2 f =
+  soit cache = Hashtbl.create 103 dans
+  fonc x y ->
+    essaie Hashtbl.find cache (x,y)
+    avec Not_found ->
+      soit res = f x y dans
       (Hashtbl.add cache (x,y) res; res)
 
-let memo3 f =
-  let cache = Hashtbl.create 103 in
-  fun x y z ->
-    try Hashtbl.find cache (x,y,z)
-    with Not_found ->
-      let res = f x y z in
+soit memo3 f =
+  soit cache = Hashtbl.create 103 dans
+  fonc x y z ->
+    essaie Hashtbl.find cache (x,y,z)
+    avec Not_found ->
+      soit res = f x y z dans
       (Hashtbl.add cache (x,y,z) res; res)

@@ -18,11 +18,11 @@ module type I = sig
       Cmm.expression -> int -> int ->
         (int * Cmm.expression) list -> Cmm.expression ->
           Cmm.expression
-end
+fin
 
 module Make(I:I) : sig
   (* Compile stringswitch (arg,cases,d)
      Note: cases should not contain string duplicates *)
   val compile : Cmm.expression (* arg *) -> Cmm.expression (* d *) ->
     (string * Cmm.expression) list (* cases *)-> Cmm.expression
-end
+fin

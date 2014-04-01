@@ -13,45 +13,45 @@
 
 (* Module [Int64]: 64-bit integers *)
 
-external neg : int64 -> int64 = "%int64_neg"
-external add : int64 -> int64 -> int64 = "%int64_add"
-external sub : int64 -> int64 -> int64 = "%int64_sub"
-external mul : int64 -> int64 -> int64 = "%int64_mul"
-external div : int64 -> int64 -> int64 = "%int64_div"
-external rem : int64 -> int64 -> int64 = "%int64_mod"
-external logand : int64 -> int64 -> int64 = "%int64_and"
-external logor : int64 -> int64 -> int64 = "%int64_or"
-external logxor : int64 -> int64 -> int64 = "%int64_xor"
-external shift_left : int64 -> int -> int64 = "%int64_lsl"
-external shift_right : int64 -> int -> int64 = "%int64_asr"
-external shift_right_logical : int64 -> int -> int64 = "%int64_lsr"
-external of_int : int -> int64 = "%int64_of_int"
-external to_int : int64 -> int = "%int64_to_int"
-external of_float : float -> int64 = "caml_int64_of_float"
-external to_float : int64 -> float = "caml_int64_to_float"
-external of_int32 : int32 -> int64 = "%int64_of_int32"
-external to_int32 : int64 -> int32 = "%int64_to_int32"
-external of_nativeint : nativeint -> int64 = "%int64_of_nativeint"
-external to_nativeint : int64 -> nativeint = "%int64_to_nativeint"
+dehors neg : int64 -> int64 = "%int64_neg"
+dehors add : int64 -> int64 -> int64 = "%int64_add"
+dehors sub : int64 -> int64 -> int64 = "%int64_sub"
+dehors mul : int64 -> int64 -> int64 = "%int64_mul"
+dehors div : int64 -> int64 -> int64 = "%int64_div"
+dehors rem : int64 -> int64 -> int64 = "%int64_mod"
+dehors logand : int64 -> int64 -> int64 = "%int64_and"
+dehors logor : int64 -> int64 -> int64 = "%int64_or"
+dehors logxor : int64 -> int64 -> int64 = "%int64_xor"
+dehors shift_left : int64 -> int -> int64 = "%int64_lsl"
+dehors shift_right : int64 -> int -> int64 = "%int64_asr"
+dehors shift_right_logical : int64 -> int -> int64 = "%int64_lsr"
+dehors of_int : int -> int64 = "%int64_of_int"
+dehors to_int : int64 -> int = "%int64_to_int"
+dehors of_float : float -> int64 = "caml_int64_of_float"
+dehors to_float : int64 -> float = "caml_int64_to_float"
+dehors of_int32 : int32 -> int64 = "%int64_of_int32"
+dehors to_int32 : int64 -> int32 = "%int64_to_int32"
+dehors of_nativeint : nativeint -> int64 = "%int64_of_nativeint"
+dehors to_nativeint : int64 -> nativeint = "%int64_to_nativeint"
 
-let zero = 0L
-let one = 1L
-let minus_one = -1L
-let succ n = add n 1L
-let pred n = sub n 1L
-let abs n = if n >= 0L then n else neg n
-let min_int = 0x8000000000000000L
-let max_int = 0x7FFFFFFFFFFFFFFFL
-let lognot n = logxor n (-1L)
+soit zero = 0L
+soit one = 1L
+soit minus_one = -1L
+soit succ n = add n 1L
+soit pred n = sub n 1L
+soit abs n = si n >= 0L alors n sinon neg n
+soit min_int = 0x8000000000000000L
+soit max_int = 0x7FFFFFFFFFFFFFFFL
+soit lognot n = logxor n (-1L)
 
-external format : string -> int64 -> string = "caml_int64_format"
-let to_string n = format "%d" n
+dehors format : string -> int64 -> string = "caml_int64_format"
+soit to_string n = format "%d" n
 
-external of_string : string -> int64 = "caml_int64_of_string"
+dehors of_string : string -> int64 = "caml_int64_of_string"
 
-external bits_of_float : float -> int64 = "caml_int64_bits_of_float"
-external float_of_bits : int64 -> float = "caml_int64_float_of_bits"
+dehors bits_of_float : float -> int64 = "caml_int64_bits_of_float"
+dehors float_of_bits : int64 -> float = "caml_int64_float_of_bits"
 
 type t = int64
 
-let compare (x: t) (y: t) = Pervasives.compare x y
+soit compare (x: t) (y: t) = Pervasives.compare x y

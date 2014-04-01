@@ -10,14 +10,14 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Instruct;;
-open Lexing;;
-open Location;;
-open Primitives;;
-open Source;;
+ouvre Instruct;;
+ouvre Lexing;;
+ouvre Location;;
+ouvre Primitives;;
+ouvre Source;;
 
-let get_desc ev =
-  let loc = ev.ev_loc in
+soit get_desc ev =
+  soit loc = ev.ev_loc dans
   Printf.sprintf "file %s, line %d, characters %d-%d"
                  loc.loc_start.pos_fname loc.loc_start.pos_lnum
                  (loc.loc_start.pos_cnum - loc.loc_start.pos_bol + 1)

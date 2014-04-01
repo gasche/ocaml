@@ -11,31 +11,31 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Input_handling
-open Question
-open Command_line
-open Debugger_config
-open Checkpoints
-open Time_travel
-open Parameters
-open Program_management
-open Frames
-open Show_information
-open Format
-open Primitives
+ouvre Input_handling
+ouvre Question
+ouvre Command_line
+ouvre Debugger_config
+ouvre Checkpoints
+ouvre Time_travel
+ouvre Parameters
+ouvre Program_management
+ouvre Frames
+ouvre Show_information
+ouvre Format
+ouvre Primitives
 
-let line_buffer = Lexing.from_function read_user_input
+soit line_buffer = Lexing.from_function read_user_input
 
-let rec loop ppf = line_loop ppf line_buffer
+soit rec loop ppf = line_loop ppf line_buffer
 
-let current_duration = ref (-1L)
+soit current_duration = ref (-1L)
 
-let rec protect ppf restart loop =
-  try
+soit rec protect ppf restart loop =
+  essaie
     loop ppf
-  with
+  avec
   | End_of_file ->
-      protect ppf restart (function ppf ->
+      protect ppf restart (fonction ppf ->
         forget_process
           !current_checkpoint.c_fd
           !current_checkpoint.c_pid;
@@ -43,22 +43,22 @@ let rec protect ppf restart loop =
         stop_user_input ();
         restart ppf)
   | Toplevel ->
-      protect ppf restart (function ppf ->
+      protect ppf restart (fonction ppf ->
         pp_print_flush ppf ();
         stop_user_input ();
         restart ppf)
   | Sys.Break ->
-      protect ppf restart (function ppf ->
+      protect ppf restart (fonction ppf ->
         fprintf ppf "Interrupted.@.";
-        Exec.protect (function () ->
+        Exec.protect (fonction () ->
           stop_user_input ();
-          if !loaded then begin
+          si !loaded alors début
             try_select_frame 0;
             show_current_event ppf;
-          end);
+          fin);
         restart ppf)
   | Current_checkpoint_lost ->
-      protect ppf restart (function ppf ->
+      protect ppf restart (fonction ppf ->
         fprintf ppf "Trying to recover...@.";
         stop_user_input ();
         recover ();
@@ -66,75 +66,75 @@ let rec protect ppf restart loop =
         show_current_event ppf;
         restart ppf)
   | Current_checkpoint_lost_start_at (time, init_duration) ->
-      protect ppf restart (function ppf ->
-        let b =
-          if !current_duration = -1L then begin
-            let msg = sprintf "Restart from time %Ld and try to get \
-                               closer of the problem" time in
+      protect ppf restart (fonction ppf ->
+        soit b =
+          si !current_duration = -1L alors début
+            soit msg = sprintf "Restart from time %Ld and try to get \
+                               closer of the problem" time dans
             stop_user_input ();
-            if yes_or_no msg then
-              (current_duration := init_duration; true)
-            else
-              false
-            end
-          else
-            true in
-        if b then
-          begin
+            si yes_or_no msg alors
+              (current_duration := init_duration; vrai)
+            sinon
+              faux
+            fin
+          sinon
+            vrai dans
+        si b alors
+          début
             go_to time;
             current_duration := Int64.div !current_duration 10L;
-            if !current_duration > 0L then
-              while true do
+            si !current_duration > 0L alors
+              pendant_que vrai faire
                 step !current_duration
-              done
-            else begin
+              fait
+            sinon début
               current_duration := -1L;
               stop_user_input ();
               show_current_event ppf;
               restart ppf;
-            end
-          end
-        else
-          begin
+            fin
+          fin
+        sinon
+          début
             recover ();
             show_current_event ppf;
             restart ppf
-          end)
+          fin)
   | x ->
       kill_program ();
       raise x
 
-let execute_file_if_any () =
-  let buffer = Buffer.create 128 in
-  begin
-    try
-      let base = ".ocamldebug" in
-      let file =
-        if Sys.file_exists base then
+soit execute_file_if_any () =
+  soit buffer = Buffer.create 128 dans
+  début
+    essaie
+      soit base = ".ocamldebug" dans
+      soit file =
+        si Sys.file_exists base alors
           base
-        else
-          Filename.concat (Sys.getenv "HOME") base in
-      let ch = open_in file in
+        sinon
+          Filename.concat (Sys.getenv "HOME") base dans
+      soit ch = open_in file dans
       fprintf Format.std_formatter "Executing file %s@." file;
-      while true do
-        let line = string_trim (input_line ch) in
-        if line <> ""  && line.[0] <> '#' then begin
+      pendant_que vrai faire
+        soit line = string_trim (input_line ch) dans
+        si line <> ""  && line.[0] <> '#' alors début
           Buffer.add_string buffer line;
           Buffer.add_char buffer '\n'
-        end
-      done;
-    with _ -> ()
-  end;
-  let len = Buffer.length buffer in
-  if len > 0 then
-    let commands = Buffer.sub buffer 0 (pred len) in
+        fin
+      fait;
+    avec _ -> ()
+  fin;
+  soit len = Buffer.length buffer dans
+  si len > 0 alors
+    soit commands = Buffer.sub buffer 0 (pred len) dans
     line_loop Format.std_formatter (Lexing.from_string commands)
 
-let toplevel_loop () =
-  interactif := false;
+soit toplevel_loop () =
+  interactif := faux;
   current_prompt := "";
   execute_file_if_any ();
-  interactif := true;
+  interactif := vrai;
   current_prompt := debugger_prompt;
   protect Format.std_formatter loop loop
 
@@ -142,27 +142,27 @@ let toplevel_loop () =
 
 exception Found_program_name
 
-let anonymous s =
+soit anonymous s =
   program_name := Unix_tools.make_absolute s; raise Found_program_name
-let add_include d =
+soit add_include d =
   default_load_path :=
     Misc.expand_directory Config.standard_library d :: !default_load_path
-let set_socket s =
+soit set_socket s =
   socket_name := s
-let set_checkpoints n =
+soit set_checkpoints n =
   checkpoint_max_count := n
-let set_directory dir =
+soit set_directory dir =
   Sys.chdir dir
-let print_version () =
+soit print_version () =
   printf "The OCaml debugger, version %s@." Sys.ocaml_version;
   exit 0;
 ;;
-let print_version_num () =
+soit print_version_num () =
   printf "%s@." Sys.ocaml_version;
   exit 0;
 ;;
 
-let speclist = [
+soit speclist = [
    "-c", Arg.Int set_checkpoints,
       "<count>  Set max number of checkpoints kept";
    "-cd", Arg.String set_directory,
@@ -181,14 +181,14 @@ let speclist = [
       " Print version number and exit";
    ]
 
-let function_placeholder () =
+soit function_placeholder () =
   raise Not_found
 
-let main () =
+soit main () =
   Callback.register "Debugger.function_placeholder" function_placeholder;
-  try
+  essaie
     socket_name :=
-      (match Sys.os_type with
+      (filtre Sys.os_type avec
         "Win32" ->
           (Unix.string_of_inet_addr Unix.inet_addr_loopback)^
           ":"^
@@ -196,25 +196,25 @@ let main () =
       | _ -> Filename.concat Filename.temp_dir_name
                                 ("camldebug" ^ (string_of_int (Unix.getpid ())))
       );
-    begin try
+    début essaie
       Arg.parse speclist anonymous "";
       Arg.usage speclist
         "No program name specified\n\
          Usage: ocamldebug [options] <program> [arguments]\n\
          Options are:";
       exit 2
-    with Found_program_name ->
-      for j = !Arg.current + 1 to Array.length Sys.argv - 1 do
+    avec Found_program_name ->
+      pour j = !Arg.current + 1 à Array.length Sys.argv - 1 faire
         arguments := !arguments ^ " " ^ (Filename.quote Sys.argv.(j))
-      done
-    end;
+      fait
+    fin;
     printf "\tOCaml Debugger version %s@.@." Config.version;
     Config.load_path := !default_load_path;
-    Clflags.recursive_types := true;    (* Allow recursive types. *)
+    Clflags.recursive_types := vrai;    (* Allow recursive types. *)
     toplevel_loop ();                   (* Toplevel. *)
     kill_program ();
     exit 0
-  with
+  avec
     Toplevel ->
       exit 2
   | Env.Error e ->
@@ -228,5 +228,5 @@ let main () =
       eprintf "@]@.";
       exit 2
 
-let _ =
+soit _ =
   Printexc.catch (Unix.handle_unix_error main) ()

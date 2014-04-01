@@ -14,7 +14,7 @@
 (* Original author: Nicolas Pouillard *)
 (** OCaml dependencies *)
 
-exception Circular_dependencies of string list * string
+exception Circular_dependencies de string list * string
 
 (** Give to this module a way to access libraries, packages,
     and dependencies between files. *)
@@ -22,7 +22,7 @@ module type INPUT = sig
   val fold_dependencies : (string -> string -> 'a -> 'a) -> 'a -> 'a
   val fold_libraries : (string -> string list -> 'a -> 'a) -> 'a -> 'a
   val fold_packages : (string -> string list -> 'a -> 'a) -> 'a -> 'a
-end
+fin
 
 (** Wait an [INPUT] module and gives a function to compute the
     transitive closure of caml file takeing in account libraries and packages. *)
@@ -41,4 +41,4 @@ module Make (I : INPUT) : sig
     ?hidden_packages:string list ->
     Pathname.t list -> Pathname.t list
 
-end
+fin

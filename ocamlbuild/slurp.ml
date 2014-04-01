@@ -13,143 +13,143 @@
 
 (* Original author: Berke Durak *)
 (* Slurp *)
-open My_std
-open Outcome
+ouvre My_std
+ouvre Outcome
 
 type 'a entry =
-  | Dir of string * string * My_unix.stats Lazy.t * 'a * 'a entry list Lazy.t
-  | File of string * string * My_unix.stats Lazy.t * 'a
-  | Error of exn
+  | Dir de string * string * My_unix.stats Lazy.t * 'a * 'a entry list Lazy.t
+  | File de string * string * My_unix.stats Lazy.t * 'a
+  | Error de exn
   | Nothing
 
-let (/) = filename_concat
+soit (/) = filename_concat
 
-let rec filter predicate = function
+soit rec filter predicate = fonction
   | Dir(path, name, st, attr, entries) ->
-      if predicate path name attr then
-        Dir(path, name, st, attr, lazy (List.map (filter predicate) !*entries))
-      else
+      si predicate path name attr alors
+        Dir(path, name, st, attr, paresseux (List.map (filter predicate) !*entries))
+      sinon
         Nothing
-  | File(path, name, _, attr) as f ->
-      if predicate path name attr then
+  | File(path, name, _, attr) tel f ->
+      si predicate path name attr alors
         f
-      else
+      sinon
         Nothing
   | Nothing -> Nothing
-  | Error _ as e -> e
+  | Error _ tel e -> e
 
-let real_slurp path =
-  let cwd = Sys.getcwd () in
-  let abs x = if Filename.is_implicit x || Filename.is_relative x then cwd/x else x in
-  let visited = Hashtbl.create 1024 in
-  let rec scandir path names =
-    let (file_acc, dir_acc) =
-      Array.fold_left begin fun ((file_acc, dir_acc) as acc) name ->
-        match do_entry true path name with
+soit real_slurp path =
+  soit cwd = Sys.getcwd () dans
+  soit abs x = si Filename.is_implicit x || Filename.is_relative x alors cwd/x sinon x dans
+  soit visited = Hashtbl.create 1024 dans
+  soit rec scandir path names =
+    soit (file_acc, dir_acc) =
+      Array.fold_left début fonc ((file_acc, dir_acc) tel acc) name ->
+        filtre do_entry vrai path name avec
         | None -> acc
-        | Some((Dir _|Error _) as entry) -> (file_acc, entry :: dir_acc)
-        | Some((File _) as entry) -> (entry :: file_acc, dir_acc)
+        | Some((Dir _|Error _) tel entry) -> (file_acc, entry :: dir_acc)
+        | Some((File _) tel entry) -> (entry :: file_acc, dir_acc)
         | Some Nothing -> acc
-      end
+      fin
       ([], [])
       names
-    in
+    dans
     file_acc @ dir_acc
-  and do_entry link_mode path name =
-    let fn = path/name in
-    let absfn = abs fn in
-    match
-      try
-        Good(if link_mode then My_unix.lstat absfn else My_unix.stat absfn)
-      with
+  et do_entry link_mode path name =
+    soit fn = path/name dans
+    soit absfn = abs fn dans
+    filtre
+      essaie
+        Good(si link_mode alors My_unix.lstat absfn sinon My_unix.stat absfn)
+      avec
       | x -> Bad x
-    with
+    avec
     | Bad x -> Some(Error x)
     | Good st ->
-      let key = st.My_unix.stat_key in
-      if try Hashtbl.find visited key with Not_found -> false
-      then None
-      else
-        begin
-          Hashtbl.add visited key true;
-          let res =
-            match st.My_unix.stat_file_kind with
+      soit key = st.My_unix.stat_key dans
+      si essaie Hashtbl.find visited key avec Not_found -> faux
+      alors None
+      sinon
+        début
+          Hashtbl.add visited key vrai;
+          soit res =
+            filtre st.My_unix.stat_file_kind avec
             | My_unix.FK_link ->
-                let fn' = My_unix.readlink absfn in
-                if sys_file_exists (abs fn') then
-                  do_entry false path name
-                else
-                  Some(File(path, name, lazy st, ()))
+                soit fn' = My_unix.readlink absfn dans
+                si sys_file_exists (abs fn') alors
+                  do_entry faux path name
+                sinon
+                  Some(File(path, name, paresseux st, ()))
             | My_unix.FK_dir ->
-                (match sys_readdir absfn with
-                | Good names -> Some(Dir(path, name, lazy st, (), lazy (scandir fn names)))
+                (filtre sys_readdir absfn avec
+                | Good names -> Some(Dir(path, name, paresseux st, (), paresseux (scandir fn names)))
                 | Bad exn -> Some(Error exn))
             | My_unix.FK_other -> None
-            | My_unix.FK_file -> Some(File(path, name, lazy st, ())) in
-          Hashtbl.replace visited key false;
+            | My_unix.FK_file -> Some(File(path, name, paresseux st, ())) dans
+          Hashtbl.replace visited key faux;
           res
-        end
-  in
-  match do_entry true "" path with
+        fin
+  dans
+  filtre do_entry vrai "" path avec
   | None -> raise Not_found
   | Some entry -> entry
 
-let split path =
-  let rec aux path =
-    if path = Filename.current_dir_name then []
-    else (Filename.basename path) :: aux (Filename.dirname path)
-  in List.rev (aux path)
+soit split path =
+  soit rec aux path =
+    si path = Filename.current_dir_name alors []
+    sinon (Filename.basename path) :: aux (Filename.dirname path)
+  dans List.rev (aux path)
 
-let rec join =
-  function
-  | [] -> assert false
+soit rec join =
+  fonction
+  | [] -> affirme faux
   | [x] -> x
   | x :: xs -> x/(join xs)
 
-let rec add root path entries =
-  match path, entries with
+soit rec add root path entries =
+  filtre path, entries avec
   | [], _ -> entries
-  | xpath :: xspath, (Dir(dpath, dname, dst, dattr, dentries) as d) :: entries ->
-      if xpath = dname then
-        Dir(dpath, dname, dst, dattr, lazy (add (root/xpath) xspath !*dentries)) :: entries
-      else d :: add root path entries
+  | xpath :: xspath, (Dir(dpath, dname, dst, dattr, dentries) tel d) :: entries ->
+      si xpath = dname alors
+        Dir(dpath, dname, dst, dattr, paresseux (add (root/xpath) xspath !*dentries)) :: entries
+      sinon d :: add root path entries
   | [xpath], [] ->
-      [File(root, xpath, lazy (My_unix.stat (root/xpath)), ())]
+      [File(root, xpath, paresseux (My_unix.stat (root/xpath)), ())]
   | xpath :: xspath, [] ->
       [Dir(root/(join xspath), xpath,
-           lazy (My_unix.stat (root/(join path))), (),
-           lazy (add (root/xpath) xspath []))]
+           paresseux (My_unix.stat (root/(join path))), (),
+           paresseux (add (root/xpath) xspath []))]
   | _, Nothing :: entries -> add root path entries
   | _, Error _ :: _ -> entries
-  | [xpath], (File(_, fname, _, _) as f) :: entries' ->
-      if xpath = fname then entries
-      else f :: add root path entries'
-  | xpath :: xspath, (File(fpath, fname, fst, fattr) as f) :: entries' ->
-      if xpath = fname then
-        Dir(fpath, fname, fst, fattr, lazy (add (root/xpath) xspath [])) :: entries'
-      else f :: add root path entries'
+  | [xpath], (File(_, fname, _, _) tel f) :: entries' ->
+      si xpath = fname alors entries
+      sinon f :: add root path entries'
+  | xpath :: xspath, (File(fpath, fname, fst, fattr) tel f) :: entries' ->
+      si xpath = fname alors
+        Dir(fpath, fname, fst, fattr, paresseux (add (root/xpath) xspath [])) :: entries'
+      sinon f :: add root path entries'
 
-let slurp_with_find path =
-  let find_cmd = try Sys.getenv "OCAMLBUILD_FIND" with _ -> "find" in
-  let lines =
-    My_unix.run_and_open (Printf.sprintf "%s %s" find_cmd (Filename.quote path)) begin fun ic ->
-      let acc = ref [] in
-      try while true do acc := input_line ic :: !acc done; []
-      with End_of_file -> !acc
-    end in
-  let res =
-    List.fold_right begin fun line acc ->
+soit slurp_with_find path =
+  soit find_cmd = essaie Sys.getenv "OCAMLBUILD_FIND" avec _ -> "find" dans
+  soit lines =
+    My_unix.run_and_open (Printf.sprintf "%s %s" find_cmd (Filename.quote path)) début fonc ic ->
+      soit acc = ref [] dans
+      essaie pendant_que vrai faire acc := input_line ic :: !acc fait; []
+      avec End_of_file -> !acc
+    fin dans
+  soit res =
+    List.fold_right début fonc line acc ->
       add path (split line) acc
-    end lines [] in
-  match res with
+    fin lines [] dans
+  filtre res avec
   | [] -> Nothing
   | [entry] -> entry
-  | entries -> Dir(path, Filename.basename path, lazy (My_unix.stat path), (), lazy entries)
+  | entries -> Dir(path, Filename.basename path, paresseux (My_unix.stat path), (), paresseux entries)
 
-let slurp x = if !*My_unix.is_degraded then slurp_with_find x else real_slurp x
+soit slurp x = si !*My_unix.is_degraded alors slurp_with_find x sinon real_slurp x
 
-let rec print print_attr f entry =
-  match entry with
+soit rec print print_attr f entry =
+  filtre entry avec
   | Dir(path, name, _, attr, entries) ->
       Format.fprintf f "@[<2>Dir(%S,@ %S,@ _,@ %a,@ %a)@]"
         path name print_attr attr (List.print (print print_attr)) !*entries
@@ -160,29 +160,29 @@ let rec print print_attr f entry =
   | Error(_) ->
       Format.fprintf f "Error(_)"
 
-let rec fold f entry acc =
-  match entry with
+soit rec fold f entry acc =
+  filtre entry avec
   | Dir(path, name, _, attr, contents) ->
       f path name attr (List.fold_right (fold f) !*contents acc)
   | File(path, name, _, attr) ->
       f path name attr acc
   | Nothing | Error _ -> acc
 
-let map f entry =
-  let rec self entry =
-    match entry with
+soit map f entry =
+  soit rec self entry =
+    filtre entry avec
     | Dir(path, name, st, attr, contents) ->
-        Dir(path, name, st, f path name attr, lazy (List.map self !*contents))
+        Dir(path, name, st, f path name attr, paresseux (List.map self !*contents))
     | File(path, name, st, attr) ->
         File(path, name, st, f path name attr)
     | Nothing -> Nothing
     | Error e -> Error e
-  in self entry
+  dans self entry
 
-let rec force =
-  function
+soit rec force =
+  fonction
   | Dir(_, _, st, _, contents) ->
-      let _ = !*st in List.iter force !*contents
+      soit _ = !*st dans List.iter force !*contents
   | File(_, _, st, _) ->
       ignore !*st
   | Nothing | Error _ -> ()

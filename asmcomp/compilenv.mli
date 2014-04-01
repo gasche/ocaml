@@ -12,7 +12,7 @@
 
 (* Compilation environments for compilation units *)
 
-open Cmx_format
+ouvre Cmx_format
 
 val reset: ?packname:string -> string -> unit
         (* Reset the environment and record the name of the unit being
@@ -85,10 +85,10 @@ val cmx_not_found_crc: Digest.t
 val read_library_info: string -> library_infos
 
 type error =
-    Not_a_unit_info of string
-  | Corrupted_unit_info of string
-  | Illegal_renaming of string * string * string
+    Not_a_unit_info de string
+  | Corrupted_unit_info de string
+  | Illegal_renaming de string * string * string
 
-exception Error of error
+exception Error de error
 
 val report_error: Format.formatter -> error -> unit

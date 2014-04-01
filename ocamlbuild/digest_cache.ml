@@ -12,31 +12,31 @@
 
 (* Original author: Nicolas Pouillard *)
 
-open My_std
-open Pathname.Operators
+ouvre My_std
+ouvre Pathname.Operators
 
-let digests = Hashtbl.create 103
+soit digests = Hashtbl.create 103
 
-let get = Hashtbl.find digests
+soit get = Hashtbl.find digests
 
-let put = Hashtbl.replace digests
+soit put = Hashtbl.replace digests
 
-let _digests = lazy (!Options.build_dir / (Pathname.mk "_digests"))
+soit _digests = paresseux (!Options.build_dir / (Pathname.mk "_digests"))
 
-let finalize () =
-  with_output_file !*_digests begin fun oc ->
-    Hashtbl.iter begin fun name digest ->
+soit finalize () =
+  with_output_file !*_digests début fonc oc ->
+    Hashtbl.iter début fonc name digest ->
       Printf.fprintf oc "%S: %S\n" name digest
-    end digests
-  end
+    fin digests
+  fin
 
-let init () =
+soit init () =
   Shell.chdir !Options.build_dir;
-  if Pathname.exists !*_digests then
-    with_input_file !*_digests begin fun ic ->
-      try while true do
-        let l = input_line ic in
+  si Pathname.exists !*_digests alors
+    with_input_file !*_digests début fonc ic ->
+      essaie pendant_que vrai faire
+        soit l = input_line ic dans
         Scanf.sscanf l "%S: %S" put
-      done with End_of_file -> ()
-    end;
+      fait avec End_of_file -> ()
+    fin;
   My_unix.at_exit_once finalize

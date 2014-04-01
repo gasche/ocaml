@@ -17,14 +17,14 @@
 (** Scans a directory lazily to build a tree that can be user-decorated. *)
 
 type 'a entry =
-    Dir of string * string * My_unix.stats Lazy.t * 'a * 'a entry list Lazy.t
+    Dir de string * string * My_unix.stats Lazy.t * 'a * 'a entry list Lazy.t
     (** [Dir(path, name, lst, decoration, lentries)] is a directory named [name] whose path is [path].
        Its stat is lazily stored in [lst] and its entries are lazily scanned in [lentries].  [decoration]
        is of type 'a. *)
-  | File of string * string * My_unix.stats Lazy.t * 'a
+  | File de string * string * My_unix.stats Lazy.t * 'a
     (** [File(path, name, lst, decoration)] is a file named [name] whose path is [path].
        Its stat is lazily stored in [lst].  [decoration] is of type 'a. *)
-  | Error of exn
+  | Error de exn
     (** [Error x] means that the exception [x] was raised while scanning or statting an entry. *)
   | Nothing
     (** Convenient when filtering out entries. *)

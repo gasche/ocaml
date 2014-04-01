@@ -16,7 +16,7 @@
 
 (** Provides an abstract type for easily building complex shell commands without making
     quotation mistakes.  *)
-include Signatures.COMMAND with type tags = Tags.t and type pathname = string
+inclus Signatures.COMMAND avec type tags = Tags.t et type pathname = string
 
 (** {6 For system use only, not for the casual user} *)
 

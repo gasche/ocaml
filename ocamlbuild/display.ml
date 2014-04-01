@@ -13,26 +13,26 @@
 
 (* Original author: Berke Durak *)
 (* Display *)
-open My_std;;
+ouvre My_std;;
 
-open My_unix;;
+ouvre My_unix;;
 
-let fp = Printf.fprintf;;
+soit fp = Printf.fprintf;;
 
 (*** ANSI *)
 module ANSI =
   struct
-    let up oc n = fp oc "\027[%dA" n;;
-    let clear_to_eol oc () = fp oc "\027[K";;
-    let bol oc () = fp oc "\r";;
-    let get_columns () =
-      if Sys.os_type = "Unix" then
-        try
+    soit up oc n = fp oc "\027[%dA" n;;
+    soit clear_to_eol oc () = fp oc "\027[K";;
+    soit bol oc () = fp oc "\r";;
+    soit get_columns () =
+      si Sys.os_type = "Unix" alors
+        essaie
           int_of_string (String.chomp (My_unix.run_and_read "tput cols"))
-        with
+        avec
         | Failure _ -> 80
-      else 80
-  end
+      sinon 80
+  fin
 ;;
 (* ***)
 (*** tagline_description *)
@@ -42,17 +42,17 @@ type tagline_description = (string * char) list;;
 type sophisticated_display = {
           ds_channel         : out_channel;            (** Channel for writing *)
           ds_start_time      : float;                  (** When was compilation started *)
-  mutable ds_last_update     : float;                  (** When was the display last updated *)
-  mutable ds_last_target     : string;                 (** Last target built *)
-  mutable ds_last_cached     : bool;                   (** Was the last target cached or really built ? *)
-  mutable ds_last_tags       : Tags.t;                 (** Tags of the last command *)
-  mutable ds_changed         : bool;                   (** Does the tag line need recomputing ? *)
+  modifiable ds_last_update     : float;                  (** When was the display last updated *)
+  modifiable ds_last_target     : string;                 (** Last target built *)
+  modifiable ds_last_cached     : bool;                   (** Was the last target cached or really built ? *)
+  modifiable ds_last_tags       : Tags.t;                 (** Tags of the last command *)
+  modifiable ds_changed         : bool;                   (** Does the tag line need recomputing ? *)
           ds_update_interval : float;                  (** Minimum interval between updates *)
           ds_columns         : int;                    (** Number of columns in dssplay *)
-  mutable ds_jobs            : int;                    (** Number of jobs launched or cached *)
-  mutable ds_jobs_cached     : int;                    (** Number of jobs cached *)
+  modifiable ds_jobs            : int;                    (** Number of jobs launched or cached *)
+  modifiable ds_jobs_cached     : int;                    (** Number of jobs cached *)
           ds_tagline         : string;                 (** Current tagline *)
-  mutable ds_seen_tags       : Tags.t;                 (** Tags that we have encountered *)
+  modifiable ds_seen_tags       : Tags.t;                 (** Tags that we have encountered *)
           ds_pathname_length : int;                    (** How much space for displaying pathnames ? *)
           ds_tld             : tagline_description;    (** Description for the tagline *)
 };;
@@ -60,21 +60,21 @@ type sophisticated_display = {
 (*** display_line, display *)
 type display_line =
 | Classic
-| Sophisticated of sophisticated_display
+| Sophisticated de sophisticated_display
 
 type display = {
           di_log_level    : int;
-  mutable di_log_channel  : (Format.formatter * out_channel) option;
+  modifiable di_log_channel  : (Format.formatter * out_channel) option;
           di_channel      : out_channel;
           di_formatter    : Format.formatter;
           di_display_line : display_line;
-  mutable di_finished     : bool;
+  modifiable di_finished     : bool;
 }
 ;;
 (* ***)
 (*** various defaults *)
-let default_update_interval = 0.05;;
-let default_tagline_description = [
+soit default_update_interval = 0.05;;
+soit default_tagline_description = [
   "ocaml",     'O';
   "native",    'N';
   "byte",      'B';
@@ -86,29 +86,29 @@ let default_tagline_description = [
 ];;
 
 (* NOT including spaces *)
-let countdown_chars = 8;;
-let jobs_chars = 3;;
-let jobs_cached_chars = 5;;
-let dots = "...";;
-let start_target = "STARTING";;
-let finish_target = "FINISHED";;
-let ticker_chars = 3;;
-let ticker_period = 0.25;;
-let ticker_animation = [|
+soit countdown_chars = 8;;
+soit jobs_chars = 3;;
+soit jobs_cached_chars = 5;;
+soit dots = "...";;
+soit start_target = "STARTING";;
+soit finish_target = "FINISHED";;
+soit ticker_chars = 3;;
+soit ticker_period = 0.25;;
+soit ticker_animation = [|
   "\\";
   "|";
   "/";
   "-";
 |];;
-let cached = "*";;
-let uncached = " ";;
-let cache_chars = 1;;
+soit cached = "*";;
+soit uncached = " ";;
+soit cache_chars = 1;;
 (* ***)
 (*** create_tagline *)
-let create_tagline description = String.make (List.length description) '-';;
+soit create_tagline description = String.make (List.length description) '-';;
 (* ***)
 (*** create *)
-let create
+soit create
   ?(channel=stdout)
   ?(mode:[`Classic|`Sophisticated] = `Sophisticated)
   ?columns:(_columns=75)
@@ -117,31 +117,31 @@ let create
   ?(log_level=1)
   ()
   =
-  let log_channel =
-    match log_file with
+  soit log_channel =
+    filtre log_file avec
     | None -> None
     | Some fn ->
-        let oc = open_out_gen [Open_text; Open_wronly; Open_creat; Open_trunc] 0o666 fn in
-        let f = Format.formatter_of_out_channel oc in
+        soit oc = open_out_gen [Open_text; Open_wronly; Open_creat; Open_trunc] 0o666 fn dans
+        soit f = Format.formatter_of_out_channel oc dans
         Format.fprintf f "### Starting build.\n";
         Some (f, oc)
-  in
+  dans
 
-  let display_line =
-    match mode with
+  soit display_line =
+    filtre mode avec
     | `Classic -> Classic
     | `Sophisticated ->
       (* We assume Unix is not degraded. *)
-      let n = ANSI.get_columns () in
-      let tag_chars = List.length description in
+      soit n = ANSI.get_columns () dans
+      soit tag_chars = List.length description dans
       Sophisticated
         { ds_channel         = stdout;
           ds_start_time      = gettimeofday ();
           ds_last_update     = 0.0;
           ds_last_target     = start_target;
           ds_last_tags       = Tags.empty;
-          ds_last_cached     = false;
-          ds_changed         = false;
+          ds_last_cached     = faux;
+          ds_changed         = faux;
           ds_update_interval = default_update_interval;
           ds_columns         = n;
           ds_jobs            = 0;
@@ -152,40 +152,40 @@ let create
                                  (countdown_chars + 1 + jobs_chars + 1 + jobs_cached_chars + 1 +
                                   cache_chars + 1 + tag_chars + 1 + ticker_chars + 2);
           ds_tld             = description }
-  in
+  dans
   { di_log_level    = log_level;
     di_log_channel  = log_channel;
     di_channel      = channel;
     di_formatter    = Format.formatter_of_out_channel channel;
     di_display_line = display_line;
-    di_finished     = false }
+    di_finished     = faux }
 ;;
 (* ***)
 (*** print_time *)
-let print_time oc t =
-  let t = int_of_float t in
-  let s = t mod 60 in
-  let m = (t / 60) mod 60 in
-  let h = t / 3600 in
+soit print_time oc t =
+  soit t = int_of_float t dans
+  soit s = t mod 60 dans
+  soit m = (t / 60) mod 60 dans
+  soit h = t / 3600 dans
   fp oc "%02d:%02d:%02d" h m s
 ;;
 (* ***)
 (*** print_shortened_pathname *)
-let print_shortened_pathname length oc u =
-  assert(length >= 3);
-  let m = String.length u in
-  if m <= length then
-    begin
+soit print_shortened_pathname length oc u =
+  affirme(length >= 3);
+  soit m = String.length u dans
+  si m <= length alors
+    début
       output_string oc u;
       fp oc "%*s" (length - m) ""
-    end
-  else
-    begin
-      let n = String.length dots in
-      let k = length - n in
+    fin
+  sinon
+    début
+      soit n = String.length dots dans
+      soit k = length - n dans
       output_string oc dots;
       output oc u (m - k) k;
-    end
+    fin
 (* ***)
 (*** Layout
 
@@ -202,46 +202,46 @@ HH MM SS XXXX        PATHNAME
 cmo mllib
 ***)
 (*** redraw_sophisticated *)
-let redraw_sophisticated ds =
-  let t = gettimeofday () in
-  let oc = ds.ds_channel in
-  let dt = t -. ds.ds_start_time in
+soit redraw_sophisticated ds =
+  soit t = gettimeofday () dans
+  soit oc = ds.ds_channel dans
+  soit dt = t -. ds.ds_start_time dans
   ds.ds_last_update <- t;
   fp oc "%a" ANSI.bol ();
-  let ticker_phase = (abs (int_of_float (ceil (dt /. ticker_period)))) mod (Array.length ticker_animation) in
-  let ticker = ticker_animation.(ticker_phase) in
+  soit ticker_phase = (abs (int_of_float (ceil (dt /. ticker_period)))) mod (Array.length ticker_animation) dans
+  soit ticker = ticker_animation.(ticker_phase) dans
   fp oc "%a %-4d (%-4d) %a %s %s %s"
     print_time dt
     ds.ds_jobs
     ds.ds_jobs_cached
     (print_shortened_pathname ds.ds_pathname_length) ds.ds_last_target
-    (if ds.ds_last_cached then cached else uncached)
+    (si ds.ds_last_cached alors cached sinon uncached)
     ds.ds_tagline
     ticker;
   fp oc "%a%!" ANSI.clear_to_eol ()
 ;;
 (* ***)
 (*** redraw *)
-let redraw = function
+soit redraw = fonction
   | Classic -> ()
   | Sophisticated ds -> redraw_sophisticated ds
 ;;
 (* ***)
 (*** finish_sophisticated *)
-let finish_sophisticated ?(how=`Success) ds =
-  let t = gettimeofday () in
-  let oc = ds.ds_channel in
-  let dt = t -. ds.ds_start_time in
-  match how with
+soit finish_sophisticated ?(how=`Success) ds =
+  soit t = gettimeofday () dans
+  soit oc = ds.ds_channel dans
+  soit dt = t -. ds.ds_start_time dans
+  filtre how avec
   | `Success|`Error ->
     fp oc "%a" ANSI.bol ();
     fp oc "%s %d target%s (%d cached) in %a."
-      (if how = `Error then
+      (si how = `Error alors
         "Compilation unsuccessful after building"
-       else
+       sinon
          "Finished,")
       ds.ds_jobs
-      (if ds.ds_jobs = 1 then "" else "s")
+      (si ds.ds_jobs = 1 alors "" sinon "s")
       ds.ds_jobs_cached
       print_time dt;
     fp oc "%a\n%!" ANSI.clear_to_eol ()
@@ -250,144 +250,144 @@ let finish_sophisticated ?(how=`Success) ds =
 ;;
 (* ***)
 (*** sophisticated_display *)
-let sophisticated_display ds f =
+soit sophisticated_display ds f =
   fp ds.ds_channel "%a%a%!" ANSI.bol () ANSI.clear_to_eol ();
   f ds.ds_channel
 ;;
 (* ***)
 (*** call_if *)
-let call_if log_channel f =
-  match log_channel with
+soit call_if log_channel f =
+  filtre log_channel avec
   | None -> ()
   | Some x -> f x
 ;;
 (* ***)
 (*** display *)
-let display di f =
-  call_if di.di_log_channel (fun (_, oc) -> f oc);
-  match di.di_display_line with
+soit display di f =
+  call_if di.di_log_channel (fonc (_, oc) -> f oc);
+  filtre di.di_display_line avec
   | Classic -> f di.di_channel
   | Sophisticated ds -> sophisticated_display ds f
 ;;
 (* ***)
 (*** finish *)
-let finish ?(how=`Success) di =
-  if not di.di_finished then begin
-    di.di_finished <- true;
+soit finish ?(how=`Success) di =
+  si not di.di_finished alors début
+    di.di_finished <- vrai;
     call_if di.di_log_channel
-      begin fun (fmt, oc) ->
-        Format.fprintf fmt "# Compilation %ssuccessful.@." (if how = `Error then "un" else "");
+      début fonc (fmt, oc) ->
+        Format.fprintf fmt "# Compilation %ssuccessful.@." (si how = `Error alors "un" sinon "");
         close_out oc;
         di.di_log_channel <- None
-      end;
-    match di.di_display_line with
+      fin;
+    filtre di.di_display_line avec
     | Classic -> ()
     | Sophisticated ds -> finish_sophisticated ~how ds
-  end
+  fin
 ;;
 (* ***)
 (*** update_tagline_from_tags *)
-let update_tagline_from_tags ds =
-  let tagline = ds.ds_tagline in
-  let tags = ds.ds_last_tags in
-  let rec loop i = function
+soit update_tagline_from_tags ds =
+  soit tagline = ds.ds_tagline dans
+  soit tags = ds.ds_last_tags dans
+  soit rec loop i = fonction
     | [] ->
-        for j = i to String.length tagline - 1 do
+        pour j = i à String.length tagline - 1 faire
           tagline.[j] <- '-'
-        done
+        fait
     | (tag, c) :: rest ->
-        if Tags.mem tag tags then
+        si Tags.mem tag tags alors
           tagline.[i] <- Char.uppercase c
-        else
-          if Tags.mem tag ds.ds_seen_tags then
+        sinon
+          si Tags.mem tag ds.ds_seen_tags alors
             tagline.[i] <- Char.lowercase c
-          else
+          sinon
             tagline.[i] <- '-';
         loop (i + 1) rest
-  in
+  dans
   loop 0 ds.ds_tld;
 ;;
 (* ***)
 (*** update_sophisticated *)
-let update_sophisticated ds =
-  let t = gettimeofday () in
-  let dt = t -. ds.ds_last_update in
-  if dt > ds.ds_update_interval then
-    begin
-      if ds.ds_changed then
-        begin
+soit update_sophisticated ds =
+  soit t = gettimeofday () dans
+  soit dt = t -. ds.ds_last_update dans
+  si dt > ds.ds_update_interval alors
+    début
+      si ds.ds_changed alors
+        début
           update_tagline_from_tags ds;
-          ds.ds_changed <- false
-        end;
+          ds.ds_changed <- faux
+        fin;
       redraw_sophisticated ds
-    end
-  else
+    fin
+  sinon
     ()
 ;;
 (* ***)
 (*** set_target_sophisticated *)
-let set_target_sophisticated ds target tags cached =
-  ds.ds_changed <- true;
+soit set_target_sophisticated ds target tags cached =
+  ds.ds_changed <- vrai;
   ds.ds_last_target <- target;
   ds.ds_last_tags <- tags;
   ds.ds_jobs <- 1 + ds.ds_jobs;
-  if cached then ds.ds_jobs_cached <- 1 + ds.ds_jobs_cached;
+  si cached alors ds.ds_jobs_cached <- 1 + ds.ds_jobs_cached;
   ds.ds_last_cached <- cached;
   ds.ds_seen_tags <- Tags.union ds.ds_seen_tags ds.ds_last_tags;
   update_sophisticated ds
 ;;
 
-let print_tags f tags =
-  let first = ref true in
-  Tags.iter begin fun tag ->
-    if !first then begin
-      first := false;
+soit print_tags f tags =
+  soit first = ref vrai dans
+  Tags.iter début fonc tag ->
+    si !first alors début
+      first := faux;
       Format.fprintf f "%s" tag
-    end else Format.fprintf f ", %s" tag
-  end tags
+    fin sinon Format.fprintf f ", %s" tag
+  fin tags
 ;;
 (* ***)
 (*** update *)
-let update di =
-  match di.di_display_line with
+soit update di =
+  filtre di.di_display_line avec
   | Classic -> ()
   | Sophisticated ds -> update_sophisticated ds
 ;;
 (* ***)
 (*** event *)
-let event di ?(pretend=false) command target tags =
+soit event di ?(pretend=faux) command target tags =
   call_if di.di_log_channel
-    (fun (fmt, _) ->
+    (fonc (fmt, _) ->
       Format.fprintf fmt "# Target: %s, tags: { %a }\n" target print_tags tags;
-      Format.fprintf fmt "%s%s@." command (if pretend then " # cached" else ""));
-  match di.di_display_line with
+      Format.fprintf fmt "%s%s@." command (si pretend alors " # cached" sinon ""));
+  filtre di.di_display_line avec
   | Classic ->
-      if pretend then
-        begin
+      si pretend alors
+        début
           (* This should work, even on Windows *)
-          let command = Filename.basename command in
-          if di.di_log_level >= 2 then Format.fprintf di.di_formatter "[cache hit] %s\n%!" command
-        end
-      else
-        (if di.di_log_level >= 1 then Format.fprintf di.di_formatter "%s\n%!" command)
+          soit command = Filename.basename command dans
+          si di.di_log_level >= 2 alors Format.fprintf di.di_formatter "[cache hit] %s\n%!" command
+        fin
+      sinon
+        (si di.di_log_level >= 1 alors Format.fprintf di.di_formatter "%s\n%!" command)
   | Sophisticated ds ->
       set_target_sophisticated ds target tags pretend;
       update_sophisticated ds
 ;;
 (* ***)
 (*** dprintf *)
-let dprintf ?(log_level=1) di fmt =
-  if log_level > di.di_log_level then Discard_printf.discard_printf fmt else
-  match di.di_display_line with
+soit dprintf ?(log_level=1) di fmt =
+  si log_level > di.di_log_level alors Discard_printf.discard_printf fmt sinon
+  filtre di.di_display_line avec
   | Classic -> Format.fprintf di.di_formatter fmt
   | Sophisticated _ ->
-      if log_level < 0 then
-        begin
+      si log_level < 0 alors
+        début
           display di ignore;
           Format.fprintf di.di_formatter fmt
-        end
-      else
-        match di.di_log_channel with
+        fin
+      sinon
+        filtre di.di_log_channel avec
         | Some (f, _) -> Format.fprintf f fmt
         | None -> Discard_printf.discard_printf fmt
 (* ***)

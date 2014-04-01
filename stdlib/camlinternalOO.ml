@@ -11,100 +11,100 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Obj
+ouvre Obj
 
 (**** Object representation ****)
 
-external set_id: 'a -> 'a = "caml_set_oo_id" "noalloc"
+dehors set_id: 'a -> 'a = "caml_set_oo_id" "noalloc"
 
 (**** Object copy ****)
 
-let copy o =
-  let o = (Obj.obj (Obj.dup (Obj.repr o))) in
+soit copy o =
+  soit o = (Obj.obj (Obj.dup (Obj.repr o))) dans
   set_id o
 
 (**** Compression options ****)
 (* Parameters *)
 type params = {
-    mutable compact_table : bool;
-    mutable copy_parent : bool;
-    mutable clean_when_copying : bool;
-    mutable retry_count : int;
-    mutable bucket_small_size : int
+    modifiable compact_table : bool;
+    modifiable copy_parent : bool;
+    modifiable clean_when_copying : bool;
+    modifiable retry_count : int;
+    modifiable bucket_small_size : int
   }
 
-let params = {
-  compact_table = true;
-  copy_parent = true;
-  clean_when_copying = true;
+soit params = {
+  compact_table = vrai;
+  copy_parent = vrai;
+  clean_when_copying = vrai;
   retry_count = 3;
   bucket_small_size = 16
 }
 
 (**** Parameters ****)
 
-let step = Sys.word_size / 16
-let initial_object_size = 2
+soit step = Sys.word_size / 16
+soit initial_object_size = 2
 
 (**** Items ****)
 
-type item = DummyA | DummyB | DummyC of int
-let _ = [DummyA; DummyB; DummyC 0] (* to avoid warnings *)
+type item = DummyA | DummyB | DummyC de int
+soit _ = [DummyA; DummyB; DummyC 0] (* to avoid warnings *)
 
-let dummy_item = (magic () : item)
+soit dummy_item = (magic () : item)
 
 (**** Types ****)
 
 type tag
 type label = int
 type closure = item
-type t = DummyA | DummyB | DummyC of int
-let _ = [DummyA; DummyB; DummyC 0] (* to avoid warnings *)
+type t = DummyA | DummyB | DummyC de int
+soit _ = [DummyA; DummyB; DummyC 0] (* to avoid warnings *)
 
 type obj = t array
-external ret : (obj -> 'a) -> closure = "%identity"
+dehors ret : (obj -> 'a) -> closure = "%identity"
 
 (**** Labels ****)
 
-let public_method_label s : tag =
-  let accu = ref 0 in
-  for i = 0 to String.length s - 1 do
+soit public_method_label s : tag =
+  soit accu = ref 0 dans
+  pour i = 0 à String.length s - 1 faire
     accu := 223 * !accu + Char.code s.[i]
-  done;
+  fait;
   (* reduce to 31 bits *)
-  accu := !accu land (1 lsl 31 - 1);
+  accu := !accu etl (1 dgl 31 - 1);
   (* make it signed for 64 bits architectures *)
-  let tag = if !accu > 0x3FFFFFFF then !accu - (1 lsl 31) else !accu in
+  soit tag = si !accu > 0x3FFFFFFF alors !accu - (1 dgl 31) sinon !accu dans
   (* Printf.eprintf "%s = %d\n" s tag; flush stderr; *)
   magic tag
 
 (**** Sparse array ****)
 
 module Vars =
-  Map.Make(struct type t = string let compare (x:t) y = compare x y end)
+  Map.Make(struct type t = string soit compare (x:t) y = compare x y fin)
 type vars = int Vars.t
 
 module Meths =
-  Map.Make(struct type t = string let compare (x:t) y = compare x y end)
+  Map.Make(struct type t = string soit compare (x:t) y = compare x y fin)
 type meths = label Meths.t
 module Labs =
-  Map.Make(struct type t = label let compare (x:t) y = compare x y end)
+  Map.Make(struct type t = label soit compare (x:t) y = compare x y fin)
 type labs = bool Labs.t
 
 (* The compiler assumes that the first field of this structure is [size]. *)
 type table =
- { mutable size: int;
-   mutable methods: closure array;
-   mutable methods_by_name: meths;
-   mutable methods_by_label: labs;
-   mutable previous_states:
+ { modifiable size: int;
+   modifiable methods: closure array;
+   modifiable methods_by_name: meths;
+   modifiable methods_by_label: labs;
+   modifiable previous_states:
      (meths * labs * (label * item) list * vars *
       label list * string list) list;
-   mutable hidden_meths: (label * item) list;
-   mutable vars: vars;
-   mutable initializers: (obj -> unit) list }
+   modifiable hidden_meths: (label * item) list;
+   modifiable vars: vars;
+   modifiable initializers: (obj -> unit) list }
 
-let dummy_table =
+soit dummy_table =
   { methods = [| dummy_item |];
     methods_by_name = Meths.empty;
     methods_by_label = Labs.empty;
@@ -114,24 +114,24 @@ let dummy_table =
     initializers = [];
     size = 0 }
 
-let table_count = ref 0
+soit table_count = ref 0
 
 (* dummy_met should be a pointer, so use an atom *)
-let dummy_met : item = obj (Obj.new_block 0 0)
+soit dummy_met : item = obj (Obj.new_block 0 0)
 (* if debugging is needed, this could be a good idea: *)
 (* let dummy_met () = failwith "Undefined method" *)
 
-let rec fit_size n =
-  if n <= 2 then n else
+soit rec fit_size n =
+  si n <= 2 alors n sinon
   fit_size ((n+1)/2) * 2
 
-let new_table pub_labels =
+soit new_table pub_labels =
   incr table_count;
-  let len = Array.length pub_labels in
-  let methods = Array.create (len*2+2) dummy_met in
+  soit len = Array.length pub_labels dans
+  soit methods = Array.create (len*2+2) dummy_met dans
   methods.(0) <- magic len;
   methods.(1) <- magic (fit_size len * Sys.word_size / 8 - 1);
-  for i = 0 to len - 1 do methods.(i*2+3) <- magic pub_labels.(i) done;
+  pour i = 0 à len - 1 faire methods.(i*2+3) <- magic pub_labels.(i) fait;
   { methods = methods;
     methods_by_name = Meths.empty;
     methods_by_label = Labs.empty;
@@ -141,148 +141,148 @@ let new_table pub_labels =
     initializers = [];
     size = initial_object_size }
 
-let resize array new_size =
-  let old_size = Array.length array.methods in
-  if new_size > old_size then begin
-    let new_buck = Array.create new_size dummy_met in
+soit resize array new_size =
+  soit old_size = Array.length array.methods dans
+  si new_size > old_size alors début
+    soit new_buck = Array.create new_size dummy_met dans
     Array.blit array.methods 0 new_buck 0 old_size;
     array.methods <- new_buck
- end
+ fin
 
-let put array label element =
+soit put array label element =
   resize array (label + 1);
   array.methods.(label) <- element
 
 (**** Classes ****)
 
-let method_count = ref 0
-let inst_var_count = ref 0
+soit method_count = ref 0
+soit inst_var_count = ref 0
 
 (* type t *)
 type meth = item
 
-let new_method table =
-  let index = Array.length table.methods in
+soit new_method table =
+  soit index = Array.length table.methods dans
   resize table (index + 1);
   index
 
-let get_method_label table name =
-  try
+soit get_method_label table name =
+  essaie
     Meths.find name table.methods_by_name
-  with Not_found ->
-    let label = new_method table in
+  avec Not_found ->
+    soit label = new_method table dans
     table.methods_by_name <- Meths.add name label table.methods_by_name;
-    table.methods_by_label <- Labs.add label true table.methods_by_label;
+    table.methods_by_label <- Labs.add label vrai table.methods_by_label;
     label
 
-let get_method_labels table names =
+soit get_method_labels table names =
   Array.map (get_method_label table) names
 
-let set_method table label element =
+soit set_method table label element =
   incr method_count;
-  if Labs.find label table.methods_by_label then
+  si Labs.find label table.methods_by_label alors
     put table label element
-  else
+  sinon
     table.hidden_meths <- (label, element) :: table.hidden_meths
 
-let get_method table label =
-  try List.assoc label table.hidden_meths
-  with Not_found -> table.methods.(label)
+soit get_method table label =
+  essaie List.assoc label table.hidden_meths
+  avec Not_found -> table.methods.(label)
 
-let to_list arr =
-  if arr == magic 0 then [] else Array.to_list arr
+soit to_list arr =
+  si arr == magic 0 alors [] sinon Array.to_list arr
 
-let narrow table vars virt_meths concr_meths =
-  let vars = to_list vars
-  and virt_meths = to_list virt_meths
-  and concr_meths = to_list concr_meths in
-  let virt_meth_labs = List.map (get_method_label table) virt_meths in
-  let concr_meth_labs = List.map (get_method_label table) concr_meths in
+soit narrow table vars virt_meths concr_meths =
+  soit vars = to_list vars
+  et virt_meths = to_list virt_meths
+  et concr_meths = to_list concr_meths dans
+  soit virt_meth_labs = List.map (get_method_label table) virt_meths dans
+  soit concr_meth_labs = List.map (get_method_label table) concr_meths dans
   table.previous_states <-
      (table.methods_by_name, table.methods_by_label, table.hidden_meths,
       table.vars, virt_meth_labs, vars)
      :: table.previous_states;
   table.vars <-
     Vars.fold
-      (fun lab info tvars ->
-        if List.mem lab vars then Vars.add lab info tvars else tvars)
+      (fonc lab info tvars ->
+        si List.mem lab vars alors Vars.add lab info tvars sinon tvars)
       table.vars Vars.empty;
-  let by_name = ref Meths.empty in
-  let by_label = ref Labs.empty in
+  soit by_name = ref Meths.empty dans
+  soit by_label = ref Labs.empty dans
   List.iter2
-    (fun met label ->
+    (fonc met label ->
        by_name := Meths.add met label !by_name;
        by_label :=
           Labs.add label
-            (try Labs.find label table.methods_by_label with Not_found -> true)
+            (essaie Labs.find label table.methods_by_label avec Not_found -> vrai)
             !by_label)
     concr_meths concr_meth_labs;
   List.iter2
-    (fun met label ->
+    (fonc met label ->
        by_name := Meths.add met label !by_name;
-       by_label := Labs.add label false !by_label)
+       by_label := Labs.add label faux !by_label)
     virt_meths virt_meth_labs;
   table.methods_by_name <- !by_name;
   table.methods_by_label <- !by_label;
   table.hidden_meths <-
      List.fold_right
-       (fun ((lab, _) as met) hm ->
-          if List.mem lab virt_meth_labs then hm else met::hm)
+       (fonc ((lab, _) tel met) hm ->
+          si List.mem lab virt_meth_labs alors hm sinon met::hm)
        table.hidden_meths
        []
 
-let widen table =
-  let (by_name, by_label, saved_hidden_meths, saved_vars, virt_meths, vars) =
+soit widen table =
+  soit (by_name, by_label, saved_hidden_meths, saved_vars, virt_meths, vars) =
     List.hd table.previous_states
-  in
+  dans
   table.previous_states <- List.tl table.previous_states;
   table.vars <-
      List.fold_left
-       (fun s v -> Vars.add v (Vars.find v table.vars) s)
+       (fonc s v -> Vars.add v (Vars.find v table.vars) s)
        saved_vars vars;
   table.methods_by_name <- by_name;
   table.methods_by_label <- by_label;
   table.hidden_meths <-
      List.fold_right
-       (fun ((lab, _) as met) hm ->
-          if List.mem lab virt_meths then hm else met::hm)
+       (fonc ((lab, _) tel met) hm ->
+          si List.mem lab virt_meths alors hm sinon met::hm)
        table.hidden_meths
        saved_hidden_meths
 
-let new_slot table =
-  let index = table.size in
+soit new_slot table =
+  soit index = table.size dans
   table.size <- index + 1;
   index
 
-let new_variable table name =
-  try Vars.find name table.vars
-  with Not_found ->
-    let index = new_slot table in
-    if name <> "" then table.vars <- Vars.add name index table.vars;
+soit new_variable table name =
+  essaie Vars.find name table.vars
+  avec Not_found ->
+    soit index = new_slot table dans
+    si name <> "" alors table.vars <- Vars.add name index table.vars;
     index
 
-let to_array arr =
-  if arr = Obj.magic 0 then [||] else arr
+soit to_array arr =
+  si arr = Obj.magic 0 alors [||] sinon arr
 
-let new_methods_variables table meths vals =
-  let meths = to_array meths in
-  let nmeths = Array.length meths and nvals = Array.length vals in
-  let res = Array.create (nmeths + nvals) 0 in
-  for i = 0 to nmeths - 1 do
+soit new_methods_variables table meths vals =
+  soit meths = to_array meths dans
+  soit nmeths = Array.length meths et nvals = Array.length vals dans
+  soit res = Array.create (nmeths + nvals) 0 dans
+  pour i = 0 à nmeths - 1 faire
     res.(i) <- get_method_label table meths.(i)
-  done;
-  for i = 0 to nvals - 1 do
+  fait;
+  pour i = 0 à nvals - 1 faire
     res.(i+nmeths) <- new_variable table vals.(i)
-  done;
+  fait;
   res
 
-let get_variable table name =
-  try Vars.find name table.vars with Not_found -> assert false
+soit get_variable table name =
+  essaie Vars.find name table.vars avec Not_found -> affirme faux
 
-let get_variables table names =
+soit get_variables table names =
   Array.map (get_variable table) names
 
-let add_initializer table f =
+soit add_initializer table f =
   table.initializers <- f::table.initializers
 
 (*
@@ -296,200 +296,200 @@ let get_key tags : item =
     magic tags
 *)
 
-let create_table public_methods =
-  if public_methods == magic 0 then new_table [||] else
+soit create_table public_methods =
+  si public_methods == magic 0 alors new_table [||] sinon
   (* [public_methods] must be in ascending order for bytecode *)
-  let tags = Array.map public_method_label public_methods in
-  let table = new_table tags in
+  soit tags = Array.map public_method_label public_methods dans
+  soit table = new_table tags dans
   Array.iteri
-    (fun i met ->
-      let lab = i*2+2 in
+    (fonc i met ->
+      soit lab = i*2+2 dans
       table.methods_by_name  <- Meths.add met lab table.methods_by_name;
-      table.methods_by_label <- Labs.add lab true table.methods_by_label)
+      table.methods_by_label <- Labs.add lab vrai table.methods_by_label)
     public_methods;
   table
 
-let init_class table =
+soit init_class table =
   inst_var_count := !inst_var_count + table.size - 1;
   table.initializers <- List.rev table.initializers;
   resize table (3 + magic table.methods.(1) * 16 / Sys.word_size)
 
-let inherits cla vals virt_meths concr_meths (_, super, _, env) top =
+soit inherits cla vals virt_meths concr_meths (_, super, _, env) top =
   narrow cla vals virt_meths concr_meths;
-  let init =
-    if top then super cla env else Obj.repr (super cla) in
+  soit init =
+    si top alors super cla env sinon Obj.repr (super cla) dans
   widen cla;
   Array.concat
     [[| repr init |];
      magic (Array.map (get_variable cla) (to_array vals) : int array);
      Array.map
-       (fun nm -> repr (get_method cla (get_method_label cla nm) : closure))
+       (fonc nm -> repr (get_method cla (get_method_label cla nm) : closure))
        (to_array concr_meths) ]
 
-let make_class pub_meths class_init =
-  let table = create_table pub_meths in
-  let env_init = class_init table in
+soit make_class pub_meths class_init =
+  soit table = create_table pub_meths dans
+  soit env_init = class_init table dans
   init_class table;
   (env_init (Obj.repr 0), class_init, env_init, Obj.repr 0)
 
-type init_table = { mutable env_init: t; mutable class_init: table -> t }
+type init_table = { modifiable env_init: t; modifiable class_init: table -> t }
 
-let make_class_store pub_meths class_init init_table =
-  let table = create_table pub_meths in
-  let env_init = class_init table in
+soit make_class_store pub_meths class_init init_table =
+  soit table = create_table pub_meths dans
+  soit env_init = class_init table dans
   init_class table;
   init_table.class_init <- class_init;
   init_table.env_init <- env_init
 
-let dummy_class loc =
-  let undef = fun _ -> raise (Undefined_recursive_module loc) in
+soit dummy_class loc =
+  soit undef = fonc _ -> raise (Undefined_recursive_module loc) dans
   (Obj.magic undef, undef, undef, Obj.repr 0)
 
 (**** Objects ****)
 
-let create_object table =
+soit create_object table =
   (* XXX Appel de [obj_block] *)
-  let obj = Obj.new_block Obj.object_tag table.size in
+  soit obj = Obj.new_block Obj.object_tag table.size dans
   (* XXX Appel de [caml_modify] *)
   Obj.set_field obj 0 (Obj.repr table.methods);
   Obj.obj (set_id obj)
 
-let create_object_opt obj_0 table =
-  if (Obj.magic obj_0 : bool) then obj_0 else begin
+soit create_object_opt obj_0 table =
+  si (Obj.magic obj_0 : bool) alors obj_0 sinon début
     (* XXX Appel de [obj_block] *)
-    let obj = Obj.new_block Obj.object_tag table.size in
+    soit obj = Obj.new_block Obj.object_tag table.size dans
     (* XXX Appel de [caml_modify] *)
     Obj.set_field obj 0 (Obj.repr table.methods);
     Obj.obj (set_id obj)
-  end
+  fin
 
-let rec iter_f obj =
-  function
+soit rec iter_f obj =
+  fonction
     []   -> ()
   | f::l -> f obj; iter_f obj l
 
-let run_initializers obj table =
-  let inits = table.initializers in
-  if inits <> [] then
+soit run_initializers obj table =
+  soit inits = table.initializers dans
+  si inits <> [] alors
     iter_f obj inits
 
-let run_initializers_opt obj_0 obj table =
-  if (Obj.magic obj_0 : bool) then obj else begin
-    let inits = table.initializers in
-    if inits <> [] then iter_f obj inits;
+soit run_initializers_opt obj_0 obj table =
+  si (Obj.magic obj_0 : bool) alors obj sinon début
+    soit inits = table.initializers dans
+    si inits <> [] alors iter_f obj inits;
     obj
-  end
+  fin
 
-let create_object_and_run_initializers obj_0 table =
-  if (Obj.magic obj_0 : bool) then obj_0 else begin
-    let obj = create_object table in
+soit create_object_and_run_initializers obj_0 table =
+  si (Obj.magic obj_0 : bool) alors obj_0 sinon début
+    soit obj = create_object table dans
     run_initializers obj table;
     obj
-  end
+  fin
 
 (* Equivalent primitive below
 let sendself obj lab =
   (magic obj : (obj -> t) array array).(0).(lab) obj
 *)
-external send : obj -> tag -> 'a = "%send"
-external sendcache : obj -> tag -> t -> int -> 'a = "%sendcache"
-external sendself : obj -> label -> 'a = "%sendself"
-external get_public_method : obj -> tag -> closure
+dehors send : obj -> tag -> 'a = "%send"
+dehors sendcache : obj -> tag -> t -> int -> 'a = "%sendcache"
+dehors sendself : obj -> label -> 'a = "%sendself"
+dehors get_public_method : obj -> tag -> closure
     = "caml_get_public_method" "noalloc"
 
 (**** table collection access ****)
 
-type tables = Empty | Cons of closure * tables * tables
+type tables = Empty | Cons de closure * tables * tables
 type mut_tables =
-    {key: closure; mutable data: tables; mutable next: tables}
-external mut : tables -> mut_tables = "%identity"
-external demut : mut_tables -> tables = "%identity"
+    {key: closure; modifiable data: tables; modifiable next: tables}
+dehors mut : tables -> mut_tables = "%identity"
+dehors demut : mut_tables -> tables = "%identity"
 
-let build_path n keys tables =
+soit build_path n keys tables =
   (* Be careful not to create a seemingly immutable block, otherwise it could
      be statically allocated.  See #5779. *)
-  let res = demut {key = Obj.magic 0; data = Empty; next = Empty} in
-  let r = ref res in
-  for i = 0 to n do
+  soit res = demut {key = Obj.magic 0; data = Empty; next = Empty} dans
+  soit r = ref res dans
+  pour i = 0 à n faire
     r := Cons (keys.(i), !r, Empty)
-  done;
+  fait;
   tables.data <- !r;
   res
 
-let rec lookup_keys i keys tables =
-  if i < 0 then tables else
-  let key = keys.(i) in
-  let rec lookup_key tables =
-    if tables.key == key then lookup_keys (i-1) keys tables.data else
-    if tables.next <> Empty then lookup_key (mut tables.next) else
-    let next = Cons (key, Empty, Empty) in
+soit rec lookup_keys i keys tables =
+  si i < 0 alors tables sinon
+  soit key = keys.(i) dans
+  soit rec lookup_key tables =
+    si tables.key == key alors lookup_keys (i-1) keys tables.data sinon
+    si tables.next <> Empty alors lookup_key (mut tables.next) sinon
+    soit next = Cons (key, Empty, Empty) dans
     tables.next <- next;
     build_path (i-1) keys (mut next)
-  in
+  dans
   lookup_key (mut tables)
 
-let lookup_tables root keys =
-  let root = mut root in
-  if root.data <> Empty then
+soit lookup_tables root keys =
+  soit root = mut root dans
+  si root.data <> Empty alors
     lookup_keys (Array.length keys - 1) keys root.data
-  else
+  sinon
     build_path (Array.length keys - 1) keys root
 
 (**** builtin methods ****)
 
-let get_const x = ret (fun obj -> x)
-let get_var n   = ret (fun obj -> Array.unsafe_get obj n)
-let get_env e n =
-  ret (fun obj ->
+soit get_const x = ret (fonc obj -> x)
+soit get_var n   = ret (fonc obj -> Array.unsafe_get obj n)
+soit get_env e n =
+  ret (fonc obj ->
     Array.unsafe_get (Obj.magic (Array.unsafe_get obj e) : obj) n)
-let get_meth n  = ret (fun obj -> sendself obj n)
-let set_var n   = ret (fun obj x -> Array.unsafe_set obj n x)
-let app_const f x = ret (fun obj -> f x)
-let app_var f n   = ret (fun obj -> f (Array.unsafe_get obj n))
-let app_env f e n =
-  ret (fun obj ->
+soit get_meth n  = ret (fonc obj -> sendself obj n)
+soit set_var n   = ret (fonc obj x -> Array.unsafe_set obj n x)
+soit app_const f x = ret (fonc obj -> f x)
+soit app_var f n   = ret (fonc obj -> f (Array.unsafe_get obj n))
+soit app_env f e n =
+  ret (fonc obj ->
     f (Array.unsafe_get (Obj.magic (Array.unsafe_get obj e) : obj) n))
-let app_meth f n  = ret (fun obj -> f (sendself obj n))
-let app_const_const f x y = ret (fun obj -> f x y)
-let app_const_var f x n   = ret (fun obj -> f x (Array.unsafe_get obj n))
-let app_const_meth f x n = ret (fun obj -> f x (sendself obj n))
-let app_var_const f n x = ret (fun obj -> f (Array.unsafe_get obj n) x)
-let app_meth_const f n x = ret (fun obj -> f (sendself obj n) x)
-let app_const_env f x e n =
-  ret (fun obj ->
+soit app_meth f n  = ret (fonc obj -> f (sendself obj n))
+soit app_const_const f x y = ret (fonc obj -> f x y)
+soit app_const_var f x n   = ret (fonc obj -> f x (Array.unsafe_get obj n))
+soit app_const_meth f x n = ret (fonc obj -> f x (sendself obj n))
+soit app_var_const f n x = ret (fonc obj -> f (Array.unsafe_get obj n) x)
+soit app_meth_const f n x = ret (fonc obj -> f (sendself obj n) x)
+soit app_const_env f x e n =
+  ret (fonc obj ->
     f x (Array.unsafe_get (Obj.magic (Array.unsafe_get obj e) : obj) n))
-let app_env_const f e n x =
-  ret (fun obj ->
+soit app_env_const f e n x =
+  ret (fonc obj ->
     f (Array.unsafe_get (Obj.magic (Array.unsafe_get obj e) : obj) n) x)
-let meth_app_const n x = ret (fun obj -> (sendself obj n : _ -> _) x)
-let meth_app_var n m =
-  ret (fun obj -> (sendself obj n : _ -> _) (Array.unsafe_get obj m))
-let meth_app_env n e m =
-  ret (fun obj -> (sendself obj n : _ -> _)
+soit meth_app_const n x = ret (fonc obj -> (sendself obj n : _ -> _) x)
+soit meth_app_var n m =
+  ret (fonc obj -> (sendself obj n : _ -> _) (Array.unsafe_get obj m))
+soit meth_app_env n e m =
+  ret (fonc obj -> (sendself obj n : _ -> _)
       (Array.unsafe_get (Obj.magic (Array.unsafe_get obj e) : obj) m))
-let meth_app_meth n m =
-  ret (fun obj -> (sendself obj n : _ -> _) (sendself obj m))
-let send_const m x c =
-  ret (fun obj -> sendcache x m (Array.unsafe_get obj 0) c)
-let send_var m n c =
-  ret (fun obj ->
+soit meth_app_meth n m =
+  ret (fonc obj -> (sendself obj n : _ -> _) (sendself obj m))
+soit send_const m x c =
+  ret (fonc obj -> sendcache x m (Array.unsafe_get obj 0) c)
+soit send_var m n c =
+  ret (fonc obj ->
     sendcache (Obj.magic (Array.unsafe_get obj n) : obj) m
       (Array.unsafe_get obj 0) c)
-let send_env m e n c =
-  ret (fun obj ->
+soit send_env m e n c =
+  ret (fonc obj ->
     sendcache
       (Obj.magic (Array.unsafe_get
                     (Obj.magic (Array.unsafe_get obj e) : obj) n) : obj)
       m (Array.unsafe_get obj 0) c)
-let send_meth m n c =
-  ret (fun obj ->
+soit send_meth m n c =
+  ret (fonc obj ->
     sendcache (sendself obj n) m (Array.unsafe_get obj 0) c)
-let new_cache table =
-  let n = new_method table in
-  let n =
-    if n mod 2 = 0 || n > 2 + magic table.methods.(1) * 16 / Sys.word_size
-    then n else new_method table
-  in
+soit new_cache table =
+  soit n = new_method table dans
+  soit n =
+    si n mod 2 = 0 || n > 2 + magic table.methods.(1) * 16 / Sys.word_size
+    alors n sinon new_method table
+  dans
   table.methods.(n) <- Obj.magic 0;
   n
 
@@ -518,69 +518,69 @@ type impl =
   | SendVar
   | SendEnv
   | SendMeth
-  | Closure of closure
+  | Closure de closure
 
-let method_impl table i arr =
-  let next () = incr i; magic arr.(!i) in
-  match next() with
-    GetConst -> let x : t = next() in get_const x
-  | GetVar   -> let n = next() in get_var n
-  | GetEnv   -> let e = next() and n = next() in get_env e n
-  | GetMeth  -> let n = next() in get_meth n
-  | SetVar   -> let n = next() in set_var n
-  | AppConst -> let f = next() and x = next() in app_const f x
-  | AppVar   -> let f = next() and n = next () in app_var f n
+soit method_impl table i arr =
+  soit next () = incr i; magic arr.(!i) dans
+  filtre next() avec
+    GetConst -> soit x : t = next() dans get_const x
+  | GetVar   -> soit n = next() dans get_var n
+  | GetEnv   -> soit e = next() et n = next() dans get_env e n
+  | GetMeth  -> soit n = next() dans get_meth n
+  | SetVar   -> soit n = next() dans set_var n
+  | AppConst -> soit f = next() et x = next() dans app_const f x
+  | AppVar   -> soit f = next() et n = next () dans app_var f n
   | AppEnv   ->
-      let f = next() and e = next() and n = next() in app_env f e n
-  | AppMeth  -> let f = next() and n = next () in app_meth f n
+      soit f = next() et e = next() et n = next() dans app_env f e n
+  | AppMeth  -> soit f = next() et n = next () dans app_meth f n
   | AppConstConst ->
-      let f = next() and x = next() and y = next() in app_const_const f x y
+      soit f = next() et x = next() et y = next() dans app_const_const f x y
   | AppConstVar ->
-      let f = next() and x = next() and n = next() in app_const_var f x n
+      soit f = next() et x = next() et n = next() dans app_const_var f x n
   | AppConstEnv ->
-      let f = next() and x = next() and e = next () and n = next() in
+      soit f = next() et x = next() et e = next () et n = next() dans
       app_const_env f x e n
   | AppConstMeth ->
-      let f = next() and x = next() and n = next() in app_const_meth f x n
+      soit f = next() et x = next() et n = next() dans app_const_meth f x n
   | AppVarConst ->
-      let f = next() and n = next() and x = next() in app_var_const f n x
+      soit f = next() et n = next() et x = next() dans app_var_const f n x
   | AppEnvConst ->
-      let f = next() and e = next () and n = next() and x = next() in
+      soit f = next() et e = next () et n = next() et x = next() dans
       app_env_const f e n x
   | AppMethConst ->
-      let f = next() and n = next() and x = next() in app_meth_const f n x
+      soit f = next() et n = next() et x = next() dans app_meth_const f n x
   | MethAppConst ->
-      let n = next() and x = next() in meth_app_const n x
+      soit n = next() et x = next() dans meth_app_const n x
   | MethAppVar ->
-      let n = next() and m = next() in meth_app_var n m
+      soit n = next() et m = next() dans meth_app_var n m
   | MethAppEnv ->
-      let n = next() and e = next() and m = next() in meth_app_env n e m
+      soit n = next() et e = next() et m = next() dans meth_app_env n e m
   | MethAppMeth ->
-      let n = next() and m = next() in meth_app_meth n m
+      soit n = next() et m = next() dans meth_app_meth n m
   | SendConst ->
-      let m = next() and x = next() in send_const m x (new_cache table)
+      soit m = next() et x = next() dans send_const m x (new_cache table)
   | SendVar ->
-      let m = next() and n = next () in send_var m n (new_cache table)
+      soit m = next() et n = next () dans send_var m n (new_cache table)
   | SendEnv ->
-      let m = next() and e = next() and n = next() in
+      soit m = next() et e = next() et n = next() dans
       send_env m e n (new_cache table)
   | SendMeth ->
-      let m = next() and n = next () in send_meth m n (new_cache table)
-  | Closure _ as clo -> magic clo
+      soit m = next() et n = next () dans send_meth m n (new_cache table)
+  | Closure _ tel clo -> magic clo
 
-let set_methods table methods =
-  let len = Array.length methods and i = ref 0 in
-  while !i < len do
-    let label = methods.(!i) and clo = method_impl table i methods in
+soit set_methods table methods =
+  soit len = Array.length methods et i = ref 0 dans
+  pendant_que !i < len faire
+    soit label = methods.(!i) et clo = method_impl table i methods dans
     set_method table label clo;
     incr i
-  done
+  fait
 
 (**** Statistics ****)
 
 type stats =
   { classes: int; methods: int; inst_vars: int; }
 
-let stats () =
+soit stats () =
   { classes = !table_count;
     methods = !method_count; inst_vars = !inst_var_count; }

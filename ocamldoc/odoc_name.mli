@@ -68,4 +68,4 @@ val to_path : t -> Path.t
 val from_longident : Longident.t -> t
 
 (** Set of Name.t *)
-module Set : Set.S with type elt = t
+module Set : Set.S avec type elt = t

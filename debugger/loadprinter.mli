@@ -12,7 +12,7 @@
 
 (* Loading and installation of user-defined printer functions *)
 
-open Format
+ouvre Format
 
 val loadfile : formatter -> string -> unit
 val install_printer : formatter -> Longident.t -> unit
@@ -21,12 +21,12 @@ val remove_printer : Longident.t -> unit
 (* Error report *)
 
 type error =
-  | Load_failure of Dynlink.error
-  | Unbound_identifier of Longident.t
-  | Unavailable_module of string * Longident.t
-  | Wrong_type of Longident.t
-  | No_active_printer of Longident.t
+  | Load_failure de Dynlink.error
+  | Unbound_identifier de Longident.t
+  | Unavailable_module de string * Longident.t
+  | Wrong_type de Longident.t
+  | No_active_printer de Longident.t
 
-exception Error of error
+exception Error de error
 
 val report_error: formatter -> error -> unit

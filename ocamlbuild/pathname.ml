@@ -12,138 +12,138 @@
 
 
 (* Original author: Nicolas Pouillard *)
-open My_std
-open Format
-open Log
+ouvre My_std
+ouvre Format
+ouvre Log
 
 type t = string
 
-include Filename
+inclus Filename
 
-let print_strings = List.print String.print
+soit print_strings = List.print String.print
 
-let concat = filename_concat
+soit concat = filename_concat
 
-let compare (x:t) y = compare x y
+soit compare (x:t) y = compare x y
 
-let print = pp_print_string
+soit print = pp_print_string
 
-let mk s = s
+soit mk s = s
 
-let pwd = Sys.getcwd ()
+soit pwd = Sys.getcwd ()
 
-let add_extension ext x = x ^ "." ^ ext
+soit add_extension ext x = x ^ "." ^ ext
 
-let check_extension x ext =
-  let lx = String.length x and lext = String.length ext in
+soit check_extension x ext =
+  soit lx = String.length x et lext = String.length ext dans
   lx > lext + 1 && x.[lx - lext - 1] = '.' && String.is_suffix x ext
 
 module Operators = struct
-  let ( / ) = concat
-  let ( -.- ) file ext = add_extension ext file
-end
-open Operators
+  soit ( / ) = concat
+  soit ( -.- ) file ext = add_extension ext file
+fin
+ouvre Operators
 
-let equal x y = x = y
+soit equal x y = x = y
 
-let to_string x = x
+soit to_string x = x
 
-let is_link = Shell.is_link
-let readlink = Shell.readlink
-let is_directory x =
-  try (My_unix.stat x).My_unix.stat_file_kind = My_unix.FK_dir
-  with Sys_error _ -> false
-let readdir x = Outcome.good (sys_readdir x)
+soit is_link = Shell.is_link
+soit readlink = Shell.readlink
+soit is_directory x =
+  essaie (My_unix.stat x).My_unix.stat_file_kind = My_unix.FK_dir
+  avec Sys_error _ -> faux
+soit readdir x = Outcome.good (sys_readdir x)
 
-let dir_seps = ['/';'\\'] (* FIXME add more *)
-let not_normal_form_re = Glob.parse "<**/{,.,..}/**>"
+soit dir_seps = ['/';'\\'] (* FIXME add more *)
+soit not_normal_form_re = Glob.parse "<**/{,.,..}/**>"
 
-let parent x = concat parent_dir_name x
+soit parent x = concat parent_dir_name x
 
-let split p =
-  let rec go p acc =
-    let dir = dirname p in
-    if dir = p then dir, acc
-    else go dir (basename p :: acc)
-  in go p []
+soit split p =
+  soit rec go p acc =
+    soit dir = dirname p dans
+    si dir = p alors dir, acc
+    sinon go dir (basename p :: acc)
+  dans go p []
 
-let join root paths =
-  let root = if root = current_dir_name then "" else root in
+soit join root paths =
+  soit root = si root = current_dir_name alors "" sinon root dans
   List.fold_left (/) root paths
 
-let _H1 = assert (current_dir_name = ".")
-let _H2 = assert (parent_dir_name = "..")
+soit _H1 = affirme (current_dir_name = ".")
+soit _H2 = affirme (parent_dir_name = "..")
 
 (* Use H1, H2 *)
-let rec normalize_list = function
+soit rec normalize_list = fonction
   | [] -> []
   | "." :: xs -> normalize_list xs
   | ".." :: _ -> failwith "Pathname.normalize_list: .. est interdit ici"
   | _ :: ".." :: xs -> normalize_list xs
   | x :: xs -> x :: normalize_list xs
 
-let normalize x =
-  if Glob.eval not_normal_form_re x then
-    let root, paths = split x in
+soit normalize x =
+  si Glob.eval not_normal_form_re x alors
+    soit root, paths = split x dans
     join root (normalize_list paths)
-  else x
+  sinon x
 
 (* [is_prefix x y] is [x] a pathname prefix of [y] *)
-let is_prefix x y =
-  let lx = String.length x and ly = String.length y in
-  if lx = ly then x = (String.before y lx)
-  else if lx < ly then x = (String.before y lx) && List.mem y.[lx] dir_seps
-  else false
+soit is_prefix x y =
+  soit lx = String.length x et ly = String.length y dans
+  si lx = ly alors x = (String.before y lx)
+  sinon si lx < ly alors x = (String.before y lx) && List.mem y.[lx] dir_seps
+  sinon faux
 
-let link_to_dir p dir = is_link p && is_prefix dir (readlink p)
+soit link_to_dir p dir = is_link p && is_prefix dir (readlink p)
 
-let remove_extension x =
-  try chop_extension x
-  with Invalid_argument _ -> x
-let get_extension x =
-  try
-    let pos = String.rindex x '.' in
+soit remove_extension x =
+  essaie chop_extension x
+  avec Invalid_argument _ -> x
+soit get_extension x =
+  essaie
+    soit pos = String.rindex x '.' dans
     String.after x (pos + 1)
-  with Not_found -> ""
-let update_extension ext x =
+  avec Not_found -> ""
+soit update_extension ext x =
   add_extension ext (chop_extension x)
 
-let chop_extensions x =
-  let dirname = dirname x and basename = basename x in
-  try
-    let pos = String.index basename '.' in
+soit chop_extensions x =
+  soit dirname = dirname x et basename = basename x dans
+  essaie
+    soit pos = String.index basename '.' dans
     dirname / (String.before basename pos)
-  with Not_found -> invalid_arg "chop_extensions: pas d'extensions"
-let remove_extensions x =
-  try chop_extensions x
-  with Invalid_argument _ -> x
-let get_extensions x =
-  let basename = basename x in
-  try
-    let pos = String.index basename '.' in
+  avec Not_found -> invalid_arg "chop_extensions: pas d'extensions"
+soit remove_extensions x =
+  essaie chop_extensions x
+  avec Invalid_argument _ -> x
+soit get_extensions x =
+  soit basename = basename x dans
+  essaie
+    soit pos = String.index basename '.' dans
     String.after basename (pos + 1)
-  with Not_found -> ""
-let update_extensions ext x =
+  avec Not_found -> ""
+soit update_extensions ext x =
   add_extension ext (chop_extensions x)
 
-let exists = sys_file_exists
+soit exists = sys_file_exists
 
-let copy = Shell.cp
-let remove = Shell.rm
-let try_remove x = if exists x then Shell.rm x
-let read = read_file
+soit copy = Shell.cp
+soit remove = Shell.rm
+soit try_remove x = si exists x alors Shell.rm x
+soit read = read_file
 
-let with_input_file = with_input_file
+soit with_input_file = with_input_file
 
-let with_output_file = with_output_file
+soit with_output_file = with_output_file
 
-let print_path_list = List.print print
+soit print_path_list = List.print print
 
-let context_table = Hashtbl.create 107
+soit context_table = Hashtbl.create 107
 
-let rec include_dirs_of dir =
-  try Hashtbl.find context_table dir
-  with Not_found -> dir :: List.filter (fun dir' -> dir <> dir') !Options.include_dirs
+soit rec include_dirs_of dir =
+  essaie Hashtbl.find context_table dir
+  avec Not_found -> dir :: List.filter (fonc dir' -> dir <> dir') !Options.include_dirs
 
 (*
 let include_dirs_of s =
@@ -152,8 +152,8 @@ let include_dirs_of s =
   in res
 *)
 
-let define_context dir context =
-  let dir = if dir = "" then current_dir_name else dir in
+soit define_context dir context =
+  soit dir = si dir = "" alors current_dir_name sinon dir dans
   Hashtbl.replace context_table dir& List.union context& include_dirs_of dir
 
-let same_contents x y = Digest.file x = Digest.file y
+soit same_contents x y = Digest.file x = Digest.file y

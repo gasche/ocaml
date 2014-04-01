@@ -13,21 +13,21 @@
 
 (***************************** Frames **********************************)
 
-open Instruct
-open Debugcom
-open Events
-open Symbols
+ouvre Instruct
+ouvre Debugcom
+ouvre Events
+ouvre Symbols
 
 (* Current frame number *)
-let current_frame = ref 0
+soit current_frame = ref 0
 
 (* Event at selected position *)
-let selected_event = ref (None : debug_event option)
+soit selected_event = ref (None : debug_event option)
 
 (* Selected position in source. *)
 (* Raise `Not_found' if not on an event. *)
-let selected_point () =
-  match !selected_event with
+soit selected_point () =
+  filtre !selected_event avec
     None ->
       raise Not_found
   | Some ev ->
@@ -35,38 +35,38 @@ let selected_point () =
        (Events.get_pos ev).Lexing.pos_lnum,
        (Events.get_pos ev).Lexing.pos_cnum - (Events.get_pos ev).Lexing.pos_bol)
 
-let selected_event_is_before () =
-  match !selected_event with
+soit selected_event_is_before () =
+  filtre !selected_event avec
     None ->
       raise Not_found
   | Some {ev_kind = Event_before} ->
-      true
+      vrai
   | _ ->
-      false
+      faux
 
 (* Move up `frame_count' frames, assuming current frame pointer
    corresponds to event `event'. Return event of final frame. *)
 
-let rec move_up frame_count event =
-  if frame_count <= 0 then event else begin
-    let (sp, pc) = up_frame event.ev_stacksize in
-    if sp < 0 then raise Not_found;
+soit rec move_up frame_count event =
+  si frame_count <= 0 alors event sinon début
+    soit (sp, pc) = up_frame event.ev_stacksize dans
+    si sp < 0 alors raise Not_found;
     move_up (frame_count - 1) (any_event_at_pc pc)
-  end
+  fin
 
 (* Select a frame. *)
 (* Raise `Not_found' if no such frame. *)
 (* --- Assume the current events have already been updated. *)
-let select_frame frame_number =
-  if frame_number < 0 then raise Not_found;
-  let (initial_sp, _) = get_frame() in
-  try
-    match !current_event with
+soit select_frame frame_number =
+  si frame_number < 0 alors raise Not_found;
+  soit (initial_sp, _) = get_frame() dans
+  essaie
+    filtre !current_event avec
       None ->
         raise Not_found
     | Some curr_event ->
-        match !selected_event with
-          Some sel_event when frame_number >= !current_frame ->
+        filtre !selected_event avec
+          Some sel_event quand frame_number >= !current_frame ->
             selected_event :=
               Some(move_up (frame_number - !current_frame) sel_event);
             current_frame := frame_number
@@ -74,22 +74,22 @@ let select_frame frame_number =
             set_initial_frame();
             selected_event := Some(move_up frame_number curr_event);
             current_frame := frame_number
-  with Not_found ->
+  avec Not_found ->
     set_frame initial_sp;
     raise Not_found
 
 (* Select a frame. *)
 (* Same as `select_frame' but raise no exception if the frame is not found. *)
 (* --- Assume the currents events have already been updated. *)
-let try_select_frame frame_number =
-  try
+soit try_select_frame frame_number =
+  essaie
     select_frame frame_number
-  with
+  avec
     Not_found ->
       ()
 
 (* Return to default frame (frame 0). *)
-let reset_frame () =
+soit reset_frame () =
   set_initial_frame();
   selected_event := !current_event;
   current_frame := 0
@@ -100,28 +100,28 @@ let reset_frame () =
    attached. Stop when the function returns false, or frame with no
    debugging info reached, or top of stack reached. *)
 
-let do_backtrace action =
-  match !current_event with
+soit do_backtrace action =
+  filtre !current_event avec
     None -> Misc.fatal_error "Frames.do_backtrace"
   | Some curr_ev ->
-      let (initial_sp, _) = get_frame() in
+      soit (initial_sp, _) = get_frame() dans
       set_initial_frame();
-      let event = ref curr_ev in
-      begin try
-        while action (Some !event) do
-          let (sp, pc) = up_frame !event.ev_stacksize in
-          if sp < 0 then raise Exit;
+      soit event = ref curr_ev dans
+      début essaie
+        pendant_que action (Some !event) faire
+          soit (sp, pc) = up_frame !event.ev_stacksize dans
+          si sp < 0 alors raise Exit;
           event := any_event_at_pc pc
-        done
-      with Exit -> ()
+        fait
+      avec Exit -> ()
          | Not_found -> ignore (action None)
-      end;
+      fin;
       set_frame initial_sp
 
 (* Return the number of frames in the stack *)
 
-let stack_depth () =
-  let num_frames = ref 0 in
-  do_backtrace (function Some ev -> incr num_frames; true
-                       | None -> num_frames := -1; false);
+soit stack_depth () =
+  soit num_frames = ref 0 dans
+  do_backtrace (fonction Some ev -> incr num_frames; vrai
+                       | None -> num_frames := -1; faux);
   !num_frames

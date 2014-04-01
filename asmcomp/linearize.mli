@@ -16,27 +16,27 @@ type label = int
 val new_label: unit -> label
 
 type instruction =
-  { mutable desc: instruction_desc;
-    mutable next: instruction;
+  { modifiable desc: instruction_desc;
+    modifiable next: instruction;
     arg: Reg.t array;
     res: Reg.t array;
     dbg: Debuginfo.t;
     live: Reg.Set.t }
 
-and instruction_desc =
+et instruction_desc =
     Lend
-  | Lop of Mach.operation
+  | Lop de Mach.operation
   | Lreloadretaddr
   | Lreturn
-  | Llabel of label
-  | Lbranch of label
-  | Lcondbranch of Mach.test * label
-  | Lcondbranch3 of label option * label option * label option
-  | Lswitch of label array
-  | Lsetuptrap of label
+  | Llabel de label
+  | Lbranch de label
+  | Lcondbranch de Mach.test * label
+  | Lcondbranch3 de label option * label option * label option
+  | Lswitch de label array
+  | Lsetuptrap de label
   | Lpushtrap
   | Lpoptrap
-  | Lraise of Lambda.raise_kind
+  | Lraise de Lambda.raise_kind
 
 val has_fallthrough :  instruction_desc -> bool
 val end_instr: instruction

@@ -13,4 +13,4 @@
 
 (* Original author: Romain Bardou *)
 
-include Signatures.FINDLIB with type command_spec = Command.spec
+inclus Signatures.FINDLIB avec type command_spec = Command.spec

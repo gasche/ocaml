@@ -12,68 +12,68 @@
 
 
 (* Original author: Nicolas Pouillard *)
-open Format
-open Ocamlbuild_pack
-open My_unix
+ouvre Format
+ouvre Ocamlbuild_pack
+ouvre My_unix
 
-let report_error f =
-  function
+soit report_error f =
+  fonction
   | Unix.Unix_error(err, fun_name, arg) ->
       fprintf f "%s: %S a échoué" Sys.argv.(0) fun_name;
-      if String.length arg > 0 then
+      si String.length arg > 0 alors
         fprintf f " on %S" arg;
       fprintf f ": %s" (Unix.error_message err)
   | exn -> raise exn
 
-let mkstat unix_stat x =
-  let st =
-    try unix_stat x
-    with Unix.Unix_error _ as e -> raise (Sys_error (My_std.sbprintf "%a" report_error e))
-  in
+soit mkstat unix_stat x =
+  soit st =
+    essaie unix_stat x
+    avec Unix.Unix_error _ tel e -> raise (Sys_error (My_std.sbprintf "%a" report_error e))
+  dans
   { stat_key = sprintf "(%d,%d)" st.Unix.st_dev st.Unix.st_ino;
     stat_file_kind =
-      match st.Unix.st_kind with
+      filtre st.Unix.st_kind avec
       | Unix.S_LNK -> FK_link
       | Unix.S_DIR -> FK_dir
       | Unix.S_CHR | Unix.S_BLK | Unix.S_FIFO | Unix.S_SOCK -> FK_other
       | Unix.S_REG -> FK_file }
 
-let is_link s = (Unix.lstat s).Unix.st_kind = Unix.S_LNK
+soit is_link s = (Unix.lstat s).Unix.st_kind = Unix.S_LNK
 
-let at_exit_once callback =
-  let pid = Unix.getpid () in
-  at_exit begin fun () ->
-    if pid = Unix.getpid () then callback ()
-  end
+soit at_exit_once callback =
+  soit pid = Unix.getpid () dans
+  at_exit début fonc () ->
+    si pid = Unix.getpid () alors callback ()
+  fin
 
-let run_and_open s kont =
-  let ic = Unix.open_process_in s in
-  let close () =
-    match Unix.close_process_in ic with
+soit run_and_open s kont =
+  soit ic = Unix.open_process_in s dans
+  soit close () =
+    filtre Unix.close_process_in ic avec
     | Unix.WEXITED 0 -> ()
     | Unix.WEXITED _ | Unix.WSIGNALED _ | Unix.WSTOPPED _ ->
-        failwith (Printf.sprintf "Erreur en exécutant: %s" s) in
-  let res = try
+        failwith (Printf.sprintf "Erreur en exécutant: %s" s) dans
+  soit res = essaie
       kont ic
-    with e -> (close (); raise e)
-  in close (); res
+    avec e -> (close (); raise e)
+  dans close (); res
 
-let stdout_isatty () =
+soit stdout_isatty () =
   Unix.isatty Unix.stdout &&
-    try Unix.getenv "TERM" <> "dumb" with Not_found -> true
+    essaie Unix.getenv "TERM" <> "dumb" avec Not_found -> vrai
 
-let execute_many =
-  let exit i = raise (My_std.Exit_with_code i) in
-  let exit = function
+soit execute_many =
+  soit exit i = raise (My_std.Exit_with_code i) dans
+  soit exit = fonction
     | Ocamlbuild_executor.Subcommand_failed -> exit Exit_codes.rc_executor_subcommand_failed
     | Ocamlbuild_executor.Subcommand_got_signal -> exit Exit_codes.rc_executor_subcommand_got_signal
     | Ocamlbuild_executor.Io_error -> exit Exit_codes.rc_executor_io_error
     | Ocamlbuild_executor.Exceptionl_condition -> exit Exit_codes.rc_executor_excetptional_condition
-  in
+  dans
   Ocamlbuild_executor.execute ~exit
 
-let setup () =
-  implem.is_degraded <- false;
+soit setup () =
+  implem.is_degraded <- faux;
   implem.stdout_isatty <- stdout_isatty;
   implem.gettimeofday <- Unix.gettimeofday;
   implem.report_error <- report_error;

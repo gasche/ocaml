@@ -13,21 +13,21 @@
 (* Representation of machine code by sequences of pseudoinstructions *)
 
 type integer_comparison =
-    Isigned of Cmm.comparison
-  | Iunsigned of Cmm.comparison
+    Isigned de Cmm.comparison
+  | Iunsigned de Cmm.comparison
 
 type integer_operation =
     Iadd | Isub | Imul | Imulh | Idiv | Imod
   | Iand | Ior | Ixor | Ilsl | Ilsr | Iasr
-  | Icomp of integer_comparison
+  | Icomp de integer_comparison
   | Icheckbound
 
 type test =
     Itruetest
   | Ifalsetest
-  | Iinttest of integer_comparison
-  | Iinttest_imm of integer_comparison * int
-  | Ifloattest of Cmm.comparison * bool
+  | Iinttest de integer_comparison
+  | Iinttest_imm de integer_comparison * int
+  | Ifloattest de Cmm.comparison * bool
   | Ioddtest
   | Ieventest
 
@@ -35,24 +35,24 @@ type operation =
     Imove
   | Ispill
   | Ireload
-  | Iconst_int of nativeint
-  | Iconst_float of string
-  | Iconst_symbol of string
-  | Iconst_blockheader of nativeint
+  | Iconst_int de nativeint
+  | Iconst_float de string
+  | Iconst_symbol de string
+  | Iconst_blockheader de nativeint
   | Icall_ind
-  | Icall_imm of string
+  | Icall_imm de string
   | Itailcall_ind
-  | Itailcall_imm of string
-  | Iextcall of string * bool
-  | Istackoffset of int
-  | Iload of Cmm.memory_chunk * Arch.addressing_mode
-  | Istore of Cmm.memory_chunk * Arch.addressing_mode
-  | Ialloc of int
-  | Iintop of integer_operation
-  | Iintop_imm of integer_operation * int
+  | Itailcall_imm de string
+  | Iextcall de string * bool
+  | Istackoffset de int
+  | Iload de Cmm.memory_chunk * Arch.addressing_mode
+  | Istore de Cmm.memory_chunk * Arch.addressing_mode
+  | Ialloc de int
+  | Iintop de integer_operation
+  | Iintop_imm de integer_operation * int
   | Inegf | Iabsf | Iaddf | Isubf | Imulf | Idivf
   | Ifloatofint | Iintoffloat
-  | Ispecific of Arch.specific_operation
+  | Ispecific de Arch.specific_operation
 
 type instruction =
   { desc: instruction_desc;
@@ -60,19 +60,19 @@ type instruction =
     arg: Reg.t array;
     res: Reg.t array;
     dbg: Debuginfo.t;
-    mutable live: Reg.Set.t }
+    modifiable live: Reg.Set.t }
 
-and instruction_desc =
+et instruction_desc =
     Iend
-  | Iop of operation
+  | Iop de operation
   | Ireturn
-  | Iifthenelse of test * instruction * instruction
-  | Iswitch of int array * instruction array
-  | Iloop of instruction
-  | Icatch of int * instruction * instruction
-  | Iexit of int
-  | Itrywith of instruction * instruction
-  | Iraise of Lambda.raise_kind
+  | Iifthenelse de test * instruction * instruction
+  | Iswitch de int array * instruction array
+  | Iloop de instruction
+  | Icatch de int * instruction * instruction
+  | Iexit de int
+  | Itrywith de instruction * instruction
+  | Iraise de Lambda.raise_kind
 
 type fundecl =
   { fun_name: string;

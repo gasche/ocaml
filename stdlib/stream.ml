@@ -16,180 +16,180 @@
    patched. *)
 
 type 'a t = { count : int; data : 'a data }
-and 'a data =
+et 'a data =
     Sempty
-  | Scons of 'a * 'a data
-  | Sapp of 'a data * 'a data
-  | Slazy of 'a data Lazy.t
-  | Sgen of 'a gen
-  | Sbuffio of buffio
-and 'a gen = { mutable curr : 'a option option; func : int -> 'a option }
-and buffio =
-  { ic : in_channel; buff : string; mutable len : int; mutable ind : int }
+  | Scons de 'a * 'a data
+  | Sapp de 'a data * 'a data
+  | Slazy de 'a data Lazy.t
+  | Sgen de 'a gen
+  | Sbuffio de buffio
+et 'a gen = { modifiable curr : 'a option option; func : int -> 'a option }
+et buffio =
+  { ic : in_channel; buff : string; modifiable len : int; modifiable ind : int }
 ;;
 exception Failure;;
-exception Error of string;;
+exception Error de string;;
 
-external count : 'a t -> int = "%field0";;
-external set_count : 'a t -> int -> unit = "%setfield0";;
-let set_data (s : 'a t) (d : 'a data) =
+dehors count : 'a t -> int = "%field0";;
+dehors set_count : 'a t -> int -> unit = "%setfield0";;
+soit set_data (s : 'a t) (d : 'a data) =
   Obj.set_field (Obj.repr s) 1 (Obj.repr d)
 ;;
 
-let fill_buff b =
+soit fill_buff b =
   b.len <- input b.ic b.buff 0 (String.length b.buff); b.ind <- 0
 ;;
 
-let rec get_data count d = match d with
+soit rec get_data count d = filtre d avec
  (* Returns either Sempty or Scons(a, _) even when d is a generator
     or a buffer. In those cases, the item a is seen as extracted from
  the generator/buffer.
  The count parameter is used for calling `Sgen-functions'.  *)
    Sempty | Scons (_, _) -> d
  | Sapp (d1, d2) ->
-     begin match get_data count d1 with
+     début filtre get_data count d1 avec
        Scons (a, d11) -> Scons (a, Sapp (d11, d2))
      | Sempty -> get_data count d2
-     | _ -> assert false
-     end
+     | _ -> affirme faux
+     fin
  | Sgen {curr = Some None; func = _ } -> Sempty
- | Sgen ({curr = Some(Some a); func = f} as g) ->
+ | Sgen ({curr = Some(Some a); func = f} tel g) ->
      g.curr <- None; Scons(a, d)
  | Sgen g ->
-     begin match g.func count with
+     début filtre g.func count avec
        None -> g.curr <- Some(None); Sempty
      | Some a -> Scons(a, d)
          (* Warning: anyone using g thinks that an item has been read *)
-     end
+     fin
  | Sbuffio b ->
-     if b.ind >= b.len then fill_buff b;
-     if b.len == 0 then Sempty else
-       let r = Obj.magic (String.unsafe_get b.buff b.ind) in
+     si b.ind >= b.len alors fill_buff b;
+     si b.len == 0 alors Sempty sinon
+       soit r = Obj.magic (String.unsafe_get b.buff b.ind) dans
        (* Warning: anyone using g thinks that an item has been read *)
        b.ind <- succ b.ind; Scons(r, d)
  | Slazy f -> get_data count (Lazy.force f)
 ;;
 
-let rec peek s =
+soit rec peek s =
  (* consult the first item of s *)
- match s.data with
+ filtre s.data avec
    Sempty -> None
  | Scons (a, _) -> Some a
  | Sapp (_, _) ->
-     begin match get_data s.count s.data with
-       Scons(a, _) as d -> set_data s d; Some a
+     début filtre get_data s.count s.data avec
+       Scons(a, _) tel d -> set_data s d; Some a
      | Sempty -> None
-     | _ -> assert false
-     end
+     | _ -> affirme faux
+     fin
  | Slazy f -> set_data s (Lazy.force f); peek s
  | Sgen {curr = Some a} -> a
- | Sgen g -> let x = g.func s.count in g.curr <- Some x; x
+ | Sgen g -> soit x = g.func s.count dans g.curr <- Some x; x
  | Sbuffio b ->
-     if b.ind >= b.len then fill_buff b;
-     if b.len == 0 then begin set_data s Sempty; None end
-     else Some (Obj.magic (String.unsafe_get b.buff b.ind))
+     si b.ind >= b.len alors fill_buff b;
+     si b.len == 0 alors début set_data s Sempty; None fin
+     sinon Some (Obj.magic (String.unsafe_get b.buff b.ind))
 ;;
 
-let rec junk s =
-  match s.data with
+soit rec junk s =
+  filtre s.data avec
     Scons (_, d) -> set_count s (succ s.count); set_data s d
-  | Sgen ({curr = Some _} as g) -> set_count s (succ s.count); g.curr <- None
+  | Sgen ({curr = Some _} tel g) -> set_count s (succ s.count); g.curr <- None
   | Sbuffio b -> set_count s (succ s.count); b.ind <- succ b.ind
   | _ ->
-      match peek s with
+      filtre peek s avec
         None -> ()
       | Some _ -> junk s
 ;;
 
-let rec nget n s =
-  if n <= 0 then [], s.data, 0
-  else
-    match peek s with
+soit rec nget n s =
+  si n <= 0 alors [], s.data, 0
+  sinon
+    filtre peek s avec
       Some a ->
         junk s;
-        let (al, d, k) = nget (pred n) s in a :: al, Scons (a, d), succ k
+        soit (al, d, k) = nget (pred n) s dans a :: al, Scons (a, d), succ k
     | None -> [], s.data, 0
 ;;
 
-let npeek n s =
-  let (al, d, len) = nget n s in set_count s (s.count - len); set_data s d; al
+soit npeek n s =
+  soit (al, d, len) = nget n s dans set_count s (s.count - len); set_data s d; al
 ;;
 
-let next s =
-  match peek s with
+soit next s =
+  filtre peek s avec
     Some a -> junk s; a
   | None -> raise Failure
 ;;
 
-let empty s =
-  match peek s with
+soit empty s =
+  filtre peek s avec
     Some _ -> raise Failure
   | None -> ()
 ;;
 
-let iter f strm =
-  let rec do_rec () =
-    match peek strm with
+soit iter f strm =
+  soit rec do_rec () =
+    filtre peek strm avec
       Some a -> junk strm; ignore(f a); do_rec ()
     | None -> ()
-  in
+  dans
   do_rec ()
 ;;
 
 (* Stream building functions *)
 
-let from f = {count = 0; data = Sgen {curr = None; func = f}};;
+soit from f = {count = 0; data = Sgen {curr = None; func = f}};;
 
-let of_list l =
-  {count = 0; data = List.fold_right (fun x l -> Scons (x, l)) l Sempty}
+soit of_list l =
+  {count = 0; data = List.fold_right (fonc x l -> Scons (x, l)) l Sempty}
 ;;
 
-let of_string s =
-  let count = ref 0 in
-  from (fun _ ->
+soit of_string s =
+  soit count = ref 0 dans
+  from (fonc _ ->
     (* We cannot use the index passed by the [from] function directly
        because it returns the current stream count, with absolutely no
        guarantee that it will start from 0. For example, in the case
        of [Stream.icons 'c' (Stream.from_string "ab")], the first
        access to the string will be made with count [1] already.
     *)
-    let c = !count in
-    if c < String.length s
-    then (incr count; Some s.[c])
-    else None)
+    soit c = !count dans
+    si c < String.length s
+    alors (incr count; Some s.[c])
+    sinon None)
 ;;
 
-let of_channel ic =
+soit of_channel ic =
   {count = 0;
    data = Sbuffio {ic = ic; buff = String.create 4096; len = 0; ind = 0}}
 ;;
 
 (* Stream expressions builders *)
 
-let iapp i s = {count = 0; data = Sapp (i.data, s.data)};;
-let icons i s = {count = 0; data = Scons (i, s.data)};;
-let ising i = {count = 0; data = Scons (i, Sempty)};;
+soit iapp i s = {count = 0; data = Sapp (i.data, s.data)};;
+soit icons i s = {count = 0; data = Scons (i, s.data)};;
+soit ising i = {count = 0; data = Scons (i, Sempty)};;
 
-let lapp f s =
-  {count = 0; data = Slazy (lazy(Sapp ((f ()).data, s.data)))}
+soit lapp f s =
+  {count = 0; data = Slazy (paresseux(Sapp ((f ()).data, s.data)))}
 ;;
-let lcons f s = {count = 0; data = Slazy (lazy(Scons (f (), s.data)))};;
-let lsing f = {count = 0; data = Slazy (lazy(Scons (f (), Sempty)))};;
+soit lcons f s = {count = 0; data = Slazy (paresseux(Scons (f (), s.data)))};;
+soit lsing f = {count = 0; data = Slazy (paresseux(Scons (f (), Sempty)))};;
 
-let sempty = {count = 0; data = Sempty};;
-let slazy f = {count = 0; data = Slazy (lazy(f ()).data)};;
+soit sempty = {count = 0; data = Sempty};;
+soit slazy f = {count = 0; data = Slazy (paresseux(f ()).data)};;
 
 (* For debugging use *)
 
-let rec dump f s =
+soit rec dump f s =
   print_string "{count = ";
   print_int s.count;
   print_string "; data = ";
   dump_data f s.data;
   print_string "}";
   print_newline ()
-and dump_data f =
-  function
+et dump_data f =
+  fonction
     Sempty -> print_string "Sempty"
   | Scons (a, d) ->
       print_string "Scons (";

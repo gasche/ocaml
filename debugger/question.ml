@@ -10,38 +10,38 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Input_handling
-open Primitives
+ouvre Input_handling
+ouvre Primitives
 
 (* Ask user a yes or no question. *)
-let yes_or_no message =
-  if !interactif then
-    let old_prompt = !current_prompt in
-      try
+soit yes_or_no message =
+  si !interactif alors
+    soit old_prompt = !current_prompt dans
+      essaie
         current_prompt := message ^ " ? (y or n) ";
-        let answer =
-          let rec ask () =
+        soit answer =
+          soit rec ask () =
             resume_user_input ();
-            let line =
+            soit line =
               string_trim (Lexer.line (Lexing.from_function read_user_input))
-            in
+            dans
               stop_user_input ();
-              match (if String.length line > 0 then line.[0] else ' ') with
-                'y' -> true
-              | 'n' -> false
+              filtre (si String.length line > 0 alors line.[0] sinon ' ') avec
+                'y' -> vrai
+              | 'n' -> faux
               | _ ->
                 print_string "Please answer y or n.";
                 print_newline ();
                 ask ()
-          in
+          dans
             ask ()
-        in
+        dans
           current_prompt := old_prompt;
           answer
-      with
+      avec
         x ->
           current_prompt := old_prompt;
           stop_user_input ();
           raise x
-  else
-    false
+  sinon
+    faux

@@ -13,7 +13,7 @@
 
 (** Character operations. *)
 
-external code : char -> int = "%identity"
+dehors code : char -> int = "%identity"
 (** Return the ASCII code of the argument. *)
 
 val chr : int -> char
@@ -45,4 +45,4 @@ val compare: t -> t -> int
 
 (* The following is for system use only. Do not call directly. *)
 
-external unsafe_chr : int -> char = "%identity"
+dehors unsafe_chr : int -> char = "%identity"

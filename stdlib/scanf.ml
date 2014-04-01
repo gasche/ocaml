@@ -114,27 +114,27 @@ module type SCANNING = sig
 
   val close_in : in_channel -> unit;;
 
-end
+fin
 ;;
 
 module Scanning : SCANNING = struct
 
   (* The run-time library for scanf. *)
   type in_channel_name =
-    | From_file of string * Pervasives.in_channel
+    | From_file de string * Pervasives.in_channel
     | From_string
     | From_function
-    | From_channel of Pervasives.in_channel
+    | From_channel de Pervasives.in_channel
   ;;
 
   type in_channel = {
-    mutable eof : bool;
-    mutable current_char : char;
-    mutable current_char_is_valid : bool;
-    mutable char_count : int;
-    mutable line_count : int;
-    mutable token_count : int;
-    mutable get_next_char : unit -> char;
+    modifiable eof : bool;
+    modifiable current_char : char;
+    modifiable current_char_is_valid : bool;
+    modifiable char_count : int;
+    modifiable line_count : int;
+    modifiable token_count : int;
+    modifiable get_next_char : unit -> char;
     tokbuf : Buffer.t;
     input_name : in_channel_name;
   }
@@ -144,92 +144,92 @@ module Scanning : SCANNING = struct
 
   type file_name = string;;
 
-  let null_char = '\000';;
+  soit null_char = '\000';;
 
   (* Reads a new character from input buffer.  Next_char never fails,
      even in case of end of input: it then simply sets the end of file
      condition. *)
-  let next_char ib =
-    try
-      let c = ib.get_next_char () in
+  soit next_char ib =
+    essaie
+      soit c = ib.get_next_char () dans
       ib.current_char <- c;
-      ib.current_char_is_valid <- true;
+      ib.current_char_is_valid <- vrai;
       ib.char_count <- succ ib.char_count;
-      if c = '\n' then ib.line_count <- succ ib.line_count;
-      c with
+      si c = '\n' alors ib.line_count <- succ ib.line_count;
+      c avec
     | End_of_file ->
-      let c = null_char in
+      soit c = null_char dans
       ib.current_char <- c;
-      ib.current_char_is_valid <- false;
-      ib.eof <- true;
+      ib.current_char_is_valid <- faux;
+      ib.eof <- vrai;
       c
   ;;
 
-  let peek_char ib =
-    if ib.current_char_is_valid then ib.current_char else next_char ib;;
+  soit peek_char ib =
+    si ib.current_char_is_valid alors ib.current_char sinon next_char ib;;
 
   (* Returns a valid current char for the input buffer. In particular
      no irrelevant null character (as set by [next_char] in case of end
      of input) is returned, since [End_of_file] is raised when
      [next_char] sets the end of file condition while trying to read a
      new character. *)
-  let checked_peek_char ib =
-    let c = peek_char ib in
-    if ib.eof then raise End_of_file;
+  soit checked_peek_char ib =
+    soit c = peek_char ib dans
+    si ib.eof alors raise End_of_file;
     c
   ;;
 
-  let end_of_input ib =
+  soit end_of_input ib =
     ignore (peek_char ib);
     ib.eof
   ;;
 
-  let eof ib = ib.eof;;
+  soit eof ib = ib.eof;;
 
-  let beginning_of_input ib = ib.char_count = 0;;
-  let name_of_input ib =
-    match ib.input_name with
+  soit beginning_of_input ib = ib.char_count = 0;;
+  soit name_of_input ib =
+    filtre ib.input_name avec
     | From_file (fname, _ic) -> fname
     | From_string -> "unnamed character string"
     | From_function -> "unnamed function"
     | From_channel _ic -> "unnamed pervasives input channel"
   ;;
 
-  let char_count ib =
-    if ib.current_char_is_valid then ib.char_count - 1 else ib.char_count
+  soit char_count ib =
+    si ib.current_char_is_valid alors ib.char_count - 1 sinon ib.char_count
   ;;
-  let line_count ib = ib.line_count;;
-  let reset_token ib = Buffer.reset ib.tokbuf;;
-  let invalidate_current_char ib = ib.current_char_is_valid <- false;;
+  soit line_count ib = ib.line_count;;
+  soit reset_token ib = Buffer.reset ib.tokbuf;;
+  soit invalidate_current_char ib = ib.current_char_is_valid <- faux;;
 
-  let token ib =
-    let tokbuf = ib.tokbuf in
-    let tok = Buffer.contents tokbuf in
+  soit token ib =
+    soit tokbuf = ib.tokbuf dans
+    soit tok = Buffer.contents tokbuf dans
     Buffer.clear tokbuf;
     ib.token_count <- succ ib.token_count;
     tok
   ;;
 
-  let token_count ib = ib.token_count;;
+  soit token_count ib = ib.token_count;;
 
-  let skip_char width ib =
+  soit skip_char width ib =
     invalidate_current_char ib;
     width
   ;;
 
-  let ignore_char width ib = skip_char (width - 1) ib;;
+  soit ignore_char width ib = skip_char (width - 1) ib;;
 
-  let store_char width ib c =
+  soit store_char width ib c =
     Buffer.add_char ib.tokbuf c;
     ignore_char width ib
   ;;
 
-  let default_token_buffer_size = 1024;;
+  soit default_token_buffer_size = 1024;;
 
-  let create iname next = {
-    eof = false;
+  soit create iname next = {
+    eof = faux;
     current_char = null_char;
-    current_char_is_valid = false;
+    current_char_is_valid = faux;
     char_count = 0;
     line_count = 0;
     token_count = 0;
@@ -239,18 +239,18 @@ module Scanning : SCANNING = struct
   }
   ;;
 
-  let from_string s =
-    let i = ref 0 in
-    let len = String.length s in
-    let next () =
-      if !i >= len then raise End_of_file else
-      let c = s.[!i] in
+  soit from_string s =
+    soit i = ref 0 dans
+    soit len = String.length s dans
+    soit next () =
+      si !i >= len alors raise End_of_file sinon
+      soit c = s.[!i] dans
       incr i;
-      c in
+      c dans
     create From_string next
   ;;
 
-  let from_function = create From_function;;
+  soit from_function = create From_function;;
 
   (* Scanning from an input channel. *)
 
@@ -307,34 +307,34 @@ module Scanning : SCANNING = struct
      input channels. *)
 
   (* Perform bufferized input to improve efficiency. *)
-  let file_buffer_size = ref 1024;;
+  soit file_buffer_size = ref 1024;;
 
   (* The scanner closes the input channel at end of input. *)
-  let scan_close_at_end ic = close_in ic; raise End_of_file;;
+  soit scan_close_at_end ic = close_in ic; raise End_of_file;;
 
   (* The scanner does not close the input channel at end of input:
      it just raises [End_of_file]. *)
-  let scan_raise_at_end _ic = raise End_of_file;;
+  soit scan_raise_at_end _ic = raise End_of_file;;
 
-  let from_ic scan_close_ic iname ic =
-    let len = !file_buffer_size in
-    let buf = String.create len in
-    let i = ref 0 in
-    let lim = ref 0 in
-    let eof = ref false in
-    let next () =
-      if !i < !lim then begin let c = buf.[!i] in incr i; c end else
-      if !eof then raise End_of_file else begin
+  soit from_ic scan_close_ic iname ic =
+    soit len = !file_buffer_size dans
+    soit buf = String.create len dans
+    soit i = ref 0 dans
+    soit lim = ref 0 dans
+    soit eof = ref faux dans
+    soit next () =
+      si !i < !lim alors début soit c = buf.[!i] dans incr i; c fin sinon
+      si !eof alors raise End_of_file sinon début
         lim := input ic buf 0 len;
-        if !lim = 0 then begin eof := true; scan_close_ic ic end else begin
+        si !lim = 0 alors début eof := vrai; scan_close_ic ic fin sinon début
           i := 1;
           buf.[0]
-        end
-      end in
+        fin
+      fin dans
     create iname next
   ;;
 
-  let from_ic_close_at_end = from_ic scan_close_at_end;;
+  soit from_ic_close_at_end = from_ic scan_close_at_end;;
 
   (* The scanning buffer reading from [Pervasives.stdin].
      One could try to define [stdib] as a scanning buffer reading a character
@@ -350,52 +350,52 @@ module Scanning : SCANNING = struct
      available for the next ([scanf]) entry, seemingly coming from nowhere.
      Also no [End_of_file] is raised when reading from stdin: if not enough
      characters have been read, we simply ask to read more. *)
-  let stdin =
+  soit stdin =
     from_ic scan_raise_at_end
       (From_file ("-", Pervasives.stdin)) Pervasives.stdin
   ;;
 
-  let stdib = stdin;;
+  soit stdib = stdin;;
 
-  let open_in fname =
-    match fname with
+  soit open_in fname =
+    filtre fname avec
     | "-" -> stdin
     | fname ->
-      let ic = open_in fname in
+      soit ic = open_in fname dans
       from_ic_close_at_end (From_file (fname, ic)) ic
   ;;
 
-  let open_in_bin fname =
-    match fname with
+  soit open_in_bin fname =
+    filtre fname avec
     | "-" -> stdin
     | fname ->
-      let ic = open_in_bin fname in
+      soit ic = open_in_bin fname dans
       from_ic_close_at_end (From_file (fname, ic)) ic
   ;;
 
-  let from_file = open_in;;
-  let from_file_bin = open_in_bin;;
+  soit from_file = open_in;;
+  soit from_file_bin = open_in_bin;;
 
-  let memo_from_ic =
-    let memo = ref [] in
-    (fun scan_close_ic ic ->
-     try List.assq ic !memo with
+  soit memo_from_ic =
+    soit memo = ref [] dans
+    (fonc scan_close_ic ic ->
+     essaie List.assq ic !memo avec
      | Not_found ->
-       let ib = from_ic scan_close_ic (From_channel ic) ic in
+       soit ib = from_ic scan_close_ic (From_channel ic) ic dans
        memo := (ic, ib) :: !memo;
        ib)
   ;;
 
-  let from_channel = memo_from_ic scan_raise_at_end;;
+  soit from_channel = memo_from_ic scan_raise_at_end;;
 
-  let close_in ib =
-    match ib.input_name with
+  soit close_in ib =
+    filtre ib.input_name avec
     | From_file (_fname, ic) -> Pervasives.close_in ic
     | From_string | From_function -> ()
     | From_channel ic -> Pervasives.close_in ic
   ;;
 
-end
+fin
 ;;
 
 (* Formatted input functions. *)
@@ -404,39 +404,39 @@ type ('a, 'b, 'c, 'd) scanner =
      ('a, Scanning.in_channel, 'b, 'c, 'a -> 'd, 'd) format6 -> 'c
 ;;
 
-external string_to_format :
+dehors string_to_format :
  string -> ('a, 'b, 'c, 'd, 'e, 'f) format6 = "%identity"
 ;;
 
 (* Reporting errors. *)
-exception Scan_failure of string;;
+exception Scan_failure de string;;
 
-let bad_input s = raise (Scan_failure s);;
+soit bad_input s = raise (Scan_failure s);;
 
-let bad_input_escape c =
+soit bad_input_escape c =
   bad_input (Printf.sprintf "illegal escape character %C" c)
 ;;
 
-let bad_token_length message =
+soit bad_token_length message =
   bad_input
     (Printf.sprintf
        "scanning of %s failed: \
         the specified length was too short for token" message)
 ;;
 
-let bad_end_of_input message =
+soit bad_end_of_input message =
   bad_input
     (Printf.sprintf
        "scanning of %s failed: \
         premature end of file occurred before end of token" message)
 ;;
 
-let int_of_width_opt = function
+soit int_of_width_opt = fonction
   | None -> max_int
   | Some width -> width
 ;;
 
-let int_of_prec_opt = function
+soit int_of_prec_opt = fonction
   | None -> max_int
   | Some prec -> prec
 ;;
@@ -444,40 +444,40 @@ let int_of_prec_opt = function
 module Sformat = Printf.CamlinternalPr.Sformat;;
 module Tformat = Printf.CamlinternalPr.Tformat;;
 
-let bad_conversion fmt i c =
+soit bad_conversion fmt i c =
   invalid_arg
     (Printf.sprintf
        "scanf: bad conversion %%%C, at char number %i \
         in format string \'%s\'" c i (Sformat.to_string fmt))
 ;;
 
-let incomplete_format fmt =
+soit incomplete_format fmt =
   invalid_arg
     (Printf.sprintf "scanf: premature end of format string \'%s\'"
        (Sformat.to_string fmt))
 ;;
 
-let bad_float () =
+soit bad_float () =
   bad_input "no dot or exponent part found in float token"
 ;;
 
-let character_mismatch_err c ci =
+soit character_mismatch_err c ci =
   Printf.sprintf "looking for %C, found %C" c ci
 ;;
 
-let character_mismatch c ci =
+soit character_mismatch c ci =
   bad_input (character_mismatch_err c ci)
 ;;
 
-let format_mismatch_err fmt1 fmt2 =
+soit format_mismatch_err fmt1 fmt2 =
   Printf.sprintf
     "format read \'%s\' does not match specification \'%s\'" fmt1 fmt2
 ;;
 
-let format_mismatch fmt1 fmt2 = bad_input (format_mismatch_err fmt1 fmt2);;
+soit format_mismatch fmt1 fmt2 = bad_input (format_mismatch_err fmt1 fmt2);;
 
 (* Checking that 2 format strings are type compatible. *)
-let compatible_format_type fmt1 fmt2 =
+soit compatible_format_type fmt1 fmt2 =
   Tformat.summarize_format_type (string_to_format fmt1) =
   Tformat.summarize_format_type (string_to_format fmt2);;
 
@@ -495,14 +495,14 @@ let compatible_format_type fmt1 fmt2 =
    That's why, waiting for a better solution, we use checked_peek_char here.
    We are also careful to treat "\r\n" in the input as an end of line marker:
    it always matches a '\n' specification in the input format string. *)
-let rec check_char ib c =
-  let ci = Scanning.checked_peek_char ib in
-  if ci = c then Scanning.invalidate_current_char ib else begin
-    match ci with
-    | '\r' when c = '\n' ->
+soit rec check_char ib c =
+  soit ci = Scanning.checked_peek_char ib dans
+  si ci = c alors Scanning.invalidate_current_char ib sinon début
+    filtre ci avec
+    | '\r' quand c = '\n' ->
       Scanning.invalidate_current_char ib; check_char ib '\n'
     | _ -> character_mismatch c ci
-  end
+  fin
 ;;
 
 (* Checks that the current char is indeed one of the stopper characters,
@@ -510,49 +510,49 @@ let rec check_char ib c =
    Be careful that if ib has no more character this procedure should
    just do nothing (since %s@c defaults to the entire rest of the
    buffer, when no character c can be found in the input). *)
-let ignore_stoppers stps ib =
-  if stps <> [] && not (Scanning.eof ib) then
-  let ci = Scanning.peek_char ib in
-  if List.memq ci stps then Scanning.invalidate_current_char ib else
-  let sr = String.concat "" (List.map (String.make 1) stps) in
+soit ignore_stoppers stps ib =
+  si stps <> [] && not (Scanning.eof ib) alors
+  soit ci = Scanning.peek_char ib dans
+  si List.memq ci stps alors Scanning.invalidate_current_char ib sinon
+  soit sr = String.concat "" (List.map (String.make 1) stps) dans
   bad_input
     (Printf.sprintf "looking for one of range %S, found %C" sr ci)
 ;;
 
 (* Extracting tokens from the output token buffer. *)
 
-let token_char ib = (Scanning.token ib).[0];;
+soit token_char ib = (Scanning.token ib).[0];;
 
-let token_string = Scanning.token;;
+soit token_string = Scanning.token;;
 
-let token_bool ib =
-  match Scanning.token ib with
-  | "true" -> true
-  | "false" -> false
+soit token_bool ib =
+  filtre Scanning.token ib avec
+  | "true" -> vrai
+  | "false" -> faux
   | s -> bad_input (Printf.sprintf "invalid boolean %S" s)
 ;;
 
 (* Extract an integer literal token.
    Since the functions Pervasives.*int*_of_string do not accept a leading +,
    we skip it if necessary. *)
-let token_int_literal conv ib =
-  let tok =
-    match conv with
+soit token_int_literal conv ib =
+  soit tok =
+    filtre conv avec
     | 'd' | 'i' | 'u' -> Scanning.token ib
     | 'o' -> "0o" ^ Scanning.token ib
     | 'x' | 'X' -> "0x" ^ Scanning.token ib
     | 'b' -> "0b" ^ Scanning.token ib
-    | _ -> assert false in
-  let l = String.length tok in
-  if l = 0 || tok.[0] <> '+' then tok else String.sub tok 1 (l - 1)
+    | _ -> affirme faux dans
+  soit l = String.length tok dans
+  si l = 0 || tok.[0] <> '+' alors tok sinon String.sub tok 1 (l - 1)
 ;;
 
 (* All the functions that convert a string to a number raise the exception
    Failure when the conversion is not possible.
    This exception is then trapped in [kscanf]. *)
-let token_int conv ib = int_of_string (token_int_literal conv ib);;
+soit token_int conv ib = int_of_string (token_int_literal conv ib);;
 
-let token_float ib = float_of_string (Scanning.token ib);;
+soit token_float ib = float_of_string (Scanning.token ib);;
 
 (* To scan native ints, int32 and int64 integers.
    We cannot access to conversions to/from strings for those types,
@@ -560,19 +560,19 @@ let token_float ib = float_of_string (Scanning.token ib);;
    since those modules are not available to [Scanf].
    However, we can bind and use the corresponding primitives that are
    available in the runtime. *)
-external nativeint_of_string : string -> nativeint
+dehors nativeint_of_string : string -> nativeint
   = "caml_nativeint_of_string"
 ;;
-external int32_of_string : string -> int32
+dehors int32_of_string : string -> int32
   = "caml_int32_of_string"
 ;;
-external int64_of_string : string -> int64
+dehors int64_of_string : string -> int64
   = "caml_int64_of_string"
 ;;
 
-let token_nativeint conv ib = nativeint_of_string (token_int_literal conv ib);;
-let token_int32 conv ib = int32_of_string (token_int_literal conv ib);;
-let token_int64 conv ib = int64_of_string (token_int_literal conv ib);;
+soit token_nativeint conv ib = nativeint_of_string (token_int_literal conv ib);;
+soit token_int32 conv ib = int32_of_string (token_int_literal conv ib);;
+soit token_int64 conv ib = int64_of_string (token_int_literal conv ib);;
 
 (* Scanning numbers. *)
 
@@ -587,93 +587,93 @@ let token_int64 conv ib = int64_of_string (token_int_literal conv ib);;
    available before calling one of the digit scanning functions). *)
 
 (* The decimal case is treated especially for optimization purposes. *)
-let rec scan_decimal_digits width ib =
-  if width = 0 then width else
-  let c = Scanning.peek_char ib in
-  if Scanning.eof ib then width else
-  match c with
-  | '0' .. '9' as c ->
-    let width = Scanning.store_char width ib c in
+soit rec scan_decimal_digits width ib =
+  si width = 0 alors width sinon
+  soit c = Scanning.peek_char ib dans
+  si Scanning.eof ib alors width sinon
+  filtre c avec
+  | '0' .. '9' tel c ->
+    soit width = Scanning.store_char width ib c dans
     scan_decimal_digits width ib
   | '_' ->
-    let width = Scanning.ignore_char width ib in
+    soit width = Scanning.ignore_char width ib dans
     scan_decimal_digits width ib
   | _ -> width
 ;;
 
-let scan_decimal_digits_plus width ib =
-  if width = 0 then bad_token_length "decimal digits" else
-  let c = Scanning.checked_peek_char ib in
-  match c with
+soit scan_decimal_digits_plus width ib =
+  si width = 0 alors bad_token_length "decimal digits" sinon
+  soit c = Scanning.checked_peek_char ib dans
+  filtre c avec
   | '0' .. '9' ->
-    let width = Scanning.store_char width ib c in
+    soit width = Scanning.store_char width ib c dans
     scan_decimal_digits width ib
   | c ->
     bad_input (Printf.sprintf "character %C is not a decimal digit" c)
 ;;
 
-let scan_digits_plus basis digitp width ib =
+soit scan_digits_plus basis digitp width ib =
   (* To scan numbers from other bases, we use a predicate argument to
      scan_digits. *)
-  let rec scan_digits width =
-    if width = 0 then width else
-    let c = Scanning.peek_char ib in
-    if Scanning.eof ib then width else
-    match c with
-    | c when digitp c ->
-      let width = Scanning.store_char width ib c in
+  soit rec scan_digits width =
+    si width = 0 alors width sinon
+    soit c = Scanning.peek_char ib dans
+    si Scanning.eof ib alors width sinon
+    filtre c avec
+    | c quand digitp c ->
+      soit width = Scanning.store_char width ib c dans
       scan_digits width
     | '_' ->
-      let width = Scanning.ignore_char width ib in
+      soit width = Scanning.ignore_char width ib dans
       scan_digits width
-    | _ -> width in
+    | _ -> width dans
 
   (* Ensure we have got enough width left,
      and read at list one digit. *)
-  if width = 0 then bad_token_length "digits" else
-  let c = Scanning.checked_peek_char ib in
+  si width = 0 alors bad_token_length "digits" sinon
+  soit c = Scanning.checked_peek_char ib dans
 
-  if digitp c then
-    let width = Scanning.store_char width ib c in
+  si digitp c alors
+    soit width = Scanning.store_char width ib c dans
     scan_digits width
-  else
+  sinon
     bad_input (Printf.sprintf "character %C is not a valid %s digit" c basis)
 ;;
 
-let is_binary_digit = function
-  | '0' .. '1' -> true
-  | _ -> false
+soit is_binary_digit = fonction
+  | '0' .. '1' -> vrai
+  | _ -> faux
 ;;
 
-let scan_binary_int = scan_digits_plus "binary" is_binary_digit;;
+soit scan_binary_int = scan_digits_plus "binary" is_binary_digit;;
 
-let is_octal_digit = function
-  | '0' .. '7' -> true
-  | _ -> false
+soit is_octal_digit = fonction
+  | '0' .. '7' -> vrai
+  | _ -> faux
 ;;
 
-let scan_octal_int = scan_digits_plus "octal" is_octal_digit;;
+soit scan_octal_int = scan_digits_plus "octal" is_octal_digit;;
 
-let is_hexa_digit = function
-  | '0' .. '9' | 'a' .. 'f' | 'A' .. 'F' -> true
-  | _ -> false
+soit is_hexa_digit = fonction
+  | '0' .. '9' | 'a' .. 'f' | 'A' .. 'F' -> vrai
+  | _ -> faux
 ;;
 
-let scan_hexadecimal_int = scan_digits_plus "hexadecimal" is_hexa_digit;;
+soit scan_hexadecimal_int = scan_digits_plus "hexadecimal" is_hexa_digit;;
 
 (* Scan a decimal integer. *)
-let scan_unsigned_decimal_int = scan_decimal_digits_plus;;
+soit scan_unsigned_decimal_int = scan_decimal_digits_plus;;
 
-let scan_sign width ib =
-  let c = Scanning.checked_peek_char ib in
-  match c with
+soit scan_sign width ib =
+  soit c = Scanning.checked_peek_char ib dans
+  filtre c avec
   | '+' -> Scanning.store_char width ib c
   | '-' -> Scanning.store_char width ib c
   | _ -> width
 ;;
 
-let scan_optionally_signed_decimal_int width ib =
-  let width = scan_sign width ib in
+soit scan_optionally_signed_decimal_int width ib =
+  soit width = scan_sign width ib dans
   scan_unsigned_decimal_int width ib
 ;;
 
@@ -681,56 +681,56 @@ let scan_optionally_signed_decimal_int width ib =
    If digits are prefixed by one of 0x, 0X, 0o, or 0b, the number is
    assumed to be written respectively in hexadecimal, hexadecimal,
    octal, or binary. *)
-let scan_unsigned_int width ib =
-  match Scanning.checked_peek_char ib with
-  | '0' as c ->
-    let width = Scanning.store_char width ib c in
-    if width = 0 then width else
-    let c = Scanning.peek_char ib in
-    if Scanning.eof ib then width else
-    begin match c with
+soit scan_unsigned_int width ib =
+  filtre Scanning.checked_peek_char ib avec
+  | '0' tel c ->
+    soit width = Scanning.store_char width ib c dans
+    si width = 0 alors width sinon
+    soit c = Scanning.peek_char ib dans
+    si Scanning.eof ib alors width sinon
+    début filtre c avec
     | 'x' | 'X' -> scan_hexadecimal_int (Scanning.store_char width ib c) ib
     | 'o' -> scan_octal_int (Scanning.store_char width ib c) ib
     | 'b' -> scan_binary_int (Scanning.store_char width ib c) ib
-    | _ -> scan_decimal_digits width ib end
+    | _ -> scan_decimal_digits width ib fin
   | _ -> scan_unsigned_decimal_int width ib
 ;;
 
-let scan_optionally_signed_int width ib =
-  let width = scan_sign width ib in
+soit scan_optionally_signed_int width ib =
+  soit width = scan_sign width ib dans
   scan_unsigned_int width ib
 ;;
 
-let scan_int_conv conv width _prec ib =
-  match conv with
+soit scan_int_conv conv width _prec ib =
+  filtre conv avec
   | 'b' -> scan_binary_int width ib
   | 'd' -> scan_optionally_signed_decimal_int width ib
   | 'i' -> scan_optionally_signed_int width ib
   | 'o' -> scan_octal_int width ib
   | 'u' -> scan_unsigned_decimal_int width ib
   | 'x' | 'X' -> scan_hexadecimal_int width ib
-  | _ -> assert false
+  | _ -> affirme faux
 ;;
 
 (* Scanning floating point numbers. *)
 (* Fractional part is optional and can be reduced to 0 digits. *)
-let scan_frac_part width ib =
-  if width = 0 then width else
-  let c = Scanning.peek_char ib in
-  if Scanning.eof ib then width else
-  match c with
-  | '0' .. '9' as c ->
+soit scan_frac_part width ib =
+  si width = 0 alors width sinon
+  soit c = Scanning.peek_char ib dans
+  si Scanning.eof ib alors width sinon
+  filtre c avec
+  | '0' .. '9' tel c ->
     scan_decimal_digits (Scanning.store_char width ib c) ib
   | _ -> width
 ;;
 
 (* Exp part is optional and can be reduced to 0 digits. *)
-let scan_exp_part width ib =
-  if width = 0 then width else
-  let c = Scanning.peek_char ib in
-  if Scanning.eof ib then width else
-  match c with
-  | 'e' | 'E' as c ->
+soit scan_exp_part width ib =
+  si width = 0 alors width sinon
+  soit c = Scanning.peek_char ib dans
+  si Scanning.eof ib alors width sinon
+  filtre c avec
+  | 'e' | 'E' tel c ->
     scan_optionally_signed_decimal_int (Scanning.store_char width ib c) ib
   | _ -> width
 ;;
@@ -739,8 +739,8 @@ let scan_exp_part width ib =
    OCaml lexical convention since the integer part can be empty):
    an optional sign, followed by a possibly empty sequence of decimal
    digits (e.g. -.1). *)
-let scan_int_part width ib =
-  let width = scan_sign width ib in
+soit scan_int_part width ib =
+  soit width = scan_sign width ib dans
   scan_decimal_digits width ib
 ;;
 
@@ -776,31 +776,31 @@ let scan_int_part width ib =
    ignored (FIXME: lead to a runtime error ? type checking error ?).
 *)
 
-let scan_float width precision ib =
-  let width = scan_int_part width ib in
-  if width = 0 then width, precision else
-  let c = Scanning.peek_char ib in
-  if Scanning.eof ib then width, precision else
-  match c with
+soit scan_float width precision ib =
+  soit width = scan_int_part width ib dans
+  si width = 0 alors width, precision sinon
+  soit c = Scanning.peek_char ib dans
+  si Scanning.eof ib alors width, precision sinon
+  filtre c avec
   | '.' ->
-    let width = Scanning.store_char width ib c in
-    let precision = min width precision in
-    let width = width - (precision - scan_frac_part precision ib) in
+    soit width = Scanning.store_char width ib c dans
+    soit precision = min width precision dans
+    soit width = width - (precision - scan_frac_part precision ib) dans
     scan_exp_part width ib, precision
   | _ ->
     scan_exp_part width ib, precision
 ;;
 
-let scan_Float width precision ib =
-  let width = scan_optionally_signed_decimal_int width ib in
-  if width = 0 then bad_float () else
-  let c = Scanning.peek_char ib in
-  if Scanning.eof ib then bad_float () else
-  match c with
+soit scan_Float width precision ib =
+  soit width = scan_optionally_signed_decimal_int width ib dans
+  si width = 0 alors bad_float () sinon
+  soit c = Scanning.peek_char ib dans
+  si Scanning.eof ib alors bad_float () sinon
+  filtre c avec
   | '.' ->
-    let width = Scanning.store_char width ib c in
-    let precision = min width precision in
-    let width = width - (precision - scan_frac_part precision ib) in
+    soit width = Scanning.store_char width ib c dans
+    soit precision = min width precision dans
+    soit width = width - (precision - scan_frac_part precision ib) dans
     scan_exp_part width ib
   | 'e' | 'E' ->
     scan_exp_part width ib
@@ -813,29 +813,29 @@ let scan_Float width precision ib =
    indication list [stp].
    It also stops at end of file or when the maximum number of characters has
    been read.*)
-let scan_string stp width ib =
-  let rec loop width =
-    if width = 0 then width else
-    let c = Scanning.peek_char ib in
-    if Scanning.eof ib then width else
-    if stp = [] then
-      match c with
+soit scan_string stp width ib =
+  soit rec loop width =
+    si width = 0 alors width sinon
+    soit c = Scanning.peek_char ib dans
+    si Scanning.eof ib alors width sinon
+    si stp = [] alors
+      filtre c avec
       | ' ' | '\t' | '\n' | '\r' -> width
-      | c -> loop (Scanning.store_char width ib c) else
-    if List.memq c stp then Scanning.skip_char width ib else
-    loop (Scanning.store_char width ib c) in
+      | c -> loop (Scanning.store_char width ib c) sinon
+    si List.memq c stp alors Scanning.skip_char width ib sinon
+    loop (Scanning.store_char width ib c) dans
   loop width
 ;;
 
 (* Scan a char: peek strictly one character in the input, whatsoever. *)
-let scan_char width ib =
+soit scan_char width ib =
   (* The case width = 0 could not happen here, since it is tested before
      calling scan_char, in the main scanning function.
     if width = 0 then bad_token_length "a character" else *)
   Scanning.store_char width ib (Scanning.checked_peek_char ib)
 ;;
 
-let char_for_backslash = function
+soit char_for_backslash = fonction
   | 'n' -> '\010'
   | 'r' -> '\013'
   | 'b' -> '\008'
@@ -845,204 +845,204 @@ let char_for_backslash = function
 
 (* The integer value corresponding to the facial value of a valid
    decimal digit character. *)
-let decimal_value_of_char c = int_of_char c - int_of_char '0';;
+soit decimal_value_of_char c = int_of_char c - int_of_char '0';;
 
-let char_for_decimal_code c0 c1 c2 =
-  let c =
+soit char_for_decimal_code c0 c1 c2 =
+  soit c =
     100 * decimal_value_of_char c0 +
      10 * decimal_value_of_char c1 +
-          decimal_value_of_char c2 in
-  if c < 0 || c > 255 then
+          decimal_value_of_char c2 dans
+  si c < 0 || c > 255 alors
     bad_input
       (Printf.sprintf
-         "bad character decimal encoding \\%c%c%c" c0 c1 c2) else
+         "bad character decimal encoding \\%c%c%c" c0 c1 c2) sinon
   char_of_int c
 ;;
 
 (* The integer value corresponding to the facial value of a valid
    hexadecimal digit character. *)
-let hexadecimal_value_of_char c =
-  let d = int_of_char c in
+soit hexadecimal_value_of_char c =
+  soit d = int_of_char c dans
   (* Could also be:
     if d <= int_of_char '9' then d - int_of_char '0' else
     if d <= int_of_char 'F' then 10 + d - int_of_char 'A' else
     if d <= int_of_char 'f' then 10 + d - int_of_char 'a' else assert false
   *)
-  if d >= int_of_char 'a' then
-    d - 87 (* 10 + int_of_char c - int_of_char 'a' *) else
-  if d >= int_of_char 'A' then
-    d - 55  (* 10 + int_of_char c - int_of_char 'A' *) else
+  si d >= int_of_char 'a' alors
+    d - 87 (* 10 + int_of_char c - int_of_char 'a' *) sinon
+  si d >= int_of_char 'A' alors
+    d - 55  (* 10 + int_of_char c - int_of_char 'A' *) sinon
     d - int_of_char '0'
 ;;
 
-let char_for_hexadecimal_code c1 c2 =
-  let c =
+soit char_for_hexadecimal_code c1 c2 =
+  soit c =
     16 * hexadecimal_value_of_char c1 +
-         hexadecimal_value_of_char c2 in
-  if c < 0 || c > 255 then
+         hexadecimal_value_of_char c2 dans
+  si c < 0 || c > 255 alors
     bad_input
-      (Printf.sprintf "bad character hexadecimal encoding \\%c%c" c1 c2) else
+      (Printf.sprintf "bad character hexadecimal encoding \\%c%c" c1 c2) sinon
   char_of_int c
 ;;
 
 (* Called in particular when encountering '\\' as starter of a char.
    Stops before the corresponding '\''. *)
-let check_next_char message width ib =
-  if width = 0 then bad_token_length message else
-  let c = Scanning.peek_char ib in
-  if Scanning.eof ib then bad_end_of_input message else
+soit check_next_char message width ib =
+  si width = 0 alors bad_token_length message sinon
+  soit c = Scanning.peek_char ib dans
+  si Scanning.eof ib alors bad_end_of_input message sinon
   c
 ;;
 
-let check_next_char_for_char = check_next_char "a Char";;
-let check_next_char_for_string = check_next_char "a String";;
+soit check_next_char_for_char = check_next_char "a Char";;
+soit check_next_char_for_string = check_next_char "a String";;
 
-let scan_backslash_char width ib =
-  match check_next_char_for_char width ib with
-  | '\\' | '\'' | '\"' | 'n' | 't' | 'b' | 'r' as c ->
+soit scan_backslash_char width ib =
+  filtre check_next_char_for_char width ib avec
+  | '\\' | '\'' | '\"' | 'n' | 't' | 'b' | 'r' tel c ->
     Scanning.store_char width ib (char_for_backslash c)
-  | '0' .. '9' as c ->
-    let get_digit () =
-      let c = Scanning.next_char ib in
-      match c with
-      | '0' .. '9' as c -> c
-      | c -> bad_input_escape c in
-    let c0 = c in
-    let c1 = get_digit () in
-    let c2 = get_digit () in
+  | '0' .. '9' tel c ->
+    soit get_digit () =
+      soit c = Scanning.next_char ib dans
+      filtre c avec
+      | '0' .. '9' tel c -> c
+      | c -> bad_input_escape c dans
+    soit c0 = c dans
+    soit c1 = get_digit () dans
+    soit c2 = get_digit () dans
     Scanning.store_char (width - 2) ib (char_for_decimal_code c0 c1 c2)
   | 'x' ->
-    let get_digit () =
-      let c = Scanning.next_char ib in
-      match c with
-      | '0' .. '9' | 'A' .. 'F' | 'a' .. 'f' as c -> c
-      | c -> bad_input_escape c in
-    let c1 = get_digit () in
-    let c2 = get_digit () in
+    soit get_digit () =
+      soit c = Scanning.next_char ib dans
+      filtre c avec
+      | '0' .. '9' | 'A' .. 'F' | 'a' .. 'f' tel c -> c
+      | c -> bad_input_escape c dans
+    soit c1 = get_digit () dans
+    soit c2 = get_digit () dans
     Scanning.store_char (width - 2) ib (char_for_hexadecimal_code c1 c2)
   | c ->
     bad_input_escape c
 ;;
 
 (* Scan a character (an OCaml token). *)
-let scan_Char width ib =
+soit scan_Char width ib =
 
-  let rec find_start width =
-    match Scanning.checked_peek_char ib with
+  soit rec find_start width =
+    filtre Scanning.checked_peek_char ib avec
     | '\'' -> find_char (Scanning.ignore_char width ib)
     | c -> character_mismatch '\'' c
 
-  and find_char width =
-    match check_next_char_for_char width ib with
+  et find_char width =
+    filtre check_next_char_for_char width ib avec
     | '\\' ->
       find_stop (scan_backslash_char (Scanning.ignore_char width ib) ib)
     | c ->
       find_stop (Scanning.store_char width ib c)
 
-  and find_stop width =
-    match check_next_char_for_char width ib with
+  et find_stop width =
+    filtre check_next_char_for_char width ib avec
     | '\'' -> Scanning.ignore_char width ib
-    | c -> character_mismatch '\'' c in
+    | c -> character_mismatch '\'' c dans
 
   find_start width
 ;;
 
 (* Scan a delimited string (an OCaml token). *)
-let scan_String width ib =
+soit scan_String width ib =
 
-  let rec find_start width =
-    match Scanning.checked_peek_char ib with
+  soit rec find_start width =
+    filtre Scanning.checked_peek_char ib avec
     | '\"' -> find_stop (Scanning.ignore_char width ib)
     | c -> character_mismatch '\"' c
 
-  and find_stop width =
-    match check_next_char_for_string width ib with
+  et find_stop width =
+    filtre check_next_char_for_string width ib avec
     | '\"' -> Scanning.ignore_char width ib
     | '\\' -> scan_backslash (Scanning.ignore_char width ib)
     | c -> find_stop (Scanning.store_char width ib c)
 
-  and scan_backslash width =
-    match check_next_char_for_string width ib with
+  et scan_backslash width =
+    filtre check_next_char_for_string width ib avec
     | '\r' -> skip_newline (Scanning.ignore_char width ib)
     | '\n' -> skip_spaces (Scanning.ignore_char width ib)
     | _ -> find_stop (scan_backslash_char width ib)
 
-  and skip_newline width =
-    match check_next_char_for_string width ib with
+  et skip_newline width =
+    filtre check_next_char_for_string width ib avec
     | '\n' -> skip_spaces (Scanning.ignore_char width ib)
     | _ -> find_stop (Scanning.store_char width ib '\r')
 
-  and skip_spaces width =
-    match check_next_char_for_string width ib with
+  et skip_spaces width =
+    filtre check_next_char_for_string width ib avec
     | ' ' -> skip_spaces (Scanning.ignore_char width ib)
-    | _ -> find_stop width in
+    | _ -> find_stop width dans
 
   find_start width
 ;;
 
 (* Scan a boolean (an OCaml token). *)
-let scan_bool width ib =
-  if width < 4 then bad_token_length "a boolean" else
-  let c = Scanning.checked_peek_char ib in
-  let m =
-    match c with
+soit scan_bool width ib =
+  si width < 4 alors bad_token_length "a boolean" sinon
+  soit c = Scanning.checked_peek_char ib dans
+  soit m =
+    filtre c avec
     | 't' -> 4
     | 'f' -> 5
     | c ->
       bad_input
-        (Printf.sprintf "the character %C cannot start a boolean" c) in
+        (Printf.sprintf "the character %C cannot start a boolean" c) dans
   scan_string [] (min width m) ib
 ;;
 
 (* Reading char sets in %[...] conversions. *)
 type char_set =
-   | Pos_set of string (* Positive (regular) set. *)
-   | Neg_set of string (* Negative (complementary) set. *)
+   | Pos_set de string (* Positive (regular) set. *)
+   | Neg_set de string (* Negative (complementary) set. *)
 ;;
 
 
 (* Char sets are read as sub-strings in the format string. *)
-let scan_range fmt j =
+soit scan_range fmt j =
 
-  let len = Sformat.length fmt in
+  soit len = Sformat.length fmt dans
 
-  let buffer = Buffer.create len in
+  soit buffer = Buffer.create len dans
 
-  let rec scan_closing j =
-    if j >= len then incomplete_format fmt else
-    match Sformat.get fmt j with
+  soit rec scan_closing j =
+    si j >= len alors incomplete_format fmt sinon
+    filtre Sformat.get fmt j avec
     | ']' -> j, Buffer.contents buffer
     | '%' ->
-      let j = j + 1 in
-      if j >= len then incomplete_format fmt else
-      begin match Sformat.get fmt j with
-      | '%' | '@' as c ->
+      soit j = j + 1 dans
+      si j >= len alors incomplete_format fmt sinon
+      début filtre Sformat.get fmt j avec
+      | '%' | '@' tel c ->
         Buffer.add_char buffer c;
         scan_closing (j + 1)
       | c -> bad_conversion fmt j c
-      end
+      fin
     | c ->
       Buffer.add_char buffer c;
-      scan_closing (j + 1) in
+      scan_closing (j + 1) dans
 
-  let scan_first_pos j =
-    if j >= len then incomplete_format fmt else
-    match Sformat.get fmt j with
-    | ']' as c ->
+  soit scan_first_pos j =
+    si j >= len alors incomplete_format fmt sinon
+    filtre Sformat.get fmt j avec
+    | ']' tel c ->
       Buffer.add_char buffer c;
       scan_closing (j + 1)
-    | _ -> scan_closing j in
+    | _ -> scan_closing j dans
 
-  let scan_first_neg j =
-    if j >= len then incomplete_format fmt else
-    match Sformat.get fmt j with
+  soit scan_first_neg j =
+    si j >= len alors incomplete_format fmt sinon
+    filtre Sformat.get fmt j avec
     | '^' ->
-      let j = j + 1 in
-      let k, char_set = scan_first_pos j in
+      soit j = j + 1 dans
+      soit k, char_set = scan_first_pos j dans
       k, Neg_set char_set
     | _ ->
-      let k, char_set = scan_first_pos j in
-      k, Pos_set char_set in
+      soit k, char_set = scan_first_pos j dans
+      k, Pos_set char_set dans
 
   scan_first_neg j
 ;;
@@ -1051,251 +1051,251 @@ let scan_range fmt j =
    byte strings. *)
 
 (* Bit manipulations into bytes. *)
-let set_bit_of_byte byte idx b =
-  (b lsl idx) lor (byte land (* mask idx *) (lnot (1 lsl idx)))
+soit set_bit_of_byte byte idx b =
+  (b dgl idx) oul (byte etl (* mask idx *) (lnot (1 dgl idx)))
 ;;
 
-let get_bit_of_byte byte idx = (byte lsr idx) land 1;;
+soit get_bit_of_byte byte idx = (byte ddl idx) etl 1;;
 
 (* Bit manipulations in vectors of bytes represented as strings. *)
-let set_bit_of_range r c b =
-  let idx = c land 0x7 in
-  let ydx = c lsr 3 in
-  let byte = r.[ydx] in
+soit set_bit_of_range r c b =
+  soit idx = c etl 0x7 dans
+  soit ydx = c ddl 3 dans
+  soit byte = r.[ydx] dans
   r.[ydx] <- char_of_int (set_bit_of_byte (int_of_char byte) idx b)
 ;;
 
-let get_bit_of_range r c =
-  let idx = c land 0x7 in
-  let ydx = c lsr 3 in
-  let byte = r.[ydx] in
+soit get_bit_of_range r c =
+  soit idx = c etl 0x7 dans
+  soit ydx = c ddl 3 dans
+  soit byte = r.[ydx] dans
   get_bit_of_byte (int_of_char byte) idx
 ;;
 
 (* Char sets represented as bit vectors represented as fixed length byte
    strings. *)
 (* Create a full or empty set of chars. *)
-let make_range bit =
-  let c = char_of_int (if bit = 0 then 0 else 0xFF) in
+soit make_range bit =
+  soit c = char_of_int (si bit = 0 alors 0 sinon 0xFF) dans
   String.make 32 c
 ;;
 
 (* Test if a char belongs to a set of chars. *)
-let get_char_in_range r c = get_bit_of_range r (int_of_char c);;
+soit get_char_in_range r c = get_bit_of_range r (int_of_char c);;
 
-let bit_not b = (lnot b) land 1;;
+soit bit_not b = (lnot b) etl 1;;
 
 (* Build the bit vector corresponding to the set of characters
    that belongs to the string argument [set].
    (In the [Scanf] module [set] is always a sub-string of the format.) *)
-let make_char_bit_vect bit set =
-  let r = make_range (bit_not bit) in
-  let lim = String.length set - 1 in
-  let rec loop bit rp i =
-    if i <= lim then
-    match set.[i] with
-    | '-' when rp ->
+soit make_char_bit_vect bit set =
+  soit r = make_range (bit_not bit) dans
+  soit lim = String.length set - 1 dans
+  soit rec loop bit rp i =
+    si i <= lim alors
+    filtre set.[i] avec
+    | '-' quand rp ->
       (* if i = 0 then rp is false (since the initial call is
          loop bit false 0). Hence i >= 1 and the following is safe. *)
-      let c1 = set.[i - 1] in
-      let i = succ i in
-      if i > lim then loop bit false (i - 1) else
-      let c2 = set.[i] in
-      for j = int_of_char c1 to int_of_char c2 do
-        set_bit_of_range r j bit done;
-      loop bit false (succ i)
+      soit c1 = set.[i - 1] dans
+      soit i = succ i dans
+      si i > lim alors loop bit faux (i - 1) sinon
+      soit c2 = set.[i] dans
+      pour j = int_of_char c1 à int_of_char c2 faire
+        set_bit_of_range r j bit fait;
+      loop bit faux (succ i)
     | _ ->
       set_bit_of_range r (int_of_char set.[i]) bit;
-      loop bit true (succ i) in
-  loop bit false 0;
+      loop bit vrai (succ i) dans
+  loop bit faux 0;
   r
 ;;
 
 (* Compute the predicate on chars corresponding to a char set. *)
-let make_predicate bit set stp =
-  let r = make_char_bit_vect bit set in
+soit make_predicate bit set stp =
+  soit r = make_char_bit_vect bit set dans
   List.iter
-    (fun c -> set_bit_of_range r (int_of_char c) (bit_not bit)) stp;
-  (fun c -> get_char_in_range r c)
+    (fonc c -> set_bit_of_range r (int_of_char c) (bit_not bit)) stp;
+  (fonc c -> get_char_in_range r c)
 ;;
 
-let make_setp stp char_set =
-  match char_set with
+soit make_setp stp char_set =
+  filtre char_set avec
   | Pos_set set ->
-    begin match String.length set with
-    | 0 -> (fun _ -> 0)
+    début filtre String.length set avec
+    | 0 -> (fonc _ -> 0)
     | 1 ->
-      let p = set.[0] in
-      (fun c -> if c == p then 1 else 0)
+      soit p = set.[0] dans
+      (fonc c -> si c == p alors 1 sinon 0)
     | 2 ->
-      let p1 = set.[0] and p2 = set.[1] in
-      (fun c -> if c == p1 || c == p2 then 1 else 0)
+      soit p1 = set.[0] et p2 = set.[1] dans
+      (fonc c -> si c == p1 || c == p2 alors 1 sinon 0)
     | 3 ->
-      let p1 = set.[0] and p2 = set.[1] and p3 = set.[2] in
-      if p2 = '-' then make_predicate 1 set stp else
-      (fun c -> if c == p1 || c == p2 || c == p3 then 1 else 0)
+      soit p1 = set.[0] et p2 = set.[1] et p3 = set.[2] dans
+      si p2 = '-' alors make_predicate 1 set stp sinon
+      (fonc c -> si c == p1 || c == p2 || c == p3 alors 1 sinon 0)
     | _ -> make_predicate 1 set stp
-    end
+    fin
   | Neg_set set ->
-    begin match String.length set with
-    | 0 -> (fun _ -> 1)
+    début filtre String.length set avec
+    | 0 -> (fonc _ -> 1)
     | 1 ->
-      let p = set.[0] in
-      (fun c -> if c != p then 1 else 0)
+      soit p = set.[0] dans
+      (fonc c -> si c != p alors 1 sinon 0)
     | 2 ->
-      let p1 = set.[0] and p2 = set.[1] in
-      (fun c -> if c != p1 && c != p2 then 1 else 0)
+      soit p1 = set.[0] et p2 = set.[1] dans
+      (fonc c -> si c != p1 && c != p2 alors 1 sinon 0)
     | 3 ->
-      let p1 = set.[0] and p2 = set.[1] and p3 = set.[2] in
-      if p2 = '-' then make_predicate 0 set stp else
-      (fun c -> if c != p1 && c != p2 && c != p3 then 1 else 0)
+      soit p1 = set.[0] et p2 = set.[1] et p3 = set.[2] dans
+      si p2 = '-' alors make_predicate 0 set stp sinon
+      (fonc c -> si c != p1 && c != p2 && c != p3 alors 1 sinon 0)
     | _ -> make_predicate 0 set stp
-    end
+    fin
 ;;
 
-let setp_table = Hashtbl.create 7;;
+soit setp_table = Hashtbl.create 7;;
 
-let add_setp stp char_set setp =
-  let char_set_tbl =
-    try Hashtbl.find setp_table char_set with
+soit add_setp stp char_set setp =
+  soit char_set_tbl =
+    essaie Hashtbl.find setp_table char_set avec
     | Not_found ->
-      let char_set_tbl = Hashtbl.create 3 in
+      soit char_set_tbl = Hashtbl.create 3 dans
       Hashtbl.add setp_table char_set char_set_tbl;
-      char_set_tbl in
+      char_set_tbl dans
   Hashtbl.add char_set_tbl stp setp
 ;;
 
-let find_setp stp char_set =
-  try Hashtbl.find (Hashtbl.find setp_table char_set) stp with
+soit find_setp stp char_set =
+  essaie Hashtbl.find (Hashtbl.find setp_table char_set) stp avec
   | Not_found ->
-    let setp = make_setp stp char_set in
+    soit setp = make_setp stp char_set dans
     add_setp stp char_set setp;
     setp
 ;;
 
-let scan_chars_in_char_set stp char_set width ib =
-  let rec loop_pos1 cp1 width =
-    if width = 0 then width else
-    let c = Scanning.peek_char ib in
-    if Scanning.eof ib then width else
-    if c == cp1
-    then loop_pos1 cp1 (Scanning.store_char width ib c)
-    else width
-  and loop_pos2 cp1 cp2 width =
-    if width = 0 then width else
-    let c = Scanning.peek_char ib in
-    if Scanning.eof ib then width else
-    if c == cp1 || c == cp2
-    then loop_pos2 cp1 cp2 (Scanning.store_char width ib c)
-    else width
-  and loop_pos3 cp1 cp2 cp3 width =
-    if width = 0 then width else
-    let c = Scanning.peek_char ib in
-    if Scanning.eof ib then width else
-    if c == cp1 || c == cp2 || c == cp3
-    then loop_pos3 cp1 cp2 cp3 (Scanning.store_char width ib c)
-    else width
-  and loop_neg1 cp1 width =
-    if width = 0 then width else
-    let c = Scanning.peek_char ib in
-    if Scanning.eof ib then width else
-    if c != cp1
-    then loop_neg1 cp1 (Scanning.store_char width ib c)
-    else width
-  and loop_neg2 cp1 cp2 width =
-    if width = 0 then width else
-    let c = Scanning.peek_char ib in
-    if Scanning.eof ib then width else
-    if c != cp1 && c != cp2
-    then loop_neg2 cp1 cp2 (Scanning.store_char width ib c)
-    else width
-  and loop_neg3 cp1 cp2 cp3 width =
-    if width = 0 then width else
-    let c = Scanning.peek_char ib in
-    if Scanning.eof ib then width else
-    if c != cp1 && c != cp2 && c != cp3
-    then loop_neg3 cp1 cp2 cp3 (Scanning.store_char width ib c)
-    else width
-  and loop setp width =
-    if width = 0 then width else
-    let c = Scanning.peek_char ib in
-    if Scanning.eof ib then width else
-    if setp c == 1
-    then loop setp (Scanning.store_char width ib c)
-    else width in
+soit scan_chars_in_char_set stp char_set width ib =
+  soit rec loop_pos1 cp1 width =
+    si width = 0 alors width sinon
+    soit c = Scanning.peek_char ib dans
+    si Scanning.eof ib alors width sinon
+    si c == cp1
+    alors loop_pos1 cp1 (Scanning.store_char width ib c)
+    sinon width
+  et loop_pos2 cp1 cp2 width =
+    si width = 0 alors width sinon
+    soit c = Scanning.peek_char ib dans
+    si Scanning.eof ib alors width sinon
+    si c == cp1 || c == cp2
+    alors loop_pos2 cp1 cp2 (Scanning.store_char width ib c)
+    sinon width
+  et loop_pos3 cp1 cp2 cp3 width =
+    si width = 0 alors width sinon
+    soit c = Scanning.peek_char ib dans
+    si Scanning.eof ib alors width sinon
+    si c == cp1 || c == cp2 || c == cp3
+    alors loop_pos3 cp1 cp2 cp3 (Scanning.store_char width ib c)
+    sinon width
+  et loop_neg1 cp1 width =
+    si width = 0 alors width sinon
+    soit c = Scanning.peek_char ib dans
+    si Scanning.eof ib alors width sinon
+    si c != cp1
+    alors loop_neg1 cp1 (Scanning.store_char width ib c)
+    sinon width
+  et loop_neg2 cp1 cp2 width =
+    si width = 0 alors width sinon
+    soit c = Scanning.peek_char ib dans
+    si Scanning.eof ib alors width sinon
+    si c != cp1 && c != cp2
+    alors loop_neg2 cp1 cp2 (Scanning.store_char width ib c)
+    sinon width
+  et loop_neg3 cp1 cp2 cp3 width =
+    si width = 0 alors width sinon
+    soit c = Scanning.peek_char ib dans
+    si Scanning.eof ib alors width sinon
+    si c != cp1 && c != cp2 && c != cp3
+    alors loop_neg3 cp1 cp2 cp3 (Scanning.store_char width ib c)
+    sinon width
+  et loop setp width =
+    si width = 0 alors width sinon
+    soit c = Scanning.peek_char ib dans
+    si Scanning.eof ib alors width sinon
+    si setp c == 1
+    alors loop setp (Scanning.store_char width ib c)
+    sinon width dans
 
-  let width =
-    match char_set with
+  soit width =
+    filtre char_set avec
     | Pos_set set ->
-      begin match String.length set with
-      | 0 -> loop (fun _ -> 0) width
+      début filtre String.length set avec
+      | 0 -> loop (fonc _ -> 0) width
       | 1 -> loop_pos1 set.[0] width
       | 2 -> loop_pos2 set.[0] set.[1] width
-      | 3 when set.[1] != '-' -> loop_pos3 set.[0] set.[1] set.[2] width
-      | _ -> loop (find_setp stp char_set) width end
+      | 3 quand set.[1] != '-' -> loop_pos3 set.[0] set.[1] set.[2] width
+      | _ -> loop (find_setp stp char_set) width fin
     | Neg_set set ->
-      begin match String.length set with
-      | 0 -> loop (fun _ -> 1) width
+      début filtre String.length set avec
+      | 0 -> loop (fonc _ -> 1) width
       | 1 -> loop_neg1 set.[0] width
       | 2 -> loop_neg2 set.[0] set.[1] width
-      | 3 when set.[1] != '-' -> loop_neg3 set.[0] set.[1] set.[2] width
-      | _ -> loop (find_setp stp char_set) width end in
+      | 3 quand set.[1] != '-' -> loop_neg3 set.[0] set.[1] set.[2] width
+      | _ -> loop (find_setp stp char_set) width fin dans
   ignore_stoppers stp ib;
   width
 ;;
 
-let get_count t ib =
-  match t with
+soit get_count t ib =
+  filtre t avec
   | 'l' -> Scanning.line_count ib
   | 'n' -> Scanning.char_count ib
   | _ -> Scanning.token_count ib
 ;;
 
-let rec skip_whites ib =
-  let c = Scanning.peek_char ib in
-  if not (Scanning.eof ib) then begin
-    match c with
+soit rec skip_whites ib =
+  soit c = Scanning.peek_char ib dans
+  si not (Scanning.eof ib) alors début
+    filtre c avec
     | ' ' | '\t' | '\n' | '\r' ->
       Scanning.invalidate_current_char ib; skip_whites ib
     | _ -> ()
-  end
+  fin
 ;;
 
 (* The global error report function for [Scanf]. *)
-let scanf_bad_input ib = function
+soit scanf_bad_input ib = fonction
   | Scan_failure s | Failure s ->
-    let i = Scanning.char_count ib in
+    soit i = Scanning.char_count ib dans
     bad_input (Printf.sprintf "scanf: bad input at char number %i: \'%s\'" i s)
   | x -> raise x
 ;;
 
-let list_iter_i f l =
-  let rec loop i = function
+soit list_iter_i f l =
+  soit rec loop i = fonction
   | [] -> ()
   | [x] -> f i x (* Tail calling [f] *)
-  | x :: xs -> f i x; loop (succ i) xs in
+  | x :: xs -> f i x; loop (succ i) xs dans
   loop 0 l
 ;;
 
-let ascanf sc fmt =
-  let ac = Tformat.ac_of_format fmt in
-  match ac.Tformat.ac_rdrs with
+soit ascanf sc fmt =
+  soit ac = Tformat.ac_of_format fmt dans
+  filtre ac.Tformat.ac_rdrs avec
   | 0 ->
-    Obj.magic (fun f -> sc fmt [||] f)
+    Obj.magic (fonc f -> sc fmt [||] f)
   | 1 ->
-    Obj.magic (fun x f -> sc fmt [| Obj.repr x |] f)
+    Obj.magic (fonc x f -> sc fmt [| Obj.repr x |] f)
   | 2 ->
-    Obj.magic (fun x y f -> sc fmt [| Obj.repr x; Obj.repr y; |] f)
+    Obj.magic (fonc x y f -> sc fmt [| Obj.repr x; Obj.repr y; |] f)
   | 3 ->
     Obj.magic
-      (fun x y z f -> sc fmt [| Obj.repr x; Obj.repr y; Obj.repr z; |] f)
+      (fonc x y z f -> sc fmt [| Obj.repr x; Obj.repr y; Obj.repr z; |] f)
   | nargs ->
-    let rec loop i args =
-      if i >= nargs then
-        let a = Array.make nargs (Obj.repr 0) in
-        list_iter_i (fun i arg -> a.(nargs - i - 1) <- arg) args;
-        Obj.magic (fun f -> sc fmt a f)
-      else Obj.magic (fun x -> loop (succ i) (x :: args)) in
+    soit rec loop i args =
+      si i >= nargs alors
+        soit a = Array.make nargs (Obj.repr 0) dans
+        list_iter_i (fonc i arg -> a.(nargs - i - 1) <- arg) args;
+        Obj.magic (fonc f -> sc fmt a f)
+      sinon Obj.magic (fonc x -> loop (succ i) (x :: args)) dans
     loop 0 []
 ;;
 
@@ -1320,149 +1320,149 @@ let ascanf sc fmt =
    aborts and applies the scanning buffer and a string that explains
    the error to the error handling function [ef] (the error continuation). *)
 
-let scan_format ib ef fmt rv f =
+soit scan_format ib ef fmt rv f =
 
-  let limr = Array.length rv - 1 in
+  soit limr = Array.length rv - 1 dans
 
-  let return v = Obj.magic v () in
-  let delay f x () = f x in
-  let stack f = delay (return f) in
-  let no_stack f _x = f in
+  soit return v = Obj.magic v () dans
+  soit delay f x () = f x dans
+  soit stack f = delay (return f) dans
+  soit no_stack f _x = f dans
 
-  let rec scan fmt =
+  soit rec scan fmt =
 
-    let lim = Sformat.length fmt - 1 in
+    soit lim = Sformat.length fmt - 1 dans
 
-    let rec scan_fmt ir f i =
-      if i > lim then ir, f else
-      match Sformat.unsafe_get fmt i with
+    soit rec scan_fmt ir f i =
+      si i > lim alors ir, f sinon
+      filtre Sformat.unsafe_get fmt i avec
       | '%' -> scan_skip ir f (succ i)
       | ' ' -> skip_whites ib; scan_fmt ir f (succ i)
       | c -> check_char ib c; scan_fmt ir f (succ i)
 
-    and scan_skip ir f i =
-      if i > lim then ir, f else
-      match Sformat.get fmt i with
-      | '_' -> scan_limits true ir f (succ i)
-      | _ -> scan_limits false ir f i
+    et scan_skip ir f i =
+      si i > lim alors ir, f sinon
+      filtre Sformat.get fmt i avec
+      | '_' -> scan_limits vrai ir f (succ i)
+      | _ -> scan_limits faux ir f i
 
-    and scan_limits skip ir f i =
+    et scan_limits skip ir f i =
 
-      let rec scan_width i =
-        if i > lim then incomplete_format fmt else
-        match Sformat.get fmt i with
-        | '0' .. '9' as conv ->
-          let width, i =
-            read_int_literal (decimal_value_of_char conv) (succ i) in
+      soit rec scan_width i =
+        si i > lim alors incomplete_format fmt sinon
+        filtre Sformat.get fmt i avec
+        | '0' .. '9' tel conv ->
+          soit width, i =
+            read_int_literal (decimal_value_of_char conv) (succ i) dans
           Some width, i
         | _ -> None, i
 
-      and scan_precision i =
-        begin
-          match Sformat.get fmt i with
+      et scan_precision i =
+        début
+          filtre Sformat.get fmt i avec
           | '.' ->
-            let precision, i = read_int_literal 0 (succ i) in
+            soit precision, i = read_int_literal 0 (succ i) dans
             (Some precision, i)
           | _ -> None, i
-        end
+        fin
 
-      and read_int_literal accu i =
-        if i > lim then accu, i else
-        match Sformat.unsafe_get fmt i with
-        | '0' .. '9' as c ->
-          let accu = 10 * accu + decimal_value_of_char c in
+      et read_int_literal accu i =
+        si i > lim alors accu, i sinon
+        filtre Sformat.unsafe_get fmt i avec
+        | '0' .. '9' tel c ->
+          soit accu = 10 * accu + decimal_value_of_char c dans
           read_int_literal accu (succ i)
-        | _ -> accu, i in
+        | _ -> accu, i dans
 
-      if i > lim then ir, f else
-      let width_opt, i = scan_width i in
-      let prec_opt, i = scan_precision i in
+      si i > lim alors ir, f sinon
+      soit width_opt, i = scan_width i dans
+      soit prec_opt, i = scan_precision i dans
       scan_conversion skip width_opt prec_opt ir f i
 
-    and scan_conversion skip width_opt prec_opt ir f i =
-      let stack = if skip then no_stack else stack in
-      let width = int_of_width_opt width_opt in
-      let prec = int_of_prec_opt prec_opt in
-      match Sformat.get fmt i with
-      | '%' | '@' as c ->
+    et scan_conversion skip width_opt prec_opt ir f i =
+      soit stack = si skip alors no_stack sinon stack dans
+      soit width = int_of_width_opt width_opt dans
+      soit prec = int_of_prec_opt prec_opt dans
+      filtre Sformat.get fmt i avec
+      | '%' | '@' tel c ->
         check_char ib c;
         scan_fmt ir f (succ i)
       | '!' ->
-        if not (Scanning.end_of_input ib)
-        then bad_input "end of input not found" else
+        si not (Scanning.end_of_input ib)
+        alors bad_input "end of input not found" sinon
         scan_fmt ir f (succ i)
       | ',' ->
         scan_fmt ir f (succ i)
       | 's' ->
-        let i, stp = scan_indication (succ i) in
-        let _x = scan_string stp width ib in
+        soit i, stp = scan_indication (succ i) dans
+        soit _x = scan_string stp width ib dans
         scan_fmt ir (stack f (token_string ib)) (succ i)
       | 'S' ->
-        let _x = scan_String width ib in
+        soit _x = scan_String width ib dans
         scan_fmt ir (stack f (token_string ib)) (succ i)
       | '[' (* ']' *) ->
-        let i, char_set = scan_range fmt (succ i) in
-        let i, stp = scan_indication (succ i) in
-        let _x = scan_chars_in_char_set stp char_set width ib in
+        soit i, char_set = scan_range fmt (succ i) dans
+        soit i, stp = scan_indication (succ i) dans
+        soit _x = scan_chars_in_char_set stp char_set width ib dans
         scan_fmt ir (stack f (token_string ib)) (succ i)
-      | ('c' | 'C') when width = 0 ->
-        let c = Scanning.checked_peek_char ib in
+      | ('c' | 'C') quand width = 0 ->
+        soit c = Scanning.checked_peek_char ib dans
         scan_fmt ir (stack f c) (succ i)
       | 'c' ->
-        let _x = scan_char width ib in
+        soit _x = scan_char width ib dans
         scan_fmt ir (stack f (token_char ib)) (succ i)
       | 'C' ->
-        let _x = scan_Char width ib in
+        soit _x = scan_Char width ib dans
         scan_fmt ir (stack f (token_char ib)) (succ i)
-      | 'd' | 'i' | 'o' | 'u' | 'x' | 'X' as conv ->
-        let _x = scan_int_conv conv width prec ib in
+      | 'd' | 'i' | 'o' | 'u' | 'x' | 'X' tel conv ->
+        soit _x = scan_int_conv conv width prec ib dans
         scan_fmt ir (stack f (token_int conv ib)) (succ i)
-      | 'N' as conv ->
+      | 'N' tel conv ->
         scan_fmt ir (stack f (get_count conv ib)) (succ i)
       | 'f' | 'e' | 'E' | 'g' | 'G' ->
-        let _x = scan_float width prec ib in
+        soit _x = scan_float width prec ib dans
         scan_fmt ir (stack f (token_float ib)) (succ i)
       | 'F' ->
-        let _x = scan_Float width prec ib in
+        soit _x = scan_Float width prec ib dans
         scan_fmt ir (stack f (token_float ib)) (succ i)
 (*      | 'B' | 'b' when width = Some 0 ->
         let _x = scan_bool width ib in
         scan_fmt ir (stack f (token_int ib)) (succ i) *)
       | 'B' | 'b' ->
-        let _x = scan_bool width ib in
+        soit _x = scan_bool width ib dans
         scan_fmt ir (stack f (token_bool ib)) (succ i)
       | 'r' ->
-        if ir > limr then assert false else
-        let token = Obj.magic rv.(ir) ib in
+        si ir > limr alors affirme faux sinon
+        soit token = Obj.magic rv.(ir) ib dans
         scan_fmt (succ ir) (stack f token) (succ i)
-      | 'l' | 'n' | 'L' as conv0 ->
-        let i = succ i in
-        if i > lim then scan_fmt ir (stack f (get_count conv0 ib)) i else begin
-        match Sformat.get fmt i with
+      | 'l' | 'n' | 'L' tel conv0 ->
+        soit i = succ i dans
+        si i > lim alors scan_fmt ir (stack f (get_count conv0 ib)) i sinon début
+        filtre Sformat.get fmt i avec
         (* This is in fact an integer conversion (e.g. %ld, %ni, or %Lo). *)
-        | 'd' | 'i' | 'o' | 'u' | 'x' | 'X' as conv1 ->
-          let _x = scan_int_conv conv1 width prec ib in
+        | 'd' | 'i' | 'o' | 'u' | 'x' | 'X' tel conv1 ->
+          soit _x = scan_int_conv conv1 width prec ib dans
           (* Look back to the character that triggered the integer conversion
              (this character is either 'l', 'n' or 'L') to find the
              conversion to apply to the integer token read. *)
-          begin match conv0 with
+          début filtre conv0 avec
           | 'l' -> scan_fmt ir (stack f (token_int32 conv1 ib)) (succ i)
           | 'n' -> scan_fmt ir (stack f (token_nativeint conv1 ib)) (succ i)
-          | _ -> scan_fmt ir (stack f (token_int64 conv1 ib)) (succ i) end
+          | _ -> scan_fmt ir (stack f (token_int64 conv1 ib)) (succ i) fin
         (* This is not an integer conversion, but a regular %l, %n or %L. *)
-        | _ -> scan_fmt ir (stack f (get_count conv0 ib)) i end
-      | '(' | '{' as conv (* ')' '}' *) ->
-        let i = succ i in
+        | _ -> scan_fmt ir (stack f (get_count conv0 ib)) i fin
+      | '(' | '{' tel conv (* ')' '}' *) ->
+        soit i = succ i dans
         (* Find [mf], the static specification for the format to read. *)
-        let j =
+        soit j =
           Tformat.sub_format
-            incomplete_format bad_conversion conv fmt i in
-        let mf = Sformat.sub fmt (Sformat.index_of_int i) (j - 2 - i) in
+            incomplete_format bad_conversion conv fmt i dans
+        soit mf = Sformat.sub fmt (Sformat.index_of_int i) (j - 2 - i) dans
         (* Read [rf], the specified format string in the input buffer,
            and check its correctness w.r.t. [mf]. *)
-        let _x = scan_String width ib in
-        let rf = token_string ib in
-        if not (compatible_format_type rf mf) then format_mismatch rf mf else
+        soit _x = scan_String width ib dans
+        soit rf = token_string ib dans
+        si not (compatible_format_type rf mf) alors format_mismatch rf mf sinon
         (* Proceed according to the kind of metaformat found:
            - %{ mf %} simply returns [rf] as the token read,
            - %( mf %) returns [rf] as the first token read, then
@@ -1476,95 +1476,95 @@ let scan_format ib ef fmt rv f =
         *)
         (* For conversion %{%}, just return this format string as the token
            read and go on with the rest of the format string argument. *)
-        if conv = '{' (* '}' *) then scan_fmt ir (stack f rf) j else
+        si conv = '{' (* '}' *) alors scan_fmt ir (stack f rf) j sinon
         (* Or else, return this format string as the first token read;
            then continue scanning using this format string to get
            the following token read;
            finally go on with the rest of the format string argument. *)
-        let ir, nf = scan (string_to_format rf) ir (stack f rf) 0 in
+        soit ir, nf = scan (string_to_format rf) ir (stack f rf) 0 dans
         (* Return the format string read and the value just read,
            then go on with the rest of the format. *)
         scan_fmt ir nf j
 
       | c -> bad_conversion fmt i c
 
-    and scan_indication j =
-      if j > lim then j - 1, [] else
-      match Sformat.get fmt j with
+    et scan_indication j =
+      si j > lim alors j - 1, [] sinon
+      filtre Sformat.get fmt j avec
       | '@' ->
-        let k = j + 1 in
-        if k > lim then j - 1, [] else
-        begin match Sformat.get fmt k with
+        soit k = j + 1 dans
+        si k > lim alors j - 1, [] sinon
+        début filtre Sformat.get fmt k avec
         | '%' ->
-          let k = k + 1 in
-          if k > lim then j - 1, [] else
-          begin match Sformat.get fmt k with
-          | '%' | '@' as c  -> k, [ c ]
+          soit k = k + 1 dans
+          si k > lim alors j - 1, [] sinon
+          début filtre Sformat.get fmt k avec
+          | '%' | '@' tel c  -> k, [ c ]
           | _c -> j - 1, []
-          end
+          fin
         | c -> k, [ c ]
-        end
-      | _c -> j - 1, [] in
+        fin
+      | _c -> j - 1, [] dans
 
-    scan_fmt in
+    scan_fmt dans
 
 
   Scanning.reset_token ib;
 
-  let v =
-    try snd (scan fmt 0 (fun () -> f) 0) with
-    | (Scan_failure _ | Failure _ | End_of_file) as exc ->
-      stack (delay ef ib) exc in
+  soit v =
+    essaie snd (scan fmt 0 (fonc () -> f) 0) avec
+    | (Scan_failure _ | Failure _ | End_of_file) tel exc ->
+      stack (delay ef ib) exc dans
   return v
 ;;
 
-let mkscanf ib ef fmt =
-  let sc = scan_format ib ef in
+soit mkscanf ib ef fmt =
+  soit sc = scan_format ib ef dans
   ascanf sc fmt
 ;;
 
-let kscanf ib ef fmt = mkscanf ib ef fmt;;
+soit kscanf ib ef fmt = mkscanf ib ef fmt;;
 
-let bscanf ib = kscanf ib scanf_bad_input;;
+soit bscanf ib = kscanf ib scanf_bad_input;;
 
-let fscanf ic = bscanf (Scanning.from_channel ic);;
+soit fscanf ic = bscanf (Scanning.from_channel ic);;
 
-let sscanf : string -> ('a, 'b, 'c, 'd) scanner
-  = fun s -> bscanf (Scanning.from_string s);;
+soit sscanf : string -> ('a, 'b, 'c, 'd) scanner
+  = fonc s -> bscanf (Scanning.from_string s);;
 
-let scanf fmt = bscanf Scanning.stdib fmt;;
+soit scanf fmt = bscanf Scanning.stdib fmt;;
 
-let bscanf_format ib fmt f =
-  let fmt = Sformat.unsafe_to_string fmt in
-  let fmt1 =
+soit bscanf_format ib fmt f =
+  soit fmt = Sformat.unsafe_to_string fmt dans
+  soit fmt1 =
     ignore (scan_String max_int ib);
-    token_string ib in
-  if not (compatible_format_type fmt1 fmt) then
-    format_mismatch fmt1 fmt else
+    token_string ib dans
+  si not (compatible_format_type fmt1 fmt) alors
+    format_mismatch fmt1 fmt sinon
   f (string_to_format fmt1)
 ;;
 
-let sscanf_format s fmt = bscanf_format (Scanning.from_string s) fmt;;
+soit sscanf_format s fmt = bscanf_format (Scanning.from_string s) fmt;;
 
-let string_to_String s =
-  let l = String.length s in
-  let b = Buffer.create (l + 2) in
+soit string_to_String s =
+  soit l = String.length s dans
+  soit b = Buffer.create (l + 2) dans
   Buffer.add_char b '\"';
-  for i = 0 to l - 1 do
-    let c = s.[i] in
-    if c = '\"' then Buffer.add_char b '\\';
+  pour i = 0 à l - 1 faire
+    soit c = s.[i] dans
+    si c = '\"' alors Buffer.add_char b '\\';
     Buffer.add_char b c;
-  done;
+  fait;
   Buffer.add_char b '\"';
   Buffer.contents b
 ;;
 
-let format_from_string s fmt =
-  sscanf_format (string_to_String s) fmt (fun x -> x)
+soit format_from_string s fmt =
+  sscanf_format (string_to_String s) fmt (fonc x -> x)
 ;;
 
-let unescaped s =
-  sscanf ("\"" ^ s ^ "\"") "%S%!" (fun x -> x)
+soit unescaped s =
+  sscanf ("\"" ^ s ^ "\"") "%S%!" (fonc x -> x)
 ;;
 
 (*

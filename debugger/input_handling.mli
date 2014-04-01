@@ -13,7 +13,7 @@
 
 (***************************** Input control ***************************)
 
-open Primitives
+ouvre Primitives
 
 (*** Actives files. ***)
 

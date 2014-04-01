@@ -10,200 +10,200 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Config
-open Clflags
-open Compenv
+ouvre Config
+ouvre Clflags
+ouvre Compenv
 
-let process_interface_file ppf name =
+soit process_interface_file ppf name =
   Optcompile.interface ppf name (output_prefix name)
 
-let process_implementation_file ppf name =
-  let opref = output_prefix name in
+soit process_implementation_file ppf name =
+  soit opref = output_prefix name dans
   Optcompile.implementation ppf name opref;
   objfiles := (opref ^ ".cmx") :: !objfiles
 
-let cmxa_present = ref false;;
+soit cmxa_present = ref faux;;
 
-let process_file ppf name =
-  if Filename.check_suffix name ".ml"
-  || Filename.check_suffix name ".mlt" then
+soit process_file ppf name =
+  si Filename.check_suffix name ".ml"
+  || Filename.check_suffix name ".mlt" alors
     process_implementation_file ppf name
-  else if Filename.check_suffix name !Config.interface_suffix then begin
-    let opref = output_prefix name in
+  sinon si Filename.check_suffix name !Config.interface_suffix alors début
+    soit opref = output_prefix name dans
     Optcompile.interface ppf name opref;
-    if !make_package then objfiles := (opref ^ ".cmi") :: !objfiles
-  end
-  else if Filename.check_suffix name ".cmx" then
+    si !make_package alors objfiles := (opref ^ ".cmi") :: !objfiles
+  fin
+  sinon si Filename.check_suffix name ".cmx" alors
     objfiles := name :: !objfiles
-  else if Filename.check_suffix name ".cmxa" then begin
-    cmxa_present := true;
+  sinon si Filename.check_suffix name ".cmxa" alors début
+    cmxa_present := vrai;
     objfiles := name :: !objfiles
-  end else if Filename.check_suffix name ".cmi" && !make_package then
+  fin sinon si Filename.check_suffix name ".cmi" && !make_package alors
     objfiles := name :: !objfiles
-  else if Filename.check_suffix name ext_obj
-       || Filename.check_suffix name ext_lib then
+  sinon si Filename.check_suffix name ext_obj
+       || Filename.check_suffix name ext_lib alors
     ccobjs := name :: !ccobjs
-  else if Filename.check_suffix name ".c" then begin
+  sinon si Filename.check_suffix name ".c" alors début
     Optcompile.c_file name;
     ccobjs := (Filename.chop_suffix (Filename.basename name) ".c" ^ ext_obj)
               :: !ccobjs
-  end
-  else
+  fin
+  sinon
     raise(Arg.Bad("don't know what to do with " ^ name))
 
-let usage = "Usage: ocamlopt <options> <files>\nOptions are:"
+soit usage = "Usage: ocamlopt <options> <files>\nOptions are:"
 
-let ppf = Format.err_formatter
+soit ppf = Format.err_formatter
 
 (* Error messages to standard error formatter *)
-let anonymous filename =
+soit anonymous filename =
   readenv ppf Before_compile; process_file ppf filename;;
-let impl filename =
+soit impl filename =
   readenv ppf Before_compile; process_implementation_file ppf filename;;
-let intf filename =
+soit intf filename =
   readenv ppf Before_compile; process_interface_file ppf filename;;
 
-let show_config () =
+soit show_config () =
   Config.print_config stdout;
   exit 0;
 ;;
 
 module Options = Main_args.Make_optcomp_options (struct
-  let set r () = r := true
-  let clear r () = r := false
+  soit set r () = r := vrai
+  soit clear r () = r := faux
 
-  let _a = set make_archive
-  let _absname = set Location.absname
-  let _annot = set annotations
-  let _binannot = set binary_annotations
-  let _c = set compile_only
-  let _cc s = c_compiler := Some s
-  let _cclib s = ccobjs := Misc.rev_split_words s @ !ccobjs
-  let _ccopt s = first_ccopts := s :: !first_ccopts
-  let _compact = clear optimize_for_speed
-  let _config () = show_config ()
-  let _for_pack s = for_package := Some s
-  let _g = set debug
-  let _i () = print_types := true; compile_only := true
-  let _I dir = include_dirs := dir :: !include_dirs
-  let _impl = impl
-  let _inline n = inline_threshold := n * 8
-  let _intf = intf
-  let _intf_suffix s = Config.interface_suffix := s
-  let _keep_locs = set keep_locs
-  let _labels = clear classic
-  let _linkall = set link_everything
-  let _no_app_funct = clear applicative_functors
-  let _noassert = set noassert
-  let _noautolink = set no_auto_link
-  let _nodynlink = clear dlcode
-  let _nolabels = set classic
-  let _nostdlib = set no_std_include
-  let _o s = output_name := Some s
-  let _output_obj = set output_c_object
-  let _p = set gprofile
-  let _pack = set make_package
-  let _pp s = preprocessor := Some s
-  let _ppx s = first_ppx := s :: !first_ppx
-  let _principal = set principal
-  let _rectypes = set recursive_types
-  let _runtime_variant s = runtime_variant := s
-  let _short_paths = clear real_paths
-  let _strict_sequence = set strict_sequence
-  let _trans_mod = set transparent_modules
-  let _shared () = shared := true; dlcode := true
-  let _S = set keep_asm_file
-  let _thread = set use_threads
-  let _unsafe = set fast
-  let _v () = print_version_and_library "native-code compiler"
-  let _version () = print_version_string ()
-  let _vnum () = print_version_string ()
-  let _verbose = set verbose
-  let _w s = Warnings.parse_options false s
-  let _warn_error s = Warnings.parse_options true s
-  let _warn_help = Warnings.help_warnings
-  let _where () = print_standard_library ()
+  soit _a = set make_archive
+  soit _absname = set Location.absname
+  soit _annot = set annotations
+  soit _binannot = set binary_annotations
+  soit _c = set compile_only
+  soit _cc s = c_compiler := Some s
+  soit _cclib s = ccobjs := Misc.rev_split_words s @ !ccobjs
+  soit _ccopt s = first_ccopts := s :: !first_ccopts
+  soit _compact = clear optimize_for_speed
+  soit _config () = show_config ()
+  soit _for_pack s = for_package := Some s
+  soit _g = set debug
+  soit _i () = print_types := vrai; compile_only := vrai
+  soit _I dir = include_dirs := dir :: !include_dirs
+  soit _impl = impl
+  soit _inline n = inline_threshold := n * 8
+  soit _intf = intf
+  soit _intf_suffix s = Config.interface_suffix := s
+  soit _keep_locs = set keep_locs
+  soit _labels = clear classic
+  soit _linkall = set link_everything
+  soit _no_app_funct = clear applicative_functors
+  soit _noassert = set noassert
+  soit _noautolink = set no_auto_link
+  soit _nodynlink = clear dlcode
+  soit _nolabels = set classic
+  soit _nostdlib = set no_std_include
+  soit _o s = output_name := Some s
+  soit _output_obj = set output_c_object
+  soit _p = set gprofile
+  soit _pack = set make_package
+  soit _pp s = preprocessor := Some s
+  soit _ppx s = first_ppx := s :: !first_ppx
+  soit _principal = set principal
+  soit _rectypes = set recursive_types
+  soit _runtime_variant s = runtime_variant := s
+  soit _short_paths = clear real_paths
+  soit _strict_sequence = set strict_sequence
+  soit _trans_mod = set transparent_modules
+  soit _shared () = shared := vrai; dlcode := vrai
+  soit _S = set keep_asm_file
+  soit _thread = set use_threads
+  soit _unsafe = set fast
+  soit _v () = print_version_and_library "native-code compiler"
+  soit _version () = print_version_string ()
+  soit _vnum () = print_version_string ()
+  soit _verbose = set verbose
+  soit _w s = Warnings.parse_options faux s
+  soit _warn_error s = Warnings.parse_options vrai s
+  soit _warn_help = Warnings.help_warnings
+  soit _where () = print_standard_library ()
 
-  let _nopervasives = set nopervasives
-  let _dsource = set dump_source
-  let _dparsetree = set dump_parsetree
-  let _dtypedtree = set dump_typedtree
-  let _drawlambda = set dump_rawlambda
-  let _dlambda = set dump_lambda
-  let _dclambda = set dump_clambda
-  let _dcmm = set dump_cmm
-  let _dsel = set dump_selection
-  let _dcombine = set dump_combine
-  let _dlive () = dump_live := true; Printmach.print_live := true
-  let _dspill = set dump_spill
-  let _dsplit = set dump_split
-  let _dinterf = set dump_interf
-  let _dprefer = set dump_prefer
-  let _dalloc = set dump_regalloc
-  let _dreload = set dump_reload
-  let _dscheduling = set dump_scheduling
-  let _dlinear = set dump_linear
-  let _dstartup = set keep_startup_file
+  soit _nopervasives = set nopervasives
+  soit _dsource = set dump_source
+  soit _dparsetree = set dump_parsetree
+  soit _dtypedtree = set dump_typedtree
+  soit _drawlambda = set dump_rawlambda
+  soit _dlambda = set dump_lambda
+  soit _dclambda = set dump_clambda
+  soit _dcmm = set dump_cmm
+  soit _dsel = set dump_selection
+  soit _dcombine = set dump_combine
+  soit _dlive () = dump_live := vrai; Printmach.print_live := vrai
+  soit _dspill = set dump_spill
+  soit _dsplit = set dump_split
+  soit _dinterf = set dump_interf
+  soit _dprefer = set dump_prefer
+  soit _dalloc = set dump_regalloc
+  soit _dreload = set dump_reload
+  soit _dscheduling = set dump_scheduling
+  soit _dlinear = set dump_linear
+  soit _dstartup = set keep_startup_file
 
-  let anonymous = anonymous
-end);;
+  soit anonymous = anonymous
+fin);;
 
-let main () =
-  native_code := true;
-  let ppf = Format.err_formatter in
-  try
+soit main () =
+  native_code := vrai;
+  soit ppf = Format.err_formatter dans
+  essaie
     readenv ppf Before_args;
     Arg.parse (Arch.command_line_options @ Options.list) anonymous usage;
     readenv ppf Before_link;
-    if
-      List.length (List.filter (fun x -> !x)
+    si
+      List.length (List.filter (fonc x -> !x)
                      [make_package; make_archive; shared;
                       compile_only; output_c_object]) > 1
-    then
+    alors
       fatal "Please specify at most one of -pack, -a, -shared, -c, -output-obj";
-    if !make_archive then begin
-      if !cmxa_present then
+    si !make_archive alors début
+      si !cmxa_present alors
         fatal "Option -a cannot be used with .cmxa input files.";
-      Compmisc.init_path true;
-      let target = extract_output !output_name in
+      Compmisc.init_path vrai;
+      soit target = extract_output !output_name dans
       Asmlibrarian.create_archive (get_objfiles ()) target;
       Warnings.check_fatal ();
-    end
-    else if !make_package then begin
-      Compmisc.init_path true;
-      let target = extract_output !output_name in
+    fin
+    sinon si !make_package alors début
+      Compmisc.init_path vrai;
+      soit target = extract_output !output_name dans
       Asmpackager.package_files ppf (get_objfiles ()) target;
       Warnings.check_fatal ();
-    end
-    else if !shared then begin
-      Compmisc.init_path true;
-      let target = extract_output !output_name in
+    fin
+    sinon si !shared alors début
+      Compmisc.init_path vrai;
+      soit target = extract_output !output_name dans
       Asmlink.link_shared ppf (get_objfiles ()) target;
       Warnings.check_fatal ();
-    end
-    else if not !compile_only && !objfiles <> [] then begin
-      let target =
-        if !output_c_object then
-          let s = extract_output !output_name in
-          if (Filename.check_suffix s Config.ext_obj
+    fin
+    sinon si not !compile_only && !objfiles <> [] alors début
+      soit target =
+        si !output_c_object alors
+          soit s = extract_output !output_name dans
+          si (Filename.check_suffix s Config.ext_obj
             || Filename.check_suffix s Config.ext_dll)
-          then s
-          else
+          alors s
+          sinon
             fatal
               (Printf.sprintf
                  "The extension of the output file must be %s or %s"
                  Config.ext_obj Config.ext_dll
               )
-        else
+        sinon
           default_output !output_name
-      in
-      Compmisc.init_path true;
+      dans
+      Compmisc.init_path vrai;
       Asmlink.link ppf (get_objfiles ()) target;
       Warnings.check_fatal ();
-    end;
+    fin;
     exit 0
-  with x ->
+  avec x ->
       Location.report_exception ppf x;
       exit 2
 
-let _ = main ()
+soit _ = main ()

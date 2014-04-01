@@ -11,30 +11,30 @@
 (*                                                                     *)
 (***********************************************************************)
 
-type 'a t = { mutable c : 'a list }
+type 'a t = { modifiable c : 'a list }
 
 exception Empty
 
-let create () = { c = [] }
+soit create () = { c = [] }
 
-let clear s = s.c <- []
+soit clear s = s.c <- []
 
-let copy s = { c = s.c }
+soit copy s = { c = s.c }
 
-let push x s = s.c <- x :: s.c
+soit push x s = s.c <- x :: s.c
 
-let pop s =
-  match s.c with
+soit pop s =
+  filtre s.c avec
     hd::tl -> s.c <- tl; hd
   | []     -> raise Empty
 
-let top s =
-  match s.c with
+soit top s =
+  filtre s.c avec
     hd::_ -> hd
   | []     -> raise Empty
 
-let is_empty s = (s.c = [])
+soit is_empty s = (s.c = [])
 
-let length s = List.length s.c
+soit length s = List.length s.c
 
-let iter f s = List.iter f s.c
+soit iter f s = List.iter f s.c

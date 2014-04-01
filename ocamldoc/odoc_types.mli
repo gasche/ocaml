@@ -23,48 +23,48 @@ type ref_kind =
   | RK_exception
   | RK_attribute
   | RK_method
-  | RK_section of text
+  | RK_section de text
   | RK_recfield
   | RK_const
 
-and text_element =
-  | Raw of string (** Raw text. *)
-  | Code of string (** The string is source code. *)
-  | CodePre of string (** The string is pre-formatted source code. *)
-  | Verbatim of string (** String 'as is'. *)
-  | Bold of text (** Text in bold style. *)
-  | Italic of text (** Text in italic. *)
-  | Emphasize of text (** Emphasized text. *)
-  | Center of text (** Centered text. *)
-  | Left of text (** Left alignment. *)
-  | Right of text (** Right alignment. *)
-  | List of text list (** A list. *)
-  | Enum of text list (** An enumerated list. *)
+et text_element =
+  | Raw de string (** Raw text. *)
+  | Code de string (** The string is source code. *)
+  | CodePre de string (** The string is pre-formatted source code. *)
+  | Verbatim de string (** String 'as is'. *)
+  | Bold de text (** Text in bold style. *)
+  | Italic de text (** Text in italic. *)
+  | Emphasize de text (** Emphasized text. *)
+  | Center de text (** Centered text. *)
+  | Left de text (** Left alignment. *)
+  | Right de text (** Right alignment. *)
+  | List de text list (** A list. *)
+  | Enum de text list (** An enumerated list. *)
   | Newline   (** To force a line break. *)
-  | Block of text (** Like html's block quote. *)
-  | Title of int * string option * text
+  | Block de text (** Like html's block quote. *)
+  | Title de int * string option * text
               (** Style number, optional label, and text. *)
-  | Latex of string (** A string for latex. *)
-  | Link of string * text (** A reference string and the link text. *)
-  | Ref of string * ref_kind option * text option
+  | Latex de string (** A string for latex. *)
+  | Link de string * text (** A reference string and the link text. *)
+  | Ref de string * ref_kind option * text option
     (** A reference to an element. Complete name and kind. An optional
         text can be given to display this text instead of the element name.*)
-  | Superscript of text (** Superscripts. *)
-  | Subscript of text (** Subscripts. *)
-  | Module_list of string list
+  | Superscript de text (** Superscripts. *)
+  | Subscript de text (** Subscripts. *)
+  | Module_list de string list
        (** The table of the given modules with their abstract; *)
   | Index_list (** The links to the various indexes (values, types, ...) *)
-  | Custom of string * text (** to extend \{foo syntax *)
-  | Target of string * string (** (target, code) : to specify code for a specific target format *)
+  | Custom de string * text (** to extend \{foo syntax *)
+  | Target de string * string (** (target, code) : to specify code for a specific target format *)
 
 (** [text] is a list of text_elements. The order matters. *)
-and text = text_element list
+et text = text_element list
 
 (** The different forms of references in \@see tags. *)
 type see_ref =
-    See_url of string
-  | See_file of string
-  | See_doc of string
+    See_url de string
+  | See_file de string
+  | See_doc de string
 
 (** The information in a \@see tag. *)
 type see = see_ref * text

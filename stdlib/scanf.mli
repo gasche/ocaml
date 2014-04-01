@@ -196,7 +196,7 @@ val stdib : in_channel;;
     [Pervasives.stdin].
 *)
 
-end;;
+fin;;
 
 (** {6 Type of formatted input functions} *)
 
@@ -223,7 +223,7 @@ type ('a, 'b, 'c, 'd) scanner =
     @since 3.10.0
 *)
 
-exception Scan_failure of string;;
+exception Scan_failure de string;;
 (** The exception that formatted input functions raise when the input cannot
     be read according to the given format.
 *)

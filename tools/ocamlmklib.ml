@@ -10,139 +10,139 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Printf
-open Ocamlmklibconfig
+ouvre Printf
+ouvre Ocamlmklibconfig
 
 (* PR#4783: under Windows, don't use absolute paths because we do
    not know where the binary distribution will be installed. *)
-let compiler_path name =
-  if Sys.os_type = "Win32" then name else Filename.concat bindir name
+soit compiler_path name =
+  si Sys.os_type = "Win32" alors name sinon Filename.concat bindir name
 
-let bytecode_objs = ref []  (* .cmo,.cma,.ml,.mli files to pass to ocamlc *)
-and native_objs = ref []    (* .cmx,.cmxa,.ml,.mli files to pass to ocamlopt *)
-and c_objs = ref []         (* .o, .a, .obj, .lib, .dll files to pass
+soit bytecode_objs = ref []  (* .cmo,.cma,.ml,.mli files to pass to ocamlc *)
+et native_objs = ref []    (* .cmx,.cmxa,.ml,.mli files to pass to ocamlopt *)
+et c_objs = ref []         (* .o, .a, .obj, .lib, .dll files to pass
                                to mksharedlib and ar *)
-and caml_libs = ref []      (* -cclib to pass to ocamlc, ocamlopt *)
-and caml_opts = ref []      (* -ccopt to pass to ocamlc, ocamlopt *)
-and dynlink = ref supports_shared_libraries
-and failsafe = ref false    (* whether to fall back on static build only *)
-and c_libs = ref []         (* libs to pass to mksharedlib and ocamlc -cclib *)
-and c_Lopts = ref []      (* options to pass to mksharedlib and ocamlc -cclib *)
-and c_opts = ref []      (* options to pass to mksharedlib and ocamlc -ccopt *)
-and ld_opts = ref []        (* options to pass only to the linker *)
-and ocamlc = ref (compiler_path "ocamlc")
-and ocamlopt = ref (compiler_path "ocamlopt")
-and output = ref "a"        (* Output name for OCaml part of library *)
-and output_c = ref ""       (* Output name for C part of library *)
-and rpath = ref []          (* rpath options *)
-and verbose = ref false
+et caml_libs = ref []      (* -cclib to pass to ocamlc, ocamlopt *)
+et caml_opts = ref []      (* -ccopt to pass to ocamlc, ocamlopt *)
+et dynlink = ref supports_shared_libraries
+et failsafe = ref faux    (* whether to fall back on static build only *)
+et c_libs = ref []         (* libs to pass to mksharedlib and ocamlc -cclib *)
+et c_Lopts = ref []      (* options to pass to mksharedlib and ocamlc -cclib *)
+et c_opts = ref []      (* options to pass to mksharedlib and ocamlc -ccopt *)
+et ld_opts = ref []        (* options to pass only to the linker *)
+et ocamlc = ref (compiler_path "ocamlc")
+et ocamlopt = ref (compiler_path "ocamlopt")
+et output = ref "a"        (* Output name for OCaml part of library *)
+et output_c = ref ""       (* Output name for C part of library *)
+et rpath = ref []          (* rpath options *)
+et verbose = ref faux
 
-let starts_with s pref =
+soit starts_with s pref =
   String.length s >= String.length pref &&
   String.sub s 0 (String.length pref) = pref
-let ends_with = Filename.check_suffix
-let chop_prefix s pref =
+soit ends_with = Filename.check_suffix
+soit chop_prefix s pref =
   String.sub s (String.length pref) (String.length s - String.length pref)
-let chop_suffix = Filename.chop_suffix
+soit chop_suffix = Filename.chop_suffix
 
-exception Bad_argument of string
+exception Bad_argument de string
 
-let print_version () =
+soit print_version () =
   printf "ocamlmklib, version %s\n" Sys.ocaml_version;
   exit 0;
 ;;
 
-let print_version_num () =
+soit print_version_num () =
   printf "%s\n" Sys.ocaml_version;
   exit 0;
 ;;
 
-let parse_arguments argv =
-  let i = ref 1 in
-  let next_arg () =
-    if !i + 1 >= Array.length argv
-    then raise (Bad_argument("Option " ^ argv.(!i) ^ " expects one argument"));
-    incr i; argv.(!i) in
-  while !i < Array.length argv do
-    let s = argv.(!i) in
-    if ends_with s ".cmo" || ends_with s ".cma" then
+soit parse_arguments argv =
+  soit i = ref 1 dans
+  soit next_arg () =
+    si !i + 1 >= Array.length argv
+    alors raise (Bad_argument("Option " ^ argv.(!i) ^ " expects one argument"));
+    incr i; argv.(!i) dans
+  pendant_que !i < Array.length argv faire
+    soit s = argv.(!i) dans
+    si ends_with s ".cmo" || ends_with s ".cma" alors
       bytecode_objs := s :: !bytecode_objs
-    else if ends_with s ".cmx" || ends_with s ".cmxa" then
+    sinon si ends_with s ".cmx" || ends_with s ".cmxa" alors
       native_objs := s :: !native_objs
-    else if ends_with s ".ml" || ends_with s ".mli" then
+    sinon si ends_with s ".ml" || ends_with s ".mli" alors
      (bytecode_objs := s :: !bytecode_objs;
       native_objs := s :: !native_objs)
-    else if List.exists (ends_with s) [".o"; ".a"; ".obj"; ".lib"; ".dll"] then
+    sinon si List.exists (ends_with s) [".o"; ".a"; ".obj"; ".lib"; ".dll"] alors
       c_objs := s :: !c_objs
-    else if s = "-cclib" then
+    sinon si s = "-cclib" alors
       caml_libs := next_arg () :: "-cclib" :: !caml_libs
-    else if s = "-ccopt" then
+    sinon si s = "-ccopt" alors
       caml_opts := next_arg () :: "-ccopt" :: !caml_opts
-    else if s = "-custom" then
-      dynlink := false
-    else if s = "-I" then
+    sinon si s = "-custom" alors
+      dynlink := faux
+    sinon si s = "-I" alors
       caml_opts := next_arg () :: "-I" :: !caml_opts
-    else if s = "-failsafe" then
-      failsafe := true
-    else if s = "-h" || s = "-help" || s = "--help" then
+    sinon si s = "-failsafe" alors
+      failsafe := vrai
+    sinon si s = "-h" || s = "-help" || s = "--help" alors
       raise (Bad_argument "")
-    else if s = "-ldopt" then
+    sinon si s = "-ldopt" alors
       ld_opts := next_arg () :: !ld_opts
-    else if s = "-linkall" then
+    sinon si s = "-linkall" alors
       caml_opts := s :: !caml_opts
-    else if starts_with s "-l" then
+    sinon si starts_with s "-l" alors
       c_libs := s :: !c_libs
-    else if starts_with s "-L" then
+    sinon si starts_with s "-L" alors
      (c_Lopts := s :: !c_Lopts;
-      let l = chop_prefix s "-L" in
-      if not (Filename.is_relative l) then rpath := l :: !rpath)
-    else if s = "-ocamlc" then
+      soit l = chop_prefix s "-L" dans
+      si not (Filename.is_relative l) alors rpath := l :: !rpath)
+    sinon si s = "-ocamlc" alors
       ocamlc := next_arg ()
-    else if s = "-ocamlopt" then
+    sinon si s = "-ocamlopt" alors
       ocamlopt := next_arg ()
-    else if s = "-o" then
+    sinon si s = "-o" alors
       output := next_arg()
-    else if s = "-oc" then
+    sinon si s = "-oc" alors
       output_c := next_arg()
-    else if s = "-dllpath" || s = "-R" || s = "-rpath" then
+    sinon si s = "-dllpath" || s = "-R" || s = "-rpath" alors
       rpath := next_arg() :: !rpath
-    else if starts_with s "-R" then
+    sinon si starts_with s "-R" alors
       rpath := chop_prefix s "-R" :: !rpath
-    else if s = "-Wl,-rpath" then
-     (let a = next_arg() in
-      if starts_with a "-Wl,"
-      then rpath := chop_prefix a "-Wl," :: !rpath
-      else raise (Bad_argument("Option -Wl,-rpath expects a -Wl, argument")))
-    else if starts_with s "-Wl,-rpath," then
+    sinon si s = "-Wl,-rpath" alors
+     (soit a = next_arg() dans
+      si starts_with a "-Wl,"
+      alors rpath := chop_prefix a "-Wl," :: !rpath
+      sinon raise (Bad_argument("Option -Wl,-rpath expects a -Wl, argument")))
+    sinon si starts_with s "-Wl,-rpath," alors
       rpath := chop_prefix s "-Wl,-rpath," :: !rpath
-    else if starts_with s "-Wl,-R" then
+    sinon si starts_with s "-Wl,-R" alors
       rpath := chop_prefix s "-Wl,-R" :: !rpath
-    else if s = "-v" || s = "-verbose" then
-      verbose := true
-    else if s = "-version" then
+    sinon si s = "-v" || s = "-verbose" alors
+      verbose := vrai
+    sinon si s = "-version" alors
       print_version ()
-    else if s = "-vnum" then
+    sinon si s = "-vnum" alors
       print_version_num ()
-    else if starts_with s "-F" then
+    sinon si starts_with s "-F" alors
       c_opts := s :: !c_opts
-    else if s = "-framework" then
-      (let a = next_arg() in c_opts := a :: s :: !c_opts)
-    else if starts_with s "-" then
+    sinon si s = "-framework" alors
+      (soit a = next_arg() dans c_opts := a :: s :: !c_opts)
+    sinon si starts_with s "-" alors
       prerr_endline ("Unknown option " ^ s)
-    else
+    sinon
       raise (Bad_argument("Don't know what to do with " ^ s));
     incr i
-  done;
+  fait;
   List.iter
-    (fun r -> r := List.rev !r)
+    (fonc r -> r := List.rev !r)
     [ bytecode_objs; native_objs; caml_libs; caml_opts;
       c_libs; c_objs; c_opts; ld_opts; rpath ];
 (* Put -L options in front of -l options in -cclib to mimic -ccopt behavior *)
   c_libs := !c_Lopts @ !c_libs;
 
-  if !output_c = "" then output_c := !output
+  si !output_c = "" alors output_c := !output
 
-let usage = "\
+soit usage = "\
 Usage: ocamlmklib [options] <.cmo|.cma|.cmx|.cmxa|.ml|.mli|.o|.a|.obj|.lib|\
                              .dll files>\
 \nOptions are:\
@@ -176,55 +176,55 @@ Usage: ocamlmklib [options] <.cmo|.cma|.cmx|.cmxa|.ml|.mli|.o|.a|.obj|.lib|\
 \n  -Wl,-R<dir>          Same as -dllpath <dir>\
 \n"
 
-let command cmd =
-  if !verbose then (print_string "+ "; print_string cmd; print_newline());
+soit command cmd =
+  si !verbose alors (print_string "+ "; print_string cmd; print_newline());
   Sys.command cmd
 
-let scommand cmd =
-  if command cmd <> 0 then exit 2
+soit scommand cmd =
+  si command cmd <> 0 alors exit 2
 
-let safe_remove s =
-  try Sys.remove s with Sys_error _ -> ()
+soit safe_remove s =
+  essaie Sys.remove s avec Sys_error _ -> ()
 
-let make_set l =
-  let rec merge l = function
+soit make_set l =
+  soit rec merge l = fonction
     []     -> List.rev l
-  | p :: r -> if List.mem p l then merge l r else merge (p::l) r
-  in
+  | p :: r -> si List.mem p l alors merge l r sinon merge (p::l) r
+  dans
   merge [] l
 
-let make_rpath flag =
-  if !rpath = [] || flag = ""
-  then ""
-  else flag ^ String.concat ":" (make_set !rpath)
+soit make_rpath flag =
+  si !rpath = [] || flag = ""
+  alors ""
+  sinon flag ^ String.concat ":" (make_set !rpath)
 
-let make_rpath_ccopt flag =
-  if !rpath = [] || flag = ""
-  then ""
-  else "-ccopt " ^ flag ^ String.concat ":" (make_set !rpath)
+soit make_rpath_ccopt flag =
+  si !rpath = [] || flag = ""
+  alors ""
+  sinon "-ccopt " ^ flag ^ String.concat ":" (make_set !rpath)
 
-let prefix_list pref l =
-  List.map (fun s -> pref ^ s) l
+soit prefix_list pref l =
+  List.map (fonc s -> pref ^ s) l
 
-let prepostfix pre name post =
-  let base = Filename.basename name in
-  let dir = Filename.dirname name in
+soit prepostfix pre name post =
+  soit base = Filename.basename name dans
+  soit dir = Filename.dirname name dans
   Filename.concat dir (pre ^ base ^ post)
 ;;
 
-let transl_path s =
-  match Sys.os_type with
+soit transl_path s =
+  filtre Sys.os_type avec
     | "Win32" ->
-        let rec aux i =
-          if i = String.length s || s.[i] = ' ' then s
-          else (if s.[i] = '/' then s.[i] <- '\\'; aux (i + 1))
-        in aux 0
+        soit rec aux i =
+          si i = String.length s || s.[i] = ' ' alors s
+          sinon (si s.[i] = '/' alors s.[i] <- '\\'; aux (i + 1))
+        dans aux 0
     | _ -> s
 
-let build_libs () =
-  if !c_objs <> [] then begin
-    if !dynlink then begin
-      let retcode = command
+soit build_libs () =
+  si !c_objs <> [] alors début
+    si !dynlink alors début
+      soit retcode = command
           (Printf.sprintf "%s -o %s %s %s %s %s %s"
              mkdll
              (prepostfix "dll" !output_c ext_dll)
@@ -234,19 +234,19 @@ let build_libs () =
              (make_rpath mksharedlibrpath)
              (String.concat " " !c_libs)
           )
-      in
-      if retcode <> 0 then if !failsafe then dynlink := false else exit 2
-    end;
+      dans
+      si retcode <> 0 alors si !failsafe alors dynlink := faux sinon exit 2
+    fin;
     safe_remove (prepostfix "lib" !output_c ext_lib);
     scommand
       (mklib (prepostfix "lib" !output_c ext_lib)
              (String.concat " " !c_objs) "");
-  end;
-  if !bytecode_objs <> [] then
+  fin;
+  si !bytecode_objs <> [] alors
     scommand
       (sprintf "%s -a %s -o %s.cma %s %s -dllib -l%s -cclib -l%s %s %s %s %s"
                   (transl_path !ocamlc)
-                  (if !dynlink then "" else "-custom")
+                  (si !dynlink alors "" sinon "-custom")
                   !output
                   (String.concat " " !caml_opts)
                   (String.concat " " !bytecode_objs)
@@ -256,7 +256,7 @@ let build_libs () =
                   (make_rpath_ccopt byteccrpath)
                   (String.concat " " (prefix_list "-cclib " !c_libs))
                   (String.concat " " !caml_libs));
-  if !native_objs <> [] then
+  si !native_objs <> [] alors
     scommand
       (sprintf "%s -a -o %s.cmxa %s %s -cclib -l%s %s %s %s %s"
                   (transl_path !ocamlopt)
@@ -269,11 +269,11 @@ let build_libs () =
                   (String.concat " " (prefix_list "-cclib " !c_libs))
                   (String.concat " " !caml_libs))
 
-let _ =
-  try
+soit _ =
+  essaie
     parse_arguments Sys.argv;
     build_libs()
-  with
+  avec
   | Bad_argument "" ->
       prerr_string usage; exit 0
   | Bad_argument s ->

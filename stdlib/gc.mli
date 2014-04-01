@@ -81,18 +81,18 @@ type stat =
 *)
 
 type control =
-  { mutable minor_heap_size : int;
+  { modifiable minor_heap_size : int;
     (** The size (in words) of the minor heap.  Changing
        this parameter will trigger a minor collection.  Default: 32k. *)
 
-    mutable major_heap_increment : int;
+    modifiable major_heap_increment : int;
     (** How much to add to the major heap when increasing it. If this
         number is less than or equal to 1000, it is a percentage of
         the current heap size (i.e. setting it to 100 will double the heap
         size at each increase). If it is more than 1000, it is a fixed
         number of words that will be added to the heap. Default: 15. *)
 
-    mutable space_overhead : int;
+    modifiable space_overhead : int;
     (** The major GC speed is computed from this parameter.
        This is the memory that will be "wasted" because the GC does not
        immediatly collect unreachable blocks.  It is expressed as a
@@ -101,7 +101,7 @@ type control =
        blocks more eagerly) if [space_overhead] is smaller.
        Default: 80. *)
 
-    mutable verbose : int;
+    modifiable verbose : int;
     (** This value controls the GC messages on standard error output.
        It is a sum of some of the following flags, to print messages
        on the corresponding events:
@@ -117,7 +117,7 @@ type control =
        - [0x200] Computation of compaction triggering condition.
        Default: 0. *)
 
-    mutable max_overhead : int;
+    modifiable max_overhead : int;
     (** Heap compaction is triggered when the estimated amount
        of "wasted" memory is more than [max_overhead] percent of the
        amount of live data.  If [max_overhead] is set to 0, heap
@@ -128,12 +128,12 @@ type control =
        to set [allocation_policy] to 1.
        Default: 500. *)
 
-    mutable stack_limit : int;
+    modifiable stack_limit : int;
     (** The maximum size of the stack (in words).  This is only
        relevant to the byte-code runtime, as the native code runtime
        uses the operating system's stack.  Default: 256k. *)
 
-    mutable allocation_policy : int;
+    modifiable allocation_policy : int;
     (** The policy used for allocating in the heap.  Possible
         values are 0 and 1.  0 is the next-fit policy, which is
         quite fast but can result in fragmentation.  1 is the
@@ -146,45 +146,45 @@ type control =
     OCAMLRUNPARAM environment variable.  See the documentation of
     [ocamlrun]. *)
 
-external stat : unit -> stat = "caml_gc_stat"
+dehors stat : unit -> stat = "caml_gc_stat"
 (** Return the current values of the memory management counters in a
    [stat] record.  This function examines every heap block to get the
    statistics. *)
 
-external quick_stat : unit -> stat = "caml_gc_quick_stat"
+dehors quick_stat : unit -> stat = "caml_gc_quick_stat"
 (** Same as [stat] except that [live_words], [live_blocks], [free_words],
     [free_blocks], [largest_free], and [fragments] are set to 0.  This
     function is much faster than [stat] because it does not need to go
     through the heap. *)
 
-external counters : unit -> float * float * float = "caml_gc_counters"
+dehors counters : unit -> float * float * float = "caml_gc_counters"
 (** Return [(minor_words, promoted_words, major_words)].  This function
     is as fast as [quick_stat]. *)
 
-external get : unit -> control = "caml_gc_get"
+dehors get : unit -> control = "caml_gc_get"
 (** Return the current values of the GC parameters in a [control] record. *)
 
-external set : control -> unit = "caml_gc_set"
+dehors set : control -> unit = "caml_gc_set"
 (** [set r] changes the GC parameters according to the [control] record [r].
    The normal usage is: [Gc.set { (Gc.get()) with Gc.verbose = 0x00d }] *)
 
-external minor : unit -> unit = "caml_gc_minor"
+dehors minor : unit -> unit = "caml_gc_minor"
 (** Trigger a minor collection. *)
 
-external major_slice : int -> int = "caml_gc_major_slice";;
+dehors major_slice : int -> int = "caml_gc_major_slice";;
 (** Do a minor collection and a slice of major collection.  The argument
     is the size of the slice, 0 to use the automatically-computed
     slice size.  In all cases, the result is the computed slice size. *)
 
-external major : unit -> unit = "caml_gc_major"
+dehors major : unit -> unit = "caml_gc_major"
 (** Do a minor collection and finish the current major collection cycle. *)
 
-external full_major : unit -> unit = "caml_gc_full_major"
+dehors full_major : unit -> unit = "caml_gc_full_major"
 (** Do a minor collection, finish the current major collection cycle,
    and perform a complete new cycle.  This will collect all currently
    unreachable blocks. *)
 
-external compact : unit -> unit = "caml_gc_compaction"
+dehors compact : unit -> unit = "caml_gc_compaction"
 (** Perform a full major collection and compact the heap.  Note that heap
    compaction is a lengthy operation. *)
 

@@ -33,7 +33,7 @@ module type OrderedType =
           and [f e1 e2] is strictly positive if [e1] is greater than [e2].
           Example: a suitable ordering function is the generic structural
           comparison function {!Pervasives.compare}. *)
-  end
+  fin
 (** Input signature of the functor {!Set.Make}. *)
 
 module type S =
@@ -155,9 +155,9 @@ module type S =
         This is usually more efficient than folding [add] over the list,
         except perhaps for lists with many duplicated elements.
         @since 4.02.0 *)
-  end
+  fin
 (** Output signature of the functor {!Set.Make}. *)
 
-module Make (Ord : OrderedType) : S with type elt = Ord.t
+module Make (Ord : OrderedType) : S avec type elt = Ord.t
 (** Functor building an implementation of the set structure
    given a totally ordered type. *)

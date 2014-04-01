@@ -10,10 +10,10 @@
 (*                                                                     *)
 (***********************************************************************)
 
-let bindir = ref Ocamlbuild_config.bindir;;
-let libdir = ref begin
+soit bindir = ref Ocamlbuild_config.bindir;;
+soit libdir = ref début
   Filename.concat
-    (try Sys.getenv "OCAMLLIB"
-     with Not_found -> Ocamlbuild_config.libdir)
+    (essaie Sys.getenv "OCAMLLIB"
+     avec Not_found -> Ocamlbuild_config.libdir)
     "ocamlbuild"
-end;;
+fin;;

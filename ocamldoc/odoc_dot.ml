@@ -13,36 +13,36 @@
 (** Definition of a class which outputs a dot file showing
    top modules dependencies.*)
 
-open Odoc_info
+ouvre Odoc_info
 
 module F = Format
 
-let dot_include_all = ref false
+soit dot_include_all = ref faux
 
-let dot_types = ref false
+soit dot_types = ref faux
 
-let dot_reduce = ref false
+soit dot_reduce = ref faux
 
-let dot_colors  = ref (List.flatten Odoc_messages.default_dot_colors)
+soit dot_colors  = ref (List.flatten Odoc_messages.default_dot_colors)
 
 module Generator =
 struct
 
 (** This class generates a dot file showing the top modules dependencies. *)
-class dot =
-  object (self)
+classe dot =
+  objet (self)
 
     (** To store the colors associated to locations of modules. *)
-    val mutable loc_colors = []
+    val modifiable loc_colors = []
 
     (** the list of modules we know. *)
-    val mutable modules = []
+    val modifiable modules = []
 
     (** Colors to use when finding new locations of modules. *)
-    val mutable colors = !dot_colors
+    val modifiable colors = !dot_colors
 
     (** Graph header. *)
-    method header =
+    méthode header =
       "digraph G {\n"^
       "  size=\"10,7.5\";\n"^
       "  ratio=\"fill\";\n"^
@@ -50,95 +50,95 @@ class dot =
       "  fontsize=\"12pt\";\n"^
       "  rankdir = TB ;\n"
 
-    method get_one_color =
-      match colors with
+    méthode get_one_color =
+      filtre colors avec
         [] -> None
       | h :: q ->
           colors <- q ;
           Some h
 
-    method node_color s =
-      try Some (List.assoc s loc_colors)
-      with
+    méthode node_color s =
+      essaie Some (List.assoc s loc_colors)
+      avec
         Not_found ->
-          match self#get_one_color with
+          filtre self#get_one_color avec
             None -> None
           | Some c ->
               loc_colors <- (s, c) :: loc_colors ;
               Some c
 
-    method print_module_atts fmt m =
-      match self#node_color (Filename.dirname m.Module.m_file) with
+    méthode print_module_atts fmt m =
+      filtre self#node_color (Filename.dirname m.Module.m_file) avec
         None -> ()
       | Some col -> F.fprintf fmt "\"%s\" [style=filled, color=%s];\n" m.Module.m_name col
 
-    method print_type_atts fmt t =
-      match self#node_color (Name.father t.Type.ty_name) with
+    méthode print_type_atts fmt t =
+      filtre self#node_color (Name.father t.Type.ty_name) avec
         None -> ()
       | Some col -> F.fprintf fmt "\"%s\" [style=filled, color=%s];\n" t.Type.ty_name col
 
-    method print_one_dep fmt src dest =
+    méthode print_one_dep fmt src dest =
       F.fprintf fmt "\"%s\" -> \"%s\";\n" src dest
 
-    method generate_for_module fmt m =
-      let l = List.filter
-          (fun n ->
+    méthode generate_for_module fmt m =
+      soit l = List.filter
+          (fonc n ->
             !dot_include_all ||
-            (List.exists (fun m -> m.Module.m_name = n) modules))
+            (List.exists (fonc m -> m.Module.m_name = n) modules))
           m.Module.m_top_deps
-      in
+      dans
       self#print_module_atts fmt m;
       List.iter (self#print_one_dep fmt m.Module.m_name) l
 
-    method generate_for_type fmt (t, l) =
+    méthode generate_for_type fmt (t, l) =
       self#print_type_atts fmt t;
       List.iter
         (self#print_one_dep fmt t.Type.ty_name)
         l
 
-    method generate_types types =
-      try
-        let oc = open_out !Global.out_file in
-        let fmt = F.formatter_of_out_channel oc in
+    méthode generate_types types =
+      essaie
+        soit oc = open_out !Global.out_file dans
+        soit fmt = F.formatter_of_out_channel oc dans
         F.fprintf fmt "%s" self#header;
-        let graph = Odoc_info.Dep.deps_of_types
+        soit graph = Odoc_info.Dep.deps_of_types
             ~kernel: !dot_reduce
             types
-        in
+        dans
         List.iter (self#generate_for_type fmt) graph;
         F.fprintf fmt "}\n" ;
         F.pp_print_flush fmt ();
         close_out oc
-      with
+      avec
         Sys_error s ->
           raise (Failure s)
 
-    method generate_modules modules_list =
-      try
+    méthode generate_modules modules_list =
+      essaie
         modules <- modules_list ;
-        let oc = open_out !Global.out_file in
-        let fmt = F.formatter_of_out_channel oc in
+        soit oc = open_out !Global.out_file dans
+        soit fmt = F.formatter_of_out_channel oc dans
         F.fprintf fmt "%s" self#header;
 
-        if !dot_reduce then
+        si !dot_reduce alors
           Odoc_info.Dep.kernel_deps_of_modules modules_list;
 
         List.iter (self#generate_for_module fmt) modules_list;
         F.fprintf fmt "}\n" ;
         F.pp_print_flush fmt ();
         close_out oc
-      with
+      avec
         Sys_error s ->
           raise (Failure s)
 
     (** Generate the dot code in the file {!Odoc_info.Args.out_file}. *)
-    method generate (modules_list : Odoc_info.Module.t_module list) =
+    méthode generate (modules_list : Odoc_info.Module.t_module list) =
       colors <- !dot_colors;
-      if !dot_types then
+      si !dot_types alors
         self#generate_types (Odoc_info.Search.types modules_list)
-      else
+      sinon
         self#generate_modules modules_list
-  end
-end
+  fin
+fin
 
-module type Dot_generator = module type of Generator
+module type Dot_generator = module type de Generator

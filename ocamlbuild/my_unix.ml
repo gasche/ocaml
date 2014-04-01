@@ -12,7 +12,7 @@
 
 
 (* Original author: Nicolas Pouillard *)
-open My_std
+ouvre My_std
 
 type file_kind =
 | FK_dir
@@ -28,76 +28,76 @@ type stats =
 
 type implem =
   {
-    mutable is_degraded   : bool;
-    mutable is_link       : string -> bool;
-    mutable run_and_open  : 'a . string -> (in_channel -> 'a) -> 'a;
-    mutable readlink      : string -> string;
-    mutable execute_many  : ?max_jobs:int ->
+    modifiable is_degraded   : bool;
+    modifiable is_link       : string -> bool;
+    modifiable run_and_open  : 'a . string -> (in_channel -> 'a) -> 'a;
+    modifiable readlink      : string -> string;
+    modifiable execute_many  : ?max_jobs:int ->
                             ?ticker:(unit -> unit) ->
                             ?period:float ->
                             ?display:((out_channel -> unit) -> unit) ->
                             ((unit -> string) list list) ->
                             (bool list * exn) option;
-    mutable report_error  : Format.formatter -> exn -> unit;
-    mutable at_exit_once  : (unit -> unit) -> unit;
-    mutable gettimeofday  : unit -> float;
-    mutable stdout_isatty : unit -> bool;
-    mutable stat          : string -> stats;
-    mutable lstat         : string -> stats;
+    modifiable report_error  : Format.formatter -> exn -> unit;
+    modifiable at_exit_once  : (unit -> unit) -> unit;
+    modifiable gettimeofday  : unit -> float;
+    modifiable stdout_isatty : unit -> bool;
+    modifiable stat          : string -> stats;
+    modifiable lstat         : string -> stats;
   }
 
-let is_degraded = true
+soit is_degraded = vrai
 
-let stat f =
+soit stat f =
   { stat_key = f;
     stat_file_kind =
-      if sys_file_exists f then
-        if Sys.is_directory f then
+      si sys_file_exists f alors
+        si Sys.is_directory f alors
           FK_dir
-        else
+        sinon
           FK_file
-      else let _ = with_input_file f input_char in assert false }
+      sinon soit _ = with_input_file f input_char dans affirme faux }
 
-let run_and_open s kont =
-  with_temp_file "ocamlbuild" "out" begin fun tmp ->
-    let s = Printf.sprintf "%s > '%s'" s tmp in
-    let st = sys_command s in
-    if st <> 0 then failwith (Printf.sprintf "Erreur en exécutant : %s" s);
+soit run_and_open s kont =
+  with_temp_file "ocamlbuild" "out" début fonc tmp ->
+    soit s = Printf.sprintf "%s > '%s'" s tmp dans
+    soit st = sys_command s dans
+    si st <> 0 alors failwith (Printf.sprintf "Erreur en exécutant : %s" s);
     with_input_file tmp kont
-  end
+  fin
 
 exception Not_a_link
 exception No_such_file
 exception Link_to_directories_not_supported
 
-let readlinkcmd =
-  let cache = Hashtbl.create 32 in
-  fun x ->
-    try Hashtbl.find cache x
-    with Not_found ->
-      run_and_open (Printf.sprintf "readlink %s" (Filename.quote x)) begin fun ic ->
-        let y = String.chomp (input_line ic) in
+soit readlinkcmd =
+  soit cache = Hashtbl.create 32 dans
+  fonc x ->
+    essaie Hashtbl.find cache x
+    avec Not_found ->
+      run_and_open (Printf.sprintf "readlink %s" (Filename.quote x)) début fonc ic ->
+        soit y = String.chomp (input_line ic) dans
         Hashtbl.replace cache x y; y
-      end
+      fin
 
-let rec readlink x =
-  if sys_file_exists x then
-    try
-      let y = readlinkcmd x in
-      if (lstat y).stat_file_kind = FK_dir then raise Link_to_directories_not_supported else y
-    with Failure(_) -> raise Not_a_link
-  else raise No_such_file
+soit rec readlink x =
+  si sys_file_exists x alors
+    essaie
+      soit y = readlinkcmd x dans
+      si (lstat y).stat_file_kind = FK_dir alors raise Link_to_directories_not_supported sinon y
+    avec Failure(_) -> raise Not_a_link
+  sinon raise No_such_file
 
-and is_link x =
-  try ignore(readlink x); true with
-  | No_such_file | Not_a_link -> false
+et is_link x =
+  essaie ignore(readlink x); vrai avec
+  | No_such_file | Not_a_link -> faux
 
-and lstat x =
-  if is_link x then { stat_key = x; stat_file_kind = FK_link } else stat x
+et lstat x =
+  si is_link x alors { stat_key = x; stat_file_kind = FK_link } sinon stat x
 
-let implem =
+soit implem =
   {
-    is_degraded = true;
+    is_degraded = vrai;
 
     stat = stat;
     lstat = lstat;
@@ -107,34 +107,34 @@ let implem =
 
     (* at_exit_once is at_exit in the degraded mode since fork is not accessible in this mode *)
     at_exit_once = at_exit;
-    report_error = (fun _ -> raise);
-    gettimeofday = (fun () -> assert false);
-    stdout_isatty = (fun () -> false);
-    execute_many = (fun ?max_jobs:(_) ?ticker:(_) ?period:(_) ?display:(_) _ -> assert false)
+    report_error = (fonc _ -> raise);
+    gettimeofday = (fonc () -> affirme faux);
+    stdout_isatty = (fonc () -> faux);
+    execute_many = (fonc ?max_jobs:(_) ?ticker:(_) ?period:(_) ?display:(_) _ -> affirme faux)
   }
 
-let is_degraded = lazy implem.is_degraded
-let stat x = implem.stat x
-let lstat x = implem.lstat x
-let readlink x = implem.readlink x
-let is_link x = implem.is_link x
-let run_and_open x = implem.run_and_open x
-let at_exit_once x = implem.at_exit_once x
-let report_error x = implem.report_error x
-let gettimeofday x = implem.gettimeofday x
-let stdout_isatty x = implem.stdout_isatty x
-let execute_many ?max_jobs = implem.execute_many ?max_jobs
+soit is_degraded = paresseux implem.is_degraded
+soit stat x = implem.stat x
+soit lstat x = implem.lstat x
+soit readlink x = implem.readlink x
+soit is_link x = implem.is_link x
+soit run_and_open x = implem.run_and_open x
+soit at_exit_once x = implem.at_exit_once x
+soit report_error x = implem.report_error x
+soit gettimeofday x = implem.gettimeofday x
+soit stdout_isatty x = implem.stdout_isatty x
+soit execute_many ?max_jobs = implem.execute_many ?max_jobs
 
-let run_and_read cmd =
-  let bufsiz = 2048 in
-  let buf = String.create bufsiz in
-  let totalbuf = Buffer.create 4096 in
-  implem.run_and_open cmd begin fun ic ->
-    let rec loop pos =
-      let len = input ic buf 0 bufsiz in
-      if len > 0 then begin
+soit run_and_read cmd =
+  soit bufsiz = 2048 dans
+  soit buf = String.create bufsiz dans
+  soit totalbuf = Buffer.create 4096 dans
+  implem.run_and_open cmd début fonc ic ->
+    soit rec loop pos =
+      soit len = input ic buf 0 bufsiz dans
+      si len > 0 alors début
         Buffer.add_substring totalbuf buf 0 len;
         loop (pos + len)
-      end
-    in loop 0; Buffer.contents totalbuf
-  end
+      fin
+    dans loop 0; Buffer.contents totalbuf
+  fin

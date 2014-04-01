@@ -13,16 +13,16 @@
 
 (* Original author: Berke Durak *)
 (* Hygiene *)
-open My_std
-open Slurp
+ouvre My_std
+ouvre Slurp
 
 exception Exit_hygiene_violations
 
 type rule =
-| Implies_not of pattern * pattern
-| Not of pattern
-and pattern = suffix
-and suffix = string
+| Implies_not de pattern * pattern
+| Not de pattern
+et pattern = suffix
+et suffix = string
 
 type penalty = Warn | Fail
 
@@ -32,118 +32,118 @@ type law = {
   law_penalty : penalty
 }
 
-let list_collect f l =
-  let rec loop result = function
+soit list_collect f l =
+  soit rec loop result = fonction
     | [] -> List.rev result
     | x :: rest ->
-        match f x with
+        filtre f x avec
         | None -> loop result rest
         | Some y -> loop (y :: result) rest
-  in
+  dans
   loop [] l
 
-let list_none_for_all f l =
-  let rec loop = function
+soit list_none_for_all f l =
+  soit rec loop = fonction
     | [] -> None
     | x :: rest ->
-        match f x with
+        filtre f x avec
         | None -> loop rest
         | y -> y
-  in
+  dans
   loop l
 
-let sf = Printf.sprintf
+soit sf = Printf.sprintf
 
 module SS = Set.Make(String);;
 
-let check ?sanitize laws entry =
-  let penalties = ref [] in
-  let microbes = ref SS.empty in
-  let () =
-    match sanitize with
-    | Some fn -> if sys_file_exists fn then sys_remove fn
+soit check ?sanitize laws entry =
+  soit penalties = ref [] dans
+  soit microbes = ref SS.empty dans
+  soit () =
+    filtre sanitize avec
+    | Some fn -> si sys_file_exists fn alors sys_remove fn
     | None -> ()
-  in
-  let remove path name =
-    if sanitize <> None then
+  dans
+  soit remove path name =
+    si sanitize <> None alors
       microbes := SS.add (filename_concat path name) !microbes
-  in
-  let check_rule = fun entries -> function
+  dans
+  soit check_rule = fonc entries -> fonction
     | Not suffix ->
         list_collect
-          begin function
-            | File(path, name, _, true) ->
-                if Filename.check_suffix name suffix
-                  && not ( Pathname.link_to_dir (filename_concat path name) !Options.build_dir ) then
-                  begin
+          début fonction
+            | File(path, name, _, vrai) ->
+                si Filename.check_suffix name suffix
+                  && not ( Pathname.link_to_dir (filename_concat path name) !Options.build_dir ) alors
+                  début
                     remove path name;
                     Some(sf "File %s in %s has suffix %s" name path suffix)
-                  end
-                else
+                  fin
+                sinon
                   None
             | File _ | Dir _| Error _ | Nothing -> None
-          end
+          fin
           entries
     | Implies_not(suffix1, suffix2) ->
         list_collect
-          begin function
-            | File(path, name, _, true) ->
-                if Filename.check_suffix name suffix1 then
-                  begin
-                    let base = Filename.chop_suffix name suffix1 in
-                    let name' = base ^ suffix2 in
-                    if List.exists
-                       begin function
-                         | File(_, name'', _, true) -> name' = name''
-                         | File _ | Dir _ | Error _ | Nothing -> false
-                       end
+          début fonction
+            | File(path, name, _, vrai) ->
+                si Filename.check_suffix name suffix1 alors
+                  début
+                    soit base = Filename.chop_suffix name suffix1 dans
+                    soit name' = base ^ suffix2 dans
+                    si List.exists
+                       début fonction
+                         | File(_, name'', _, vrai) -> name' = name''
+                         | File _ | Dir _ | Error _ | Nothing -> faux
+                       fin
                        entries
-                    then
-                      begin
+                    alors
+                      début
                         remove path name';
                         Some(sf "Files %s and %s should not be together in %s" name name' path)
-                      end
-                    else
+                      fin
+                    sinon
                       None
-                  end
-                else
+                  fin
+                sinon
                   None
             | File _ | Dir _ | Error _ | Nothing -> None
-          end
+          fin
           entries
-  in
-  let rec check_entry = function
-    | Dir(_,_,_,true,entries) ->
+  dans
+  soit rec check_entry = fonction
+    | Dir(_,_,_,vrai,entries) ->
         List.iter
-          begin fun law ->
-            match List.concat (List.map (check_rule !*entries) law.law_rules) with
+          début fonc law ->
+            filtre List.concat (List.map (check_rule !*entries) law.law_rules) avec
             | [] -> ()
             | explanations ->
               penalties := (law, explanations) :: !penalties
-          end
+          fin
           laws;
         List.iter check_entry !*entries
     | Dir _ | File _ | Error _ | Nothing -> ()
-  in
+  dans
   check_entry entry;
-  begin
-    let microbes = !microbes in
-    if not (SS.is_empty microbes) then
-      begin
-        match sanitize with
+  début
+    soit microbes = !microbes dans
+    si not (SS.is_empty microbes) alors
+      début
+        filtre sanitize avec
         | None ->
             Log.eprintf "sanitize: the following are files that should probably not be in your\n\
                          source tree:\n";
             SS.iter
-              begin fun fn ->
+              début fonc fn ->
                 Log.eprintf " %s" fn
-              end
+              fin
               microbes;
             Log.eprintf "Remove them manually, don't use the -no-sanitize option, use -no-hygiene, or\n\
                           define hygiene exceptions using the tags or plugin mechanism.\n";
             raise Exit_hygiene_violations
         | Some fn ->
-            let m = SS.cardinal microbes in
+            soit m = SS.cardinal microbes dans
             Log.eprintf
               "@[<hov 2>SANITIZE:@ a@ total@ of@ %d@ file%s@ that@ should@ probably\
                @ not@ be@ in@ your@ source@ tree@ has@ been@ found.\
@@ -151,26 +151,26 @@ let check ?sanitize laws entry =
                @ Check@ this@ script@ and@ run@ it@ to@ remove@ unwanted@ files\
                @ or@ use@ other@ options@ (such@ as@ defining@ hygiene@ exceptions\
                @ or@ using@ the@ -no-hygiene@ option).@]"
-               m (if m = 1 then "" else "s") fn;
-            let oc = open_out_gen [Open_wronly; Open_creat; Open_trunc; Open_binary] 0o777 fn in
+               m (si m = 1 alors "" sinon "s") fn;
+            soit oc = open_out_gen [Open_wronly; Open_creat; Open_trunc; Open_binary] 0o777 fn dans
             (* See PR #5338: under mingw, one produces a shell script, which must follow
                Unix eol convention; hence Open_binary. *)
-            let fp = Printf.fprintf in
+            soit fp = Printf.fprintf dans
             fp oc "#!/bin/sh\n\
                    # File generated by ocamlbuild\n\
                    \n\
                    cd %s\n\
                    \n" (Shell.quote_filename_if_needed Pathname.pwd);
             SS.iter
-              begin fun fn ->
+              début fonc fn ->
                 fp oc "rm -f %s\n" (Shell.quote_filename_if_needed fn)
-              end
+              fin
               microbes;
             (* Also clean itself *)
             fp oc "# Also clean the script itself\n";
             fp oc "rm -f %s\n" (Shell.quote_filename_if_needed fn);
             close_out oc
-      end;
+      fin;
     !penalties
-  end
+  fin
 ;;

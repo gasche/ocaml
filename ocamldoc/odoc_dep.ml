@@ -16,17 +16,17 @@ module StrS = Depend.StringSet
 module Module = Odoc_module
 module Type = Odoc_type
 
-let set_to_list s =
-  let l = ref [] in
-  StrS.iter (fun e -> l := e :: !l) s;
+soit set_to_list s =
+  soit l = ref [] dans
+  StrS.iter (fonc e -> l := e :: !l) s;
   !l
 
-let impl_dependencies ast =
+soit impl_dependencies ast =
   Depend.free_structure_names := StrS.empty;
   Depend.add_use_file StrS.empty [Parsetree.Ptop_def ast];
   set_to_list !Depend.free_structure_names
 
-let intf_dependencies ast =
+soit intf_dependencies ast =
   Depend.free_structure_names := StrS.empty;
   Depend.add_signature StrS.empty ast;
   set_to_list !Depend.free_structure_names
@@ -38,94 +38,94 @@ module Dep =
 
     module S = Set.Make (struct
       type t = string
-      let compare (x:t) y = compare x y
-    end)
+      soit compare (x:t) y = compare x y
+    fin)
 
-    let set_to_list s =
-      let l = ref [] in
-      S.iter (fun e -> l := e :: !l) s;
+    soit set_to_list s =
+      soit l = ref [] dans
+      S.iter (fonc e -> l := e :: !l) s;
       !l
 
     type node = {
         id : id ;
-        mutable near : S.t ; (** fils directs *)
-        mutable far : (id * S.t) list ; (** fils indirects, par quel fils *)
+        modifiable near : S.t ; (** fils directs *)
+        modifiable far : (id * S.t) list ; (** fils indirects, par quel fils *)
         reflex : bool ; (** reflexive or not, we keep
                            information here to remove the node itself from its direct children *)
       }
 
     type graph = node list
 
-    let make_node s children =
-      let set = List.fold_right
+    soit make_node s children =
+      soit set = List.fold_right
           S.add
           children
           S.empty
-      in
+      dans
       { id = s;
         near = S.remove s set ;
         far = [] ;
         reflex = List.mem s children ;
       }
 
-    let get_node graph s =
-      try List.find (fun n -> n.id = s) graph
-      with Not_found ->
+    soit get_node graph s =
+      essaie List.find (fonc n -> n.id = s) graph
+      avec Not_found ->
         make_node s []
 
-    let rec trans_closure graph acc n =
-      if S.mem n.id acc then
+    soit rec trans_closure graph acc n =
+      si S.mem n.id acc alors
         acc
-      else
+      sinon
         (* optimisation plus tard : utiliser le champ far si non vide ? *)
         S.fold
-          (fun child -> fun acc2 ->
+          (fonc child -> fonc acc2 ->
             trans_closure graph acc2 (get_node graph child))
           n.near
           (S.add n.id acc)
 
-    let node_trans_closure graph n =
-      let far = List.map
-          (fun child ->
-            let set = trans_closure graph S.empty (get_node graph child) in
+    soit node_trans_closure graph n =
+      soit far = List.map
+          (fonc child ->
+            soit set = trans_closure graph S.empty (get_node graph child) dans
             (child, set)
           )
           (set_to_list n.near)
-      in
+      dans
       n.far <- far
 
-    let compute_trans_closure graph =
+    soit compute_trans_closure graph =
       List.iter (node_trans_closure graph) graph
 
-    let prune_node graph node =
+    soit prune_node graph node =
       S.iter
-        (fun child ->
-          let set_reachables = List.fold_left
-              (fun acc -> fun (ch, reachables) ->
-                if child = ch then
+        (fonc child ->
+          soit set_reachables = List.fold_left
+              (fonc acc -> fonc (ch, reachables) ->
+                si child = ch alors
                   acc
-                else
+                sinon
                   S.union acc reachables
               )
               S.empty
               node.far
-          in
-          let set = S.remove node.id set_reachables in
-          if S.exists (fun n2 -> S.mem child (get_node graph n2).near) set then
+          dans
+          soit set = S.remove node.id set_reachables dans
+          si S.exists (fonc n2 -> S.mem child (get_node graph n2).near) set alors
             (
              node.near <- S.remove child node.near ;
-             node.far <- List.filter (fun (ch,_) -> ch <> child) node.far
+             node.far <- List.filter (fonc (ch,_) -> ch <> child) node.far
             )
-          else
+          sinon
             ()
         )
         node.near;
-      if node.reflex then
+      si node.reflex alors
         node.near <- S.add node.id node.near
-      else
+      sinon
         ()
 
-    let kernel graph =
+    soit kernel graph =
       (* compute transitive closure *)
       compute_trans_closure graph ;
 
@@ -134,27 +134,27 @@ module Dep =
 
       graph
 
-  end
+  fin
 
 (** [type_deps t] returns the list of fully qualified type names
    [t] depends on. *)
-let type_deps t =
-  let module T = Odoc_type in
-  let l = ref [] in
-  let re = Str.regexp "\\([A-Z]\\([a-zA-Z_'0-9]\\)*\\.\\)+\\([a-z][a-zA-Z_'0-9]*\\)" in
-  let f s =
-    let s2 = Str.matched_string s in
+soit type_deps t =
+  soit module T = Odoc_type dans
+  soit l = ref [] dans
+  soit re = Str.regexp "\\([A-Z]\\([a-zA-Z_'0-9]\\)*\\.\\)+\\([a-z][a-zA-Z_'0-9]*\\)" dans
+  soit f s =
+    soit s2 = Str.matched_string s dans
     l := s2 :: !l ;
     s2
-  in
-  (match t.T.ty_kind with
+  dans
+  (filtre t.T.ty_kind avec
     T.Type_abstract -> ()
   | T.Type_variant cl ->
       List.iter
-        (fun c ->
+        (fonc c ->
           List.iter
-            (fun e ->
-              let s = Odoc_print.string_of_type_expr e in
+            (fonc e ->
+              soit s = Odoc_print.string_of_type_expr e dans
               ignore (Str.global_substitute re f s)
             )
             c.T.vc_args
@@ -162,17 +162,17 @@ let type_deps t =
         cl
   | T.Type_record rl ->
       List.iter
-        (fun r ->
-          let s = Odoc_print.string_of_type_expr r.T.rf_type in
+        (fonc r ->
+          soit s = Odoc_print.string_of_type_expr r.T.rf_type dans
           ignore (Str.global_substitute re f s)
         )
         rl
   );
 
-  (match t.T.ty_manifest with
+  (filtre t.T.ty_manifest avec
     None -> ()
   | Some e ->
-      let s = Odoc_print.string_of_type_expr e in
+      soit s = Odoc_print.string_of_type_expr e dans
       ignore (Str.global_substitute re f s)
   );
 
@@ -180,17 +180,17 @@ let type_deps t =
 
 (** Modify the modules depencies of the given list of modules,
    to get the minimum transitivity kernel. *)
-let kernel_deps_of_modules modules =
-  let graph = List.map
-      (fun m -> Dep.make_node m.Module.m_name m.Module.m_top_deps)
+soit kernel_deps_of_modules modules =
+  soit graph = List.map
+      (fonc m -> Dep.make_node m.Module.m_name m.Module.m_top_deps)
       modules
-  in
-  let k = Dep.kernel graph in
+  dans
+  soit k = Dep.kernel graph dans
   List.iter
-    (fun m ->
-      let node = Dep.get_node k m.Module.m_name in
+    (fonc m ->
+      soit node = Dep.get_node k m.Module.m_name dans
       m.Module.m_top_deps <-
-        List.filter (fun m2 -> Dep.S.mem m2 node.Dep.near) m.Module.m_top_deps)
+        List.filter (fonc m2 -> Dep.S.mem m2 node.Dep.near) m.Module.m_top_deps)
     modules
 
 (** Return the list of dependencies between the given types,
@@ -198,24 +198,24 @@ let kernel_deps_of_modules modules =
    @param kernel indicates if we must keep only the transitivity kernel
    of the dependencies. Default is [false].
 *)
-let deps_of_types ?(kernel=false) types =
-  let deps_pre = List.map (fun t -> (t, type_deps t)) types in
-  let deps =
-    if kernel then
+soit deps_of_types ?(kernel=faux) types =
+  soit deps_pre = List.map (fonc t -> (t, type_deps t)) types dans
+  soit deps =
+    si kernel alors
       (
-       let graph = List.map
-           (fun (t, names) -> Dep.make_node t.Type.ty_name names)
+       soit graph = List.map
+           (fonc (t, names) -> Dep.make_node t.Type.ty_name names)
            deps_pre
-       in
-       let k = Dep.kernel graph in
+       dans
+       soit k = Dep.kernel graph dans
        List.map
-         (fun t ->
-           let node = Dep.get_node k t.Type.ty_name in
+         (fonc t ->
+           soit node = Dep.get_node k t.Type.ty_name dans
            (t, Dep.set_to_list node.Dep.near)
          )
          types
       )
-    else
+    sinon
       deps_pre
-  in
+  dans
   deps

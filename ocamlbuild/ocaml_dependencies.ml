@@ -12,209 +12,209 @@
 
 
 (* Original author: Nicolas Pouillard *)
-open My_std
-open Log
-open Tools
-open Ocaml_utils
+ouvre My_std
+ouvre Log
+ouvre Tools
+ouvre Ocaml_utils
 
-let mydprintf fmt = dprintf 10 fmt
+soit mydprintf fmt = dprintf 10 fmt
 
-exception Circular_dependencies of string list * string
+exception Circular_dependencies de string list * string
 
 module type INPUT = sig
   val fold_dependencies : (string -> string -> 'a -> 'a) -> 'a -> 'a
   val fold_libraries : (string -> string list -> 'a -> 'a) -> 'a -> 'a
   val fold_packages : (string -> string list -> 'a -> 'a) -> 'a -> 'a
-end
+fin
 
 module Make (I : INPUT) = struct
-  open I
+  ouvre I
 
   module SMap = Map.Make(String)
 
   module Resources = Resource.Resources
 
   module Utils = struct
-    let add = SMap.add
+    soit add = SMap.add
 
-    let empty = SMap.empty
+    soit empty = SMap.empty
 
-    let find_all_set x acc =
-      try SMap.find x acc with Not_found -> Resources.empty
+    soit find_all_set x acc =
+      essaie SMap.find x acc avec Not_found -> Resources.empty
 
-    let smap_add_set src dst acc =
+    soit smap_add_set src dst acc =
       SMap.add src (Resources.add dst (find_all_set src acc)) acc
 
-    let print_smap pp f smap =
+    soit print_smap pp f smap =
       Format.fprintf f "@[<hv0>{:@[<hv2>";
-      SMap.iter begin fun k v ->
+      SMap.iter début fonc k v ->
         Format.fprintf f "@ @[<2>%S =>@ %a@];" k pp v
-      end smap;
+      fin smap;
       Format.fprintf f "@]@,:}@]"
 
-    let print_smap_list = print_smap pp_l
+    soit print_smap_list = print_smap pp_l
 
-    let print_smap_set = print_smap Resources.print
+    soit print_smap_set = print_smap Resources.print
 
-    let print_lazy pp f l = pp f !*l
+    soit print_lazy pp f l = pp f !*l
 
-    let find_all_list x acc =
-      try SMap.find x acc with Not_found -> []
+    soit find_all_list x acc =
+      essaie SMap.find x acc avec Not_found -> []
 
-    let find_all_rec xs map =
-      let visited = Hashtbl.create 32 in
-      let rec self x acc =
-        try
+    soit find_all_rec xs map =
+      soit visited = Hashtbl.create 32 dans
+      soit rec self x acc =
+        essaie
           Hashtbl.find visited x; acc
-        with Not_found ->
+        avec Not_found ->
           Hashtbl.replace visited x ();
-          let acc = Resources.add x acc in
-          try Resources.fold self (SMap.find x map) acc
-          with Not_found -> acc
-      in List.fold_right self xs Resources.empty
+          soit acc = Resources.add x acc dans
+          essaie Resources.fold self (SMap.find x map) acc
+          avec Not_found -> acc
+      dans List.fold_right self xs Resources.empty
 
-    let mkindex fold filter =
-      fold begin fun name contents acc ->
-        if filter name then
-          List.fold_right begin fun elt acc ->
+    soit mkindex fold filter =
+      fold début fonc name contents acc ->
+        si filter name alors
+          List.fold_right début fonc elt acc ->
             add elt (name :: (find_all_list elt acc)) acc
-          end contents acc
-        else
+          fin contents acc
+        sinon
           acc
-      end empty
+      fin empty
 
-  end
-  open Utils
+  fin
+  ouvre Utils
 
-  let caml_transitive_closure
+  soit caml_transitive_closure
         ?(caml_obj_ext="cmo")
         ?(caml_lib_ext="cma")
-        ?(pack_mode=false)
+        ?(pack_mode=faux)
         ?(used_libraries=[])
         ?(hidden_packages=[]) fns =
 
-    let valid_link_exts =
-      if pack_mode then [caml_obj_ext; "cmi"]
-      else [caml_obj_ext; caml_lib_ext] in
+    soit valid_link_exts =
+      si pack_mode alors [caml_obj_ext; "cmi"]
+      sinon [caml_obj_ext; caml_lib_ext] dans
 
     mydprintf "caml_transitive_closure@ ~caml_obj_ext:%S@ ~pack_mode:%b@ ~used_libraries:%a@ %a"
       caml_obj_ext pack_mode pp_l used_libraries pp_l fns;
 
-    let packages = fold_packages (fun name _ -> Resources.add name) Resources.empty in
+    soit packages = fold_packages (fonc name _ -> Resources.add name) Resources.empty dans
     mydprintf "packages:@ %a" Resources.print packages;
 
-    let caml_obj_ext_of_cmi x =
-      if Filename.check_suffix x ".cmi" then
+    soit caml_obj_ext_of_cmi x =
+      si Filename.check_suffix x ".cmi" alors
         Pathname.update_extensions caml_obj_ext x
-      else x in
+      sinon x dans
 
-    let maybe_caml_obj_ext_of_cmi x =
-      if pack_mode then
-        if Filename.check_suffix x ".cmi" then
-          let caml_obj = Pathname.update_extensions caml_obj_ext x in
-          if Resource.exists_in_build_dir caml_obj then
+    soit maybe_caml_obj_ext_of_cmi x =
+      si pack_mode alors
+        si Filename.check_suffix x ".cmi" alors
+          soit caml_obj = Pathname.update_extensions caml_obj_ext x dans
+          si Resource.exists_in_build_dir caml_obj alors
             caml_obj
-          else
+          sinon
             x
-        else
+        sinon
           x
-      else
-        if Filename.check_suffix x ".cmi" then
+      sinon
+        si Filename.check_suffix x ".cmi" alors
           Pathname.update_extensions caml_obj_ext x
-        else x in
+        sinon x dans
 
-    let not_linkable x =
-      not (List.exists (Pathname.check_extension x) valid_link_exts) in
+    soit not_linkable x =
+      not (List.exists (Pathname.check_extension x) valid_link_exts) dans
 
-    let dependency_map =
-      fold_dependencies begin fun x y acc ->
-        let x = maybe_caml_obj_ext_of_cmi x
-        and y = maybe_caml_obj_ext_of_cmi y in
-        if x = y || not_linkable x || not_linkable y then acc
-        else smap_add_set x y acc
-      end SMap.empty in
+    soit dependency_map =
+      fold_dependencies début fonc x y acc ->
+        soit x = maybe_caml_obj_ext_of_cmi x
+        et y = maybe_caml_obj_ext_of_cmi y dans
+        si x = y || not_linkable x || not_linkable y alors acc
+        sinon smap_add_set x y acc
+      fin SMap.empty dans
     mydprintf "dependency_map:@ %a" print_smap_set dependency_map;
 
-    let used_files = find_all_rec fns dependency_map in
+    soit used_files = find_all_rec fns dependency_map dans
     mydprintf "used_files:@ %a" Resources.print used_files;
 
-    let open_packages =
-      Resources.fold begin fun file acc ->
-        if Resources.mem file packages && not (List.mem file hidden_packages)
-        then file :: acc else acc
-      end used_files [] in
+    soit open_packages =
+      Resources.fold début fonc file acc ->
+        si Resources.mem file packages && not (List.mem file hidden_packages)
+        alors file :: acc sinon acc
+      fin used_files [] dans
     mydprintf "open_packages:@ %a" pp_l open_packages;
 
-    let index_filter ext list x =
-      Pathname.check_extension x ext && List.mem x list in
+    soit index_filter ext list x =
+      Pathname.check_extension x ext && List.mem x list dans
 
-    let lib_index =
-      lazy (mkindex fold_libraries (index_filter caml_lib_ext used_libraries)) in
+    soit lib_index =
+      paresseux (mkindex fold_libraries (index_filter caml_lib_ext used_libraries)) dans
     mydprintf "lib_index:@ %a" (print_lazy print_smap_list) lib_index;
 
-    let package_index =
-      lazy (mkindex fold_packages (index_filter caml_obj_ext open_packages)) in
+    soit package_index =
+      paresseux (mkindex fold_packages (index_filter caml_obj_ext open_packages)) dans
 
-    let rec resolve_packages x =
-      match find_all_list x !*package_index with
+    soit rec resolve_packages x =
+      filtre find_all_list x !*package_index avec
       | [] -> x
       | [x] -> resolve_packages x
       | pkgs ->
           failwith (sbprintf "le fichier %S est inclus dans plus d'un paquet actif (%a)"
-                             x pp_l pkgs) in
+                             x pp_l pkgs) dans
 
-    let libs_of x = find_all_list x !*lib_index in
+    soit libs_of x = find_all_list x !*lib_index dans
 
-    let lib_of x =
-      match libs_of x with
+    soit lib_of x =
+      filtre libs_of x avec
       | [] -> None
       | [lib] -> Some(lib)
       | libs ->
           failwith (sbprintf "le fichier %S est inclus dans plus d'une biliothèque active (%a)"
-                             x pp_l libs) in
+                             x pp_l libs) dans
 
-    let convert_dependency src dst acc =
-      let src = resolve_packages src in
-      let dst = resolve_packages dst in
-      let add_if_diff x y = if x = y then acc else smap_add_set x y acc in
-      match (lib_of src, lib_of dst) with
+    soit convert_dependency src dst acc =
+      soit src = resolve_packages src dans
+      soit dst = resolve_packages dst dans
+      soit add_if_diff x y = si x = y alors acc sinon smap_add_set x y acc dans
+      filtre (lib_of src, lib_of dst) avec
       | None, None -> add_if_diff src dst
       | Some(liba), Some(libb) -> add_if_diff liba libb
       | Some(lib), None -> add_if_diff lib dst
-      | None, Some(lib) -> add_if_diff src lib in
+      | None, Some(lib) -> add_if_diff src lib dans
 
-    let dependencies = lazy begin
-      SMap.fold begin fun k ->
+    soit dependencies = paresseux début
+      SMap.fold début fonc k ->
         Resources.fold (convert_dependency k)
-      end dependency_map empty
-    end in
+      fin dependency_map empty
+    fin dans
 
     mydprintf "dependencies:@ %a" (print_lazy print_smap_set) dependencies;
 
-    let dependencies_of x =
-      try SMap.find x !*dependencies with Not_found -> Resources.empty in
+    soit dependencies_of x =
+      essaie SMap.find x !*dependencies avec Not_found -> Resources.empty dans
 
-    let needed = ref [] in
-    let seen = ref [] in
-    let rec aux fn =
-      if sys_file_exists fn && not (List.mem fn !needed) then begin
-        if List.mem fn !seen then raise (Circular_dependencies (!seen, fn));
+    soit needed = ref [] dans
+    soit seen = ref [] dans
+    soit rec aux fn =
+      si sys_file_exists fn && not (List.mem fn !needed) alors début
+        si List.mem fn !seen alors raise (Circular_dependencies (!seen, fn));
         seen := fn :: !seen;
-        Resources.iter begin fun f ->
-          if sys_file_exists f then
-            if Filename.check_suffix f ".cmi" then
-              let f' = caml_obj_ext_of_cmi f in
-              if f' <> fn then
-                if sys_file_exists f' then aux f'
-                else if pack_mode then aux f else ()
-              else ()
-            else aux f
-        end (dependencies_of fn);
+        Resources.iter début fonc f ->
+          si sys_file_exists f alors
+            si Filename.check_suffix f ".cmi" alors
+              soit f' = caml_obj_ext_of_cmi f dans
+              si f' <> fn alors
+                si sys_file_exists f' alors aux f'
+                sinon si pack_mode alors aux f sinon ()
+              sinon ()
+            sinon aux f
+        fin (dependencies_of fn);
         needed := fn :: !needed
-      end
-    in
+      fin
+    dans
     List.iter aux fns;
     mydprintf "caml_transitive_closure:@ %a ->@ %a" pp_l fns pp_l !needed;
     List.rev !needed
 
-end
+fin

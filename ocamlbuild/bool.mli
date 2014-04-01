@@ -20,10 +20,10 @@
 (** Public type for generic boolean formulas.  An empty conjunction [And[]] is true and
     an empty disjunction [Or[]] is false. *)
 type 'a boolean =
-    And of 'a boolean list
-  | Or of 'a boolean list
-  | Not of 'a boolean
-  | Atom of 'a
+    And de 'a boolean list
+  | Or de 'a boolean list
+  | Not de 'a boolean
+  | Atom de 'a
   | True
   | False
 

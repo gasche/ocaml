@@ -53,22 +53,22 @@ val lstat : string -> stats
 (** internal usage only *)
 type implem =
   {
-    mutable is_degraded   : bool;
-    mutable is_link       : string -> bool;
-    mutable run_and_open  : 'a . string -> (in_channel -> 'a) -> 'a;
-    mutable readlink      : string -> string;
-    mutable execute_many  : ?max_jobs:int ->
+    modifiable is_degraded   : bool;
+    modifiable is_link       : string -> bool;
+    modifiable run_and_open  : 'a . string -> (in_channel -> 'a) -> 'a;
+    modifiable readlink      : string -> string;
+    modifiable execute_many  : ?max_jobs:int ->
                             ?ticker:(unit -> unit) ->
                             ?period:float ->
                             ?display:((out_channel -> unit) -> unit) ->
                             ((unit -> string) list list) ->
                             (bool list * exn) option;
-    mutable report_error  : Format.formatter -> exn -> unit;
-    mutable at_exit_once  : (unit -> unit) -> unit;
-    mutable gettimeofday  : unit -> float;
-    mutable stdout_isatty : unit -> bool;
-    mutable stat          : string -> stats;
-    mutable lstat         : string -> stats;
+    modifiable report_error  : Format.formatter -> exn -> unit;
+    modifiable at_exit_once  : (unit -> unit) -> unit;
+    modifiable gettimeofday  : unit -> float;
+    modifiable stdout_isatty : unit -> bool;
+    modifiable stat          : string -> stats;
+    modifiable lstat         : string -> stats;
   }
 
 val implem : implem

@@ -11,31 +11,31 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Int64ops
-open Checkpoints
-open Primitives
-open Debugger_config
+ouvre Int64ops
+ouvre Checkpoints
+ouvre Primitives
+ouvre Debugger_config
 
-let history = ref ([] : int64 list)
+soit history = ref ([] : int64 list)
 
-let empty_history () =
+soit empty_history () =
   history := []
 
-let add_current_time () =
-  let time = current_time () in
-    if !history = [] then
+soit add_current_time () =
+  soit time = current_time () dans
+    si !history = [] alors
       history := [time]
-    else if time <> List.hd !history then
+    sinon si time <> List.hd !history alors
       history := list_truncate !history_size (time::!history)
 
-let previous_time_1 () =
-  match !history with
-    _::((time::_) as hist) ->
+soit previous_time_1 () =
+  filtre !history avec
+    _::((time::_) tel hist) ->
       history := hist; time
   | _ ->
       prerr_endline "No more information."; raise Toplevel
 
-let rec previous_time n =
-  if n = _1
-  then previous_time_1()
-  else begin ignore(previous_time_1()); previous_time(pre64 n) end
+soit rec previous_time n =
+  si n = _1
+  alors previous_time_1()
+  sinon début ignore(previous_time_1()); previous_time(pre64 n) fin

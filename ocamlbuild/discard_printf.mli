@@ -16,5 +16,5 @@
 
 (** This module compiled with [-rectypes] allows one to write functions
     taking formatters as arguments. *)
-open Format
+ouvre Format
 val discard_printf: ('a, formatter, unit) format -> 'a

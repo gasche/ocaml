@@ -23,129 +23,129 @@
    passes all the Diehard tests.
 *)
 
-external random_seed: unit -> int array = "caml_sys_random_seed";;
+dehors random_seed: unit -> int array = "caml_sys_random_seed";;
 
 module State = struct
 
-  type t = { st : int array; mutable idx : int };;
+  type t = { st : int array; modifiable idx : int };;
 
-  let new_state () = { st = Array.make 55 0; idx = 0 };;
-  let assign st1 st2 =
+  soit new_state () = { st = Array.make 55 0; idx = 0 };;
+  soit assign st1 st2 =
     Array.blit st2.st 0 st1.st 0 55;
     st1.idx <- st2.idx;
   ;;
 
-  let full_init s seed =
-    let combine accu x = Digest.string (accu ^ string_of_int x) in
-    let extract d =
-      Char.code d.[0] + (Char.code d.[1] lsl 8) + (Char.code d.[2] lsl 16)
-      + (Char.code d.[3] lsl 24)
-    in
-    let seed = if Array.length seed = 0 then [| 0 |] else seed in
-    let l = Array.length seed in
-    for i = 0 to 54 do
+  soit full_init s seed =
+    soit combine accu x = Digest.string (accu ^ string_of_int x) dans
+    soit extract d =
+      Char.code d.[0] + (Char.code d.[1] dgl 8) + (Char.code d.[2] dgl 16)
+      + (Char.code d.[3] dgl 24)
+    dans
+    soit seed = si Array.length seed = 0 alors [| 0 |] sinon seed dans
+    soit l = Array.length seed dans
+    pour i = 0 à 54 faire
       s.st.(i) <- i;
-    done;
-    let accu = ref "x" in
-    for i = 0 to 54 + max 55 l do
-      let j = i mod 55 in
-      let k = i mod l in
+    fait;
+    soit accu = ref "x" dans
+    pour i = 0 à 54 + max 55 l faire
+      soit j = i mod 55 dans
+      soit k = i mod l dans
       accu := combine !accu seed.(k);
-      s.st.(j) <- (s.st.(j) lxor extract !accu) land 0x3FFFFFFF;  (* PR#5575 *)
-    done;
+      s.st.(j) <- (s.st.(j) ouxl extract !accu) etl 0x3FFFFFFF;  (* PR#5575 *)
+    fait;
     s.idx <- 0;
   ;;
 
-  let make seed =
-    let result = new_state () in
+  soit make seed =
+    soit result = new_state () dans
     full_init result seed;
     result
   ;;
 
-  let make_self_init () = make (random_seed ());;
+  soit make_self_init () = make (random_seed ());;
 
-  let copy s =
-    let result = new_state () in
+  soit copy s =
+    soit result = new_state () dans
     assign result s;
     result
   ;;
 
   (* Returns 30 random bits as an integer 0 <= x < 1073741824 *)
-  let bits s =
+  soit bits s =
     s.idx <- (s.idx + 1) mod 55;
-    let curval = s.st.(s.idx) in
-    let newval = s.st.((s.idx + 24) mod 55)
-                 + (curval lxor ((curval lsr 25) land 0x1F)) in
-    let newval30 = newval land 0x3FFFFFFF in  (* PR#5575 *)
+    soit curval = s.st.(s.idx) dans
+    soit newval = s.st.((s.idx + 24) mod 55)
+                 + (curval ouxl ((curval ddl 25) etl 0x1F)) dans
+    soit newval30 = newval etl 0x3FFFFFFF dans  (* PR#5575 *)
     s.st.(s.idx) <- newval30;
     newval30
   ;;
 
-  let rec intaux s n =
-    let r = bits s in
-    let v = r mod n in
-    if r - v > 0x3FFFFFFF - n + 1 then intaux s n else v
+  soit rec intaux s n =
+    soit r = bits s dans
+    soit v = r mod n dans
+    si r - v > 0x3FFFFFFF - n + 1 alors intaux s n sinon v
   ;;
-  let int s bound =
-    if bound > 0x3FFFFFFF || bound <= 0
-    then invalid_arg "Random.int"
-    else intaux s bound
-  ;;
-
-  let rec int32aux s n =
-    let b1 = Int32.of_int (bits s) in
-    let b2 = Int32.shift_left (Int32.of_int (bits s land 1)) 30 in
-    let r = Int32.logor b1 b2 in
-    let v = Int32.rem r n in
-    if Int32.sub r v > Int32.add (Int32.sub Int32.max_int n) 1l
-    then int32aux s n
-    else v
-  ;;
-  let int32 s bound =
-    if bound <= 0l
-    then invalid_arg "Random.int32"
-    else int32aux s bound
+  soit int s bound =
+    si bound > 0x3FFFFFFF || bound <= 0
+    alors invalid_arg "Random.int"
+    sinon intaux s bound
   ;;
 
-  let rec int64aux s n =
-    let b1 = Int64.of_int (bits s) in
-    let b2 = Int64.shift_left (Int64.of_int (bits s)) 30 in
-    let b3 = Int64.shift_left (Int64.of_int (bits s land 7)) 60 in
-    let r = Int64.logor b1 (Int64.logor b2 b3) in
-    let v = Int64.rem r n in
-    if Int64.sub r v > Int64.add (Int64.sub Int64.max_int n) 1L
-    then int64aux s n
-    else v
+  soit rec int32aux s n =
+    soit b1 = Int32.of_int (bits s) dans
+    soit b2 = Int32.shift_left (Int32.of_int (bits s etl 1)) 30 dans
+    soit r = Int32.logor b1 b2 dans
+    soit v = Int32.rem r n dans
+    si Int32.sub r v > Int32.add (Int32.sub Int32.max_int n) 1l
+    alors int32aux s n
+    sinon v
   ;;
-  let int64 s bound =
-    if bound <= 0L
-    then invalid_arg "Random.int64"
-    else int64aux s bound
+  soit int32 s bound =
+    si bound <= 0l
+    alors invalid_arg "Random.int32"
+    sinon int32aux s bound
   ;;
 
-  let nativeint =
-    if Nativeint.size = 32
-    then fun s bound -> Nativeint.of_int32 (int32 s (Nativeint.to_int32 bound))
-    else fun s bound -> Int64.to_nativeint (int64 s (Int64.of_nativeint bound))
+  soit rec int64aux s n =
+    soit b1 = Int64.of_int (bits s) dans
+    soit b2 = Int64.shift_left (Int64.of_int (bits s)) 30 dans
+    soit b3 = Int64.shift_left (Int64.of_int (bits s etl 7)) 60 dans
+    soit r = Int64.logor b1 (Int64.logor b2 b3) dans
+    soit v = Int64.rem r n dans
+    si Int64.sub r v > Int64.add (Int64.sub Int64.max_int n) 1L
+    alors int64aux s n
+    sinon v
+  ;;
+  soit int64 s bound =
+    si bound <= 0L
+    alors invalid_arg "Random.int64"
+    sinon int64aux s bound
+  ;;
+
+  soit nativeint =
+    si Nativeint.size = 32
+    alors fonc s bound -> Nativeint.of_int32 (int32 s (Nativeint.to_int32 bound))
+    sinon fonc s bound -> Int64.to_nativeint (int64 s (Int64.of_nativeint bound))
   ;;
 
   (* Returns a float 0 <= x <= 1 with at most 60 bits of precision. *)
-  let rawfloat s =
-    let scale = 1073741824.0  (* 2^30 *)
-    and r1 = Pervasives.float (bits s)
-    and r2 = Pervasives.float (bits s)
-    in (r1 /. scale +. r2) /. scale
+  soit rawfloat s =
+    soit scale = 1073741824.0  (* 2^30 *)
+    et r1 = Pervasives.float (bits s)
+    et r2 = Pervasives.float (bits s)
+    dans (r1 /. scale +. r2) /. scale
   ;;
 
-  let float s bound = rawfloat s *. bound;;
+  soit float s bound = rawfloat s *. bound;;
 
-  let bool s = (bits s land 1 = 0);;
+  soit bool s = (bits s etl 1 = 0);;
 
-end;;
+fin;;
 
 (* This is the state you get with [init 27182818] and then applying
    the "land 0x3FFFFFFF" filter to them.  See #5575, #5793, #5977. *)
-let default = {
+soit default = {
   State.st = [|
       0x3ae2522b; 0x1d8d4634; 0x15b4fad0; 0x18b14ace; 0x12f8a3c4; 0x3b086c47;
       0x16d467d6; 0x101d91c7; 0x321df177; 0x0176c193; 0x1ff72bf1; 0x1e889109;
@@ -161,22 +161,22 @@ let default = {
   State.idx = 0;
 };;
 
-let bits () = State.bits default;;
-let int bound = State.int default bound;;
-let int32 bound = State.int32 default bound;;
-let nativeint bound = State.nativeint default bound;;
-let int64 bound = State.int64 default bound;;
-let float scale = State.float default scale;;
-let bool () = State.bool default;;
+soit bits () = State.bits default;;
+soit int bound = State.int default bound;;
+soit int32 bound = State.int32 default bound;;
+soit nativeint bound = State.nativeint default bound;;
+soit int64 bound = State.int64 default bound;;
+soit float scale = State.float default scale;;
+soit bool () = State.bool default;;
 
-let full_init seed = State.full_init default seed;;
-let init seed = State.full_init default [| seed |];;
-let self_init () = full_init (random_seed());;
+soit full_init seed = State.full_init default seed;;
+soit init seed = State.full_init default [| seed |];;
+soit self_init () = full_init (random_seed());;
 
 (* Manipulating the current state. *)
 
-let get_state () = State.copy default;;
-let set_state s = State.assign default s;;
+soit get_state () = State.copy default;;
+soit set_state s = State.assign default s;;
 
 (********************
 

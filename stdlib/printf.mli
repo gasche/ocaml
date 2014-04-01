@@ -176,31 +176,31 @@ module CamlinternalPr : sig
     type index;;
 
     val index_of_int : int -> index;;
-    external int_of_index : index -> int = "%identity";;
-    external unsafe_index_of_int : int -> index = "%identity";;
+    dehors int_of_index : index -> int = "%identity";;
+    dehors unsafe_index_of_int : int -> index = "%identity";;
 
     val succ_index : index -> index;;
     val add_int_index : int -> index -> index;;
 
     val sub : ('a, 'b, 'c, 'd, 'e, 'f) format6 -> index -> int -> string;;
     val to_string : ('a, 'b, 'c, 'd, 'e, 'f) format6 -> string;;
-    external length : ('a, 'b, 'c, 'd, 'e, 'f) format6 -> int
+    dehors length : ('a, 'b, 'c, 'd, 'e, 'f) format6 -> int
       = "%string_length";;
-    external get : ('a, 'b, 'c, 'd, 'e, 'f) format6 -> int -> char
+    dehors get : ('a, 'b, 'c, 'd, 'e, 'f) format6 -> int -> char
       = "%string_safe_get";;
-    external unsafe_to_string : ('a, 'b, 'c, 'd, 'e, 'f) format6 -> string
+    dehors unsafe_to_string : ('a, 'b, 'c, 'd, 'e, 'f) format6 -> string
       = "%identity";;
-    external unsafe_get : ('a, 'b, 'c, 'd, 'e, 'f) format6 -> int -> char
+    dehors unsafe_get : ('a, 'b, 'c, 'd, 'e, 'f) format6 -> int -> char
       = "%string_unsafe_get";;
 
-  end;;
+  fin;;
 
   module Tformat : sig
 
     type ac = {
-      mutable ac_rglr : int;
-      mutable ac_skip : int;
-      mutable ac_rdrs : int;
+      modifiable ac_rglr : int;
+      modifiable ac_skip : int;
+      modifiable ac_rdrs : int;
     };;
 
     val ac_of_format : ('a, 'b, 'c, 'd, 'e, 'f) format6 -> ac;;
@@ -233,6 +233,6 @@ module CamlinternalPr : sig
         ('a, 'b, 'c, 'd, 'e, 'f) format6 ->
         'g
 
-  end;;
+  fin;;
 
-end;;
+fin;;

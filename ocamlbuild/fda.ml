@@ -14,14 +14,14 @@
 (* Original author: Berke Durak *)
 (* FDA *)
 
-open Log
-open Hygiene
+ouvre Log
+ouvre Hygiene
 ;;
 
 exception Exit_hygiene_failed
 ;;
 
-let laws =
+soit laws =
   [
     { law_name = "Leftover OCaml compilation files";
       law_rules = [Not ".cmo"; Not ".cmi"; Not ".cmx"; Not ".cma"; Not ".cmxa"];
@@ -43,40 +43,40 @@ let laws =
       law_penalty = Fail }
   ]
 
-let inspect entry =
+soit inspect entry =
   dprintf 5 "Doing sanity checks";
-  let evil = ref false in
-  match Hygiene.check
+  soit evil = ref faux dans
+  filtre Hygiene.check
     ?sanitize:
-      begin
-        if !Options.sanitize then
+      début
+        si !Options.sanitize alors
           Some(Pathname.concat !Options.build_dir !Options.sanitization_script)
-        else
+        sinon
           None
-      end
+      fin
       laws entry
-  with
+  avec
   | [] -> ()
   | stuff ->
     List.iter
-      begin fun (law, msgs) ->
+      début fonc (law, msgs) ->
         Printf.printf "%s: %s:\n"
-          (match law.law_penalty with
+          (filtre law.law_penalty avec
            | Warn -> "Warning"
            | Fail ->
-               if not !evil then
-                 begin
+               si not !evil alors
+                 début
                    Printf.printf "IMPORTANT: I cannot work with leftover compiled files.\n%!";
-                   evil := true
-                 end;
+                   evil := vrai
+                 fin;
               "ERROR")
           law.law_name;
         List.iter
-          begin fun msg ->
+          début fonc msg ->
             Printf.printf "  %s\n" msg
-          end
+          fin
           msgs
-      end
+      fin
       stuff;
-    if !evil then raise Exit_hygiene_failed;
+    si !evil alors raise Exit_hygiene_failed;
 ;;

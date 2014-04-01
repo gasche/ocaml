@@ -10,81 +10,81 @@
 (*                                                                     *)
 (***********************************************************************)
 
-exception Text_syntax of int * int * string (* line, char, string *)
+exception Text_syntax de int * int * string (* line, char, string *)
 
-open Odoc_types
+ouvre Odoc_types
 
 module Texter =
   struct
     (* builds a text structure from a string. *)
-    let text_of_string s =
-      let lexbuf = Lexing.from_string s in
-      try
+    soit text_of_string s =
+      soit lexbuf = Lexing.from_string s dans
+      essaie
         Odoc_text_lexer.init ();
         Odoc_text_parser.main Odoc_text_lexer.main lexbuf
-      with
+      avec
         _ ->
           raise (Text_syntax (!Odoc_text_lexer.line_number,
                               !Odoc_text_lexer.char_number,
                               s)
                 )
 
-    let count s c =
-      let count = ref 0 in
-      for i = 0 to String.length s - 1 do
-        if s.[i] = c then incr count
-      done;
+    soit count s c =
+      soit count = ref 0 dans
+      pour i = 0 à String.length s - 1 faire
+        si s.[i] = c alors incr count
+      fait;
       !count
 
-    let escape_n s c n =
-      let remain = ref n in
-      let len = String.length s in
-      let b = Buffer.create (len + n) in
-      for i = 0 to len - 1 do
-        if s.[i] = c && !remain > 0 then
+    soit escape_n s c n =
+      soit remain = ref n dans
+      soit len = String.length s dans
+      soit b = Buffer.create (len + n) dans
+      pour i = 0 à len - 1 faire
+        si s.[i] = c && !remain > 0 alors
           (
            Printf.bprintf b "\\%c" c;
            decr remain
           )
-        else
+        sinon
           Buffer.add_char b s.[i]
-      done;
+      fait;
       Buffer.contents b
 
-    let escape_code s =
-      let open_brackets = count s '[' in
-      let close_brackets = count s ']' in
-      if open_brackets > close_brackets then
+    soit escape_code s =
+      soit open_brackets = count s '[' dans
+      soit close_brackets = count s ']' dans
+      si open_brackets > close_brackets alors
         escape_n s '[' (open_brackets - close_brackets)
-      else
-        if close_brackets > open_brackets then
+      sinon
+        si close_brackets > open_brackets alors
           escape_n s ']' (close_brackets - open_brackets)
-        else
+        sinon
           s
 
-    let escape_raw s =
-      let len = String.length s in
-      let b = Buffer.create len in
-      for i = 0 to len - 1 do
-        match s.[i] with
+    soit escape_raw s =
+      soit len = String.length s dans
+      soit b = Buffer.create len dans
+      pour i = 0 à len - 1 faire
+        filtre s.[i] avec
           '[' | ']' | '{' | '}' ->
             Printf.bprintf b "\\%c" s.[i]
         | c ->
             Buffer.add_char b c
-      done;
+      fait;
       Buffer.contents b
 
-    let p = Printf.bprintf
+    soit p = Printf.bprintf
 
-    let rec p_text b t =
+    soit rec p_text b t =
       List.iter (p_text_element b) t
 
-    and p_list b l =
+    et p_list b l =
       List.iter
-        (fun t -> p b "{- " ; p_text b t ; p b "}\n")
+        (fonc t -> p b "{- " ; p_text b t ; p b "}\n")
         l
 
-    and p_text_element b = function
+    et p_text_element b = fonction
       | Raw s -> p b "%s" (escape_raw s)
       | Code s -> p b "[%s]" (escape_code s)
       | CodePre s -> p b "{[%s]}" s
@@ -102,7 +102,7 @@ module Texter =
       | Title (n, l_opt, t) ->
           p b "{%d%s "
             n
-            (match l_opt with
+            (filtre l_opt avec
               None -> ""
             | Some s -> ":"^s
             );
@@ -114,14 +114,14 @@ module Texter =
           p_text b t ;
           p b "}"
       | Ref (name, kind_opt, text_opt) ->
-        begin
+        début
           p b "%s{!%s%s}"
-            (match text_opt with None -> "" | Some _ -> "{")
-            (match kind_opt with
+            (filtre text_opt avec None -> "" | Some _ -> "{")
+            (filtre kind_opt avec
                None -> ""
              | Some k ->
-                 let s =
-                   match k with
+                 soit s =
+                   filtre k avec
                      RK_module -> "module"
                    | RK_module_type -> "modtype"
                    | RK_class -> "class"
@@ -134,19 +134,19 @@ module Texter =
                    | RK_section _ -> "section"
                    | RK_recfield -> "recfield"
                    | RK_const -> "const"
-                 in
+                 dans
                  s^":"
             )
             name;
-          match text_opt with
+          filtre text_opt avec
             None -> ()
           | Some t -> p_text b t; p b "}"
-        end
+        fin
       | Superscript t -> p b "{^" ; p_text b t ; p b "}"
       | Subscript t -> p b "{_" ; p_text b t ; p b "}"
       | Module_list l ->
           p b "{!modules:";
-          List.iter (fun s -> p b " %s" s) l;
+          List.iter (fonc s -> p b " %s" s) l;
           p b "}"
       | Index_list ->
           p b "{!indexlist}"
@@ -157,9 +157,9 @@ module Texter =
       | Target (target, code) ->
           p b "{%%%s: %s}" target (escape_raw code)
 
-    let string_of_text s =
-      let b = Buffer.create 256 in
+    soit string_of_text s =
+      soit b = Buffer.create 256 dans
       p_text b s;
       Buffer.contents b
 
-  end
+  fin

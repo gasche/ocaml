@@ -12,13 +12,13 @@
 
 (****************** arithmetic operators for Int64 *********************)
 
-let ( ++ ) = Int64.add;;
-let ( -- ) = Int64.sub;;
-let suc64 = Int64.succ;;
-let pre64 = Int64.pred;;
-let _0 = Int64.zero;;
-let _1 = Int64.one;;
-let _minus1 = Int64.minus_one;;
-let ( ~~ ) = Int64.of_string;;
-let max_small_int = Int64.of_int max_int;;
-let to_int = Int64.to_int;;
+soit ( ++ ) = Int64.add;;
+soit ( -- ) = Int64.sub;;
+soit suc64 = Int64.succ;;
+soit pre64 = Int64.pred;;
+soit _0 = Int64.zero;;
+soit _1 = Int64.one;;
+soit _minus1 = Int64.minus_one;;
+soit ( ~~ ) = Int64.of_string;;
+soit max_small_int = Int64.of_int max_int;;
+soit to_int = Int64.to_int;;

@@ -13,8 +13,8 @@
 
 (************************ Reading and executing commands ***************)
 
-open Lexing;;
-open Format;;
+ouvre Lexing;;
+ouvre Format;;
 
 val interprete_line : formatter -> string -> bool;;
 val line_loop : formatter -> lexbuf -> unit;;

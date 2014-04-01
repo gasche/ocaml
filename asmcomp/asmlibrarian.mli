@@ -12,14 +12,14 @@
 
 (* Build libraries of .cmx files *)
 
-open Format
+ouvre Format
 
 val create_archive: string list -> string -> unit
 
 type error =
-    File_not_found of string
-  | Archiver_error of string
+    File_not_found de string
+  | Archiver_error de string
 
-exception Error of error
+exception Error de error
 
 val report_error: formatter -> error -> unit

@@ -33,7 +33,7 @@ module type OrderedType =
           and [f e1 e2] is strictly positive if [e1] is greater than [e2].
           Example: a suitable ordering function is the generic structural
           comparison function {!Pervasives.compare}. *)
-  end
+  fin
 (** Input signature of the functor {!Map.Make}. *)
 
 module type S =
@@ -184,9 +184,9 @@ module type S =
        key and the associated value for each binding of the map. *)
 
 
-  end
+  fin
 (** Output signature of the functor {!Map.Make}. *)
 
-module Make (Ord : OrderedType) : S with type key = Ord.t
+module Make (Ord : OrderedType) : S avec type key = Ord.t
 (** Functor building an implementation of the map structure
    given a totally ordered type. *)

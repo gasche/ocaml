@@ -13,4 +13,4 @@
 
 (* Module [StringLabels]: labelled String module *)
 
-include String
+inclus String

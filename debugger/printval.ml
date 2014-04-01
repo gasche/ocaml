@@ -13,92 +13,92 @@
 
 (* To print values *)
 
-open Format
-open Parser_aux
-open Path
-open Types
+ouvre Format
+ouvre Parser_aux
+ouvre Path
+ouvre Types
 
 (* To name printed and ellipsed values *)
 
-let named_values =
+soit named_values =
   (Hashtbl.create 29 : (int, Debugcom.Remote_value.t * type_expr) Hashtbl.t)
-let next_name = ref 1
+soit next_name = ref 1
 
-let reset_named_values () =
+soit reset_named_values () =
   Hashtbl.clear named_values;
   next_name := 1
 
-let name_value v ty =
-  let name = !next_name in
+soit name_value v ty =
+  soit name = !next_name dans
   incr next_name;
   Hashtbl.add named_values name (v, ty);
   name
 
-let find_named_value name =
+soit find_named_value name =
   Hashtbl.find named_values name
 
-let check_depth ppf depth obj ty =
-  if depth <= 0 then begin
-    let n = name_value obj ty in
+soit check_depth ppf depth obj ty =
+  si depth <= 0 alors début
+    soit n = name_value obj ty dans
     Some (Outcometree.Oval_stuff ("$" ^ string_of_int n))
-  end else None
+  fin sinon None
 
 module EvalPath =
   struct
     type valu = Debugcom.Remote_value.t
     exception Error
-    let rec eval_path env = function
+    soit rec eval_path env = fonction
       Pident id ->
-        begin try
+        début essaie
           Debugcom.Remote_value.global (Symtable.get_global_position id)
-        with Symtable.Error _ ->
+        avec Symtable.Error _ ->
           raise Error
-        end
+        fin
     | Pdot(root, fieldname, pos) ->
-        let v = eval_path env root in
-        if not (Debugcom.Remote_value.is_block v)
-        then raise Error
-        else Debugcom.Remote_value.field v pos
+        soit v = eval_path env root dans
+        si not (Debugcom.Remote_value.is_block v)
+        alors raise Error
+        sinon Debugcom.Remote_value.field v pos
     | Papply(p1, p2) ->
         raise Error
-    let same_value = Debugcom.Remote_value.same
-  end
+    soit same_value = Debugcom.Remote_value.same
+  fin
 
 module Printer = Genprintval.Make(Debugcom.Remote_value)(EvalPath)
 
-let install_printer path ty ppf fn =
+soit install_printer path ty ppf fn =
   Printer.install_printer path ty
-    (fun ppf remote_val ->
-       try
+    (fonc ppf remote_val ->
+       essaie
          fn ppf (Obj.repr (Debugcom.Remote_value.obj remote_val))
-       with
+       avec
          Debugcom.Marshalling_error ->
            fprintf ppf "<cannot fetch remote object>")
 
-let remove_printer = Printer.remove_printer
+soit remove_printer = Printer.remove_printer
 
-let max_printer_depth = ref 20
-let max_printer_steps = ref 300
+soit max_printer_depth = ref 20
+soit max_printer_steps = ref 300
 
-let print_exception ppf obj =
-  let t = Printer.outval_of_untyped_exception obj in
+soit print_exception ppf obj =
+  soit t = Printer.outval_of_untyped_exception obj dans
   !Oprint.out_value ppf t
 
-let print_value max_depth env obj (ppf : Format.formatter) ty =
-  let t =
+soit print_value max_depth env obj (ppf : Format.formatter) ty =
+  soit t =
     Printer.outval_of_value !max_printer_steps max_depth
-      (check_depth ppf) env obj ty in
+      (check_depth ppf) env obj ty dans
   !Oprint.out_value ppf t
 
-let print_named_value max_depth exp env obj ppf ty =
-  let print_value_name ppf = function
+soit print_named_value max_depth exp env obj ppf ty =
+  soit print_value_name ppf = fonction
   | E_ident lid ->
       Printtyp.longident ppf lid
   | E_name n ->
       fprintf ppf "$%i" n
   | _ ->
-      let n = name_value obj ty in
-      fprintf ppf "$%i" n in
+      soit n = name_value obj ty dans
+      fprintf ppf "$%i" n dans
   Printtyp.reset_and_mark_loops ty;
   fprintf ppf "@[<2>%a:@ %a@ =@ %a@]@."
   print_value_name exp

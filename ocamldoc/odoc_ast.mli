@@ -86,13 +86,13 @@ module Typedtree_search :
          @raise Not_found if the class method could not be found.*)
       val search_method_expression :
           Typedtree.class_structure -> string -> Typedtree.expression
-    end
+    fin
 
 (** The module which performs the analysis of a typed tree.
    The module uses the module {!Odoc_sig.Analyser}.
    @param My_ir The module used to retrieve comments and special comments.*)
 module Analyser :
-  functor (My_ir : Odoc_sig.Info_retriever) ->
+  foncteur (My_ir : Odoc_sig.Info_retriever) ->
     sig
       (** This function takes a file name, a file containg the code and
          the typed tree obtained from the compiler.
@@ -100,4 +100,4 @@ module Analyser :
          functions, modules, ..., and looking in the source file for comments.*)
       val analyse_typed_tree :
         string -> string -> Parsetree.structure -> typedtree -> Odoc_module.t_module
-    end
+    fin

@@ -57,16 +57,16 @@ val dummy_class :
 
 (** {6 Objects} *)
 
-val copy : (< .. > as 'a) -> 'a
+val copy : (< .. > tel 'a) -> 'a
 val create_object : table -> obj
 val create_object_opt : obj -> table -> obj
 val run_initializers : obj -> table -> unit
 val run_initializers_opt : obj -> obj -> table -> obj
 val create_object_and_run_initializers : obj -> table -> obj
-external send : obj -> tag -> t = "%send"
-external sendcache : obj -> tag -> t -> int -> t = "%sendcache"
-external sendself : obj -> label -> t = "%sendself"
-external get_public_method : obj -> tag -> closure
+dehors send : obj -> tag -> t = "%send"
+dehors sendcache : obj -> tag -> t -> int -> t = "%sendcache"
+dehors sendself : obj -> label -> t = "%sendself"
+dehors get_public_method : obj -> tag -> closure
     = "caml_get_public_method" "noalloc"
 
 (** {6 Table cache} *)
@@ -128,17 +128,17 @@ type impl =
   | SendVar
   | SendEnv
   | SendMeth
-  | Closure of closure
+  | Closure de closure
 
 (** {6 Parameters} *)
 
 (* currently disabled *)
 type params =
-  { mutable compact_table : bool;
-    mutable copy_parent : bool;
-    mutable clean_when_copying : bool;
-    mutable retry_count : int;
-    mutable bucket_small_size : int }
+  { modifiable compact_table : bool;
+    modifiable copy_parent : bool;
+    modifiable clean_when_copying : bool;
+    modifiable retry_count : int;
+    modifiable bucket_small_size : int }
 
 val params : params
 

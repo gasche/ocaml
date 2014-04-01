@@ -13,74 +13,74 @@
 (** Global variables. *)
 
 (* Tell ocaml compiler not to generate files. *)
-let _ = Clflags.dont_write_files := true
+soit _ = Clflags.dont_write_files := vrai
 
-open Clflags
+ouvre Clflags
 
 type source_file =
-    Impl_file of string
-  | Intf_file of string
-  | Text_file of string
+    Impl_file de string
+  | Intf_file de string
+  | Text_file de string
 
-let include_dirs = Clflags.include_dirs
+soit include_dirs = Clflags.include_dirs
 
-let errors = ref 0
+soit errors = ref 0
 
-let warn_error = ref false
+soit warn_error = ref faux
 
-let pwarning s =
-  if !Odoc_config.print_warnings then prerr_endline (Odoc_messages.warning^": "^s);
-  if !warn_error then incr errors
+soit pwarning s =
+  si !Odoc_config.print_warnings alors prerr_endline (Odoc_messages.warning^": "^s);
+  si !warn_error alors incr errors
 
-let merge_options = ref ([] : Odoc_types.merge_option list)
+soit merge_options = ref ([] : Odoc_types.merge_option list)
 
-let classic = Clflags.classic
+soit classic = Clflags.classic
 
-let dump = ref (None : string option)
+soit dump = ref (None : string option)
 
-let load = ref ([] : string list)
+soit load = ref ([] : string list)
 
 (** Allow arbitrary recursive types. *)
-let recursive_types = Clflags.recursive_types
+soit recursive_types = Clflags.recursive_types
 
 (** Optional preprocessor command. *)
-let preprocessor = Clflags.preprocessor
-let ppx = Clflags.all_ppx
+soit preprocessor = Clflags.preprocessor
+soit ppx = Clflags.all_ppx
 
-let sort_modules = ref false
+soit sort_modules = ref faux
 
-let no_custom_tags = ref false
+soit no_custom_tags = ref faux
 
-let no_stop = ref false
+soit no_stop = ref faux
 
-let remove_stars = ref false
+soit remove_stars = ref faux
 
-let keep_code = ref false
+soit keep_code = ref faux
 
-let inverse_merge_ml_mli = ref false
+soit inverse_merge_ml_mli = ref faux
 
-let filter_with_module_constraints = ref true
+soit filter_with_module_constraints = ref vrai
 
-let hidden_modules = ref ([] : string list)
+soit hidden_modules = ref ([] : string list)
 
-let files = ref []
+soit files = ref []
 
 
 
-let out_file = ref Odoc_messages.default_out_file
+soit out_file = ref Odoc_messages.default_out_file
 
-let verbose = ref false
+soit verbose = ref faux
 
-let target_dir = ref Filename.current_dir_name
+soit target_dir = ref Filename.current_dir_name
 
-let title = ref (None : string option)
+soit title = ref (None : string option)
 
-let intro_file = ref (None : string option)
+soit intro_file = ref (None : string option)
 
-let with_header = ref true
+soit with_header = ref vrai
 
-let with_trailer = ref true
+soit with_trailer = ref vrai
 
-let with_toc = ref true
+soit with_toc = ref vrai
 
-let with_index = ref true
+soit with_index = ref vrai

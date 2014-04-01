@@ -13,11 +13,11 @@
 
 (** Operations on objects *)
 
-val copy : (< .. > as 'a) -> 'a
+val copy : (< .. > tel 'a) -> 'a
 (** [Oo.copy o] returns a copy of object [o], that is a fresh
    object with the same methods and instance variables as [o]. *)
 
-external id : < .. > -> int = "%field1"
+dehors id : < .. > -> int = "%field1"
 (** Return an integer identifying this object, unique for
     the current execution of the program. The generic comparison
     and hashing functions are based on this integer. When an object

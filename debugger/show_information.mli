@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Format;;
+ouvre Format;;
 
 (* Display information about the current event. *)
 val show_current_event : formatter -> unit;;

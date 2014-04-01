@@ -12,7 +12,7 @@
 
 (** Representation of element names. *)
 
-let infix_chars = [ '|' ;
+soit infix_chars = [ '|' ;
                     '<' ;
                     '>' ;
                     '@' ;
@@ -32,191 +32,191 @@ let infix_chars = [ '|' ;
 
 type t = string
 
-let strip_string s =
-  let len = String.length s in
-  let rec iter_first n =
-    if n >= len then
+soit strip_string s =
+  soit len = String.length s dans
+  soit rec iter_first n =
+    si n >= len alors
       None
-    else
-      match s.[n] with
+    sinon
+      filtre s.[n] avec
         ' ' | '\t' | '\n' | '\r' -> iter_first (n+1)
       | _ -> Some n
-  in
-  match iter_first 0 with
+  dans
+  filtre iter_first 0 avec
     None -> ""
   | Some first ->
-      let rec iter_last n =
-        if n <= first then
+      soit rec iter_last n =
+        si n <= first alors
           None
-        else
-          match s.[n] with
+        sinon
+          filtre s.[n] avec
             ' ' | '\t' | '\n' | '\r' -> iter_last (n-1)
           | _ -> Some n
-      in
-      match iter_last (len-1) with
+      dans
+      filtre iter_last (len-1) avec
         None -> String.sub s first 1
       | Some last -> String.sub s first ((last-first)+1)
 
-let parens_if_infix name =
-  match strip_string name with
+soit parens_if_infix name =
+  filtre strip_string name avec
   | "" -> ""
-  | s when s.[0] = '*' || s.[String.length s - 1] = '*' -> "( " ^ s ^ " )"
-  | s when List.mem s.[0] infix_chars -> "(" ^ s ^ ")"
+  | s quand s.[0] = '*' || s.[String.length s - 1] = '*' -> "( " ^ s ^ " )"
+  | s quand List.mem s.[0] infix_chars -> "(" ^ s ^ ")"
   | "or" | "mod" | "land" | "lor" | "lxor" | "lsl" | "lsr" | "asr" ->
      "(" ^ name ^ ")"
   | name -> name
 ;;
 
-let cut name =
-  match name with
+soit cut name =
+  filtre name avec
     "" -> ("", "")
   | s ->
-      let len = String.length s in
-      match s.[len-1] with
+      soit len = String.length s dans
+      filtre s.[len-1] avec
         ')' ->
           (
-           let j = ref 0 in
-           let buf = [|Buffer.create len ; Buffer.create len |] in
-           for i = 0 to len - 1 do
-             match s.[i] with
-               '.' when !j = 0 ->
-                 if i < len - 1 then
-                   match s.[i+1] with
+           soit j = ref 0 dans
+           soit buf = [|Buffer.create len ; Buffer.create len |] dans
+           pour i = 0 à len - 1 faire
+             filtre s.[i] avec
+               '.' quand !j = 0 ->
+                 si i < len - 1 alors
+                   filtre s.[i+1] avec
                      '(' ->
                        j := 1
                    | _ ->
                        Buffer.add_char buf.(!j) '.'
-                 else
+                 sinon
                    Buffer.add_char buf.(!j) s.[i]
              | c ->
                  Buffer.add_char buf.(!j) c
-           done;
+           fait;
            (Buffer.contents buf.(0), Buffer.contents buf.(1))
           )
       | _ ->
-          match List.rev (Str.split (Str.regexp_string ".") s) with
+          filtre List.rev (Str.split (Str.regexp_string ".") s) avec
             [] -> ("", "")
           | h :: q ->
               (String.concat "." (List.rev q), h)
 
-let simple name = snd (cut name)
-let father name = fst (cut name)
+soit simple name = snd (cut name)
+soit father name = fst (cut name)
 
-let concat n1 n2 = n1^"."^n2
+soit concat n1 n2 = n1^"."^n2
 
-let normalize_name name =
-  let (p,s) = cut name in
-  let len = String.length s in
-  let s =
-    if len >= 2 &&
+soit normalize_name name =
+  soit (p,s) = cut name dans
+  soit len = String.length s dans
+  soit s =
+    si len >= 2 &&
       s.[0] = '(' && s.[len - 1] = ')'
-    then
+    alors
       parens_if_infix (strip_string (String.sub s 1 (len - 2)))
-    else
+    sinon
       s
-  in
-  match p with
+  dans
+  filtre p avec
     "" -> s
   | p -> concat p s
   ;;
 
-let head_and_tail n =
-  try
-    let pos = String.index n '.' in
-    if pos > 0 then
-      let h = String.sub n 0 pos in
-      try
+soit head_and_tail n =
+  essaie
+    soit pos = String.index n '.' dans
+    si pos > 0 alors
+      soit h = String.sub n 0 pos dans
+      essaie
         ignore (String.index h '(');
         (n, "")
-      with
+      avec
         Not_found ->
-          let len = String.length n in
-          if pos >= (len - 1) then
+          soit len = String.length n dans
+          si pos >= (len - 1) alors
             (h, "")
-          else
+          sinon
             (h, String.sub n (pos + 1) (len - pos - 1))
-    else
+    sinon
       (n, "")
-  with
+  avec
     Not_found -> (n, "")
 
-let head n = fst (head_and_tail n)
-let tail n = snd (head_and_tail n)
+soit head n = fst (head_and_tail n)
+soit tail n = snd (head_and_tail n)
 
-let depth name =
-  try
+soit depth name =
+  essaie
     List.length (Str.split (Str.regexp "\\.") name)
-  with
+  avec
     _ -> 1
 
-let prefix n1 n2 =
+soit prefix n1 n2 =
   (n1 <> n2) &&
-  (try
-    let len1 = String.length n1 in
+  (essaie
+    soit len1 = String.length n1 dans
     ((String.sub n2 0 len1) = n1) &&
     (n2.[len1] = '.')
-  with _ -> false)
+  avec _ -> faux)
 
-let rec get_relative_raw n1 n2 =
-  let (f1,s1) = head_and_tail n1 in
-  let (f2,s2) = head_and_tail n2 in
-  if f1 = f2 then
-    if f2 = s2 || s2 = "" then
+soit rec get_relative_raw n1 n2 =
+  soit (f1,s1) = head_and_tail n1 dans
+  soit (f2,s2) = head_and_tail n2 dans
+  si f1 = f2 alors
+    si f2 = s2 || s2 = "" alors
       s2
-    else
-      if f1 = s1 || s1 = "" then
+    sinon
+      si f1 = s1 || s1 = "" alors
         s2
-      else
+      sinon
         get_relative_raw s1 s2
-  else
+  sinon
     n2
 
-let get_relative n1 n2 =
-  if prefix n1 n2 then
-    let len1 = String.length n1 in
-    try
+soit get_relative n1 n2 =
+  si prefix n1 n2 alors
+    soit len1 = String.length n1 dans
+    essaie
       String.sub n2 (len1+1) ((String.length n2) - len1 - 1)
-    with
+    avec
       _ -> n2
-  else
+  sinon
     n2
 
-let hide_given_modules l s =
-  let rec iter = function
+soit hide_given_modules l s =
+  soit rec iter = fonction
       [] -> s
     | h :: q ->
-        let s2 = get_relative h s in
-        if s = s2 then
+        soit s2 = get_relative h s dans
+        si s = s2 alors
           iter q
-        else
+        sinon
           s2
-  in
+  dans
   iter l
 
-let qualified name = String.contains name '.'
+soit qualified name = String.contains name '.'
 
-let from_ident ident = Ident.name ident
+soit from_ident ident = Ident.name ident
 
 
-let from_path path = Path.name path
+soit from_path path = Path.name path
 
-let to_path n =
-  match
+soit to_path n =
+  filtre
     List.fold_left
-      (fun acc_opt -> fun s ->
-        match acc_opt with
+      (fonc acc_opt -> fonc s ->
+        filtre acc_opt avec
           None -> Some (Path.Pident (Ident.create s))
         | Some acc -> Some (Path.Pdot (acc, s, 0)))
       None
       (Str.split (Str.regexp "\\.") n)
-  with
+  avec
     None -> raise (Failure "to_path")
   | Some p -> p
 
-let from_longident = Odoc_misc.string_of_longident
+soit from_longident = Odoc_misc.string_of_longident
 
 module Set = Set.Make (struct
   type z = t
   type t = z
-  let compare = String.compare
-end)
+  soit compare = String.compare
+fin)

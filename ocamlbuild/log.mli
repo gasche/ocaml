@@ -15,7 +15,7 @@
 (* Log *)
 
 (** Module for modulating the logging output with the logging level. *)
-include Signatures.LOG
+inclus Signatures.LOG
 
 (** Turn it to true to have a classic display of commands. *)
 val classic_display : bool ref

@@ -20,7 +20,7 @@ exception Failure
 (** Raised by parsers when none of the first components of the stream
    patterns is accepted. *)
 
-exception Error of string
+exception Error de string
 (** Raised by parsers when the first component of a stream pattern is
    accepted, but one of the following components is rejected. *)
 

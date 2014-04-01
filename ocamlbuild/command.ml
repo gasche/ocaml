@@ -14,29 +14,29 @@
 (* Original author: Nicolas Pouillard *)
 (* Command *)
 
-open My_std
-open Log
+ouvre My_std
+ouvre Log
 
 type tags = Tags.t
 type pathname = string
 
-let jobs = ref 1
+soit jobs = ref 1
 
 type t =
-| Seq of t list
-| Cmd of spec
-| Echo of string list * pathname
+| Seq de t list
+| Cmd de spec
+| Echo de string list * pathname
 | Nop
-and spec =
+et spec =
 | N (* nop or nil *)
-| S of spec list
-| A of string
-| P of pathname
-| Px of pathname
-| Sh of string
-| T of Tags.t
-| V of string
-| Quote of spec
+| S de spec list
+| A de string
+| P de pathname
+| Px de pathname
+| Sh de string
+| T de Tags.t
+| V de string
+| Quote de spec
 
 (*type v = [ `Seq of v list | `Cmd of vspec | `Nop ]
 and vspec =
@@ -81,122 +81,122 @@ let rec v_of_t =
   | Cmd spec -> `Cmd (vspec_of_spec spec)
   | Seq cmds -> `Seq (List.map v_of_t cmds)*)
 
-let no_tag_handler _ = failwith "no_tag_handler"
+soit no_tag_handler _ = failwith "no_tag_handler"
 
-let tag_handler = ref no_tag_handler
+soit tag_handler = ref no_tag_handler
 
 (*** atomize *)
-let atomize l = S(List.map (fun x -> A x) l)
-let atomize_paths l = S(List.map (fun x -> P x) l)
+soit atomize l = S(List.map (fonc x -> A x) l)
+soit atomize_paths l = S(List.map (fonc x -> P x) l)
 (* ***)
 
-let env_path = lazy begin
-  let path_var = Sys.getenv "PATH" in
-  let parse_path =
-    if Sys.os_type = "Win32" then
+soit env_path = paresseux début
+  soit path_var = Sys.getenv "PATH" dans
+  soit parse_path =
+    si Sys.os_type = "Win32" alors
       Lexers.parse_environment_path_w
-    else
+    sinon
       Lexers.parse_environment_path
-  in
-  let paths =
-    try
+  dans
+  soit paths =
+    essaie
       parse_path (Lexing.from_string path_var)
-    with Lexers.Error (msg,pos) -> raise (Lexers.Error ("$PATH: " ^ msg, pos))
-  in
-  let norm_current_dir_name path =
-    if path = "" then Filename.current_dir_name else path
-  in
+    avec Lexers.Error (msg,pos) -> raise (Lexers.Error ("$PATH: " ^ msg, pos))
+  dans
+  soit norm_current_dir_name path =
+    si path = "" alors Filename.current_dir_name sinon path
+  dans
   List.map norm_current_dir_name paths
-end
+fin
 
-let virtual_solvers = Hashtbl.create 32
-let setup_virtual_command_solver virtual_command solver =
+soit virtual_solvers = Hashtbl.create 32
+soit setup_virtual_command_solver virtual_command solver =
   Hashtbl.replace virtual_solvers virtual_command solver
-let virtual_solver virtual_command =
-  let solver =
-    try
+soit virtual_solver virtual_command =
+  soit solver =
+    essaie
       Hashtbl.find virtual_solvers virtual_command
-    with Not_found ->
+    avec Not_found ->
       failwith (sbprintf "pas de solveur pour la commande virtuelle %S \
                           (installez-en un avec Command.setup_virtual_command_solver)"
                 virtual_command)
-  in
-  try solver ()
-  with Not_found ->
+  dans
+  essaie solver ()
+  avec Not_found ->
     failwith (Printf.sprintf "le solveur pour la commande virtuelle %S \
                               n'a pas réussi a trouver un commande valide" virtual_command)
 
 (* On Windows, we need to also check for the ".exe" version of the file. *)
-let file_or_exe_exists file =
+soit file_or_exe_exists file =
   sys_file_exists file || (Sys.os_type = "Win32" && sys_file_exists (file ^ ".exe"))
 
-let search_in_path cmd =
+soit search_in_path cmd =
   (* Try to find [cmd] in path [path]. *)
-  let try_path path =
+  soit try_path path =
     (* Don't know why we're trying to be subtle here... *)
-    if path = Filename.current_dir_name then file_or_exe_exists cmd
-    else file_or_exe_exists (filename_concat path cmd)
-  in
-  if Filename.is_implicit cmd then
-    let path = List.find try_path !*env_path in
+    si path = Filename.current_dir_name alors file_or_exe_exists cmd
+    sinon file_or_exe_exists (filename_concat path cmd)
+  dans
+  si Filename.is_implicit cmd alors
+    soit path = List.find try_path !*env_path dans
     (* We're not trying to append ".exe" here because all windows shells are
      * capable of understanding the command without the ".exe" suffix. *)
     filename_concat path cmd
-  else
+  sinon
     cmd
 
 (*** string_of_command_spec{,_with_calls *)
-let rec string_of_command_spec_with_calls call_with_tags call_with_target resolve_virtuals spec =
-  let self = string_of_command_spec_with_calls call_with_tags call_with_target resolve_virtuals in
-  let b = Buffer.create 256 in
+soit rec string_of_command_spec_with_calls call_with_tags call_with_target resolve_virtuals spec =
+  soit self = string_of_command_spec_with_calls call_with_tags call_with_target resolve_virtuals dans
+  soit b = Buffer.create 256 dans
   (* The best way to prevent bash from switching to its windows-style
    * quote-handling is to prepend an empty string before the command name. *)
-  if Sys.os_type = "Win32" then
+  si Sys.os_type = "Win32" alors
     Buffer.add_string b "''";
-  let first = ref true in
-  let put_space () =
-    if !first then
-      first := false
-    else
+  soit first = ref vrai dans
+  soit put_space () =
+    si !first alors
+      first := faux
+    sinon
       Buffer.add_char b ' '
-  in
-  let put_filename p =
+  dans
+  soit put_filename p =
     Buffer.add_string b (Shell.quote_filename_if_needed p)
-  in
-  let rec do_spec = function
+  dans
+  soit rec do_spec = fonction
     | N -> ()
     | A u -> put_space (); put_filename u
     | Sh u -> put_space (); Buffer.add_string b u
     | P p -> put_space (); put_filename p
     | Px u -> put_space (); put_filename u; call_with_target u
-    | V v -> if resolve_virtuals then do_spec (virtual_solver v)
-             else (put_space (); Printf.bprintf b "<virtual %s>" (Shell.quote_filename_if_needed v))
+    | V v -> si resolve_virtuals alors do_spec (virtual_solver v)
+             sinon (put_space (); Printf.bprintf b "<virtual %s>" (Shell.quote_filename_if_needed v))
     | S l -> List.iter do_spec l
     | T tags -> call_with_tags tags; do_spec (!tag_handler tags)
     | Quote s -> put_space (); put_filename (self s)
-  in
+  dans
   do_spec spec;
   Buffer.contents b
 
-let string_of_command_spec x = string_of_command_spec_with_calls ignore ignore false x
+soit string_of_command_spec x = string_of_command_spec_with_calls ignore ignore faux x
 
-let string_target_and_tags_of_command_spec spec =
-  let rtags = ref Tags.empty in
-  let rtarget = ref "" in
-  let union_rtags tags = rtags := Tags.union !rtags tags in
-  let s = string_of_command_spec_with_calls union_rtags ((:=) rtarget) true spec in
-  let target = if !rtarget = "" then s else !rtarget in
+soit string_target_and_tags_of_command_spec spec =
+  soit rtags = ref Tags.empty dans
+  soit rtarget = ref "" dans
+  soit union_rtags tags = rtags := Tags.union !rtags tags dans
+  soit s = string_of_command_spec_with_calls union_rtags ((:=) rtarget) vrai spec dans
+  soit target = si !rtarget = "" alors s sinon !rtarget dans
   s, target, !rtags
 
-let string_print_of_command_spec spec quiet pretend =
-  let s, target, tags = string_target_and_tags_of_command_spec spec in
-  fun () -> if not quiet then Log.event ~pretend s target tags; s
+soit string_print_of_command_spec spec quiet pretend =
+  soit s, target, tags = string_target_and_tags_of_command_spec spec dans
+  fonc () -> si not quiet alors Log.event ~pretend s target tags; s
 (* ***)
 
-let print_escaped_string f = Format.fprintf f "%S"
+soit print_escaped_string f = Format.fprintf f "%S"
 
-let rec print f =
-  function
+soit rec print f =
+  fonction
   | Cmd spec -> Format.pp_print_string f (string_of_command_spec spec)
   | Seq seq -> List.print print f seq
   | Nop -> Format.pp_print_string f "nop"
@@ -204,197 +204,197 @@ let rec print f =
       Format.fprintf f "@[<2>Echo(%a,@ %a)@]"
         (List.print print_escaped_string) texts print_escaped_string dest_path
 
-let to_string x = sbprintf "%a" print x
+soit to_string x = sbprintf "%a" print x
 
-let add_parallel_stat, dump_parallel_stats =
-  let xmin = ref max_int in
-  let xmax = ref 0 in
-  let xsum = ref 0 in
-  let xsumall = ref 0 in
-  let xcount = ref 0 in
-  let xcountall = ref 0 in
-  let add_parallel_stat x =
-    if x > 0 then begin
+soit add_parallel_stat, dump_parallel_stats =
+  soit xmin = ref max_int dans
+  soit xmax = ref 0 dans
+  soit xsum = ref 0 dans
+  soit xsumall = ref 0 dans
+  soit xcount = ref 0 dans
+  soit xcountall = ref 0 dans
+  soit add_parallel_stat x =
+    si x > 0 alors début
       incr xcountall;
       xsumall := x + !xsumall;
-    end;
-    if x > 1 then begin
+    fin;
+    si x > 1 alors début
       incr xcount;
       xsum := x + !xsum;
       xmax := max !xmax x;
       xmin := min !xmin x;
-    end
-  in
-  let dump_parallel_stats () =
-    if !jobs <> 1 then
-      if !xcount = 0 then
+    fin
+  dans
+  soit dump_parallel_stats () =
+    si !jobs <> 1 alors
+      si !xcount = 0 alors
         dprintf 1 "# No parallelism done"
-      else
-        let xaverage = float_of_int !xsumall /. float_of_int !xcountall in
-        let xaveragepara = float_of_int !xsum /. float_of_int !xcount in
+      sinon
+        soit xaverage = float_of_int !xsumall /. float_of_int !xcountall dans
+        soit xaveragepara = float_of_int !xsum /. float_of_int !xcount dans
         dprintf 1 "# Parallel statistics: { count(total): %d(%d), max: %d, min: %d, average(total): %.3f(%.3f) }"
                   !xcount !xcountall !xmax !xmin xaveragepara xaverage
-  in
+  dans
   add_parallel_stat, dump_parallel_stats
 
 module Primitives = struct
-  let do_echo texts dest_path =
-    with_output_file dest_path begin fun oc ->
+  soit do_echo texts dest_path =
+    with_output_file dest_path début fonc oc ->
       List.iter (output_string oc) texts
-    end
-  let echo x y () = (* no print here yet *) do_echo x y; ""
-end
+    fin
+  soit echo x y () = (* no print here yet *) do_echo x y; ""
+fin
 
-let rec list_rev_iter f =
-  function
+soit rec list_rev_iter f =
+  fonction
   | [] -> ()
   | x :: xs -> list_rev_iter f xs; f x
 
-let flatten_commands quiet pretend cmd =
-  let rec loop acc =
-    function
+soit flatten_commands quiet pretend cmd =
+  soit rec loop acc =
+    fonction
     | [] -> acc
     | Nop :: xs -> loop acc xs
     | Cmd spec :: xs -> loop (string_print_of_command_spec spec quiet pretend :: acc) xs
     | Echo(texts, dest_path) :: xs -> loop (Primitives.echo texts dest_path :: acc) xs
     | Seq l :: xs -> loop (loop acc l) xs
-  in List.rev (loop [] [cmd])
+  dans List.rev (loop [] [cmd])
 
-let execute_many ?(quiet=false) ?(pretend=false) cmds =
+soit execute_many ?(quiet=faux) ?(pretend=faux) cmds =
   add_parallel_stat (List.length cmds);
-  let degraded = !*My_unix.is_degraded || Sys.os_type = "Win32" in
-  let jobs = !jobs in
-  if jobs < 0 then invalid_arg "jobs < 0";
-  let max_jobs = if jobs = 0 then None else Some jobs in
+  soit degraded = !*My_unix.is_degraded || Sys.os_type = "Win32" dans
+  soit jobs = !jobs dans
+  si jobs < 0 alors invalid_arg "jobs < 0";
+  soit max_jobs = si jobs = 0 alors None sinon Some jobs dans
 
-  let ticker = Log.update in
-  let display = Log.display in
+  soit ticker = Log.update dans
+  soit display = Log.display dans
 
-  if cmds = [] then
+  si cmds = [] alors
     None
-  else
-    begin
-      let konts = List.map (flatten_commands quiet pretend) cmds in
-      if pretend then
-        begin
-          List.iter (List.iter (fun f -> ignore (f ()))) konts;
+  sinon
+    début
+      soit konts = List.map (flatten_commands quiet pretend) cmds dans
+      si pretend alors
+        début
+          List.iter (List.iter (fonc f -> ignore (f ()))) konts;
           None
-        end
-      else
-        begin
+        fin
+      sinon
+        début
           reset_filesys_cache ();
-          if degraded then
-            let res, opt_exn =
-              List.fold_left begin fun (acc_res, acc_exn) cmds ->
-                match acc_exn with
+          si degraded alors
+            soit res, opt_exn =
+              List.fold_left début fonc (acc_res, acc_exn) cmds ->
+                filtre acc_exn avec
                 | None ->
-                    begin try
-                      List.iter begin fun action ->
-                        let cmd = action () in
-                        let rc = sys_command cmd in
-                        if rc <> 0 then begin
-                          if not quiet then
+                    début essaie
+                      List.iter début fonc action ->
+                        soit cmd = action () dans
+                        soit rc = sys_command cmd dans
+                        si rc <> 0 alors début
+                          si not quiet alors
                             eprintf "Exit code %d while executing this \
                                     command:@\n%s" rc cmd;
                           raise (Exit_with_code rc)
-                        end
-                      end cmds;
-                      true :: acc_res, None
-                    with e -> false :: acc_res, Some e
-                    end
-                | Some _ -> false :: acc_res, acc_exn
-              end ([], None) konts
-            in match opt_exn with
+                        fin
+                      fin cmds;
+                      vrai :: acc_res, None
+                    avec e -> faux :: acc_res, Some e
+                    fin
+                | Some _ -> faux :: acc_res, acc_exn
+              fin ([], None) konts
+            dans filtre opt_exn avec
             | Some(exn) -> Some(List.rev res, exn)
             | None -> None
-          else
+          sinon
             My_unix.execute_many ~ticker ?max_jobs ~display konts
-        end
-    end
+        fin
+    fin
 ;;
 
-let execute ?quiet ?pretend cmd =
-  match execute_many ?quiet ?pretend [cmd] with
+soit execute ?quiet ?pretend cmd =
+  filtre execute_many ?quiet ?pretend [cmd] avec
   | Some(_, exn) -> raise exn
   | _ -> ()
 
-let iter_tags f x =
-  let rec spec x =
-    match x with
+soit iter_tags f x =
+  soit rec spec x =
+    filtre x avec
     | N | A _ | Sh _ | P _ | Px _ | V _ | Quote _ -> ()
     | S l -> List.iter spec l
     | T tags -> f tags
-  in
-  let rec cmd x =
-    match x with
+  dans
+  soit rec cmd x =
+    filtre x avec
     | Nop | Echo _ -> ()
     | Cmd(s) -> spec s
-    | Seq(s) -> List.iter cmd s in
+    | Seq(s) -> List.iter cmd s dans
   cmd x
 
-let fold_pathnames f x =
-  let rec spec = function
-    | N | A _ | Sh _ | V _ | Quote _ | T _ -> fun acc -> acc
+soit fold_pathnames f x =
+  soit rec spec = fonction
+    | N | A _ | Sh _ | V _ | Quote _ | T _ -> fonc acc -> acc
     | P p | Px p -> f p
     | S l -> List.fold_right spec l
-  in
-  let rec cmd = function
-    | Nop -> fun acc -> acc
+  dans
+  soit rec cmd = fonction
+    | Nop -> fonc acc -> acc
     | Echo(_, p) -> f p
     | Cmd(s) -> spec s
-    | Seq(s) -> List.fold_right cmd s in
+    | Seq(s) -> List.fold_right cmd s dans
   cmd x
 
-let rec reduce x =
-  let rec self x acc =
-    match x with
+soit rec reduce x =
+  soit rec self x acc =
+    filtre x avec
     | N -> acc
     | A _ | Sh _ | P _ | Px _ | V _ -> x :: acc
     | S l -> List.fold_right self l acc
     | T tags -> self (!tag_handler tags) acc
-    | Quote s -> Quote (reduce s) :: acc in
-  match self x [] with
+    | Quote s -> Quote (reduce s) :: acc dans
+  filtre self x [] avec
   | [] -> N
   | [x] -> x
   | xs -> S xs
 
-let digest =
-  let list = List.fold_right in
-  let text x acc = Digest.string x :: acc in
-  let rec cmd =
-    function
-    | Cmd spec -> fun acc -> string_of_command_spec spec :: acc
+soit digest =
+  soit list = List.fold_right dans
+  soit text x acc = Digest.string x :: acc dans
+  soit rec cmd =
+    fonction
+    | Cmd spec -> fonc acc -> string_of_command_spec spec :: acc
     | Seq seq -> list cmd seq
-    | Nop -> fun acc -> acc
+    | Nop -> fonc acc -> acc
     | Echo(texts, dest_path) -> list text (dest_path :: texts)
-  in
-  fun x ->
-    match cmd x [] with
+  dans
+  fonc x ->
+    filtre cmd x [] avec
     | [x] -> x
     | xs  -> Digest.string ("["^String.concat ";" xs^"]")
 
-let all_deps_of_tags = ref []
+soit all_deps_of_tags = ref []
 
-let cons deps acc =
+soit cons deps acc =
   List.rev&
-    List.fold_left begin fun acc dep ->
-      if List.mem dep acc then acc else dep :: acc
-    end acc deps
+    List.fold_left début fonc acc dep ->
+      si List.mem dep acc alors acc sinon dep :: acc
+    fin acc deps
 
-let deps_of_tags tags =
-  List.fold_left begin fun acc (xtags, xdeps) ->
-    if Tags.does_match tags xtags then cons xdeps acc
-    else acc
-  end [] !all_deps_of_tags
+soit deps_of_tags tags =
+  List.fold_left début fonc acc (xtags, xdeps) ->
+    si Tags.does_match tags xtags alors cons xdeps acc
+    sinon acc
+  fin [] !all_deps_of_tags
 
-let set_deps_of_tags tags deps =
+soit set_deps_of_tags tags deps =
   all_deps_of_tags := (tags, deps) :: !all_deps_of_tags
 
-let dep tags deps = set_deps_of_tags (Tags.of_list tags) deps
+soit dep tags deps = set_deps_of_tags (Tags.of_list tags) deps
 
-let pdep tags ptag deps =
+soit pdep tags ptag deps =
   Param_tags.declare ptag
-    (fun param -> dep (Param_tags.make ptag param :: tags) (deps param))
+    (fonc param -> dep (Param_tags.make ptag param :: tags) (deps param))
 
 (*
 let to_string_for_digest x =

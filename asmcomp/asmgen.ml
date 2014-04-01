@@ -12,51 +12,51 @@
 
 (* From lambda to assembly code *)
 
-open Format
-open Config
-open Clflags
-open Misc
-open Cmm
+ouvre Format
+ouvre Config
+ouvre Clflags
+ouvre Misc
+ouvre Cmm
 
-type error = Assembler_error of string
+type error = Assembler_error de string
 
-exception Error of error
+exception Error de error
 
-let liveness ppf phrase =
+soit liveness ppf phrase =
   Liveness.fundecl ppf phrase; phrase
 
-let dump_if ppf flag message phrase =
-  if !flag then Printmach.phase message ppf phrase
+soit dump_if ppf flag message phrase =
+  si !flag alors Printmach.phase message ppf phrase
 
-let pass_dump_if ppf flag message phrase =
+soit pass_dump_if ppf flag message phrase =
   dump_if ppf flag message phrase; phrase
 
-let pass_dump_linear_if ppf flag message phrase =
-  if !flag then fprintf ppf "*** %s@.%a@." message Printlinear.fundecl phrase;
+soit pass_dump_linear_if ppf flag message phrase =
+  si !flag alors fprintf ppf "*** %s@.%a@." message Printlinear.fundecl phrase;
   phrase
 
-let clambda_dump_if ppf ulambda =
-  if !dump_clambda then Printclambda.clambda ppf ulambda; ulambda
+soit clambda_dump_if ppf ulambda =
+  si !dump_clambda alors Printclambda.clambda ppf ulambda; ulambda
 
-let rec regalloc ppf round fd =
-  if round > 50 then
+soit rec regalloc ppf round fd =
+  si round > 50 alors
     fatal_error(fd.Mach.fun_name ^
                 ": fonction trop complexe, impossible de finir l'allocation de registres");
   dump_if ppf dump_live "Liveness analysis" fd;
   Interf.build_graph fd;
-  if !dump_interf then Printmach.interferences ppf ();
-  if !dump_prefer then Printmach.preferences ppf ();
+  si !dump_interf alors Printmach.interferences ppf ();
+  si !dump_prefer alors Printmach.preferences ppf ();
   Coloring.allocate_registers();
   dump_if ppf dump_regalloc "After register allocation" fd;
-  let (newfd, redo_regalloc) = Reload.fundecl fd in
+  soit (newfd, redo_regalloc) = Reload.fundecl fd dans
   dump_if ppf dump_reload "After insertion of reloading code" newfd;
-  if redo_regalloc then begin
+  si redo_regalloc alors début
     Reg.reinit(); Liveness.fundecl ppf newfd; regalloc ppf (round + 1) newfd
-  end else newfd
+  fin sinon newfd
 
-let (++) x f = f x
+soit (++) x f = f x
 
-let compile_fundecl (ppf : formatter) fd_cmm =
+soit compile_fundecl (ppf : formatter) fd_cmm =
   Proc.init ();
   Reg.reset();
   fd_cmm
@@ -79,37 +79,37 @@ let compile_fundecl (ppf : formatter) fd_cmm =
   ++ pass_dump_linear_if ppf dump_scheduling "After instruction scheduling"
   ++ Emit.fundecl
 
-let compile_phrase ppf p =
-  if !dump_cmm then fprintf ppf "%a@." Printcmm.phrase p;
-  match p with
+soit compile_phrase ppf p =
+  si !dump_cmm alors fprintf ppf "%a@." Printcmm.phrase p;
+  filtre p avec
   | Cfunction fd -> compile_fundecl ppf fd
   | Cdata dl -> Emit.data dl
 
 
 (* For the native toplevel: generates generic functions unless
    they are already available in the process *)
-let compile_genfuns ppf f =
+soit compile_genfuns ppf f =
   List.iter
-    (function
-       | (Cfunction {fun_name = name}) as ph when f name ->
+    (fonction
+       | (Cfunction {fun_name = name}) tel ph quand f name ->
            compile_phrase ppf ph
        | _ -> ())
-    (Cmmgen.generic_functions true [Compilenv.current_unit_infos ()])
+    (Cmmgen.generic_functions vrai [Compilenv.current_unit_infos ()])
 
-let compile_implementation ?toplevel prefixname ppf (size, lam) =
-  let asmfile =
-    if !keep_asm_file
-    then prefixname ^ ext_asm
-    else Filename.temp_file "camlasm" ext_asm in
-  let oc = open_out asmfile in
-  begin try
+soit compile_implementation ?toplevel prefixname ppf (size, lam) =
+  soit asmfile =
+    si !keep_asm_file
+    alors prefixname ^ ext_asm
+    sinon Filename.temp_file "camlasm" ext_asm dans
+  soit oc = open_out asmfile dans
+  début essaie
     Emitaux.output_channel := oc;
     Emit.begin_assembly();
     Closure.intro size lam
     ++ clambda_dump_if ppf
     ++ Cmmgen.compunit size
-    ++ List.iter (compile_phrase ppf) ++ (fun () -> ());
-    (match toplevel with None -> () | Some f -> compile_genfuns ppf f);
+    ++ List.iter (compile_phrase ppf) ++ (fonc () -> ());
+    (filtre toplevel avec None -> () | Some f -> compile_genfuns ppf f);
 
     (* We add explicit references to external primitive symbols.  This
        is to ensure that the object files that define these symbols,
@@ -119,31 +119,31 @@ let compile_implementation ?toplevel prefixname ppf (size, lam) =
 
     compile_phrase ppf
       (Cmmgen.reference_symbols
-         (List.filter (fun s -> s <> "" && s.[0] <> '%')
+         (List.filter (fonc s -> s <> "" && s.[0] <> '%')
             (List.map Primitive.native_name !Translmod.primitive_declarations))
       );
 
     Emit.end_assembly();
     close_out oc
-  with x ->
+  avec x ->
     close_out oc;
-    if !keep_asm_file then () else remove_file asmfile;
+    si !keep_asm_file alors () sinon remove_file asmfile;
     raise x
-  end;
-  if Proc.assemble_file asmfile (prefixname ^ ext_obj) <> 0
-  then raise(Error(Assembler_error asmfile));
-  if !keep_asm_file then () else remove_file asmfile
+  fin;
+  si Proc.assemble_file asmfile (prefixname ^ ext_obj) <> 0
+  alors raise(Error(Assembler_error asmfile));
+  si !keep_asm_file alors () sinon remove_file asmfile
 
 (* Error report *)
 
-let report_error ppf = function
+soit report_error ppf = fonction
   | Assembler_error file ->
       fprintf ppf "Erreur d'assemblage, entrée laissée dans le fichier %a"
         Location.print_filename file
 
-let () =
+soit () =
   Location.register_error_of_exn
-    (function
+    (fonction
       | Error err -> Some (Location.error_of_printer_file report_error err)
       | _ -> None
     )

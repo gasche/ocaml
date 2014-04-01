@@ -13,23 +13,23 @@
 
 (* Original author: Romain Bardou *)
 
-open My_std
-open My_unix
-open Command
+ouvre My_std
+ouvre My_unix
+ouvre Command
 
 type command_spec = Command.spec
 
 type error =
   | Cannot_run_ocamlfind
-  | Dependency_not_found of string * string (* package, dependency *)
-  | Package_not_found of string
-  | Cannot_parse_query of string * string (* package, explaination *)
+  | Dependency_not_found de string * string (* package, dependency *)
+  | Package_not_found de string
+  | Cannot_parse_query de string * string (* package, explaination *)
 
-exception Findlib_error of error
+exception Findlib_error de error
 
-let error x = raise (Findlib_error x)
+soit error x = raise (Findlib_error x)
 
-let string_of_error = function
+soit string_of_error = fonction
   | Cannot_run_ocamlfind ->
       "Cannot run Ocamlfind."
   | Dependency_not_found(p, d) ->
@@ -41,11 +41,11 @@ not know this dependency." d p
   | Cannot_parse_query(p, e) ->
       Printf.sprintf "Cannot parse Ocamlfind query for package \"%s\": %s" p e
 
-let report_error e =
+soit report_error e =
   prerr_endline (string_of_error e);
   exit 2
 
-let ocamlfind = "ocamlfind"
+soit ocamlfind = "ocamlfind"
 
 type package = {
   name: string;
@@ -58,42 +58,42 @@ type package = {
   dependencies: package list;
 }
 
-let packages = Hashtbl.create 42
+soit packages = Hashtbl.create 42
 
-let run_and_parse lexer command =
+soit run_and_parse lexer command =
   Printf.ksprintf
-    (fun command -> lexer & Lexing.from_string & run_and_read command)
+    (fonc command -> lexer & Lexing.from_string & run_and_read command)
     command
 
-let run_and_read command =
+soit run_and_read command =
   Printf.ksprintf run_and_read command
 
-let rec query name =
-  try
+soit rec query name =
+  essaie
     Hashtbl.find packages name
-  with Not_found ->
-    try
-      let n, d, v, a_byte, lo, l =
+  avec Not_found ->
+    essaie
+      soit n, d, v, a_byte, lo, l =
         run_and_parse Lexers.ocamlfind_query
           "%s query -l -predicates byte %s" ocamlfind name
-      in
-      let a_native =
+      dans
+      soit a_native =
         run_and_parse Lexers.trim_blanks
           "%s query -a-format -predicates native %s" ocamlfind name
-      in
-      let deps =
+      dans
+      soit deps =
         run_and_parse Lexers.blank_sep_strings "%s query -r -p-format %s" ocamlfind name
-      in
-      let deps = List.filter ((<>) n) deps in
-      let deps =
-        try
+      dans
+      soit deps = List.filter ((<>) n) deps dans
+      soit deps =
+        essaie
           List.map query deps
-        with Findlib_error (Package_not_found dep_name) ->
+        avec Findlib_error (Package_not_found dep_name) ->
           (* Ocamlfind cannot find a package which it returned as a dependency.
              This should not happen. *)
           error (Dependency_not_found (name, dep_name))
-      in
-      let package = {
+      dans
+      soit package = {
         name = n;
         description = d;
         version = v;
@@ -102,10 +102,10 @@ let rec query name =
         link_options = lo;
         location = l;
         dependencies = deps;
-      } in
+      } dans
       Hashtbl.add packages n package;
       package
-    with
+    avec
       | Failure _ ->
           (* TODO: Improve to differenciate whether ocamlfind cannot be
              run or is not installed *)
@@ -113,82 +113,82 @@ let rec query name =
       | Lexers.Error (s,_) ->
           error (Cannot_parse_query (name, s))
 
-let split_nl s =
-  let x = ref [] in
-  let rec go s =
-    let pos = String.index s '\n' in
+soit split_nl s =
+  soit x = ref [] dans
+  soit rec go s =
+    soit pos = String.index s '\n' dans
     x := (String.before s pos)::!x;
     go (String.after s (pos + 1))
-  in
-  try
+  dans
+  essaie
     go s
-  with Not_found -> !x
+  avec Not_found -> !x
 
-let before_space s =
-  try
+soit before_space s =
+  essaie
     String.before s (String.index s ' ')
-  with Not_found -> s
+  avec Not_found -> s
 
-let list () =
+soit list () =
   List.map before_space (split_nl & run_and_read "%s list" ocamlfind)
 
 (* The closure algorithm is easy because the dependencies are already closed
 and sorted for each package. We only have to make the union. We could also
 make another ocamlfind query such as:
   ocamlfind query -p-format -r package1 package2 ... *)
-let topological_closure l =
-  let add l x = if List.mem x l then l else x :: l in
-  let l = List.fold_left begin fun acc p ->
+soit topological_closure l =
+  soit add l x = si List.mem x l alors l sinon x :: l dans
+  soit l = List.fold_left début fonc acc p ->
     add (List.fold_left add acc p.dependencies) p
-  end [] l in
+  fin [] l dans
   List.rev l
 
 module SSet = Set.Make(String)
 
-let add_atom a l = match a, l with
+soit add_atom a l = filtre a, l avec
   | A "", _ -> l
   | _ -> a :: l
 
-let compile_flags l =
-  let pkgs = topological_closure l in
-  let locations = List.fold_left begin fun acc p ->
+soit compile_flags l =
+  soit pkgs = topological_closure l dans
+  soit locations = List.fold_left début fonc acc p ->
     SSet.add p.location acc
-  end SSet.empty pkgs in
-  let flags = [] in
+  fin SSet.empty pkgs dans
+  soit flags = [] dans
   (* includes *)
-  let flags =
-    List.fold_left begin fun acc l ->
+  soit flags =
+    List.fold_left début fonc acc l ->
       add_atom (P l) (add_atom (A "-I") acc)
-    end flags (SSet.elements locations)
-  in
+    fin flags (SSet.elements locations)
+  dans
   S (List.rev flags)
-let compile_flags_byte = compile_flags
-let compile_flags_native = compile_flags
+soit compile_flags_byte = compile_flags
+soit compile_flags_native = compile_flags
 
-let link_flags f l =
-  let pkgs = topological_closure l in
-  let locations = List.fold_left begin fun acc p ->
+soit link_flags f l =
+  soit pkgs = topological_closure l dans
+  soit locations = List.fold_left début fonc acc p ->
     SSet.add p.location acc
-  end SSet.empty pkgs in
-  let flags = [] in
+  fin SSet.empty pkgs dans
+  soit flags = [] dans
   (* includes *)
-  let flags =
-    List.fold_left begin fun acc l ->
+  soit flags =
+    List.fold_left début fonc acc l ->
       add_atom (P l) (add_atom (A "-I") acc)
-    end flags (SSet.elements locations)
-  in
+    fin flags (SSet.elements locations)
+  dans
   (* special link options *)
-  let flags =
-    List.fold_left begin fun acc x ->
+  soit flags =
+    List.fold_left début fonc acc x ->
       add_atom (A x.link_options) acc
-    end flags pkgs
-  in
+    fin flags pkgs
+  dans
   (* archives *)
-  let flags =
-    List.fold_left begin fun acc x ->
+  soit flags =
+    List.fold_left début fonc acc x ->
       add_atom (A (f x)) acc
-    end flags pkgs
-  in
+    fin flags pkgs
+  dans
   S (List.rev flags)
-let link_flags_byte = link_flags (fun x -> x.archives_byte)
-let link_flags_native = link_flags (fun x -> x.archives_native)
+soit link_flags_byte = link_flags (fonc x -> x.archives_byte)
+soit link_flags_native = link_flags (fonc x -> x.archives_native)

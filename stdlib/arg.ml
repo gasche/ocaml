@@ -17,98 +17,98 @@ type usage_msg = string
 type anon_fun = (string -> unit)
 
 type spec =
-  | Unit of (unit -> unit)     (* Call the function with unit argument *)
-  | Bool of (bool -> unit)     (* Call the function with a bool argument *)
-  | Set of bool ref            (* Set the reference to true *)
-  | Clear of bool ref          (* Set the reference to false *)
-  | String of (string -> unit) (* Call the function with a string argument *)
-  | Set_string of string ref   (* Set the reference to the string argument *)
-  | Int of (int -> unit)       (* Call the function with an int argument *)
-  | Set_int of int ref         (* Set the reference to the int argument *)
-  | Float of (float -> unit)   (* Call the function with a float argument *)
-  | Set_float of float ref     (* Set the reference to the float argument *)
-  | Tuple of spec list         (* Take several arguments according to the
+  | Unit de (unit -> unit)     (* Call the function with unit argument *)
+  | Bool de (bool -> unit)     (* Call the function with a bool argument *)
+  | Set de bool ref            (* Set the reference to true *)
+  | Clear de bool ref          (* Set the reference to false *)
+  | String de (string -> unit) (* Call the function with a string argument *)
+  | Set_string de string ref   (* Set the reference to the string argument *)
+  | Int de (int -> unit)       (* Call the function with an int argument *)
+  | Set_int de int ref         (* Set the reference to the int argument *)
+  | Float de (float -> unit)   (* Call the function with a float argument *)
+  | Set_float de float ref     (* Set the reference to the float argument *)
+  | Tuple de spec list         (* Take several arguments according to the
                                   spec list *)
-  | Symbol of string list * (string -> unit)
+  | Symbol de string list * (string -> unit)
                                (* Take one of the symbols as argument and
                                   call the function with the symbol. *)
-  | Rest of (string -> unit)   (* Stop interpreting keywords and call the
+  | Rest de (string -> unit)   (* Stop interpreting keywords and call the
                                   function with each remaining argument *)
 
-exception Bad of string
-exception Help of string
+exception Bad de string
+exception Help de string
 
 type error =
-  | Unknown of string
-  | Wrong of string * string * string  (* option, actual, expected *)
-  | Missing of string
-  | Message of string
+  | Unknown de string
+  | Wrong de string * string * string  (* option, actual, expected *)
+  | Missing de string
+  | Message de string
 
-exception Stop of error;; (* used internally *)
+exception Stop de error;; (* used internally *)
 
-open Printf
+ouvre Printf
 
-let rec assoc3 x l =
-  match l with
+soit rec assoc3 x l =
+  filtre l avec
   | [] -> raise Not_found
-  | (y1, y2, y3) :: t when y1 = x -> y2
+  | (y1, y2, y3) :: t quand y1 = x -> y2
   | _ :: t -> assoc3 x t
 ;;
 
-let make_symlist prefix sep suffix l =
-  match l with
+soit make_symlist prefix sep suffix l =
+  filtre l avec
   | [] -> "<none>"
-  | h::t -> (List.fold_left (fun x y -> x ^ sep ^ y) (prefix ^ h) t) ^ suffix
+  | h::t -> (List.fold_left (fonc x y -> x ^ sep ^ y) (prefix ^ h) t) ^ suffix
 ;;
 
-let print_spec buf (key, spec, doc) =
-  if String.length doc > 0 then
-    match spec with
+soit print_spec buf (key, spec, doc) =
+  si String.length doc > 0 alors
+    filtre spec avec
     | Symbol (l, _) ->
         bprintf buf "  %s %s%s\n" key (make_symlist "{" "|" "}" l) doc
     | _ ->
         bprintf buf "  %s %s\n" key doc
 ;;
 
-let help_action () = raise (Stop (Unknown "-help"));;
+soit help_action () = raise (Stop (Unknown "-help"));;
 
-let add_help speclist =
-  let add1 =
-    try ignore (assoc3 "-help" speclist); []
-    with Not_found ->
+soit add_help speclist =
+  soit add1 =
+    essaie ignore (assoc3 "-help" speclist); []
+    avec Not_found ->
             ["-help", Unit help_action, " Display this list of options"]
-  and add2 =
-    try ignore (assoc3 "--help" speclist); []
-    with Not_found ->
+  et add2 =
+    essaie ignore (assoc3 "--help" speclist); []
+    avec Not_found ->
             ["--help", Unit help_action, " Display this list of options"]
-  in
+  dans
   speclist @ (add1 @ add2)
 ;;
 
-let usage_b buf speclist errmsg =
+soit usage_b buf speclist errmsg =
   bprintf buf "%s\n" errmsg;
   List.iter (print_spec buf) (add_help speclist);
 ;;
 
-let usage_string speclist errmsg =
-  let b = Buffer.create 200 in
+soit usage_string speclist errmsg =
+  soit b = Buffer.create 200 dans
   usage_b b speclist errmsg;
   Buffer.contents b;
 ;;
 
-let usage speclist errmsg =
+soit usage speclist errmsg =
   eprintf "%s" (usage_string speclist errmsg);
 ;;
 
-let current = ref 0;;
+soit current = ref 0;;
 
-let parse_argv_dynamic ?(current=current) argv speclist anonfun errmsg =
-  let l = Array.length argv in
-  let b = Buffer.create 200 in
-  let initpos = !current in
-  let stop error =
-    let progname = if initpos < l then argv.(initpos) else "(?)" in
-    begin match error with
+soit parse_argv_dynamic ?(current=current) argv speclist anonfun errmsg =
+  soit l = Array.length argv dans
+  soit b = Buffer.create 200 dans
+  soit initpos = !current dans
+  soit stop error =
+    soit progname = si initpos < l alors argv.(initpos) sinon "(?)" dans
+    début filtre error avec
       | Unknown "-help" -> ()
       | Unknown "--help" -> ()
       | Unknown s ->
@@ -120,153 +120,153 @@ let parse_argv_dynamic ?(current=current) argv speclist anonfun errmsg =
                   progname arg opt expected
       | Message s ->
           bprintf b "%s: %s.\n" progname s
-    end;
+    fin;
     usage_b b !speclist errmsg;
-    if error = Unknown "-help" || error = Unknown "--help"
-    then raise (Help (Buffer.contents b))
-    else raise (Bad (Buffer.contents b))
-  in
+    si error = Unknown "-help" || error = Unknown "--help"
+    alors raise (Help (Buffer.contents b))
+    sinon raise (Bad (Buffer.contents b))
+  dans
   incr current;
-  while !current < l do
-    let s = argv.(!current) in
-    if String.length s >= 1 && String.get s 0 = '-' then begin
-      let action =
-        try assoc3 s !speclist
-        with Not_found -> stop (Unknown s)
-      in
-      begin try
-        let rec treat_action = function
+  pendant_que !current < l faire
+    soit s = argv.(!current) dans
+    si String.length s >= 1 && String.get s 0 = '-' alors début
+      soit action =
+        essaie assoc3 s !speclist
+        avec Not_found -> stop (Unknown s)
+      dans
+      début essaie
+        soit rec treat_action = fonction
         | Unit f -> f ();
-        | Bool f when !current + 1 < l ->
-            let arg = argv.(!current + 1) in
-            begin try f (bool_of_string arg)
-            with Invalid_argument "bool_of_string" ->
+        | Bool f quand !current + 1 < l ->
+            soit arg = argv.(!current + 1) dans
+            début essaie f (bool_of_string arg)
+            avec Invalid_argument "bool_of_string" ->
                    raise (Stop (Wrong (s, arg, "a boolean")))
-            end;
+            fin;
             incr current;
-        | Set r -> r := true;
-        | Clear r -> r := false;
-        | String f when !current + 1 < l ->
+        | Set r -> r := vrai;
+        | Clear r -> r := faux;
+        | String f quand !current + 1 < l ->
             f argv.(!current + 1);
             incr current;
-        | Symbol (symb, f) when !current + 1 < l ->
-            let arg = argv.(!current + 1) in
-            if List.mem arg symb then begin
+        | Symbol (symb, f) quand !current + 1 < l ->
+            soit arg = argv.(!current + 1) dans
+            si List.mem arg symb alors début
               f argv.(!current + 1);
               incr current;
-            end else begin
+            fin sinon début
               raise (Stop (Wrong (s, arg, "one of: "
                                           ^ (make_symlist "" " " "" symb))))
-            end
-        | Set_string r when !current + 1 < l ->
+            fin
+        | Set_string r quand !current + 1 < l ->
             r := argv.(!current + 1);
             incr current;
-        | Int f when !current + 1 < l ->
-            let arg = argv.(!current + 1) in
-            begin try f (int_of_string arg)
-            with Failure "int_of_string" ->
+        | Int f quand !current + 1 < l ->
+            soit arg = argv.(!current + 1) dans
+            début essaie f (int_of_string arg)
+            avec Failure "int_of_string" ->
                    raise (Stop (Wrong (s, arg, "an integer")))
-            end;
+            fin;
             incr current;
-        | Set_int r when !current + 1 < l ->
-            let arg = argv.(!current + 1) in
-            begin try r := (int_of_string arg)
-            with Failure "int_of_string" ->
+        | Set_int r quand !current + 1 < l ->
+            soit arg = argv.(!current + 1) dans
+            début essaie r := (int_of_string arg)
+            avec Failure "int_of_string" ->
                    raise (Stop (Wrong (s, arg, "an integer")))
-            end;
+            fin;
             incr current;
-        | Float f when !current + 1 < l ->
-            let arg = argv.(!current + 1) in
-            begin try f (float_of_string arg);
-            with Failure "float_of_string" ->
+        | Float f quand !current + 1 < l ->
+            soit arg = argv.(!current + 1) dans
+            début essaie f (float_of_string arg);
+            avec Failure "float_of_string" ->
                    raise (Stop (Wrong (s, arg, "a float")))
-            end;
+            fin;
             incr current;
-        | Set_float r when !current + 1 < l ->
-            let arg = argv.(!current + 1) in
-            begin try r := (float_of_string arg);
-            with Failure "float_of_string" ->
+        | Set_float r quand !current + 1 < l ->
+            soit arg = argv.(!current + 1) dans
+            début essaie r := (float_of_string arg);
+            avec Failure "float_of_string" ->
                    raise (Stop (Wrong (s, arg, "a float")))
-            end;
+            fin;
             incr current;
         | Tuple specs ->
             List.iter treat_action specs;
         | Rest f ->
-            while !current < l - 1 do
+            pendant_que !current < l - 1 faire
               f argv.(!current + 1);
               incr current;
-            done;
+            fait;
         | _ -> raise (Stop (Missing s))
-        in
+        dans
         treat_action action
-      with Bad m -> stop (Message m);
+      avec Bad m -> stop (Message m);
          | Stop e -> stop e;
-      end;
+      fin;
       incr current;
-    end else begin
-      (try anonfun s with Bad m -> stop (Message m));
+    fin sinon début
+      (essaie anonfun s avec Bad m -> stop (Message m));
       incr current;
-    end;
-  done;
+    fin;
+  fait;
 ;;
 
-let parse_argv ?(current=current) argv speclist anonfun errmsg =
+soit parse_argv ?(current=current) argv speclist anonfun errmsg =
   parse_argv_dynamic ~current:current argv (ref speclist) anonfun errmsg;
 ;;
 
-let parse l f msg =
-  try
+soit parse l f msg =
+  essaie
     parse_argv Sys.argv l f msg;
-  with
+  avec
   | Bad msg -> eprintf "%s" msg; exit 2;
   | Help msg -> printf "%s" msg; exit 0;
 ;;
 
-let parse_dynamic l f msg =
-  try
+soit parse_dynamic l f msg =
+  essaie
     parse_argv_dynamic Sys.argv l f msg;
-  with
+  avec
   | Bad msg -> eprintf "%s" msg; exit 2;
   | Help msg -> printf "%s" msg; exit 0;
 ;;
 
-let second_word s =
-  let len = String.length s in
-  let rec loop n =
-    if n >= len then len
-    else if s.[n] = ' ' then loop (n+1)
-    else n
-  in
-  try loop (String.index s ' ')
-  with Not_found -> len
+soit second_word s =
+  soit len = String.length s dans
+  soit rec loop n =
+    si n >= len alors len
+    sinon si s.[n] = ' ' alors loop (n+1)
+    sinon n
+  dans
+  essaie loop (String.index s ' ')
+  avec Not_found -> len
 ;;
 
-let max_arg_len cur (kwd, spec, doc) =
-  match spec with
+soit max_arg_len cur (kwd, spec, doc) =
+  filtre spec avec
   | Symbol _ -> max cur (String.length kwd)
   | _ -> max cur (String.length kwd + second_word doc)
 ;;
 
-let add_padding len ksd =
-  match ksd with
+soit add_padding len ksd =
+  filtre ksd avec
   | (_, _, "") ->
       (* Do not pad undocumented options, so that they still don't show up when
        * run through [usage] or [parse]. *)
       ksd
-  | (kwd, (Symbol (l, _) as spec), msg) ->
-      let cutcol = second_word msg in
-      let spaces = String.make (len - cutcol + 3) ' ' in
+  | (kwd, (Symbol (l, _) tel spec), msg) ->
+      soit cutcol = second_word msg dans
+      soit spaces = String.make (len - cutcol + 3) ' ' dans
       (kwd, spec, "\n" ^ spaces ^ msg)
   | (kwd, spec, msg) ->
-      let cutcol = second_word msg in
-      let spaces = String.make (len - String.length kwd - cutcol) ' ' in
-      let prefix = String.sub msg 0 cutcol in
-      let suffix = String.sub msg cutcol (String.length msg - cutcol) in
+      soit cutcol = second_word msg dans
+      soit spaces = String.make (len - String.length kwd - cutcol) ' ' dans
+      soit prefix = String.sub msg 0 cutcol dans
+      soit suffix = String.sub msg cutcol (String.length msg - cutcol) dans
       (kwd, spec, prefix ^ spaces ^ suffix)
 ;;
 
-let align speclist =
-  let completed = add_help speclist in
-  let len = List.fold_left max_arg_len 0 completed in
+soit align speclist =
+  soit completed = add_help speclist dans
+  soit len = List.fold_left max_arg_len 0 completed dans
   List.map (add_padding len) completed
 ;;

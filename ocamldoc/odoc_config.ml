@@ -10,8 +10,8 @@
 (*                                                                     *)
 (***********************************************************************)
 
-let custom_generators_path =
+soit custom_generators_path =
   Filename.concat Config.standard_library
     (Filename.concat "ocamldoc" "custom")
 
-let print_warnings = ref true
+soit print_warnings = ref vrai

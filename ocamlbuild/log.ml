@@ -12,44 +12,44 @@
 
 
 (* Original author: Nicolas Pouillard *)
-open My_std
+ouvre My_std
 
 module Debug = struct
-let mode _ = true
-end
-include Debug
+soit mode _ = vrai
+fin
+inclus Debug
 
-let level = ref 1
+soit level = ref 1
 
-let classic_display = ref false
-let internal_display = ref None
-let failsafe_display = lazy (Display.create ~mode:`Classic ~log_level:!level ())
+soit classic_display = ref faux
+soit internal_display = ref None
+soit failsafe_display = paresseux (Display.create ~mode:`Classic ~log_level:!level ())
 
-let ( !- ) r =
-  match !r with
+soit ( !- ) r =
+  filtre !r avec
   | None -> !*failsafe_display
   | Some x -> x
 
-let init log_file =
-  let mode =
-    if !classic_display || !*My_unix.is_degraded || !level <= 0 || not (My_unix.stdout_isatty ()) then
+soit init log_file =
+  soit mode =
+    si !classic_display || !*My_unix.is_degraded || !level <= 0 || not (My_unix.stdout_isatty ()) alors
       `Classic
-    else
+    sinon
       `Sophisticated
-  in
+  dans
   internal_display := Some (Display.create ~mode ?log_file ~log_level:!level ())
 
-let raw_dprintf log_level = Display.dprintf ~log_level !-internal_display
+soit raw_dprintf log_level = Display.dprintf ~log_level !-internal_display
 
-let dprintf log_level fmt = raw_dprintf log_level ("@[<2>"^^fmt^^"@]@.")
-let eprintf fmt = dprintf (-1) fmt
+soit dprintf log_level fmt = raw_dprintf log_level ("@[<2>"^^fmt^^"@]@.")
+soit eprintf fmt = dprintf (-1) fmt
 
-let update () = Display.update !-internal_display
-let event ?pretend x = Display.event !-internal_display ?pretend x
-let display x = Display.display !-internal_display x
+soit update () = Display.update !-internal_display
+soit event ?pretend x = Display.event !-internal_display ?pretend x
+soit display x = Display.display !-internal_display x
 
-let finish ?how () =
-  match !internal_display with
+soit finish ?how () =
+  filtre !internal_display avec
   | None -> ()
   | Some d -> Display.finish ?how d
 

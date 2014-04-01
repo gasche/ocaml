@@ -23,53 +23,53 @@ type ref_kind = Odoc_types.ref_kind =
   | RK_exception
   | RK_attribute
   | RK_method
-  | RK_section of text
+  | RK_section de text
   | RK_recfield
   | RK_const
 
-and text_element = Odoc_types.text_element =
-  | Raw of string (** Raw text. *)
-  | Code of string (** The string is source code. *)
-  | CodePre of string (** The string is pre-formatted source code. *)
-  | Verbatim of string (** String 'as is'. *)
-  | Bold of text (** Text in bold style. *)
-  | Italic of text (** Text in italic. *)
-  | Emphasize of text (** Emphasized text. *)
-  | Center of text (** Centered text. *)
-  | Left of text (** Left alignment. *)
-  | Right of text (** Right alignment. *)
-  | List of text list (** A list. *)
-  | Enum of text list (** An enumerated list. *)
+et text_element = Odoc_types.text_element =
+  | Raw de string (** Raw text. *)
+  | Code de string (** The string is source code. *)
+  | CodePre de string (** The string is pre-formatted source code. *)
+  | Verbatim de string (** String 'as is'. *)
+  | Bold de text (** Text in bold style. *)
+  | Italic de text (** Text in italic. *)
+  | Emphasize de text (** Emphasized text. *)
+  | Center de text (** Centered text. *)
+  | Left de text (** Left alignment. *)
+  | Right de text (** Right alignment. *)
+  | List de text list (** A list. *)
+  | Enum de text list (** An enumerated list. *)
   | Newline   (** To force a line break. *)
-  | Block of text (** Like html's block quote. *)
-  | Title of int * string option * text
+  | Block de text (** Like html's block quote. *)
+  | Title de int * string option * text
              (** Style number, optional label, and text. *)
-  | Latex of string (** A string for latex. *)
-  | Link of string * text (** A reference string and the link text. *)
-  | Ref of string * ref_kind option * text option
+  | Latex de string (** A string for latex. *)
+  | Link de string * text (** A reference string and the link text. *)
+  | Ref de string * ref_kind option * text option
        (** A reference to an element. Complete name and kind.
         An optional text can be given to display this text instead
         of the element name.*)
-  | Superscript of text (** Superscripts. *)
-  | Subscript of text (** Subscripts. *)
-  | Module_list of string list
+  | Superscript de text (** Superscripts. *)
+  | Subscript de text (** Subscripts. *)
+  | Module_list de string list
        (** The table of the given modules with their abstract. *)
   | Index_list (** The links to the various indexes (values, types, ...) *)
-  | Custom of string * text (** to extend \{foo syntax *)
-  | Target of string * string (** (target, code) : to specify code specific to a target format *)
+  | Custom de string * text (** to extend \{foo syntax *)
+  | Target de string * string (** (target, code) : to specify code specific to a target format *)
 
 (** A text is a list of [text_element]. The order matters. *)
-and text = text_element list
+et text = text_element list
 
 (** The different forms of references in \@see tags. *)
 type see_ref = Odoc_types.see_ref =
-    See_url of string
-  | See_file of string
-  | See_doc of string
+    See_url de string
+  | See_file de string
+  | See_doc de string
 
 (** Raised when parsing string to build a {!Odoc_info.text}
    structure. [(line, char, string)] *)
-exception Text_syntax of int * int * string
+exception Text_syntax de int * int * string
 
 (** The information in a \@see tag. *)
 type see = see_ref * text
@@ -126,7 +126,7 @@ module Name :
 
       (** Return the name of the 'father' (like [dirname] for a file name).*)
       val father : t -> t
-    end
+    fin
 
 (** Representation and manipulation of method / function / class / module parameters.*)
 module Parameter :
@@ -137,14 +137,14 @@ module Parameter :
         {
           sn_name : string ;
           sn_type : Types.type_expr ;
-          mutable sn_text : text option ;
+          modifiable sn_text : text option ;
         }
 
     (** Representation of parameter names. We need it to represent parameter names in tuples.
        The value [Tuple ([], t)] stands for an anonymous parameter.*)
     type param_info = Odoc_parameter.param_info =
-        Simple_name of simple_name
-      | Tuple of param_info list * Types.type_expr
+        Simple_name de simple_name
+      | Tuple de param_info list * Types.type_expr
 
     (** A parameter is just a param_info.*)
     type parameter = param_info
@@ -167,7 +167,7 @@ module Parameter :
     (** Access to the type of a specific name.
        @raise Not_found if no type is associated to the given name. *)
     val type_by_name : parameter -> string -> Types.type_expr
-  end
+  fin
 
 (** Representation and manipulation of exceptions. *)
 module Exception :
@@ -177,19 +177,19 @@ module Exception :
     type exception_alias = Odoc_exception.exception_alias =
         {
           ea_name : Name.t ; (** The complete name of the target exception. *)
-          mutable ea_ex : t_exception option ; (** The target exception, if we found it.*)
+          modifiable ea_ex : t_exception option ; (** The target exception, if we found it.*)
         }
 
-    and t_exception = Odoc_exception.t_exception =
+    et t_exception = Odoc_exception.t_exception =
         {
           ex_name : Name.t ;
-          mutable ex_info : info option ; (** Information found in the optional associated comment. *)
+          modifiable ex_info : info option ; (** Information found in the optional associated comment. *)
           ex_args : Types.type_expr list ; (** The types of the parameters. *)
           ex_alias : exception_alias option ; (** [None] when the exception is not a rebind. *)
-          mutable ex_loc : location ;
-          mutable ex_code : string option ;
+          modifiable ex_loc : location ;
+          modifiable ex_code : string option ;
         }
-  end
+  fin
 
 (** Representation and manipulation of types.*)
 module Type :
@@ -203,7 +203,7 @@ module Type :
           vc_name : string ; (** Name of the constructor. *)
           vc_args : Types.type_expr list ; (** Arguments of the constructor. *)
           vc_ret : Types.type_expr option ;
-          mutable vc_text : info option ; (** Optional description in the associated comment. *)
+          modifiable vc_text : info option ; (** Optional description in the associated comment. *)
         }
 
     (** Description of a record type field. *)
@@ -212,32 +212,32 @@ module Type :
           rf_name : string ; (** Name of the field. *)
           rf_mutable : bool ; (** [true] if mutable. *)
           rf_type : Types.type_expr ; (** Type of the field. *)
-          mutable rf_text : info option ; (** Optional description in the associated comment.*)
+          modifiable rf_text : info option ; (** Optional description in the associated comment.*)
         }
 
     (** The various kinds of a type. *)
     type type_kind = Odoc_type.type_kind =
         Type_abstract (** Type is abstract, for example [type t]. *)
-      | Type_variant of variant_constructor list
+      | Type_variant de variant_constructor list
                    (** constructors *)
-      | Type_record of record_field list
+      | Type_record de record_field list
                    (** fields *)
 
     (** Representation of a type. *)
     type t_type = Odoc_type.t_type =
         {
           ty_name : Name.t ; (** Complete name of the type. *)
-          mutable ty_info : info option ; (** Information found in the optional associated comment. *)
+          modifiable ty_info : info option ; (** Information found in the optional associated comment. *)
           ty_parameters : (Types.type_expr * bool * bool) list ;
                     (** type parameters: (type, covariant, contravariant) *)
           ty_kind : type_kind; (** Type kind. *)
           ty_private : private_flag; (** Private or public type. *)
           ty_manifest : Types.type_expr option; (** Type manifest. *)
-          mutable ty_loc : location ;
-          mutable ty_code : string option;
+          modifiable ty_loc : location ;
+          modifiable ty_code : string option;
         }
 
-  end
+  fin
 
 (** Representation and manipulation of values, class attributes and class methods. *)
 module Value :
@@ -246,12 +246,12 @@ module Value :
     type t_value = Odoc_value.t_value =
         {
           val_name : Name.t ; (** Complete name of the value. *)
-          mutable val_info : info option ; (** Information found in the optional associated comment. *)
+          modifiable val_info : info option ; (** Information found in the optional associated comment. *)
           val_type : Types.type_expr ; (** Type of the value. *)
           val_recursive : bool ; (** [true] if the value is recursive. *)
-          mutable val_parameters : Odoc_parameter.parameter list ; (** The parameters, if any. *)
-          mutable val_code : string option ; (** The code of the value, if we had the only the implementation file. *)
-          mutable val_loc : location ;
+          modifiable val_parameters : Odoc_parameter.parameter list ; (** The parameters, if any. *)
+          modifiable val_code : string option ; (** The code of the value, if we had the only the implementation file. *)
+          modifiable val_loc : location ;
         }
 
     (** Representation of a class attribute. *)
@@ -275,7 +275,7 @@ module Value :
 
     (** Access to the description associated to the given parameter name.*)
     val value_parameter_text_by_name : t_value -> string -> text option
-  end
+  fin
 
 (** Representation and manipulation of classes and class types.*)
 module Class :
@@ -283,86 +283,86 @@ module Class :
     (** {3 Types} *)
     (** To keep the order of elements in a class. *)
     type class_element = Odoc_class.class_element =
-        Class_attribute of Value.t_attribute
-      | Class_method of Value.t_method
-      | Class_comment of text
+        Class_attribute de Value.t_attribute
+      | Class_method de Value.t_method
+      | Class_comment de text
 
     (** Used when we can reference a t_class or a t_class_type. *)
     type cct = Odoc_class.cct =
-        Cl of t_class
-      | Cltype of t_class_type * Types.type_expr list (** Class type and type parameters. *)
+        Cl de t_class
+      | Cltype de t_class_type * Types.type_expr list (** Class type and type parameters. *)
 
-    and inherited_class = Odoc_class.inherited_class =
+    et inherited_class = Odoc_class.inherited_class =
         {
           ic_name : Name.t ; (** Complete name of the inherited class. *)
-          mutable ic_class : cct option ; (** The associated t_class or t_class_type. *)
+          modifiable ic_class : cct option ; (** The associated t_class or t_class_type. *)
           ic_text : text option ; (** The inheritance description, if any. *)
         }
 
-    and class_apply = Odoc_class.class_apply =
+    et class_apply = Odoc_class.class_apply =
         {
           capp_name : Name.t ; (** The complete name of the applied class. *)
-          mutable capp_class : t_class option;  (** The associated t_class if we found it. *)
+          modifiable capp_class : t_class option;  (** The associated t_class if we found it. *)
           capp_params : Types.type_expr list; (** The type of expressions the class is applied to. *)
           capp_params_code : string list ; (** The code of these exprssions. *)
         }
 
-    and class_constr = Odoc_class.class_constr =
+    et class_constr = Odoc_class.class_constr =
         {
           cco_name : Name.t ; (** The complete name of the applied class. *)
-          mutable cco_class : cct option;
+          modifiable cco_class : cct option;
               (** The associated class or class type if we found it. *)
           cco_type_parameters : Types.type_expr list; (** The type parameters of the class, if needed. *)
         }
 
-    and class_kind = Odoc_class.class_kind =
-        Class_structure of inherited_class list * class_element list
+    et class_kind = Odoc_class.class_kind =
+        Class_structure de inherited_class list * class_element list
         (** An explicit class structure, used in implementation and interface. *)
-      | Class_apply of class_apply
+      | Class_apply de class_apply
         (** Application/alias of a class, used in implementation only. *)
-      | Class_constr of class_constr
+      | Class_constr de class_constr
         (** A class used to give the type of the defined class,
            instead of a structure, used in interface only.
            For example, it will be used with the name [M1.M2....bar]
            when the class foo is defined like this :
            [class foo : int -> bar] *)
-      | Class_constraint of class_kind * class_type_kind
+      | Class_constraint de class_kind * class_type_kind
         (** A class definition with a constraint. *)
 
     (** Representation of a class. *)
-    and t_class = Odoc_class.t_class =
+    et t_class = Odoc_class.t_class =
         {
           cl_name : Name.t ; (** Complete name of the class. *)
-          mutable cl_info : info option ; (** Information found in the optional associated comment. *)
+          modifiable cl_info : info option ; (** Information found in the optional associated comment. *)
           cl_type : Types.class_type ; (** Type of the class. *)
           cl_type_parameters : Types.type_expr list ; (** Type parameters. *)
           cl_virtual : bool ; (** [true] when the class is virtual. *)
-          mutable cl_kind : class_kind ; (** The way the class is defined. *)
-          mutable cl_parameters : Parameter.parameter list ; (** The parameters of the class. *)
-          mutable cl_loc : location ;
+          modifiable cl_kind : class_kind ; (** The way the class is defined. *)
+          modifiable cl_parameters : Parameter.parameter list ; (** The parameters of the class. *)
+          modifiable cl_loc : location ;
         }
 
-    and class_type_alias = Odoc_class.class_type_alias =
+    et class_type_alias = Odoc_class.class_type_alias =
         {
           cta_name : Name.t ; (** Complete name of the target class type. *)
-          mutable cta_class : cct option ;  (** The target t_class or t_class_type, if we found it.*)
+          modifiable cta_class : cct option ;  (** The target t_class or t_class_type, if we found it.*)
           cta_type_parameters : Types.type_expr list ; (** The type parameters. A VOIR : mettre des string ? *)
         }
 
-    and class_type_kind = Odoc_class.class_type_kind =
-        Class_signature of inherited_class list * class_element list
-      | Class_type of class_type_alias (** A class type eventually applied to type args. *)
+    et class_type_kind = Odoc_class.class_type_kind =
+        Class_signature de inherited_class list * class_element list
+      | Class_type de class_type_alias (** A class type eventually applied to type args. *)
 
     (** Representation of a class type. *)
-    and t_class_type = Odoc_class.t_class_type =
+    et t_class_type = Odoc_class.t_class_type =
         {
           clt_name : Name.t ; (** Complete name of the type. *)
-          mutable clt_info : info option ; (** Information found in the optional associated comment. *)
+          modifiable clt_info : info option ; (** Information found in the optional associated comment. *)
           clt_type : Types.class_type ;
           clt_type_parameters : Types.type_expr list ; (** Type parameters. *)
           clt_virtual : bool ; (** [true] if the class type is virtual *)
-          mutable clt_kind : class_type_kind ; (** The way the class type is defined. *)
-          mutable clt_loc : location ;
+          modifiable clt_kind : class_type_kind ; (** The way the class type is defined. *)
+          modifiable clt_loc : location ;
         }
 
     (** {3 Functions} *)
@@ -396,7 +396,7 @@ module Class :
 
     (** Access to the comments of a class type. *)
     val class_type_comments : ?trans:bool -> t_class_type -> text list
-  end
+  fin
 
 (** Representation and manipulation of modules and module types. *)
 module Module :
@@ -404,35 +404,35 @@ module Module :
     (** {3 Types} *)
     (** To keep the order of elements in a module. *)
     type module_element = Odoc_module.module_element =
-        Element_module of t_module
-      | Element_module_type of t_module_type
-      | Element_included_module of included_module
-      | Element_class of Class.t_class
-      | Element_class_type of Class.t_class_type
-      | Element_value of Value.t_value
-      | Element_exception of Exception.t_exception
-      | Element_type of Type.t_type
-      | Element_module_comment of text
+        Element_module de t_module
+      | Element_module_type de t_module_type
+      | Element_included_module de included_module
+      | Element_class de Class.t_class
+      | Element_class_type de Class.t_class_type
+      | Element_value de Value.t_value
+      | Element_exception de Exception.t_exception
+      | Element_type de Type.t_type
+      | Element_module_comment de text
 
     (** Used where we can reference t_module or t_module_type. *)
-    and mmt = Odoc_module.mmt =
-      | Mod of t_module
-      | Modtype of t_module_type
+    et mmt = Odoc_module.mmt =
+      | Mod de t_module
+      | Modtype de t_module_type
 
-    and included_module = Odoc_module.included_module =
+    et included_module = Odoc_module.included_module =
         {
           im_name : Name.t ; (** Complete name of the included module. *)
-          mutable im_module : mmt option ; (** The included module or module type, if we found it. *)
-          mutable im_info : Odoc_types.info option ; (** comment associated to the includ directive *)
+          modifiable im_module : mmt option ; (** The included module or module type, if we found it. *)
+          modifiable im_info : Odoc_types.info option ; (** comment associated to the includ directive *)
         }
 
-    and module_alias = Odoc_module.module_alias =
+    et module_alias = Odoc_module.module_alias =
         {
           ma_name : Name.t ; (** Complete name of the target module. *)
-          mutable ma_module : mmt option ; (** The real module or module type if we could associate it. *)
+          modifiable ma_module : mmt option ; (** The real module or module type if we could associate it. *)
         }
 
-    and module_parameter = Odoc_module.module_parameter = {
+    et module_parameter = Odoc_module.module_parameter = {
         mp_name : string ; (** the name *)
         mp_type : Types.module_type option ; (** the type *)
         mp_type_code : string ; (** the original code *)
@@ -440,68 +440,68 @@ module Module :
       }
 
     (** Different kinds of a module. *)
-    and module_kind = Odoc_module.module_kind =
-      | Module_struct of module_element list (** A complete module structure. *)
-      | Module_alias of module_alias (** Complete name and corresponding module if we found it *)
-      | Module_functor of module_parameter * module_kind
+    et module_kind = Odoc_module.module_kind =
+      | Module_struct de module_element list (** A complete module structure. *)
+      | Module_alias de module_alias (** Complete name and corresponding module if we found it *)
+      | Module_functor de module_parameter * module_kind
                      (** A functor, with its parameter and the rest of its definition *)
-      | Module_apply of module_kind * module_kind
+      | Module_apply de module_kind * module_kind
                      (** A module defined by application of a functor. *)
-      | Module_with of module_type_kind * string
+      | Module_with de module_type_kind * string
                      (** A module whose type is a with ... constraint.
                         Should appear in interface files only. *)
-      | Module_constraint of module_kind * module_type_kind
+      | Module_constraint de module_kind * module_type_kind
                      (** A module constraint by a module type. *)
-      | Module_typeof of string (** by now only the code of the module expression *)
-      | Module_unpack of string * module_type_alias (** code of the expression and module type alias *)
+      | Module_typeof de string (** by now only the code of the module expression *)
+      | Module_unpack de string * module_type_alias (** code of the expression and module type alias *)
 
     (** Representation of a module. *)
-    and t_module = Odoc_module.t_module =
+    et t_module = Odoc_module.t_module =
         {
           m_name : Name.t ; (** Complete name of the module. *)
-          mutable m_type : Types.module_type ; (** The type of the module. *)
-          mutable m_info : info option ; (** Information found in the optional associated comment. *)
+          modifiable m_type : Types.module_type ; (** The type of the module. *)
+          modifiable m_info : info option ; (** Information found in the optional associated comment. *)
           m_is_interface : bool ; (** [true] for modules read from interface files *)
           m_file : string ; (** The file the module is defined in. *)
-          mutable m_kind : module_kind ; (** The way the module is defined. *)
-          mutable m_loc : location ;
-          mutable m_top_deps : Name.t list ; (** The toplevels module names this module depends on. *)
-          mutable m_code : string option ; (** The whole code of the module *)
-          mutable m_code_intf : string option ; (** The whole code of the interface of the module *)
+          modifiable m_kind : module_kind ; (** The way the module is defined. *)
+          modifiable m_loc : location ;
+          modifiable m_top_deps : Name.t list ; (** The toplevels module names this module depends on. *)
+          modifiable m_code : string option ; (** The whole code of the module *)
+          modifiable m_code_intf : string option ; (** The whole code of the interface of the module *)
           m_text_only : bool ; (** [true] if the module comes from a text file *)
         }
 
-    and module_type_alias = Odoc_module.module_type_alias =
+    et module_type_alias = Odoc_module.module_type_alias =
         {
           mta_name : Name.t ; (** Complete name of the target module type. *)
-          mutable mta_module : t_module_type option ; (** The real module type if we could associate it. *)
+          modifiable mta_module : t_module_type option ; (** The real module type if we could associate it. *)
         }
 
     (** Different kinds of module type. *)
-    and module_type_kind = Odoc_module.module_type_kind =
-      | Module_type_struct of module_element list (** A complete module signature. *)
-      | Module_type_functor of module_parameter * module_type_kind
+    et module_type_kind = Odoc_module.module_type_kind =
+      | Module_type_struct de module_element list (** A complete module signature. *)
+      | Module_type_functor de module_parameter * module_type_kind
             (** A functor, with its parameter and the rest of its definition *)
-      | Module_type_alias of module_type_alias
+      | Module_type_alias de module_type_alias
             (** Complete alias name and corresponding module type if we found it. *)
-      | Module_type_with of module_type_kind * string
+      | Module_type_with de module_type_kind * string
             (** The module type kind and the code of the with constraint. *)
-      | Module_type_typeof of string
+      | Module_type_typeof de string
             (** by now only the code of the module expression *)
 
     (** Representation of a module type. *)
-    and t_module_type = Odoc_module.t_module_type =
+    et t_module_type = Odoc_module.t_module_type =
         {
           mt_name : Name.t ; (** Complete name of the module type. *)
-          mutable mt_info : info option ; (** Information found in the optional associated comment. *)
-          mutable mt_type : Types.module_type option ; (** [None] means that the module type is abstract. *)
+          modifiable mt_info : info option ; (** Information found in the optional associated comment. *)
+          modifiable mt_type : Types.module_type option ; (** [None] means that the module type is abstract. *)
           mt_is_interface : bool ; (** [true] for modules read from interface files. *)
           mt_file : string ; (** The file the module type is defined in. *)
-          mutable mt_kind : module_type_kind option ;
+          modifiable mt_kind : module_type_kind option ;
               (** The way the module is defined. [None] means that module type is abstract.
                  It is always [None] when the module type was extracted from the implementation file.
                  That means module types are only analysed in interface files. *)
-          mutable mt_loc : location ;
+          modifiable mt_loc : location ;
         }
 
     (** {3 Functions for modules} *)
@@ -597,7 +597,7 @@ module Module :
 
     (** The list of module comments. *)
     val module_type_comments : ?trans:bool-> t_module_type -> text list
-  end
+  fin
 
 
 (** {3 Getting strings from values} *)
@@ -783,18 +783,18 @@ val remove_ending_newline : string -> string
 module Search :
     sig
       type result_element = Odoc_search.result_element =
-          Res_module of Module.t_module
-        | Res_module_type of Module.t_module_type
-        | Res_class of Class.t_class
-        | Res_class_type of Class.t_class_type
-        | Res_value of Value.t_value
-        | Res_type of Type.t_type
-        | Res_exception of Exception.t_exception
-        | Res_attribute of Value.t_attribute
-        | Res_method of Value.t_method
-        | Res_section of string  * text
-        | Res_recfield of Type.t_type * Type.record_field
-        | Res_const of Type.t_type * Type.variant_constructor
+          Res_module de Module.t_module
+        | Res_module_type de Module.t_module_type
+        | Res_class de Class.t_class
+        | Res_class_type de Class.t_class_type
+        | Res_value de Value.t_value
+        | Res_type de Type.t_type
+        | Res_exception de Exception.t_exception
+        | Res_attribute de Value.t_attribute
+        | Res_method de Value.t_method
+        | Res_section de string  * text
+        | Res_recfield de Type.t_type * Type.record_field
+        | Res_const de Type.t_type * Type.variant_constructor
 
       (** The type representing a research result.*)
       type search_result = result_element list
@@ -829,100 +829,100 @@ module Search :
       (** A function to search all the module types in a list of modules. *)
       val module_types : Module.t_module list -> Module.t_module_type list
 
-    end
+    fin
 
 (** Scanning of collected information *)
 module Scan :
   sig
-    class scanner :
-      object
+    classe scanner :
+      objet
       (** Scan of 'leaf elements'. *)
 
-        method scan_value : Value.t_value -> unit
+        méthode scan_value : Value.t_value -> unit
 
-        method scan_type_pre : Type.t_type -> bool
-        method scan_type_const : Type.t_type -> Type.variant_constructor -> unit
-        method scan_type_recfield : Type.t_type -> Type.record_field -> unit
-        method scan_type : Type.t_type -> unit
-        method scan_exception : Exception.t_exception -> unit
-        method scan_attribute : Value.t_attribute -> unit
-        method scan_method : Value.t_method -> unit
-        method scan_included_module : Module.included_module -> unit
+        méthode scan_type_pre : Type.t_type -> bool
+        méthode scan_type_const : Type.t_type -> Type.variant_constructor -> unit
+        méthode scan_type_recfield : Type.t_type -> Type.record_field -> unit
+        méthode scan_type : Type.t_type -> unit
+        méthode scan_exception : Exception.t_exception -> unit
+        méthode scan_attribute : Value.t_attribute -> unit
+        méthode scan_method : Value.t_method -> unit
+        méthode scan_included_module : Module.included_module -> unit
 
       (** Scan of a class. *)
 
         (** Scan of a comment inside a class. *)
-        method scan_class_comment : text -> unit
+        méthode scan_class_comment : text -> unit
 
        (** Override this method to perform controls on the class comment
           and params. This method is called before scanning the class elements.
           @return true if the class elements must be scanned.*)
-        method scan_class_pre : Class.t_class -> bool
+        méthode scan_class_pre : Class.t_class -> bool
 
        (** This method scan the elements of the given class. *)
-        method scan_class_elements : Class.t_class -> unit
+        méthode scan_class_elements : Class.t_class -> unit
 
        (** Scan of a class. Should not be overridden. It calls [scan_class_pre]
           and if [scan_class_pre] returns [true], then it calls scan_class_elements.*)
-        method scan_class : Class.t_class -> unit
+        méthode scan_class : Class.t_class -> unit
 
       (** Scan of a class type. *)
 
         (** Scan of a comment inside a class type. *)
-        method scan_class_type_comment : text -> unit
+        méthode scan_class_type_comment : text -> unit
 
         (** Override this method to perform controls on the class type comment
            and form. This method is called before scanning the class type elements.
            @return true if the class type elements must be scanned.*)
-        method scan_class_type_pre : Class.t_class_type -> bool
+        méthode scan_class_type_pre : Class.t_class_type -> bool
 
         (** This method scan the elements of the given class type. *)
-        method scan_class_type_elements : Class.t_class_type -> unit
+        méthode scan_class_type_elements : Class.t_class_type -> unit
 
         (** Scan of a class type. Should not be overridden. It calls [scan_class_type_pre]
            and if [scan_class_type_pre] returns [true], then it calls scan_class_type_elements.*)
-        method scan_class_type : Class.t_class_type -> unit
+        méthode scan_class_type : Class.t_class_type -> unit
 
       (** Scan of modules. *)
 
         (** Scan of a comment inside a module. *)
-        method scan_module_comment : text -> unit
+        méthode scan_module_comment : text -> unit
 
         (** Override this method to perform controls on the module comment
            and form. This method is called before scanning the module elements.
            @return true if the module elements must be scanned.*)
-        method scan_module_pre : Module.t_module -> bool
+        méthode scan_module_pre : Module.t_module -> bool
 
         (** This method scan the elements of the given module. *)
-        method scan_module_elements : Module.t_module -> unit
+        méthode scan_module_elements : Module.t_module -> unit
 
        (** Scan of a module. Should not be overridden. It calls [scan_module_pre]
           and if [scan_module_pre] returns [true], then it calls scan_module_elements.*)
-        method scan_module : Module.t_module -> unit
+        méthode scan_module : Module.t_module -> unit
 
       (** Scan of module types. *)
 
         (** Scan of a comment inside a module type. *)
-        method scan_module_type_comment : text -> unit
+        méthode scan_module_type_comment : text -> unit
 
         (** Override this method to perform controls on the module type comment
            and form. This method is called before scanning the module type elements.
            @return true if the module type elements must be scanned. *)
-        method scan_module_type_pre : Module.t_module_type -> bool
+        méthode scan_module_type_pre : Module.t_module_type -> bool
 
         (** This method scan the elements of the given module type. *)
-        method scan_module_type_elements : Module.t_module_type -> unit
+        méthode scan_module_type_elements : Module.t_module_type -> unit
 
         (** Scan of a module type. Should not be overridden. It calls [scan_module_type_pre]
            and if [scan_module_type_pre] returns [true], then it calls scan_module_type_elements.*)
-        method scan_module_type : Module.t_module_type -> unit
+        méthode scan_module_type : Module.t_module_type -> unit
 
       (** Main scanning method. *)
 
         (** Scan a list of modules. *)
-        method scan_module_list : Module.t_module list -> unit
-      end
-  end
+        méthode scan_module_list : Module.t_module list -> unit
+      fin
+  fin
 
 (** Computation of dependencies. *)
 module Dep :
@@ -937,7 +937,7 @@ module Dep :
        of the dependencies. Default is [false].
     *)
     val deps_of_types : ?kernel: bool -> Type.t_type list -> (Type.t_type * (Name.t list)) list
-  end
+  fin
 
 (** {2 Some global variables} *)
 
@@ -972,7 +972,7 @@ module Global :
 
     (** The flag which indicates if we must generate a trailer.*)
     val with_trailer : bool ref
-end
+fin
 
 (** Analysis of the given source files.
    @param init is the list of modules already known from a previous analysis.

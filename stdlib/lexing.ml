@@ -20,7 +20,7 @@ type position = {
   pos_cnum : int;
 }
 
-let dummy_pos = {
+soit dummy_pos = {
   pos_fname = "";
   pos_lnum = 0;
   pos_bol = 0;
@@ -29,17 +29,17 @@ let dummy_pos = {
 
 type lexbuf =
   { refill_buff : lexbuf -> unit;
-    mutable lex_buffer : string;
-    mutable lex_buffer_len : int;
-    mutable lex_abs_pos : int;
-    mutable lex_start_pos : int;
-    mutable lex_curr_pos : int;
-    mutable lex_last_pos : int;
-    mutable lex_last_action : int;
-    mutable lex_eof_reached : bool;
-    mutable lex_mem : int array;
-    mutable lex_start_p : position;
-    mutable lex_curr_p : position;
+    modifiable lex_buffer : string;
+    modifiable lex_buffer_len : int;
+    modifiable lex_abs_pos : int;
+    modifiable lex_start_pos : int;
+    modifiable lex_curr_pos : int;
+    modifiable lex_last_pos : int;
+    modifiable lex_last_action : int;
+    modifiable lex_eof_reached : bool;
+    modifiable lex_mem : int array;
+    modifiable lex_start_p : position;
+    modifiable lex_curr_p : position;
   }
 
 type lex_tables =
@@ -55,97 +55,97 @@ type lex_tables =
     lex_check_code : string;
     lex_code: string;}
 
-external c_engine : lex_tables -> int -> lexbuf -> int = "caml_lex_engine"
-external c_new_engine : lex_tables -> int -> lexbuf -> int
+dehors c_engine : lex_tables -> int -> lexbuf -> int = "caml_lex_engine"
+dehors c_new_engine : lex_tables -> int -> lexbuf -> int
                       = "caml_new_lex_engine"
 
-let engine tbl state buf =
-  let result = c_engine tbl state buf in
-  if result >= 0 then begin
+soit engine tbl state buf =
+  soit result = c_engine tbl state buf dans
+  si result >= 0 alors début
     buf.lex_start_p <- buf.lex_curr_p;
     buf.lex_curr_p <- {buf.lex_curr_p
-                       with pos_cnum = buf.lex_abs_pos + buf.lex_curr_pos};
-  end;
+                       avec pos_cnum = buf.lex_abs_pos + buf.lex_curr_pos};
+  fin;
   result
 ;;
 
-let new_engine tbl state buf =
-  let result = c_new_engine tbl state buf in
-  if result >= 0 then begin
+soit new_engine tbl state buf =
+  soit result = c_new_engine tbl state buf dans
+  si result >= 0 alors début
     buf.lex_start_p <- buf.lex_curr_p;
     buf.lex_curr_p <- {buf.lex_curr_p
-                       with pos_cnum = buf.lex_abs_pos + buf.lex_curr_pos};
-  end;
+                       avec pos_cnum = buf.lex_abs_pos + buf.lex_curr_pos};
+  fin;
   result
 ;;
 
-let lex_refill read_fun aux_buffer lexbuf =
-  let read =
-    read_fun aux_buffer (String.length aux_buffer) in
-  let n =
-    if read > 0
-    then read
-    else (lexbuf.lex_eof_reached <- true; 0) in
+soit lex_refill read_fun aux_buffer lexbuf =
+  soit read =
+    read_fun aux_buffer (String.length aux_buffer) dans
+  soit n =
+    si read > 0
+    alors read
+    sinon (lexbuf.lex_eof_reached <- vrai; 0) dans
   (* Current state of the buffer:
         <-------|---------------------|----------->
         |  junk |      valid data     |   junk    |
         ^       ^                     ^           ^
         0    start_pos             buffer_end    String.length buffer
   *)
-  if lexbuf.lex_buffer_len + n > String.length lexbuf.lex_buffer then begin
+  si lexbuf.lex_buffer_len + n > String.length lexbuf.lex_buffer alors début
     (* There is not enough space at the end of the buffer *)
-    if lexbuf.lex_buffer_len - lexbuf.lex_start_pos + n
+    si lexbuf.lex_buffer_len - lexbuf.lex_start_pos + n
        <= String.length lexbuf.lex_buffer
-    then begin
+    alors début
       (* But there is enough space if we reclaim the junk at the beginning
          of the buffer *)
       String.blit lexbuf.lex_buffer lexbuf.lex_start_pos
                   lexbuf.lex_buffer 0
                   (lexbuf.lex_buffer_len - lexbuf.lex_start_pos)
-    end else begin
+    fin sinon début
       (* We must grow the buffer.  Doubling its size will provide enough
          space since n <= String.length aux_buffer <= String.length buffer.
          Watch out for string length overflow, though. *)
-      let newlen =
-        min (2 * String.length lexbuf.lex_buffer) Sys.max_string_length in
-      if lexbuf.lex_buffer_len - lexbuf.lex_start_pos + n > newlen
-      then failwith "Lexing.lex_refill: cannot grow buffer";
-      let newbuf = String.create newlen in
+      soit newlen =
+        min (2 * String.length lexbuf.lex_buffer) Sys.max_string_length dans
+      si lexbuf.lex_buffer_len - lexbuf.lex_start_pos + n > newlen
+      alors failwith "Lexing.lex_refill: cannot grow buffer";
+      soit newbuf = String.create newlen dans
       (* Copy the valid data to the beginning of the new buffer *)
       String.blit lexbuf.lex_buffer lexbuf.lex_start_pos
                   newbuf 0
                   (lexbuf.lex_buffer_len - lexbuf.lex_start_pos);
       lexbuf.lex_buffer <- newbuf
-    end;
+    fin;
     (* Reallocation or not, we have shifted the data left by
        start_pos characters; update the positions *)
-    let s = lexbuf.lex_start_pos in
+    soit s = lexbuf.lex_start_pos dans
     lexbuf.lex_abs_pos <- lexbuf.lex_abs_pos + s;
     lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos - s;
     lexbuf.lex_start_pos <- 0;
     lexbuf.lex_last_pos <- lexbuf.lex_last_pos - s;
     lexbuf.lex_buffer_len <- lexbuf.lex_buffer_len - s ;
-    let t = lexbuf.lex_mem in
-    for i = 0 to Array.length t-1 do
-      let v = t.(i) in
-      if v >= 0 then
+    soit t = lexbuf.lex_mem dans
+    pour i = 0 à Array.length t-1 faire
+      soit v = t.(i) dans
+      si v >= 0 alors
         t.(i) <- v-s
-    done
-  end;
+    fait
+  fin;
   (* There is now enough space at the end of the buffer *)
   String.blit aux_buffer 0
               lexbuf.lex_buffer lexbuf.lex_buffer_len
               n;
   lexbuf.lex_buffer_len <- lexbuf.lex_buffer_len + n
 
-let zero_pos = {
+soit zero_pos = {
   pos_fname = "";
   pos_lnum = 1;
   pos_bol = 0;
   pos_cnum = 0;
 };;
 
-let from_function f =
+soit from_function f =
   { refill_buff = lex_refill f (String.create 512);
     lex_buffer = String.create 1024;
     lex_buffer_len = 0;
@@ -155,16 +155,16 @@ let from_function f =
     lex_last_pos = 0;
     lex_last_action = 0;
     lex_mem = [||];
-    lex_eof_reached = false;
+    lex_eof_reached = faux;
     lex_start_p = zero_pos;
     lex_curr_p = zero_pos;
   }
 
-let from_channel ic =
-  from_function (fun buf n -> input ic buf 0 n)
+soit from_channel ic =
+  from_function (fonc buf n -> input ic buf 0 n)
 
-let from_string s =
-  { refill_buff = (fun lexbuf -> lexbuf.lex_eof_reached <- true);
+soit from_string s =
+  { refill_buff = (fonc lexbuf -> lexbuf.lex_eof_reached <- vrai);
     lex_buffer = s ^ "";
     lex_buffer_len = String.length s;
     lex_abs_pos = 0;
@@ -173,54 +173,54 @@ let from_string s =
     lex_last_pos = 0;
     lex_last_action = 0;
     lex_mem = [||];
-    lex_eof_reached = true;
+    lex_eof_reached = vrai;
     lex_start_p = zero_pos;
     lex_curr_p = zero_pos;
   }
 
-let lexeme lexbuf =
-  let len = lexbuf.lex_curr_pos - lexbuf.lex_start_pos in
-  let s = String.create len in
+soit lexeme lexbuf =
+  soit len = lexbuf.lex_curr_pos - lexbuf.lex_start_pos dans
+  soit s = String.create len dans
   String.unsafe_blit lexbuf.lex_buffer lexbuf.lex_start_pos s 0 len;
   s
 
-let sub_lexeme lexbuf i1 i2 =
-  let len = i2-i1 in
-  let s = String.create len in
+soit sub_lexeme lexbuf i1 i2 =
+  soit len = i2-i1 dans
+  soit s = String.create len dans
   String.unsafe_blit lexbuf.lex_buffer i1 s 0 len;
   s
 
-let sub_lexeme_opt lexbuf i1 i2 =
-  if i1 >= 0 then begin
-    let len = i2-i1 in
-    let s = String.create len in
+soit sub_lexeme_opt lexbuf i1 i2 =
+  si i1 >= 0 alors début
+    soit len = i2-i1 dans
+    soit s = String.create len dans
     String.unsafe_blit lexbuf.lex_buffer i1 s 0 len;
     Some s
-  end else begin
+  fin sinon début
     None
-  end
+  fin
 
-let sub_lexeme_char lexbuf i = lexbuf.lex_buffer.[i]
+soit sub_lexeme_char lexbuf i = lexbuf.lex_buffer.[i]
 
-let sub_lexeme_char_opt lexbuf i =
-  if i >= 0 then
+soit sub_lexeme_char_opt lexbuf i =
+  si i >= 0 alors
     Some lexbuf.lex_buffer.[i]
-  else
+  sinon
     None
 
 
-let lexeme_char lexbuf i =
+soit lexeme_char lexbuf i =
   String.get lexbuf.lex_buffer (lexbuf.lex_start_pos + i)
 
-let lexeme_start lexbuf = lexbuf.lex_start_p.pos_cnum;;
-let lexeme_end lexbuf = lexbuf.lex_curr_p.pos_cnum;;
+soit lexeme_start lexbuf = lexbuf.lex_start_p.pos_cnum;;
+soit lexeme_end lexbuf = lexbuf.lex_curr_p.pos_cnum;;
 
-let lexeme_start_p lexbuf = lexbuf.lex_start_p;;
-let lexeme_end_p lexbuf = lexbuf.lex_curr_p;;
+soit lexeme_start_p lexbuf = lexbuf.lex_start_p;;
+soit lexeme_end_p lexbuf = lexbuf.lex_curr_p;;
 
-let new_line lexbuf =
-  let lcp = lexbuf.lex_curr_p in
-  lexbuf.lex_curr_p <- { lcp with
+soit new_line lexbuf =
+  soit lcp = lexbuf.lex_curr_p dans
+  lexbuf.lex_curr_p <- { lcp avec
     pos_lnum = lcp.pos_lnum + 1;
     pos_bol = lcp.pos_cnum;
   }
@@ -229,9 +229,9 @@ let new_line lexbuf =
 
 (* Discard data left in lexer buffer. *)
 
-let flush_input lb =
+soit flush_input lb =
   lb.lex_curr_pos <- 0;
   lb.lex_abs_pos <- 0;
-  lb.lex_curr_p <- {lb.lex_curr_p with pos_cnum = 0};
+  lb.lex_curr_p <- {lb.lex_curr_p avec pos_cnum = 0};
   lb.lex_buffer_len <- 0;
 ;;

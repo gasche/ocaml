@@ -19,12 +19,12 @@ module Name = Odoc_name
 (** Representation of a value. *)
 type t_value = {
     val_name : Name.t ;
-    mutable val_info : Odoc_types.info option ;
+    modifiable val_info : Odoc_types.info option ;
     val_type : Types.type_expr ;
     val_recursive : bool ;
-    mutable val_parameters : Odoc_parameter.parameter list ;
-    mutable val_code : string option ;
-    mutable val_loc : Odoc_types.location ;
+    modifiable val_parameters : Odoc_parameter.parameter list ;
+    modifiable val_code : string option ;
+    modifiable val_loc : Odoc_types.location ;
   }
 
 (** Representation of a class attribute. *)
@@ -47,29 +47,29 @@ type t_method = {
 
 (** Returns the text associated to the given parameter name
    in the given value, or None. *)
-let value_parameter_text_by_name v name =
-  match v.val_info with
+soit value_parameter_text_by_name v name =
+  filtre v.val_info avec
     None -> None
   | Some i ->
-      try
-        let t = List.assoc name i.Odoc_types.i_params in
+      essaie
+        soit t = List.assoc name i.Odoc_types.i_params dans
         Some t
-      with
+      avec
         Not_found ->
           None
 
 (** Update the parameters text of a t_value, according to the val_info field. *)
-let update_value_parameters_text v =
-  let f p =
+soit update_value_parameters_text v =
+  soit f p =
     Odoc_parameter.update_parameter_text (value_parameter_text_by_name v) p
-  in
+  dans
   List.iter f v.val_parameters
 
 (** Create a list of (parameter name, typ) from a type, according to the arrows.
    [parameter_list_from_arrows t = [ a ; b ]] if t = a -> b -> c.*)
-let parameter_list_from_arrows typ =
-  let rec iter t =
-    match t.Types.desc with
+soit parameter_list_from_arrows typ =
+  soit rec iter t =
+    filtre t.Types.desc avec
       Types.Tarrow (l, t1, t2, _) ->
         (l, t1) :: (iter t2)
     | Types.Tlink texp
@@ -86,7 +86,7 @@ let parameter_list_from_arrows typ =
     | Types.Tpackage _
     | Types.Tvariant _ ->
         []
-  in
+  dans
   iter typ
 
 (** Create a list of parameters with dummy names "??" from a type list.
@@ -94,24 +94,24 @@ let parameter_list_from_arrows typ =
    and the .mli file. In the .mli file we don't have parameter names
    so there is nothing to merge. With this dummy list we can merge the
    parameter names from the .ml and the type from the .mli file. *)
-let dummy_parameter_list typ =
-  let normal_name s =
-    match s with
+soit dummy_parameter_list typ =
+  soit normal_name s =
+    filtre s avec
       "" -> s
     | _ ->
-        match s.[0] with
+        filtre s.[0] avec
           '?' -> String.sub s 1 ((String.length s) - 1)
         | _ -> s
-  in
+  dans
   Printtyp.mark_loops typ;
-  let liste_param = parameter_list_from_arrows typ in
-  let rec iter (label, t) =
-    match t.Types.desc with
+  soit liste_param = parameter_list_from_arrows typ dans
+  soit rec iter (label, t) =
+    filtre t.Types.desc avec
     | Types.Ttuple l ->
-        if label = "" then
+        si label = "" alors
           Odoc_parameter.Tuple
-            (List.map (fun t2 -> iter ("", t2)) l, t)
-        else
+            (List.map (fonc t2 -> iter ("", t2)) l, t)
+        sinon
           (* if there is a label, then we don't want to decompose the tuple *)
           Odoc_parameter.Simple_name
             { Odoc_parameter.sn_name = normal_name label ;
@@ -126,18 +126,18 @@ let dummy_parameter_list typ =
           { Odoc_parameter.sn_name = normal_name label ;
              Odoc_parameter.sn_type = t ;
             Odoc_parameter.sn_text = None }
-  in
+  dans
   List.map iter liste_param
 
 (** Return true if the value is a function, i.e. has a functional type.*)
-let is_function v =
-  let rec f t =
-    match t.Types.desc with
+soit is_function v =
+  soit rec f t =
+    filtre t.Types.desc avec
       Types.Tarrow _ ->
-        true
+        vrai
     | Types.Tlink t ->
         f t
         | _ ->
-            false
-      in
+            faux
+      dans
   f v.val_type

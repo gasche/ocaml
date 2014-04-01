@@ -27,7 +27,7 @@ type report =
     rep_program_pointer : int }
 
 type checkpoint_report =
-    Checkpoint_done of int
+    Checkpoint_done de int
   | Checkpoint_failed
 
 type follow_fork_mode =
@@ -105,4 +105,4 @@ module Remote_value :
     val accu : unit -> t
     val closure_code : t -> int
 
-  end
+  fin

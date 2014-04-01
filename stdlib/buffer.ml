@@ -14,163 +14,163 @@
 (* Extensible buffers *)
 
 type t =
- {mutable buffer : string;
-  mutable position : int;
-  mutable length : int;
+ {modifiable buffer : string;
+  modifiable position : int;
+  modifiable length : int;
   initial_buffer : string}
 
-let create n =
- let n = if n < 1 then 1 else n in
- let n = if n > Sys.max_string_length then Sys.max_string_length else n in
- let s = String.create n in
+soit create n =
+ soit n = si n < 1 alors 1 sinon n dans
+ soit n = si n > Sys.max_string_length alors Sys.max_string_length sinon n dans
+ soit s = String.create n dans
  {buffer = s; position = 0; length = n; initial_buffer = s}
 
-let contents b = String.sub b.buffer 0 b.position
+soit contents b = String.sub b.buffer 0 b.position
 
-let sub b ofs len =
-  if ofs < 0 || len < 0 || ofs > b.position - len
-  then invalid_arg "Buffer.sub"
-  else begin
-    let r = String.create len in
+soit sub b ofs len =
+  si ofs < 0 || len < 0 || ofs > b.position - len
+  alors invalid_arg "Buffer.sub"
+  sinon début
+    soit r = String.create len dans
     String.unsafe_blit b.buffer ofs r 0 len;
     r
-  end
+  fin
 ;;
 
-let blit src srcoff dst dstoff len =
-  if len < 0 || srcoff < 0 || srcoff > src.position - len
+soit blit src srcoff dst dstoff len =
+  si len < 0 || srcoff < 0 || srcoff > src.position - len
              || dstoff < 0 || dstoff > (String.length dst) - len
-  then invalid_arg "Buffer.blit"
-  else
+  alors invalid_arg "Buffer.blit"
+  sinon
     String.blit src.buffer srcoff dst dstoff len
 ;;
 
-let nth b ofs =
-  if ofs < 0 || ofs >= b.position then
+soit nth b ofs =
+  si ofs < 0 || ofs >= b.position alors
    invalid_arg "Buffer.nth"
-  else String.unsafe_get b.buffer ofs
+  sinon String.unsafe_get b.buffer ofs
 ;;
 
-let length b = b.position
+soit length b = b.position
 
-let clear b = b.position <- 0
+soit clear b = b.position <- 0
 
-let reset b =
+soit reset b =
   b.position <- 0; b.buffer <- b.initial_buffer;
   b.length <- String.length b.buffer
 
-let resize b more =
-  let len = b.length in
-  let new_len = ref len in
-  while b.position + more > !new_len do new_len := 2 * !new_len done;
-  if !new_len > Sys.max_string_length then begin
-    if b.position + more <= Sys.max_string_length
-    then new_len := Sys.max_string_length
-    else failwith "Buffer.add: impossible d'agrandir le tampon"
-  end;
-  let new_buffer = String.create !new_len in
+soit resize b more =
+  soit len = b.length dans
+  soit new_len = ref len dans
+  pendant_que b.position + more > !new_len faire new_len := 2 * !new_len fait;
+  si !new_len > Sys.max_string_length alors début
+    si b.position + more <= Sys.max_string_length
+    alors new_len := Sys.max_string_length
+    sinon failwith "Buffer.add: impossible d'agrandir le tampon"
+  fin;
+  soit new_buffer = String.create !new_len dans
   String.blit b.buffer 0 new_buffer 0 b.position;
   b.buffer <- new_buffer;
   b.length <- !new_len
 
-let add_char b c =
-  let pos = b.position in
-  if pos >= b.length then resize b 1;
+soit add_char b c =
+  soit pos = b.position dans
+  si pos >= b.length alors resize b 1;
   String.unsafe_set b.buffer pos c;
   b.position <- pos + 1
 
-let add_substring b s offset len =
-  if offset < 0 || len < 0 || offset > String.length s - len
-  then invalid_arg "Buffer.add_substring";
-  let new_position = b.position + len in
-  if new_position > b.length then resize b len;
+soit add_substring b s offset len =
+  si offset < 0 || len < 0 || offset > String.length s - len
+  alors invalid_arg "Buffer.add_substring";
+  soit new_position = b.position + len dans
+  si new_position > b.length alors resize b len;
   String.unsafe_blit s offset b.buffer b.position len;
   b.position <- new_position
 
-let add_string b s =
-  let len = String.length s in
-  let new_position = b.position + len in
-  if new_position > b.length then resize b len;
+soit add_string b s =
+  soit len = String.length s dans
+  soit new_position = b.position + len dans
+  si new_position > b.length alors resize b len;
   String.unsafe_blit s 0 b.buffer b.position len;
   b.position <- new_position
 
-let add_buffer b bs =
+soit add_buffer b bs =
   add_substring b bs.buffer 0 bs.position
 
-let add_channel b ic len =
-  if len < 0 || len > Sys.max_string_length then   (* PR#5004 *)
+soit add_channel b ic len =
+  si len < 0 || len > Sys.max_string_length alors   (* PR#5004 *)
     invalid_arg "Buffer.add_channel";
-  if b.position + len > b.length then resize b len;
+  si b.position + len > b.length alors resize b len;
   really_input ic b.buffer b.position len;
   b.position <- b.position + len
 
-let output_buffer oc b =
+soit output_buffer oc b =
   output oc b.buffer 0 b.position
 
-let closing = function
+soit closing = fonction
   | '(' -> ')'
   | '{' -> '}'
-  | _ -> assert false;;
+  | _ -> affirme faux;;
 
 (* opening and closing: open and close characters, typically ( and )
    k: balance of opening and closing chars
    s: the string where we are searching
    start: the index where we start the search. *)
-let advance_to_closing opening closing k s start =
-  let rec advance k i lim =
-    if i >= lim then raise Not_found else
-    if s.[i] = opening then advance (k + 1) (i + 1) lim else
-    if s.[i] = closing then
-      if k = 0 then i else advance (k - 1) (i + 1) lim
-    else advance k (i + 1) lim in
+soit advance_to_closing opening closing k s start =
+  soit rec advance k i lim =
+    si i >= lim alors raise Not_found sinon
+    si s.[i] = opening alors advance (k + 1) (i + 1) lim sinon
+    si s.[i] = closing alors
+      si k = 0 alors i sinon advance (k - 1) (i + 1) lim
+    sinon advance k (i + 1) lim dans
   advance k start (String.length s);;
 
-let advance_to_non_alpha s start =
-  let rec advance i lim =
-    if i >= lim then lim else
-    match s.[i] with
+soit advance_to_non_alpha s start =
+  soit rec advance i lim =
+    si i >= lim alors lim sinon
+    filtre s.[i] avec
     | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' -> advance (i + 1) lim
-    | _ -> i in
+    | _ -> i dans
   advance start (String.length s);;
 
 (* We are just at the beginning of an ident in s, starting at start. *)
-let find_ident s start lim =
-  if start >= lim then raise Not_found else
-  match s.[start] with
+soit find_ident s start lim =
+  si start >= lim alors raise Not_found sinon
+  filtre s.[start] avec
   (* Parenthesized ident ? *)
-  | '(' | '{' as c ->
-     let new_start = start + 1 in
-     let stop = advance_to_closing c (closing c) 0 s new_start in
+  | '(' | '{' tel c ->
+     soit new_start = start + 1 dans
+     soit stop = advance_to_closing c (closing c) 0 s new_start dans
      String.sub s new_start (stop - start - 1), stop + 1
   (* Regular ident *)
   | _ ->
-     let stop = advance_to_non_alpha s (start + 1) in
+     soit stop = advance_to_non_alpha s (start + 1) dans
      String.sub s start (stop - start), stop;;
 
 (* Substitute $ident, $(ident), or ${ident} in s,
     according to the function mapping f. *)
-let add_substitute b f s =
-  let lim = String.length s in
-  let rec subst previous i =
-    if i < lim then begin
-      match s.[i] with
-      | '$' as current when previous = '\\' ->
+soit add_substitute b f s =
+  soit lim = String.length s dans
+  soit rec subst previous i =
+    si i < lim alors début
+      filtre s.[i] avec
+      | '$' tel current quand previous = '\\' ->
          add_char b current;
          subst ' ' (i + 1)
       | '$' ->
-         let j = i + 1 in
-         let ident, next_i = find_ident s j lim in
+         soit j = i + 1 dans
+         soit ident, next_i = find_ident s j lim dans
          add_string b (f ident);
          subst ' ' next_i
-      | current when previous == '\\' ->
+      | current quand previous == '\\' ->
          add_char b '\\';
          add_char b current;
          subst ' ' (i + 1)
-      | '\\' as current ->
+      | '\\' tel current ->
          subst current (i + 1)
       | current ->
          add_char b current;
          subst current (i + 1)
-    end else
-    if previous = '\\' then add_char b previous in
+    fin sinon
+    si previous = '\\' alors add_char b previous dans
   subst ' ' 0;;

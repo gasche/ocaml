@@ -13,85 +13,85 @@
 
 (* Merging and sorting *)
 
-open Array
+ouvre Array
 
-let rec merge order l1 l2 =
-  match l1 with
+soit rec merge order l1 l2 =
+  filtre l1 avec
     [] -> l2
   | h1 :: t1 ->
-      match l2 with
+      filtre l2 avec
         [] -> l1
       | h2 :: t2 ->
-          if order h1 h2
-          then h1 :: merge order t1 l2
-          else h2 :: merge order l1 t2
+          si order h1 h2
+          alors h1 :: merge order t1 l2
+          sinon h2 :: merge order l1 t2
 
-let list order l =
-  let rec initlist = function
+soit list order l =
+  soit rec initlist = fonction
       [] -> []
     | [e] -> [[e]]
     | e1::e2::rest ->
-        (if order e1 e2 then [e1;e2] else [e2;e1]) :: initlist rest in
-  let rec merge2 = function
+        (si order e1 e2 alors [e1;e2] sinon [e2;e1]) :: initlist rest dans
+  soit rec merge2 = fonction
       l1::l2::rest -> merge order l1 l2 :: merge2 rest
-    | x -> x in
-  let rec mergeall = function
+    | x -> x dans
+  soit rec mergeall = fonction
       [] -> []
     | [l] -> l
-    | llist -> mergeall (merge2 llist) in
+    | llist -> mergeall (merge2 llist) dans
   mergeall(initlist l)
 
-let swap arr i j =
-  let tmp = unsafe_get arr i in
+soit swap arr i j =
+  soit tmp = unsafe_get arr i dans
   unsafe_set arr i (unsafe_get arr j);
   unsafe_set arr j tmp
 
 (* There is a known performance bug in the code below.  If you find
    it, don't bother reporting it.  You're not supposed to use this
    module anyway. *)
-let array cmp arr =
-  let rec qsort lo hi =
-    if hi - lo >= 6 then begin
-      let mid = (lo + hi) lsr 1 in
+soit array cmp arr =
+  soit rec qsort lo hi =
+    si hi - lo >= 6 alors début
+      soit mid = (lo + hi) ddl 1 dans
       (* Select median value from among LO, MID, and HI. Rearrange
          LO and HI so the three values are sorted. This lowers the
          probability of picking a pathological pivot.  It also
          avoids extra comparisons on i and j in the two tight "while"
          loops below. *)
-      if cmp (unsafe_get arr mid) (unsafe_get arr lo) then swap arr mid lo;
-      if cmp (unsafe_get arr hi) (unsafe_get arr mid) then begin
+      si cmp (unsafe_get arr mid) (unsafe_get arr lo) alors swap arr mid lo;
+      si cmp (unsafe_get arr hi) (unsafe_get arr mid) alors début
         swap arr mid hi;
-        if cmp (unsafe_get arr mid) (unsafe_get arr lo) then swap arr mid lo
-      end;
-      let pivot = unsafe_get arr mid in
-      let i = ref (lo + 1) and j = ref (hi - 1) in
-      if not (cmp pivot (unsafe_get arr hi))
+        si cmp (unsafe_get arr mid) (unsafe_get arr lo) alors swap arr mid lo
+      fin;
+      soit pivot = unsafe_get arr mid dans
+      soit i = ref (lo + 1) et j = ref (hi - 1) dans
+      si not (cmp pivot (unsafe_get arr hi))
          || not (cmp (unsafe_get arr lo) pivot)
-      then raise (Invalid_argument "Sort.array");
-      while !i < !j do
-        while not (cmp pivot (unsafe_get arr !i)) do incr i done;
-        while not (cmp (unsafe_get arr !j) pivot) do decr j done;
-        if !i < !j then swap arr !i !j;
+      alors raise (Invalid_argument "Sort.array");
+      pendant_que !i < !j faire
+        pendant_que not (cmp pivot (unsafe_get arr !i)) faire incr i fait;
+        pendant_que not (cmp (unsafe_get arr !j) pivot) faire decr j fait;
+        si !i < !j alors swap arr !i !j;
         incr i; decr j
-      done;
+      fait;
       (* Recursion on smaller half, tail-call on larger half *)
-      if !j - lo <= hi - !i then begin
+      si !j - lo <= hi - !i alors début
         qsort lo !j; qsort !i hi
-      end else begin
+      fin sinon début
         qsort !i hi; qsort lo !j
-      end
-    end in
+      fin
+    fin dans
   qsort 0 (Array.length arr - 1);
   (* Finish sorting by insertion sort *)
-  for i = 1 to Array.length arr - 1 do
-    let val_i = (unsafe_get arr i) in
-    if not (cmp (unsafe_get arr (i - 1)) val_i) then begin
+  pour i = 1 à Array.length arr - 1 faire
+    soit val_i = (unsafe_get arr i) dans
+    si not (cmp (unsafe_get arr (i - 1)) val_i) alors début
       unsafe_set arr i (unsafe_get arr (i - 1));
-      let j = ref (i - 1) in
-      while !j >= 1 && not (cmp (unsafe_get arr (!j - 1)) val_i) do
+      soit j = ref (i - 1) dans
+      pendant_que !j >= 1 && not (cmp (unsafe_get arr (!j - 1)) val_i) faire
         unsafe_set arr !j (unsafe_get arr (!j - 1));
         decr j
-      done;
+      fait;
       unsafe_set arr !j val_i
-    end
-  done
+    fin
+  fait

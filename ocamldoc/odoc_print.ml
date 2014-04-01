@@ -10,40 +10,40 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Format
+ouvre Format
 
-let new_fmt () =
-  let buf = Buffer.create 512 in
-  let fmt = formatter_of_buffer buf in
-  let flush () =
+soit new_fmt () =
+  soit buf = Buffer.create 512 dans
+  soit fmt = formatter_of_buffer buf dans
+  soit flush () =
     pp_print_flush fmt ();
-    let s = Buffer.contents buf in
+    soit s = Buffer.contents buf dans
     Buffer.reset buf ;
     s
-  in
+  dans
   (fmt, flush)
 
-let (type_fmt, flush_type_fmt) = new_fmt ()
-let _ =
-  let (out, flush, outnewline, outspace) =
+soit (type_fmt, flush_type_fmt) = new_fmt ()
+soit _ =
+  soit (out, flush, outnewline, outspace) =
     pp_get_all_formatter_output_functions type_fmt ()
-  in
+  dans
   pp_set_all_formatter_output_functions type_fmt
     ~out ~flush
-    ~newline: (fun () -> out "\n  " 0 3)
+    ~newline: (fonc () -> out "\n  " 0 3)
     ~spaces: outspace
 
-let (modtype_fmt, flush_modtype_fmt) = new_fmt ()
+soit (modtype_fmt, flush_modtype_fmt) = new_fmt ()
 
 
 
 
-let string_of_type_expr t =
+soit string_of_type_expr t =
   Printtyp.mark_loops t;
-  Printtyp.type_scheme_max ~b_reset_names: false type_fmt t;
+  Printtyp.type_scheme_max ~b_reset_names: faux type_fmt t;
   flush_type_fmt ()
 
-exception Use_code of string
+exception Use_code de string
 
 (** Return the given module type where methods and vals have been removed
    from the signatures. Used when we don't want to print a too long module type.
@@ -51,54 +51,54 @@ exception Use_code of string
    encouter a signature, to that the calling function can use the code rather
    than the "emptied" type.
 *)
-let simpl_module_type ?code t =
-  let rec iter t =
-    match t with
+soit simpl_module_type ?code t =
+  soit rec iter t =
+    filtre t avec
       Types.Mty_ident p -> t
     | Types.Mty_alias p -> t
     | Types.Mty_signature _ ->
         (
-         match code with
+         filtre code avec
            None -> Types.Mty_signature []
          | Some s -> raise (Use_code s)
         )
     | Types.Mty_functor (id, mt1, mt2) ->
         Types.Mty_functor (id, Misc.may_map iter mt1, iter mt2)
-  in
+  dans
   iter t
 
-let string_of_module_type ?code ?(complete=false) t =
-  try
-    let t2 = if complete then t else simpl_module_type ?code t in
+soit string_of_module_type ?code ?(complete=faux) t =
+  essaie
+    soit t2 = si complete alors t sinon simpl_module_type ?code t dans
     Printtyp.modtype modtype_fmt t2;
     flush_modtype_fmt ()
-  with
+  avec
     Use_code s -> s
 
 (** Return the given class type where methods and vals have been removed
    from the signatures. Used when we don't want to print a too long class type.*)
-let simpl_class_type t =
-  let rec iter t =
-    match t with
+soit simpl_class_type t =
+  soit rec iter t =
+    filtre t avec
       Types.Cty_constr (p,texp_list,ct) -> t
     | Types.Cty_signature cs ->
         (* on vire les vals et methods pour ne pas qu'elles soient imprimees
            quand on affichera le type *)
-        let tnil = { Types.desc = Types.Tnil ; Types.level = 0; Types.id = 0 } in
-        Types.Cty_signature { Types.csig_self = { cs.Types.csig_self with
+        soit tnil = { Types.desc = Types.Tnil ; Types.level = 0; Types.id = 0 } dans
+        Types.Cty_signature { Types.csig_self = { cs.Types.csig_self avec
                                                   Types.desc = Types.Tobject (tnil, ref None) };
                               csig_vars = Types.Vars.empty ;
                               csig_concr = Types.Concr.empty ;
                               csig_inher = []
                              }
     | Types.Cty_arrow (l, texp, ct) ->
-        let new_ct = iter ct in
+        soit new_ct = iter ct dans
         Types.Cty_arrow (l, texp, new_ct)
-  in
+  dans
   iter t
 
-let string_of_class_type ?(complete=false) t =
-  let t2 = if complete then t else simpl_class_type t in
+soit string_of_class_type ?(complete=faux) t =
+  soit t2 = si complete alors t sinon simpl_class_type t dans
   (* A VOIR : ma propre version de Printtyp.class_type pour ne pas faire reset_names *)
   Printtyp.class_type modtype_fmt t2;
   flush_modtype_fmt ()

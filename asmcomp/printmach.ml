@@ -12,18 +12,18 @@
 
 (* Pretty-printing of pseudo machine code *)
 
-open Format
-open Cmm
-open Reg
-open Mach
+ouvre Format
+ouvre Cmm
+ouvre Reg
+ouvre Mach
 
-let reg ppf r =
-  if not (Reg.anonymous r) then
+soit reg ppf r =
+  si not (Reg.anonymous r) alors
     fprintf ppf "%s" (Reg.name r)
-  else
-    fprintf ppf "%s" (match r.typ with Addr -> "A" | Int -> "I" | Float -> "F");
+  sinon
+    fprintf ppf "%s" (filtre r.typ avec Addr -> "A" | Int -> "I" | Float -> "F");
   fprintf ppf "/%i" r.stamp;
-  begin match r.loc with
+  début filtre r.loc avec
   | Unknown -> ()
   | Reg r ->
       fprintf ppf "[%s]" (Proc.register_name r)
@@ -33,40 +33,40 @@ let reg ppf r =
       fprintf ppf "[si%i]" s
   | Stack(Outgoing s) ->
       fprintf ppf "[so%i]" s
-  end
+  fin
 
-let regs ppf v =
-  match Array.length v with
+soit regs ppf v =
+  filtre Array.length v avec
   | 0 -> ()
   | 1 -> reg ppf v.(0)
   | n -> reg ppf v.(0);
-         for i = 1 to n-1 do fprintf ppf " %a" reg v.(i) done
+         pour i = 1 à n-1 faire fprintf ppf " %a" reg v.(i) fait
 
-let regset ppf s =
-  let first = ref true in
+soit regset ppf s =
+  soit first = ref vrai dans
   Reg.Set.iter
-    (fun r ->
-      if !first then begin first := false; fprintf ppf "%a" reg r end
-      else fprintf ppf "@ %a" reg r)
+    (fonc r ->
+      si !first alors début first := faux; fprintf ppf "%a" reg r fin
+      sinon fprintf ppf "@ %a" reg r)
     s
 
-let regsetaddr ppf s =
-  let first = ref true in
+soit regsetaddr ppf s =
+  soit first = ref vrai dans
   Reg.Set.iter
-    (fun r ->
-      if !first then begin first := false; fprintf ppf "%a" reg r end
-      else fprintf ppf "@ %a" reg r;
-      match r.typ with Addr -> fprintf ppf "*" | _ -> ())
+    (fonc r ->
+      si !first alors début first := faux; fprintf ppf "%a" reg r fin
+      sinon fprintf ppf "@ %a" reg r;
+      filtre r.typ avec Addr -> fprintf ppf "*" | _ -> ())
     s
 
-let intcomp = function
+soit intcomp = fonction
   | Isigned c -> Printf.sprintf " %ss " (Printcmm.comparison c)
   | Iunsigned c -> Printf.sprintf " %su " (Printcmm.comparison c)
 
-let floatcomp c =
+soit floatcomp c =
     Printf.sprintf " %sf " (Printcmm.comparison c)
 
-let intop = function
+soit intop = fonction
   | Iadd -> " + "
   | Isub -> " - "
   | Imul -> " * "
@@ -82,24 +82,24 @@ let intop = function
   | Icomp cmp -> intcomp cmp
   | Icheckbound -> " check > "
 
-let test tst ppf arg =
-  match tst with
+soit test tst ppf arg =
+  filtre tst avec
   | Itruetest -> reg ppf arg.(0)
   | Ifalsetest -> fprintf ppf "not %a" reg arg.(0)
   | Iinttest cmp -> fprintf ppf "%a%s%a" reg arg.(0) (intcomp cmp) reg arg.(1)
   | Iinttest_imm(cmp, n) -> fprintf ppf "%a%s%i" reg arg.(0) (intcomp cmp) n
   | Ifloattest(cmp, neg) ->
       fprintf ppf "%s%a%s%a"
-       (if neg then "not " else "")
+       (si neg alors "not " sinon "")
        reg arg.(0) (floatcomp cmp) reg arg.(1)
   | Ieventest -> fprintf ppf "%a & 1 == 0" reg arg.(0)
   | Ioddtest -> fprintf ppf "%a & 1 == 1" reg arg.(0)
 
-let print_live = ref false
+soit print_live = ref faux
 
-let operation op arg ppf res =
-  if Array.length res > 0 then fprintf ppf "%a := " regs res;
-  match op with
+soit operation op arg ppf res =
+  si Array.length res > 0 alors fprintf ppf "%a := " regs res;
+  filtre op avec
   | Imove -> regs ppf arg
   | Ispill -> fprintf ppf "%a (spill)" regs arg
   | Ireload -> fprintf ppf "%a (reload)" regs arg
@@ -113,7 +113,7 @@ let operation op arg ppf res =
   | Itailcall_imm lbl -> fprintf ppf "tailcall \"%s\" %a" lbl regs arg
   | Iextcall(lbl, alloc) ->
       fprintf ppf "extcall \"%s\" %a%s" lbl regs arg
-      (if alloc then "" else " (noalloc)")
+      (si alloc alors "" sinon " (noalloc)")
   | Istackoffset n ->
       fprintf ppf "offset stack %i" n
   | Iload(chunk, addr) ->
@@ -139,13 +139,13 @@ let operation op arg ppf res =
   | Ispecific op ->
       Arch.print_specific_operation reg op ppf arg
 
-let rec instr ppf i =
-  if !print_live then begin
+soit rec instr ppf i =
+  si !print_live alors début
     fprintf ppf "@[<1>{%a" regsetaddr i.live;
-    if Array.length i.arg > 0 then fprintf ppf "@ +@ %a" regs i.arg;
+    si Array.length i.arg > 0 alors fprintf ppf "@ +@ %a" regs i.arg;
     fprintf ppf "}@]@,";
-  end;
-  begin match i.desc with
+  fin;
+  début filtre i.desc avec
   | Iend -> ()
   | Iop op ->
       operation op i.arg ppf i.res
@@ -153,20 +153,20 @@ let rec instr ppf i =
       fprintf ppf "return %a" regs i.arg
   | Iifthenelse(tst, ifso, ifnot) ->
       fprintf ppf "@[<v 2>if %a then@,%a" (test tst) i.arg instr ifso;
-      begin match ifnot.desc with
+      début filtre ifnot.desc avec
       | Iend -> ()
       | _ -> fprintf ppf "@;<0 -2>else@,%a" instr ifnot
-      end;
+      fin;
       fprintf ppf "@;<0 -2>endif@]"
   | Iswitch(index, cases) ->
       fprintf ppf "switch %a" reg i.arg.(0);
-      for i = 0 to Array.length cases - 1 do
+      pour i = 0 à Array.length cases - 1 faire
         fprintf ppf "@,@[<v 2>@[";
-        for j = 0 to Array.length index - 1 do
-          if index.(j) = i then fprintf ppf "case %i:@," j
-        done;
+        pour j = 0 à Array.length index - 1 faire
+          si index.(j) = i alors fprintf ppf "case %i:@," j
+        fait;
         fprintf ppf "@]@,%a@]" instr cases.(i)
-      done;
+      fait;
       fprintf ppf "@,endswitch"
   | Iloop(body) ->
       fprintf ppf "@[<v 2>loop@,%a@;<0 -2>endloop@]" instr body
@@ -181,44 +181,44 @@ let rec instr ppf i =
              instr body instr handler
   | Iraise k ->
       fprintf ppf "%s %a" (Lambda.raise_kind k) reg i.arg.(0)
-  end;
-  if not (Debuginfo.is_none i.dbg) then
+  fin;
+  si not (Debuginfo.is_none i.dbg) alors
     fprintf ppf "%s" (Debuginfo.to_string i.dbg);
-  begin match i.next.desc with
+  début filtre i.next.desc avec
     Iend -> ()
   | _ -> fprintf ppf "@,%a" instr i.next
-  end
+  fin
 
-let fundecl ppf f =
-  let dbg =
-    if Debuginfo.is_none f.fun_dbg then
+soit fundecl ppf f =
+  soit dbg =
+    si Debuginfo.is_none f.fun_dbg alors
       ""
-    else
-      " " ^ Debuginfo.to_string f.fun_dbg in
+    sinon
+      " " ^ Debuginfo.to_string f.fun_dbg dans
   fprintf ppf "@[<v 2>%s(%a)%s@,%a@]"
     f.fun_name regs f.fun_args dbg instr f.fun_body
 
-let phase msg ppf f =
+soit phase msg ppf f =
   fprintf ppf "*** %s@.%a@." msg fundecl f
 
-let interference ppf r =
-  let interf ppf =
+soit interference ppf r =
+  soit interf ppf =
    List.iter
-    (fun r -> fprintf ppf "@ %a" reg r)
-    r.interf in
+    (fonc r -> fprintf ppf "@ %a" reg r)
+    r.interf dans
   fprintf ppf "@[<2>%a:%t@]@." reg r interf
 
-let interferences ppf () =
+soit interferences ppf () =
   fprintf ppf "*** Interferences@.";
   List.iter (interference ppf) (Reg.all_registers())
 
-let preference ppf r =
-  let prefs ppf =
+soit preference ppf r =
+  soit prefs ppf =
     List.iter
-      (fun (r, w) -> fprintf ppf "@ %a weight %i" reg r w)
-      r.prefer in
+      (fonc (r, w) -> fprintf ppf "@ %a weight %i" reg r w)
+      r.prefer dans
   fprintf ppf "@[<2>%a: %t@]@." reg r prefs
 
-let preferences ppf () =
+soit preferences ppf () =
   fprintf ppf "*** Preferences@.";
   List.iter (preference ppf) (Reg.all_registers())

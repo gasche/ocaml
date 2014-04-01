@@ -51,43 +51,43 @@ type memory_chunk =
   | Double_u                            (* word-aligned 64-bit float *)
 
 type operation =
-    Capply of machtype * Debuginfo.t
-  | Cextcall of string * machtype * bool * Debuginfo.t
-  | Cload of memory_chunk
+    Capply de machtype * Debuginfo.t
+  | Cextcall de string * machtype * bool * Debuginfo.t
+  | Cload de memory_chunk
   | Calloc
-  | Cstore of memory_chunk
+  | Cstore de memory_chunk
   | Caddi | Csubi | Cmuli | Cmulhi | Cdivi | Cmodi
   | Cand | Cor | Cxor | Clsl | Clsr | Casr
-  | Ccmpi of comparison
+  | Ccmpi de comparison
   | Cadda | Csuba
-  | Ccmpa of comparison
+  | Ccmpa de comparison
   | Cnegf | Cabsf
   | Caddf | Csubf | Cmulf | Cdivf
   | Cfloatofint | Cintoffloat
-  | Ccmpf of comparison
-  | Craise of Lambda.raise_kind * Debuginfo.t
-  | Ccheckbound of Debuginfo.t
+  | Ccmpf de comparison
+  | Craise de Lambda.raise_kind * Debuginfo.t
+  | Ccheckbound de Debuginfo.t
 
 type expression =
-    Cconst_int of int
-  | Cconst_natint of nativeint
-  | Cconst_float of string
-  | Cconst_symbol of string
-  | Cconst_pointer of int
-  | Cconst_natpointer of nativeint
-  | Cconst_blockheader of nativeint
-  | Cvar of Ident.t
-  | Clet of Ident.t * expression * expression
-  | Cassign of Ident.t * expression
-  | Ctuple of expression list
-  | Cop of operation * expression list
-  | Csequence of expression * expression
-  | Cifthenelse of expression * expression * expression
-  | Cswitch of expression * int array * expression array
-  | Cloop of expression
-  | Ccatch of int * Ident.t list * expression * expression
-  | Cexit of int * expression list
-  | Ctrywith of expression * Ident.t * expression
+    Cconst_int de int
+  | Cconst_natint de nativeint
+  | Cconst_float de string
+  | Cconst_symbol de string
+  | Cconst_pointer de int
+  | Cconst_natpointer de nativeint
+  | Cconst_blockheader de nativeint
+  | Cvar de Ident.t
+  | Clet de Ident.t * expression * expression
+  | Cassign de Ident.t * expression
+  | Ctuple de expression list
+  | Cop de operation * expression list
+  | Csequence de expression * expression
+  | Cifthenelse de expression * expression * expression
+  | Cswitch de expression * int array * expression array
+  | Cloop de expression
+  | Ccatch de int * Ident.t list * expression * expression
+  | Cexit de int * expression list
+  | Ctrywith de expression * Ident.t * expression
 
 type fundecl =
   { fun_name: string;
@@ -97,21 +97,21 @@ type fundecl =
     fun_dbg : Debuginfo.t; }
 
 type data_item =
-    Cdefine_symbol of string
-  | Cdefine_label of int
-  | Cglobal_symbol of string
-  | Cint8 of int
-  | Cint16 of int
-  | Cint32 of nativeint
-  | Cint of nativeint
-  | Csingle of string
-  | Cdouble of string
-  | Csymbol_address of string
-  | Clabel_address of int
-  | Cstring of string
-  | Cskip of int
-  | Calign of int
+    Cdefine_symbol de string
+  | Cdefine_label de int
+  | Cglobal_symbol de string
+  | Cint8 de int
+  | Cint16 de int
+  | Cint32 de nativeint
+  | Cint de nativeint
+  | Csingle de string
+  | Cdouble de string
+  | Csymbol_address de string
+  | Clabel_address de int
+  | Cstring de string
+  | Cskip de int
+  | Calign de int
 
 type phrase =
-    Cfunction of fundecl
-  | Cdata of data_item list
+    Cfunction de fundecl
+  | Cdata de data_item list

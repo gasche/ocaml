@@ -14,190 +14,190 @@
 
 module Name = Odoc_name
 
-let string_of_variance t (co,cn) =
-  if t.Odoc_type.ty_kind = Odoc_type.Type_abstract &&
+soit string_of_variance t (co,cn) =
+  si t.Odoc_type.ty_kind = Odoc_type.Type_abstract &&
     t.Odoc_type.ty_manifest = None
-  then
-    match (co, cn) with
-      (true, false) -> "+"
-    | (false, true) -> "-"
+  alors
+    filtre (co, cn) avec
+      (vrai, faux) -> "+"
+    | (faux, vrai) -> "-"
     | _ -> ""
-  else
+  sinon
     ""
-let rec is_arrow_type t =
-  match t.Types.desc with
-    Types.Tarrow _ -> true
+soit rec is_arrow_type t =
+  filtre t.Types.desc avec
+    Types.Tarrow _ -> vrai
   | Types.Tlink t2 | Types.Tsubst t2 -> is_arrow_type t2
   | Types.Ttuple _
   | Types.Tconstr _
   | Types.Tvar _ | Types.Tunivar _ | Types.Tobject _ | Types.Tpoly _
-  | Types.Tfield _ | Types.Tnil | Types.Tvariant _ | Types.Tpackage _ -> false
+  | Types.Tfield _ | Types.Tnil | Types.Tvariant _ | Types.Tpackage _ -> faux
 
-let raw_string_of_type_list sep type_list =
-  let buf = Buffer.create 256 in
-  let fmt = Format.formatter_of_buffer buf in
-  let rec need_parent t =
-    match t.Types.desc with
-      Types.Tarrow _ | Types.Ttuple _ -> true
+soit raw_string_of_type_list sep type_list =
+  soit buf = Buffer.create 256 dans
+  soit fmt = Format.formatter_of_buffer buf dans
+  soit rec need_parent t =
+    filtre t.Types.desc avec
+      Types.Tarrow _ | Types.Ttuple _ -> vrai
     | Types.Tlink t2 | Types.Tsubst t2 -> need_parent t2
     | Types.Tconstr _ ->
-        false
+        faux
     | Types.Tvar _ | Types.Tunivar _ | Types.Tobject _ | Types.Tpoly _
-    | Types.Tfield _ | Types.Tnil | Types.Tvariant _ | Types.Tpackage _ -> false
-  in
-  let print_one_type variance t =
+    | Types.Tfield _ | Types.Tnil | Types.Tvariant _ | Types.Tpackage _ -> faux
+  dans
+  soit print_one_type variance t =
     Printtyp.mark_loops t;
-    if need_parent t then
+    si need_parent t alors
       (
        Format.fprintf fmt "(%s" variance;
-       Printtyp.type_scheme_max ~b_reset_names: false fmt t;
+       Printtyp.type_scheme_max ~b_reset_names: faux fmt t;
        Format.fprintf fmt ")"
       )
-    else
+    sinon
       (
        Format.fprintf fmt "%s" variance;
-       Printtyp.type_scheme_max ~b_reset_names: false fmt t
+       Printtyp.type_scheme_max ~b_reset_names: faux fmt t
       )
-  in
-  begin match type_list with
+  dans
+  début filtre type_list avec
     [] -> ()
   | [(variance, ty)] -> print_one_type variance ty
   | (variance, ty) :: tyl ->
       Format.fprintf fmt "@[<hov 2>";
       print_one_type variance ty;
       List.iter
-        (fun (variance, t) ->
+        (fonc (variance, t) ->
           Format.fprintf fmt "@,%s" sep;
           print_one_type variance t
         )
         tyl;
       Format.fprintf fmt "@]"
-  end;
+  fin;
   Format.pp_print_flush fmt ();
   Buffer.contents buf
 
-let string_of_type_list ?par sep type_list =
-  let par =
-    match par with
+soit string_of_type_list ?par sep type_list =
+  soit par =
+    filtre par avec
     | Some b -> b
     | None ->
-        match type_list with
-          [] | [_] -> false
-        | _ -> true
-  in
+        filtre type_list avec
+          [] | [_] -> faux
+        | _ -> vrai
+  dans
   Printf.sprintf "%s%s%s"
-    (if par then "(" else "")
-    (raw_string_of_type_list sep (List.map (fun t -> ("", t)) type_list))
-    (if par then ")" else "")
+    (si par alors "(" sinon "")
+    (raw_string_of_type_list sep (List.map (fonc t -> ("", t)) type_list))
+    (si par alors ")" sinon "")
 
-let string_of_type_param_list t =
-  let par =
-    match t.Odoc_type.ty_parameters with
-      [] | [_] -> false
-    | _ -> true
-  in
+soit string_of_type_param_list t =
+  soit par =
+    filtre t.Odoc_type.ty_parameters avec
+      [] | [_] -> faux
+    | _ -> vrai
+  dans
   Printf.sprintf "%s%s%s"
-    (if par then "(" else "")
+    (si par alors "(" sinon "")
     (raw_string_of_type_list ", "
        (List.map
-          (fun (typ, co, cn) -> (string_of_variance t (co, cn), typ))
+          (fonc (typ, co, cn) -> (string_of_variance t (co, cn), typ))
           t.Odoc_type.ty_parameters
        )
     )
-    (if par then ")" else "")
+    (si par alors ")" sinon "")
 
-let string_of_class_type_param_list l =
-  let par =
-    match l with
-      [] | [_] -> false
-    | _ -> true
-  in
+soit string_of_class_type_param_list l =
+  soit par =
+    filtre l avec
+      [] | [_] -> faux
+    | _ -> vrai
+  dans
   Printf.sprintf "%s%s%s"
-    (if par then "[" else "")
+    (si par alors "[" sinon "")
     (raw_string_of_type_list ", "
        (List.map
-          (fun typ -> ("", typ))
+          (fonc typ -> ("", typ))
           l
        )
     )
-    (if par then "]" else "")
+    (si par alors "]" sinon "")
 
-let string_of_class_params c =
-  let b = Buffer.create 256 in
-  let rec iter = function
+soit string_of_class_params c =
+  soit b = Buffer.create 256 dans
+  soit rec iter = fonction
       Types.Cty_arrow (label, t, ctype) ->
-        let parent = is_arrow_type t in
+        soit parent = is_arrow_type t dans
         Printf.bprintf b "%s%s%s%s -> "
           (
-           match label with
+           filtre label avec
              "" -> ""
            | s -> s^":"
           )
-          (if parent then "(" else "")
+          (si parent alors "(" sinon "")
           (Odoc_print.string_of_type_expr
-             (if Odoc_misc.is_optional label then
+             (si Odoc_misc.is_optional label alors
                Odoc_misc.remove_option t
-             else
+             sinon
                t
              )
           )
-          (if parent then ")" else "");
+          (si parent alors ")" sinon "");
         iter ctype
     | Types.Cty_signature _
     | Types.Cty_constr _ -> ()
-  in
+  dans
   iter c.Odoc_class.cl_type;
   Buffer.contents b
 
-let bool_of_private = function
-  | Asttypes.Private -> true
-  | _ -> false
+soit bool_of_private = fonction
+  | Asttypes.Private -> vrai
+  | _ -> faux
 
-let string_of_type t =
-  let module M = Odoc_type in
+soit string_of_type t =
+  soit module M = Odoc_type dans
   "type "^
   (String.concat ""
      (List.map
-        (fun (p, co, cn) ->
+        (fonc (p, co, cn) ->
           (string_of_variance t (co, cn))^
           (Odoc_print.string_of_type_expr p)^" "
         )
         t.M.ty_parameters
      )
   )^
-  let priv = bool_of_private (t.M.ty_private) in
+  soit priv = bool_of_private (t.M.ty_private) dans
   (Name.simple t.M.ty_name)^" "^
-  (match t.M.ty_manifest with
+  (filtre t.M.ty_manifest avec
     None -> ""
   | Some typ ->
-     "= " ^ (if priv then "private " else "" ) ^
+     "= " ^ (si priv alors "private " sinon "" ) ^
        (Odoc_print.string_of_type_expr typ)^" "
   )^
-  (match t.M.ty_kind with
+  (filtre t.M.ty_kind avec
     M.Type_abstract ->
       ""
   | M.Type_variant l ->
-      "="^(if priv then " private" else "")^"\n"^
+      "="^(si priv alors " private" sinon "")^"\n"^
       (String.concat ""
          (List.map
-            (fun cons ->
+            (fonc cons ->
               "  | "^cons.M.vc_name^
-              (match cons.M.vc_args,cons.M.vc_ret with
+              (filtre cons.M.vc_args,cons.M.vc_ret avec
               | [], None -> ""
               | l, None ->
                   " of " ^
                   (String.concat " * "
                      (List.map
-                        (fun t -> "("^Odoc_print.string_of_type_expr t^")") l))
+                        (fonc t -> "("^Odoc_print.string_of_type_expr t^")") l))
               | [], Some r -> " : " ^ Odoc_print.string_of_type_expr r
               | l, Some r ->
                   " : " ^
                   (String.concat " * "
                      (List.map
-                        (fun t -> "("^Odoc_print.string_of_type_expr t^")") l))
+                        (fonc t -> "("^Odoc_print.string_of_type_expr t^")") l))
                   ^ " -> " ^ Odoc_print.string_of_type_expr r
               )^
-              (match cons.M.vc_text with
+              (filtre cons.M.vc_text avec
                 None ->
                   ""
               | Some t ->
@@ -208,14 +208,14 @@ let string_of_type t =
          )
       )
   | M.Type_record l ->
-      "= "^(if priv then "private " else "")^"{\n"^
+      "= "^(si priv alors "private " sinon "")^"{\n"^
       (String.concat ""
          (List.map
-            (fun record ->
-              "   "^(if record.M.rf_mutable then "mutable " else "")^
+            (fonc record ->
+              "   "^(si record.M.rf_mutable alors "mutable " sinon "")^
               record.M.rf_name^" : "^
               (Odoc_print.string_of_type_expr record.M.rf_type)^";"^
-              (match record.M.rf_text with
+              (filtre record.M.rf_text avec
                 None ->
                   ""
               | Some t ->
@@ -227,58 +227,58 @@ let string_of_type t =
       )^
       "}\n"
   )^
-  (match t.M.ty_info with
+  (filtre t.M.ty_info avec
     None -> ""
   | Some info -> Odoc_misc.string_of_info info)
 
-let string_of_exception e =
-  let module M = Odoc_exception in
+soit string_of_exception e =
+  soit module M = Odoc_exception dans
   "exception "^(Name.simple e.M.ex_name)^
-  (match e.M.ex_args with
+  (filtre e.M.ex_args avec
     [] -> ""
   | _ ->" : "^
       (String.concat " -> "
-         (List.map (fun t -> "("^(Odoc_print.string_of_type_expr t)^")") e.M.ex_args)
+         (List.map (fonc t -> "("^(Odoc_print.string_of_type_expr t)^")") e.M.ex_args)
       )
   )^
-  (match e.M.ex_alias with
+  (filtre e.M.ex_alias avec
     None -> ""
   | Some ea ->
       " = "^
-      (match ea.M.ea_ex with
+      (filtre ea.M.ea_ex avec
         None -> ea.M.ea_name
       | Some e2 -> e2.M.ex_name
       )
   )^"\n"^
-  (match e.M.ex_info with
+  (filtre e.M.ex_info avec
     None -> ""
   | Some i -> Odoc_misc.string_of_info i)
 
-let string_of_value v =
-  let module M = Odoc_value in
+soit string_of_value v =
+  soit module M = Odoc_value dans
   "val "^(Name.simple v.M.val_name)^" : "^
   (Odoc_print.string_of_type_expr v.M.val_type)^"\n"^
-  (match v.M.val_info with
+  (filtre v.M.val_info avec
     None -> ""
   | Some i -> Odoc_misc.string_of_info i)
 
-let string_of_attribute a =
-  let module M = Odoc_value in
+soit string_of_attribute a =
+  soit module M = Odoc_value dans
   "val "^
-  (if a.M.att_virtual then "virtual " else "")^
-  (if a.M.att_mutable then Odoc_messages.mutab^" " else "")^
+  (si a.M.att_virtual alors "virtual " sinon "")^
+  (si a.M.att_mutable alors Odoc_messages.mutab^" " sinon "")^
   (Name.simple a.M.att_value.M.val_name)^" : "^
   (Odoc_print.string_of_type_expr a.M.att_value.M.val_type)^"\n"^
-  (match a.M.att_value.M.val_info with
+  (filtre a.M.att_value.M.val_info avec
     None -> ""
   | Some i -> Odoc_misc.string_of_info i)
 
-let string_of_method m =
-  let module M = Odoc_value in
+soit string_of_method m =
+  soit module M = Odoc_value dans
   "method "^
-  (if m.M.met_private then Odoc_messages.privat^" " else "")^
+  (si m.M.met_private alors Odoc_messages.privat^" " sinon "")^
   (Name.simple m.M.met_value.M.val_name)^" : "^
   (Odoc_print.string_of_type_expr m.M.met_value.M.val_type)^"\n"^
-  (match m.M.met_value.M.val_info with
+  (filtre m.M.met_value.M.val_info avec
     None -> ""
   | Some i -> Odoc_misc.string_of_info i)

@@ -21,7 +21,7 @@ exception Empty
 
 type 'a cell = {
     content: 'a;
-    mutable next: 'a cell
+    modifiable next: 'a cell
   }
 
 (* A queue is a reference to either nothing or some cell of a cyclic
@@ -38,82 +38,82 @@ type 'a cell = {
    because it does not have dependent sums. *)
 
 type 'a t = {
-    mutable length: int;
-    mutable tail: 'a cell
+    modifiable length: int;
+    modifiable tail: 'a cell
   }
 
-let create () = {
+soit create () = {
   length = 0;
   tail = Obj.magic None
 }
 
-let clear q =
+soit clear q =
   q.length <- 0;
   q.tail <- Obj.magic None
 
-let add x q =
-  if q.length = 0 then
-    let rec cell = {
+soit add x q =
+  si q.length = 0 alors
+    soit rec cell = {
       content = x;
       next = cell
-    } in
+    } dans
     q.length <- 1;
     q.tail <- cell
-  else
-    let tail = q.tail in
-    let head = tail.next in
-    let cell = {
+  sinon
+    soit tail = q.tail dans
+    soit head = tail.next dans
+    soit cell = {
       content = x;
       next = head
-    } in
+    } dans
     q.length <- q.length + 1;
     tail.next <- cell;
     q.tail <- cell
 
-let push =
+soit push =
   add
 
-let peek q =
-  if q.length = 0 then
+soit peek q =
+  si q.length = 0 alors
     raise Empty
-  else
+  sinon
     q.tail.next.content
 
-let top =
+soit top =
   peek
 
-let take q =
-  if q.length = 0 then raise Empty;
+soit take q =
+  si q.length = 0 alors raise Empty;
   q.length <- q.length - 1;
-  let tail = q.tail in
-  let head = tail.next in
-  if head == tail then
+  soit tail = q.tail dans
+  soit head = tail.next dans
+  si head == tail alors
     q.tail <- Obj.magic None
-  else
+  sinon
     tail.next <- head.next;
   head.content
 
-let pop =
+soit pop =
   take
 
-let copy q =
-  if q.length = 0 then
+soit copy q =
+  si q.length = 0 alors
     create()
-  else
-    let tail = q.tail in
+  sinon
+    soit tail = q.tail dans
 
-    let rec tail' = {
+    soit rec tail' = {
       content = tail.content;
       next = tail'
-    } in
+    } dans
 
-    let rec copy prev cell =
-      if cell != tail
-      then let res = {
+    soit rec copy prev cell =
+      si cell != tail
+      alors soit res = {
         content = cell.content;
         next = tail'
-      } in prev.next <- res;
-      copy res cell.next in
+      } dans prev.next <- res;
+      copy res cell.next dans
 
     copy tail' tail.next;
     {
@@ -121,45 +121,45 @@ let copy q =
       tail = tail'
     }
 
-let is_empty q =
+soit is_empty q =
   q.length = 0
 
-let length q =
+soit length q =
   q.length
 
-let iter f q =
-  if q.length > 0 then
-    let tail = q.tail in
-    let rec iter cell =
+soit iter f q =
+  si q.length > 0 alors
+    soit tail = q.tail dans
+    soit rec iter cell =
       f cell.content;
-      if cell != tail then
-        iter cell.next in
+      si cell != tail alors
+        iter cell.next dans
     iter tail.next
 
-let fold f accu q =
-  if q.length = 0 then
+soit fold f accu q =
+  si q.length = 0 alors
     accu
-  else
-    let tail = q.tail in
-    let rec fold accu cell =
-      let accu = f accu cell.content in
-      if cell == tail then
+  sinon
+    soit tail = q.tail dans
+    soit rec fold accu cell =
+      soit accu = f accu cell.content dans
+      si cell == tail alors
         accu
-      else
-        fold accu cell.next in
+      sinon
+        fold accu cell.next dans
     fold accu tail.next
 
-let transfer q1 q2 =
-  let length1 = q1.length in
-  if length1 > 0 then
-    let tail1 = q1.tail in
+soit transfer q1 q2 =
+  soit length1 = q1.length dans
+  si length1 > 0 alors
+    soit tail1 = q1.tail dans
     clear q1;
-    if q2.length > 0 then begin
-      let tail2 = q2.tail in
-      let head1 = tail1.next in
-      let head2 = tail2.next in
+    si q2.length > 0 alors début
+      soit tail2 = q2.tail dans
+      soit head1 = tail1.next dans
+      soit head2 = tail2.next dans
       tail1.next <- head2;
       tail2.next <- head1
-    end;
+    fin;
     q2.length <- q2.length + length1;
     q2.tail <- tail1

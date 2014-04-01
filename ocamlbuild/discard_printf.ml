@@ -13,4 +13,4 @@
 
 (* Original author: Nicolas Pouillard *)
 
-let discard_printf fmt = Format.ifprintf Format.std_formatter fmt;;
+soit discard_printf fmt = Format.ifprintf Format.std_formatter fmt;;

@@ -13,12 +13,12 @@
 
 (* Low-level communication with the debuggee *)
 
-open Int64ops
-open Primitives
+ouvre Int64ops
+ouvre Primitives
 
 (* The current connection with the debuggee *)
 
-let conn = ref Primitives.std_io
+soit conn = ref Primitives.std_io
 
 (* Set which process the debugger follows on fork. *)
 
@@ -26,31 +26,31 @@ type follow_fork_mode =
     Fork_child
   | Fork_parent
 
-let fork_mode = ref Fork_parent
+soit fork_mode = ref Fork_parent
 
-let update_follow_fork_mode () =
-  let a = match !fork_mode with Fork_child -> 0 | Fork_parent -> 1 in
+soit update_follow_fork_mode () =
+  soit a = filtre !fork_mode avec Fork_child -> 0 | Fork_parent -> 1 dans
   output_char !conn.io_out 'K';
   output_binary_int !conn.io_out a
 
 (* Set the current connection, and update the fork mode in case it has
  * changed. *)
 
-let set_current_connection io_chan =
+soit set_current_connection io_chan =
   conn := io_chan;
   update_follow_fork_mode ()
 
 (* Modify the program code *)
 
-let set_event pos =
+soit set_event pos =
   output_char !conn.io_out 'e';
   output_binary_int !conn.io_out pos
 
-let set_breakpoint pos =
+soit set_breakpoint pos =
   output_char !conn.io_out 'B';
   output_binary_int !conn.io_out pos
 
-let reset_instr pos =
+soit reset_instr pos =
   output_char !conn.io_out 'i';
   output_binary_int !conn.io_out pos
 
@@ -71,224 +71,224 @@ type report = {
 }
 
 type checkpoint_report =
-    Checkpoint_done of int
+    Checkpoint_done de int
   | Checkpoint_failed
 
 (* Run the debuggee for N events *)
 
-let do_go_smallint n =
+soit do_go_smallint n =
   output_char !conn.io_out 'g';
   output_binary_int !conn.io_out n;
   flush !conn.io_out;
   Input_handling.execute_with_other_controller
     Input_handling.exit_main_loop
     !conn
-    (function () ->
+    (fonction () ->
        Input_handling.main_loop ();
-       let summary =
-         match input_char !conn.io_in with
+       soit summary =
+         filtre input_char !conn.io_in avec
            'e' -> Event
          | 'b' -> Breakpoint
          | 'x' -> Exited
          | 's' -> Trap_barrier
          | 'u' -> Uncaught_exc
-         |  _  -> Misc.fatal_error "Debugcom.do_go" in
-       let event_counter = input_binary_int !conn.io_in in
-       let stack_pos = input_binary_int !conn.io_in in
-       let pc = input_binary_int !conn.io_in in
+         |  _  -> Misc.fatal_error "Debugcom.do_go" dans
+       soit event_counter = input_binary_int !conn.io_in dans
+       soit stack_pos = input_binary_int !conn.io_in dans
+       soit pc = input_binary_int !conn.io_in dans
        { rep_type = summary;
          rep_event_count = event_counter;
          rep_stack_pointer = stack_pos;
          rep_program_pointer = pc })
 
-let rec do_go n =
-  assert (n >= _0);
-  if n > max_small_int then(
+soit rec do_go n =
+  affirme (n >= _0);
+  si n > max_small_int alors(
     ignore (do_go_smallint max_int);
     do_go (n -- max_small_int)
-  )else(
+  )sinon(
     do_go_smallint (Int64.to_int n)
   )
 ;;
 
 (* Perform a checkpoint *)
 
-let do_checkpoint () =
-  match Sys.os_type with
+soit do_checkpoint () =
+  filtre Sys.os_type avec
     "Win32" -> failwith "do_checkpoint"
   | _ ->
       output_char !conn.io_out 'c';
       flush !conn.io_out;
-      let pid = input_binary_int !conn.io_in in
-      if pid = -1 then Checkpoint_failed else Checkpoint_done pid
+      soit pid = input_binary_int !conn.io_in dans
+      si pid = -1 alors Checkpoint_failed sinon Checkpoint_done pid
 
 (* Kill the given process. *)
-let stop chan =
-  try
+soit stop chan =
+  essaie
     output_char chan.io_out 's';
     flush chan.io_out
-  with
+  avec
     Sys_error _ | End_of_file -> ()
 
 (* Ask a process to wait for its child which has been killed. *)
 (* (so as to eliminate zombies). *)
-let wait_child chan =
-  try
+soit wait_child chan =
+  essaie
     output_char chan.io_out 'w'
-  with
+  avec
     Sys_error _ | End_of_file -> ()
 
 (* Move to initial frame (that of current function). *)
 (* Return stack position and current pc *)
 
-let initial_frame () =
+soit initial_frame () =
   output_char !conn.io_out '0';
   flush !conn.io_out;
-  let stack_pos = input_binary_int !conn.io_in in
-  let pc = input_binary_int !conn.io_in in
+  soit stack_pos = input_binary_int !conn.io_in dans
+  soit pc = input_binary_int !conn.io_in dans
   (stack_pos, pc)
 
-let set_initial_frame () =
+soit set_initial_frame () =
   ignore(initial_frame ())
 
 (* Move up one frame *)
 (* Return stack position and current pc.
    If there's no frame above, return (-1, 0). *)
 
-let up_frame stacksize =
+soit up_frame stacksize =
   output_char !conn.io_out 'U';
   output_binary_int !conn.io_out stacksize;
   flush !conn.io_out;
-  let stack_pos = input_binary_int !conn.io_in in
-  let pc = if stack_pos = -1 then 0 else input_binary_int !conn.io_in in
+  soit stack_pos = input_binary_int !conn.io_in dans
+  soit pc = si stack_pos = -1 alors 0 sinon input_binary_int !conn.io_in dans
   (stack_pos, pc)
 
 (* Get and set the current frame position *)
 
-let get_frame () =
+soit get_frame () =
   output_char !conn.io_out 'f';
   flush !conn.io_out;
-  let stack_pos = input_binary_int !conn.io_in in
-  let pc = input_binary_int !conn.io_in in
+  soit stack_pos = input_binary_int !conn.io_in dans
+  soit pc = input_binary_int !conn.io_in dans
   (stack_pos, pc)
 
-let set_frame stack_pos =
+soit set_frame stack_pos =
   output_char !conn.io_out 'S';
   output_binary_int !conn.io_out stack_pos
 
 (* Set the trap barrier to given stack position. *)
 
-let set_trap_barrier pos =
+soit set_trap_barrier pos =
   output_char !conn.io_out 'b';
   output_binary_int !conn.io_out pos
 
 (* Handling of remote values *)
 
-let value_size = if 1 lsl 31 = 0 then 4 else 8
+soit value_size = si 1 dgl 31 = 0 alors 4 sinon 8
 
-let input_remote_value ic =
+soit input_remote_value ic =
   Misc.input_bytes ic value_size
 
-let output_remote_value ic v =
+soit output_remote_value ic v =
   output ic v 0 value_size
 
 exception Marshalling_error
 
 module Remote_value =
   struct
-    type t = Remote of string | Local of Obj.t
+    type t = Remote de string | Local de Obj.t
 
-    let obj = function
+    soit obj = fonction
     | Local obj -> Obj.obj obj
     | Remote v ->
         output_char !conn.io_out 'M';
         output_remote_value !conn.io_out v;
         flush !conn.io_out;
-        try
+        essaie
           input_value !conn.io_in
-        with End_of_file | Failure _ ->
+        avec End_of_file | Failure _ ->
           raise Marshalling_error
 
-    let is_block = function
+    soit is_block = fonction
     | Local obj -> Obj.is_block obj
     | Remote v -> Obj.is_block (Array.unsafe_get (Obj.magic v : Obj.t array) 0)
 
-    let tag = function
+    soit tag = fonction
     | Local obj -> Obj.tag obj
     | Remote v ->
         output_char !conn.io_out 'H';
         output_remote_value !conn.io_out v;
         flush !conn.io_out;
-        let header = input_binary_int !conn.io_in in
-        header land 0xFF
+        soit header = input_binary_int !conn.io_in dans
+        header etl 0xFF
 
-    let size = function
+    soit size = fonction
     | Local obj -> Obj.size obj
     | Remote v ->
         output_char !conn.io_out 'H';
         output_remote_value !conn.io_out v;
         flush !conn.io_out;
-        let header = input_binary_int !conn.io_in in
-        if header land 0xFF = Obj.double_array_tag && Sys.word_size = 32
-        then header lsr 11
-        else header lsr 10
+        soit header = input_binary_int !conn.io_in dans
+        si header etl 0xFF = Obj.double_array_tag && Sys.word_size = 32
+        alors header ddl 11
+        sinon header ddl 10
 
-    let field v n =
-      match v with
+    soit field v n =
+      filtre v avec
       | Local obj -> Local(Obj.field obj n)
       | Remote v ->
           output_char !conn.io_out 'F';
           output_remote_value !conn.io_out v;
           output_binary_int !conn.io_out n;
           flush !conn.io_out;
-          if input_byte !conn.io_in = 0 then
+          si input_byte !conn.io_in = 0 alors
             Remote(input_remote_value !conn.io_in)
-          else begin
-            let buf = Misc.input_bytes !conn.io_in 8 in
-            let floatbuf = float n (* force allocation of a new float *) in
+          sinon début
+            soit buf = Misc.input_bytes !conn.io_in 8 dans
+            soit floatbuf = float n (* force allocation of a new float *) dans
             String.unsafe_blit buf 0 (Obj.magic floatbuf) 0 8;
             Local(Obj.repr floatbuf)
-          end
+          fin
 
-    let of_int n =
+    soit of_int n =
       Local(Obj.repr n)
 
-    let local pos =
+    soit local pos =
       output_char !conn.io_out 'L';
       output_binary_int !conn.io_out pos;
       flush !conn.io_out;
       Remote(input_remote_value !conn.io_in)
 
-    let from_environment pos =
+    soit from_environment pos =
       output_char !conn.io_out 'E';
       output_binary_int !conn.io_out pos;
       flush !conn.io_out;
       Remote(input_remote_value !conn.io_in)
 
-    let global pos =
+    soit global pos =
       output_char !conn.io_out 'G';
       output_binary_int !conn.io_out pos;
       flush !conn.io_out;
       Remote(input_remote_value !conn.io_in)
 
-    let accu () =
+    soit accu () =
       output_char !conn.io_out 'A';
       flush !conn.io_out;
       Remote(input_remote_value !conn.io_in)
 
-    let closure_code = function
-    | Local obj -> assert false
+    soit closure_code = fonction
+    | Local obj -> affirme faux
     | Remote v ->
         output_char !conn.io_out 'C';
         output_remote_value !conn.io_out v;
         flush !conn.io_out;
         input_binary_int !conn.io_in
 
-    let same rv1 rv2 =
-      match (rv1, rv2) with
+    soit same rv1 rv2 =
+      filtre (rv1, rv2) avec
         (Local obj1, Local obj2) -> obj1 == obj2
       | (Remote v1, Remote v2) -> v1 = v2
            (* string equality -> equality of remote pointers *)
-      | (_, _) -> false
+      | (_, _) -> faux
 
-  end
+  fin

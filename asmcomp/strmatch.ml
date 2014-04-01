@@ -12,8 +12,8 @@
 
 (* Translation of string matching from closed lambda to C-- *)
 
-open Lambda
-open Cmm
+ouvre Lambda
+ouvre Cmm
 
 module type I = sig
   val string_block_length : Cmm.expression -> Cmm.expression
@@ -21,42 +21,42 @@ module type I = sig
       Cmm.expression -> int -> int ->
         (int * Cmm.expression) list -> Cmm.expression ->
           Cmm.expression
-end
+fin
 
 module Make(I:I) = struct
 
 (* Debug *)
 
-  let dbg = false
+  soit dbg = faux
 
-  let mask =
-    let open Nativeint in
+  soit mask =
+    soit ouvre Nativeint dans
     sub (shift_left one 8) one
 
-  let pat_as_string p =
-    let rec digits k n p =
-      if n <= 0 then k
-      else
-        let d = Nativeint.to_int (Nativeint.logand mask p) in
-        let d = Char.escaped (Char.chr d) in
-        digits (d::k) (n-1) (Nativeint.shift_right_logical p  8) in
-    let ds = digits [] Arch.size_addr p in
-    let ds =
-      if Arch.big_endian then ds else List.rev ds in
+  soit pat_as_string p =
+    soit rec digits k n p =
+      si n <= 0 alors k
+      sinon
+        soit d = Nativeint.to_int (Nativeint.logand mask p) dans
+        soit d = Char.escaped (Char.chr d) dans
+        digits (d::k) (n-1) (Nativeint.shift_right_logical p  8) dans
+    soit ds = digits [] Arch.size_addr p dans
+    soit ds =
+      si Arch.big_endian alors ds sinon List.rev ds dans
     String.concat "" ds
 
-  let do_pp_cases chan cases =        
+  soit do_pp_cases chan cases =        
     List.iter
-      (fun (ps,_) ->
+      (fonc (ps,_) ->
         Printf.fprintf chan "  [%s]\n"
           (String.concat "; " (List.map pat_as_string ps)))
       cases
 
-  let pp_cases chan tag cases =
+  soit pp_cases chan tag cases =
     Printf.eprintf "%s:\n" tag ;
     do_pp_cases chan cases
 
-  let pp_match chan tag idxs cases =
+  soit pp_match chan tag idxs cases =
     Printf.eprintf
       "%s: idx=[%s]\n" tag
       (String.concat "; " (List.map string_of_int idxs)) ;
@@ -64,38 +64,38 @@ module Make(I:I) = struct
 
 (* Utilities *)
 
-  let gen_cell_id () = Ident.create "cell"
-  let gen_size_id () = Ident.create "size"
+  soit gen_cell_id () = Ident.create "cell"
+  soit gen_size_id () = Ident.create "size"
 
-  let mk_let_cell id str ind body =
-    let cell =
-      Cop(Cload Word,[Cop(Cadda,[str;Cconst_int(Arch.size_int*ind)])]) in
+  soit mk_let_cell id str ind body =
+    soit cell =
+      Cop(Cload Word,[Cop(Cadda,[str;Cconst_int(Arch.size_int*ind)])]) dans
     Clet(id, cell, body)
 
-  let mk_let_size id str body =
-    let size = I.string_block_length str in
+  soit mk_let_size id str body =
+    soit size = I.string_block_length str dans
     Clet(id, size, body)
 
-  let mk_cmp_gen cmp_op id nat ifso ifnot =
-    let test = Cop (Ccmpi cmp_op, [ Cvar id; Cconst_natpointer nat ]) in
+  soit mk_cmp_gen cmp_op id nat ifso ifnot =
+    soit test = Cop (Ccmpi cmp_op, [ Cvar id; Cconst_natpointer nat ]) dans
     Cifthenelse (test, ifso, ifnot)
 
-  let mk_lt = mk_cmp_gen Clt
-  let mk_eq = mk_cmp_gen Ceq
+  soit mk_lt = mk_cmp_gen Clt
+  soit mk_eq = mk_cmp_gen Ceq
 
   module IntArg =
     struct
       type t = int
-      let compare (x:int) (y:int) =
-        if x < y then -1
-        else if x > y then 1
-        else 0
-    end
+      soit compare (x:int) (y:int) =
+        si x < y alors -1
+        sinon si x > y alors 1
+        sinon 0
+    fin
 
-  let interval m0 n =
-    let rec do_rec m =
-      if m >= n then []
-      else m::do_rec (m+1) in
+  soit interval m0 n =
+    soit rec do_rec m =
+      si m >= n alors []
+      sinon m::do_rec (m+1) dans
     do_rec m0
 
 
@@ -103,31 +103,31 @@ module Make(I:I) = struct
 (* Compile strings to a lists of words [native ints] *)
 (*****************************************************)
 
-  let pat_of_string str =
-    let len = String.length str in
-    let n = len / Arch.size_addr + 1 in
-    let get_byte i =
-      if i < len then int_of_char str.[i]
-      else if i < n * Arch.size_addr - 1 then 0
-      else n * Arch.size_addr - 1 - len in
-    let mk_word ind =
-      let w = ref 0n in
-      let imin = ind * Arch.size_addr
-      and imax = (ind + 1) * Arch.size_addr - 1 in
-      if Arch.big_endian then
-        for i = imin to imax do
+  soit pat_of_string str =
+    soit len = String.length str dans
+    soit n = len / Arch.size_addr + 1 dans
+    soit get_byte i =
+      si i < len alors int_of_char str.[i]
+      sinon si i < n * Arch.size_addr - 1 alors 0
+      sinon n * Arch.size_addr - 1 - len dans
+    soit mk_word ind =
+      soit w = ref 0n dans
+      soit imin = ind * Arch.size_addr
+      et imax = (ind + 1) * Arch.size_addr - 1 dans
+      si Arch.big_endian alors
+        pour i = imin à imax faire
           w := Nativeint.logor (Nativeint.shift_left !w 8)
               (Nativeint.of_int (get_byte i));
-        done
-      else
-        for i = imax downto imin do
+        fait
+      sinon
+        pour i = imax descendant_jusqu'a imin faire
           w := Nativeint.logor (Nativeint.shift_left !w 8)
               (Nativeint.of_int (get_byte i));
-        done;
-      !w in
-    let rec mk_words ind  =
-      if ind >= n then []
-      else mk_word ind::mk_words (ind+1) in
+        fait;
+      !w dans
+    soit rec mk_words ind  =
+      si ind >= n alors []
+      sinon mk_word ind::mk_words (ind+1) dans
     mk_words 0
 
 (*****************************)
@@ -137,80 +137,80 @@ module Make(I:I) = struct
   module IntSet = Set.Make(IntArg)
   module NativeSet = Set.Make(Nativeint)
 
-  let rec add_one sets ps = match sets,ps with
+  soit rec add_one sets ps = filtre sets,ps avec
   | [],[] -> []
   | set::sets,p::ps ->
-      let sets = add_one sets ps in
+      soit sets = add_one sets ps dans
       NativeSet.add p set::sets
-  | _,_ -> assert false
+  | _,_ -> affirme faux
 
-  let count_arities cases = match cases with
-  | [] -> assert false
+  soit count_arities cases = filtre cases avec
+  | [] -> affirme faux
   | (ps,_)::_ ->
-      let sets =
+      soit sets =
         List.fold_left
-          (fun sets (ps,_) -> add_one sets ps)
-          (List.map (fun _ -> NativeSet.empty) ps) cases in
+          (fonc sets (ps,_) -> add_one sets ps)
+          (List.map (fonc _ -> NativeSet.empty) ps) cases dans
       List.map NativeSet.cardinal sets
 
-  let count_arities_first cases =
-    let set =
+  soit count_arities_first cases =
+    soit set =
       List.fold_left
-        (fun set case -> match case with
+        (fonc set case -> filtre case avec
         | (p::_,_) -> NativeSet.add p set
-        | _ -> assert false)
-        NativeSet.empty cases in
+        | _ -> affirme faux)
+        NativeSet.empty cases dans
     NativeSet.cardinal set
 
-  let count_arities_length cases =
-    let set =
+  soit count_arities_length cases =
+    soit set =
       List.fold_left
-        (fun set (ps,_) -> IntSet.add (List.length ps) set)
-        IntSet.empty cases in
+        (fonc set (ps,_) -> IntSet.add (List.length ps) set)
+        IntSet.empty cases dans
     IntSet.cardinal set
       
-  let best_col =
-    let rec do_rec kbest best k = function
+  soit best_col =
+    soit rec do_rec kbest best k = fonction
       | [] -> kbest
       | x::xs ->
-          if x < best then
+          si x < best alors
             do_rec k x (k+1) xs
-          else
-            do_rec kbest best (k+1) xs in
-    let smallest = do_rec (-1) max_int 0 in
-    fun cases ->
-      let ars = count_arities cases in
+          sinon
+            do_rec kbest best (k+1) xs dans
+    soit smallest = do_rec (-1) max_int 0 dans
+    fonc cases ->
+      soit ars = count_arities cases dans
       smallest ars
 
-  let swap_list =
-    let rec do_rec k xs = match xs with
-    | [] -> assert false
+  soit swap_list =
+    soit rec do_rec k xs = filtre xs avec
+    | [] -> affirme faux
     | x::xs ->
-        if k <= 0 then [],x,xs
-        else
-          let xs,mid,ys = do_rec (k-1) xs in
-          x::xs,mid,ys in
-    fun k xs ->
-      let xs,x,ys = do_rec  k xs in
+        si k <= 0 alors [],x,xs
+        sinon
+          soit xs,mid,ys = do_rec (k-1) xs dans
+          x::xs,mid,ys dans
+    fonc k xs ->
+      soit xs,x,ys = do_rec  k xs dans
       x::xs @ ys
 
-  let swap k idxs cases =
-    if k = 0 then idxs,cases
-    else
-      let idxs = swap_list k idxs
-      and cases =
+  soit swap k idxs cases =
+    si k = 0 alors idxs,cases
+    sinon
+      soit idxs = swap_list k idxs
+      et cases =
         List.map
-          (fun (ps,act) -> swap_list k ps,act)
-          cases in
-      if dbg then begin
+          (fonc (ps,act) -> swap_list k ps,act)
+          cases dans
+      si dbg alors début
         pp_match stderr "SWAP" idxs cases
-      end ;
+      fin ;
       idxs,cases
 
-  let best_first idxs cases = match idxs with
+  soit best_first idxs cases = filtre idxs avec
   | []|[_] -> idxs,cases (* optimisation: one column only *)
   | _ ->
-      let k = best_col cases in
+      soit k = best_col cases dans
       swap k idxs cases
 
 (************************************)
@@ -221,23 +221,23 @@ module Make(I:I) = struct
 
     module OMap = Map.Make(O)
 
-    let do_find key env =
-      try OMap.find key env
-      with Not_found -> assert false
+    soit do_find key env =
+      essaie OMap.find key env
+      avec Not_found -> affirme faux
 
           
-    let divide cases =
-      let env =
+    soit divide cases =
+      soit env =
         List.fold_left
-          (fun env (p,psact) ->
-            let old =
-              try OMap.find p env
-              with Not_found -> [] in
+          (fonc env (p,psact) ->
+            soit old =
+              essaie OMap.find p env
+              avec Not_found -> [] dans
             OMap.add p ((psact)::old) env)
-          OMap.empty cases in
-      let r =  OMap.fold (fun key v k -> (key,v)::k) env [] in
+          OMap.empty cases dans
+      soit r =  OMap.fold (fonc key v k -> (key,v)::k) env [] dans
       List.rev r (* Now sorted *)
-  end
+  fin
 
 (***************)
 (* Compilation *)
@@ -247,25 +247,25 @@ module Make(I:I) = struct
 
     module DivideNative = Divide(Nativeint)
 
-    let by_cell cases =
+    soit by_cell cases =
       DivideNative.divide
         (List.map
-           (fun case -> match case with
+           (fonc case -> filtre case avec
            | (p::ps),act -> p,(ps,act)
-           | [],_ -> assert false)
+           | [],_ -> affirme faux)
            cases)
 
 (* Split into two halves *)
 
-    let rec do_split idx env = match env with
-    | [] -> assert false
-    | (midkey,_ as x)::rem ->
-        if idx <= 0 then [],midkey,env
-        else
-          let lt,midkey,ge = do_split (idx-1) rem in
+    soit rec do_split idx env = filtre env avec
+    | [] -> affirme faux
+    | (midkey,_ tel x)::rem ->
+        si idx <= 0 alors [],midkey,env
+        sinon
+          soit lt,midkey,ge = do_split (idx-1) rem dans
           x::lt,midkey,ge
 
-    let split_env len env = do_split (len/2) env
+    soit split_env len env = do_split (len/2) env
 
 (* Switch according to one cell *)
 
@@ -275,20 +275,20 @@ module Make(I:I) = struct
   as match_on_cell can be called in two different contexts :
   from do_compile_pats and top_compile below.
  *)
-    let match_oncell compile_rec str default idx env =
-      let id = gen_cell_id () in
-      let rec comp_rec env =
-        let len = List.length env in
-        if len <= 3 then
+    soit match_oncell compile_rec str default idx env =
+      soit id = gen_cell_id () dans
+      soit rec comp_rec env =
+        soit len = List.length env dans
+        si len <= 3 alors
           List.fold_right
-            (fun (key,cases) ifnot ->
+            (fonc (key,cases) ifnot ->
               mk_eq id key
                 (compile_rec str default cases)
               ifnot)
             env default
-        else
-          let lt,midkey,ge = split_env len env in
-          mk_lt id midkey (comp_rec lt) (comp_rec ge) in
+        sinon
+          soit lt,midkey,ge = split_env len env dans
+          mk_lt id midkey (comp_rec lt) (comp_rec ge) dans
       mk_let_cell id str idx (comp_rec env)
         
 
@@ -298,24 +298,24 @@ module Make(I:I) = struct
   - notice: patterns (and idx) all have the same length
  *)
 
-    let rec do_compile_pats idxs str default cases =
-      if dbg then begin
+    soit rec do_compile_pats idxs str default cases =
+      si dbg alors début
         pp_match stderr "COMPILE" idxs cases
-      end ;
-      match idxs with
+      fin ;
+      filtre idxs avec
       | [] ->
-          begin match cases with
+          début filtre cases avec
           | [] -> default
           | (_,e)::_ -> e
-          end
+          fin
       | _::_ ->
-          let idxs,cases = best_first idxs cases in
-          begin match idxs with
-          | [] -> assert false
+          soit idxs,cases = best_first idxs cases dans
+          début filtre idxs avec
+          | [] -> affirme faux
           | idx::idxs ->
               match_oncell
                 (do_compile_pats idxs) str default idx (by_cell cases)
-          end
+          fin
 
 
 (* Group by size *)
@@ -323,10 +323,10 @@ module Make(I:I) = struct
     module DivideInt = Divide(IntArg)
 
 
-    let by_size cases =
+    soit by_size cases =
       DivideInt.divide
         (List.map
-           (fun (ps,_ as case) -> List.length ps,case)
+           (fonc (ps,_ tel case) -> List.length ps,case)
            cases)
 (*
   Switch according to pattern size
@@ -335,19 +335,19 @@ module Make(I:I) = struct
   In that latter case pattern len is string length-1 and is corrected.
  *)
 
-    let compile_by_size from_ind str default cases =
-      let size_cases =
+    soit compile_by_size from_ind str default cases =
+      soit size_cases =
         List.map
-          (fun (len,cases) ->
-            let len = len+from_ind in
-            let act =
+          (fonc (len,cases) ->
+            soit len = len+from_ind dans
+            soit act =
               do_compile_pats
                 (interval from_ind len)
-                str default  cases in
+                str default  cases dans
             (len,act))
-          (by_size cases) in
-      let id = gen_size_id () in
-      let switch = I.transl_switch (Cvar id) 1 max_int size_cases default in
+          (by_size cases) dans
+      soit id = gen_size_id () dans
+      soit switch = I.transl_switch (Cvar id) 1 max_int size_cases default dans
       mk_let_size id str switch
 
 (*
@@ -355,32 +355,32 @@ module Make(I:I) = struct
   either on size or on first cell, using the
   'least discriminant' heuristics.  
  *)      
-    let top_compile str default cases =
-      let a_len = count_arities_length cases
-      and a_fst = count_arities_first cases in
-      if a_len <= a_fst then begin
-        if dbg then pp_cases stderr "SIZE" cases ;
+    soit top_compile str default cases =
+      soit a_len = count_arities_length cases
+      et a_fst = count_arities_first cases dans
+      si a_len <= a_fst alors début
+        si dbg alors pp_cases stderr "SIZE" cases ;
         compile_by_size 0 str default cases
-      end else begin
-        if dbg then pp_cases stderr "FIRST COL" cases ;
-        let compile_size_rest str default cases =
-          compile_by_size 1 str default cases in
+      fin sinon début
+        si dbg alors pp_cases stderr "FIRST COL" cases ;
+        soit compile_size_rest str default cases =
+          compile_by_size 1 str default cases dans
         match_oncell compile_size_rest str default 0 (by_cell cases)
-      end
+      fin
 
 (* Module entry point *)
 
-    let catch arg k = match arg with
+    soit catch arg k = filtre arg avec
     | Cexit (e,[]) ->  k arg
     | _ ->
-        let e =  next_raise_count () in
+        soit e =  next_raise_count () dans
         Ccatch (e,[],k (Cexit (e,[])),arg)
 
-    let compile str default cases =
-      let cases =
+    soit compile str default cases =
+      soit cases =
         List.rev_map
-          (fun (s,act) -> pat_of_string s,act)
-          cases in
-      catch default (fun default -> top_compile str default cases)
+          (fonc (s,act) -> pat_of_string s,act)
+          cases dans
+      catch default (fonc default -> top_compile str default cases)
 
-  end
+  fin

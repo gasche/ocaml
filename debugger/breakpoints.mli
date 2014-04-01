@@ -13,8 +13,8 @@
 
 (******************************* Breakpoints ***************************)
 
-open Primitives
-open Instruct
+ouvre Primitives
+ouvre Instruct
 
 (*** Debugging. ***)
 val debug_breakpoints : bool ref

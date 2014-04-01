@@ -17,21 +17,21 @@ type machtype_component =
 
 type machtype = machtype_component array
 
-let typ_void = ([||] : machtype_component array)
-let typ_addr = [|Addr|]
-let typ_int = [|Int|]
-let typ_float = [|Float|]
+soit typ_void = ([||] : machtype_component array)
+soit typ_addr = [|Addr|]
+soit typ_int = [|Int|]
+soit typ_float = [|Float|]
 
-let size_component = function
+soit size_component = fonction
     Addr -> Arch.size_addr
   | Int -> Arch.size_int
   | Float -> Arch.size_float
 
-let size_machtype mty =
-  let size = ref 0 in
-  for i = 0 to Array.length mty - 1 do
+soit size_machtype mty =
+  soit size = ref 0 dans
+  pour i = 0 à Array.length mty - 1 faire
     size := !size + size_component mty.(i)
-  done;
+  fait;
   !size
 
 type comparison =
@@ -42,12 +42,12 @@ type comparison =
   | Cgt
   | Cge
 
-let negate_comparison = function
+soit negate_comparison = fonction
     Ceq -> Cne | Cne -> Ceq
   | Clt -> Cge | Cle -> Cgt
   | Cgt -> Cle | Cge -> Clt
 
-let swap_comparison = function
+soit swap_comparison = fonction
     Ceq -> Ceq | Cne -> Cne
   | Clt -> Cgt | Cle -> Cge
   | Cgt -> Clt | Cge -> Cle
@@ -65,43 +65,43 @@ type memory_chunk =
   | Double_u
 
 type operation =
-    Capply of machtype * Debuginfo.t
-  | Cextcall of string * machtype * bool * Debuginfo.t
-  | Cload of memory_chunk
+    Capply de machtype * Debuginfo.t
+  | Cextcall de string * machtype * bool * Debuginfo.t
+  | Cload de memory_chunk
   | Calloc
-  | Cstore of memory_chunk
+  | Cstore de memory_chunk
   | Caddi | Csubi | Cmuli | Cmulhi | Cdivi | Cmodi
   | Cand | Cor | Cxor | Clsl | Clsr | Casr
-  | Ccmpi of comparison
+  | Ccmpi de comparison
   | Cadda | Csuba
-  | Ccmpa of comparison
+  | Ccmpa de comparison
   | Cnegf | Cabsf
   | Caddf | Csubf | Cmulf | Cdivf
   | Cfloatofint | Cintoffloat
-  | Ccmpf of comparison
-  | Craise of Lambda.raise_kind * Debuginfo.t
-  | Ccheckbound of Debuginfo.t
+  | Ccmpf de comparison
+  | Craise de Lambda.raise_kind * Debuginfo.t
+  | Ccheckbound de Debuginfo.t
 
 type expression =
-    Cconst_int of int
-  | Cconst_natint of nativeint
-  | Cconst_float of string
-  | Cconst_symbol of string
-  | Cconst_pointer of int
-  | Cconst_natpointer of nativeint
-  | Cconst_blockheader of nativeint
-  | Cvar of Ident.t
-  | Clet of Ident.t * expression * expression
-  | Cassign of Ident.t * expression
-  | Ctuple of expression list
-  | Cop of operation * expression list
-  | Csequence of expression * expression
-  | Cifthenelse of expression * expression * expression
-  | Cswitch of expression * int array * expression array
-  | Cloop of expression
-  | Ccatch of int * Ident.t list * expression * expression
-  | Cexit of int * expression list
-  | Ctrywith of expression * Ident.t * expression
+    Cconst_int de int
+  | Cconst_natint de nativeint
+  | Cconst_float de string
+  | Cconst_symbol de string
+  | Cconst_pointer de int
+  | Cconst_natpointer de nativeint
+  | Cconst_blockheader de nativeint
+  | Cvar de Ident.t
+  | Clet de Ident.t * expression * expression
+  | Cassign de Ident.t * expression
+  | Ctuple de expression list
+  | Cop de operation * expression list
+  | Csequence de expression * expression
+  | Cifthenelse de expression * expression * expression
+  | Cswitch de expression * int array * expression array
+  | Cloop de expression
+  | Ccatch de int * Ident.t list * expression * expression
+  | Cexit de int * expression list
+  | Ctrywith de expression * Ident.t * expression
 
 type fundecl =
   { fun_name: string;
@@ -111,21 +111,21 @@ type fundecl =
     fun_dbg : Debuginfo.t; }
 
 type data_item =
-    Cdefine_symbol of string
-  | Cdefine_label of int
-  | Cglobal_symbol of string
-  | Cint8 of int
-  | Cint16 of int
-  | Cint32 of nativeint
-  | Cint of nativeint
-  | Csingle of string
-  | Cdouble of string
-  | Csymbol_address of string
-  | Clabel_address of int
-  | Cstring of string
-  | Cskip of int
-  | Calign of int
+    Cdefine_symbol de string
+  | Cdefine_label de int
+  | Cglobal_symbol de string
+  | Cint8 de int
+  | Cint16 de int
+  | Cint32 de nativeint
+  | Cint de nativeint
+  | Csingle de string
+  | Cdouble de string
+  | Csymbol_address de string
+  | Clabel_address de int
+  | Cstring de string
+  | Cskip de int
+  | Calign de int
 
 type phrase =
-    Cfunction of fundecl
-  | Cdata of data_item list
+    Cfunction de fundecl
+  | Cdata de data_item list

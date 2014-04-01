@@ -12,62 +12,62 @@
 
 
 (* Original author: Nicolas Pouillard *)
-open My_std
-open Format
-open Log
-open Pathname.Operators
+ouvre My_std
+ouvre Format
+ouvre Log
+ouvre Pathname.Operators
 
 module Resources = Set.Make(Pathname)
 
-let print = Pathname.print
+soit print = Pathname.print
 
-let equal = (=)
-let compare = compare
+soit equal = (=)
+soit compare = compare
 
-let in_source_dir p =
-  if Pathname.is_implicit p then Pathname.pwd/p else invalid_arg (Printf.sprintf "in_source_dir: %S" p)
+soit in_source_dir p =
+  si Pathname.is_implicit p alors Pathname.pwd/p sinon invalid_arg (Printf.sprintf "in_source_dir: %S" p)
 
-let in_build_dir p =
-  if Pathname.is_relative p then p
-  else invalid_arg (Printf.sprintf "in_build_dir: %S" p)
+soit in_build_dir p =
+  si Pathname.is_relative p alors p
+  sinon invalid_arg (Printf.sprintf "in_build_dir: %S" p)
 
-let clean_up_links entry =
-  if not !Options.make_links then entry else
-  Slurp.filter begin fun path name _ ->
-    let pathname = in_source_dir (path/name) in
-    if Pathname.link_to_dir pathname !Options.build_dir then
-      let z = Pathname.readlink pathname in
+soit clean_up_links entry =
+  si not !Options.make_links alors entry sinon
+  Slurp.filter début fonc path name _ ->
+    soit pathname = in_source_dir (path/name) dans
+    si Pathname.link_to_dir pathname !Options.build_dir alors
+      soit z = Pathname.readlink pathname dans
       (* Here is one exception where one can use Sys.file_exists directly *)
-      (if not (Sys.file_exists z) then
-        Shell.rm pathname; false)
-    else true
-  end entry
+      (si not (Sys.file_exists z) alors
+        Shell.rm pathname; faux)
+    sinon vrai
+  fin entry
 
-let clean_up_link_to_build () =
+soit clean_up_link_to_build () =
   Options.entry := Some(clean_up_links (the !Options.entry))
 
-let source_dir_path_set_without_links_to_build =
-  lazy begin
+soit source_dir_path_set_without_links_to_build =
+  paresseux début
     clean_up_link_to_build ();
-    Slurp.fold (fun path name _ -> StringSet.add (path/name))
+    Slurp.fold (fonc path name _ -> StringSet.add (path/name))
                (the !Options.entry) StringSet.empty
-  end
+  fin
 
-let clean_links () =
-  if !*My_unix.is_degraded then
+soit clean_links () =
+  si !*My_unix.is_degraded alors
     ()
-  else
+  sinon
     ignore (clean_up_link_to_build ())
 
-let exists_in_source_dir p =
-  if !*My_unix.is_degraded then sys_file_exists (in_source_dir p)
-  else StringSet.mem p !*source_dir_path_set_without_links_to_build
+soit exists_in_source_dir p =
+  si !*My_unix.is_degraded alors sys_file_exists (in_source_dir p)
+  sinon StringSet.mem p !*source_dir_path_set_without_links_to_build
 
-let clean p = Shell.rm_f p
+soit clean p = Shell.rm_f p
 
 module Cache = struct
 
-  let clean () = Shell.chdir Pathname.pwd; Shell.rm_rf !Options.build_dir
+  soit clean () = Shell.chdir Pathname.pwd; Shell.rm_rf !Options.build_dir
 
   type knowledge =
     | Yes
@@ -80,182 +80,182 @@ module Cache = struct
     | Bbuilt
     | Bcannot_be_built
     | Bnot_built_yet
-    | Bsuspension of suspension
+    | Bsuspension de suspension
 
   type cache_entry =
-    { mutable built        : build_status;
-      mutable changed      : knowledge;
-      mutable dependencies : Resources.t }
+    { modifiable built        : build_status;
+      modifiable changed      : knowledge;
+      modifiable dependencies : Resources.t }
 
-  let empty () =
+  soit empty () =
     { built        = Bnot_built_yet;
       changed      = Unknown;
       dependencies = Resources.empty }
 
-  let print_knowledge f =
-    function
+  soit print_knowledge f =
+    fonction
     | Yes -> pp_print_string f "Yes"
     | No  -> pp_print_string f "No"
     | Unknown -> pp_print_string f "Unknown"
 
-  let print_build_status f =
-    function
+  soit print_build_status f =
+    fonction
     | Bbuilt -> pp_print_string f "Bbuilt"
     | Bnot_built_yet -> pp_print_string f "Bnot_built_yet"
     | Bcannot_be_built -> pp_print_string f "Bcannot_be_built"
     | Bsuspension(cmd, _) ->
         fprintf f "@[<2>Bsuspension(%a,@ (<fun> : unit -> unit))@]" Command.print cmd
 
-  let print_cache_entry f e =
+  soit print_cache_entry f e =
     fprintf f "@[<2>{ @[<2>built =@ %a@];@ @[<2>changed =@ %a@];@ @[<2>dependencies =@ %a@]@ }@]"
       print_build_status e.built print_knowledge e.changed Resources.print e.dependencies
 
-  let cache = Hashtbl.create 103
+  soit cache = Hashtbl.create 103
 
-  let get r =
-    try Hashtbl.find cache r
-    with Not_found ->
-      let cache_entry = empty () in
+  soit get r =
+    essaie Hashtbl.find cache r
+    avec Not_found ->
+      soit cache_entry = empty () dans
       Hashtbl.add cache r cache_entry; cache_entry
 
-  let fold_cache f x = Hashtbl.fold f cache x
+  soit fold_cache f x = Hashtbl.fold f cache x
 
-  let print_cache f () =
+  soit print_cache f () =
     fprintf f "@[<hv0>@[<hv2>{:";
-    fold_cache begin fun k v () ->
+    fold_cache début fonc k v () ->
       fprintf f "@ @[<2>%a =>@ %a@];" print k print_cache_entry v
-    end ();
+    fin ();
     fprintf f "@]:}@]"
 
-  let print_graph f () =
+  soit print_graph f () =
     fprintf f "@[<hv0>@[<hv2>{:";
-    fold_cache begin fun k v () ->
-      if not (Resources.is_empty v.dependencies) then
+    fold_cache début fonc k v () ->
+      si not (Resources.is_empty v.dependencies) alors
         fprintf f "@ @[<2>%a =>@ %a@];" print k Resources.print v.dependencies
-    end ();
+    fin ();
     fprintf f "@]@ :}@]"
 
-  let resource_changed r =
+  soit resource_changed r =
     dprintf 10 "resource_changed:@ %a" print r;
     (get r).changed <- Yes
 
-  let external_is_up_to_date absolute_path =
-    let key = "Resource: " ^ absolute_path in
-    let digest = Digest.file absolute_path in
-    let is_up_to_date =
-      try
-        let digest' = Digest_cache.get key in
+  soit external_is_up_to_date absolute_path =
+    soit key = "Resource: " ^ absolute_path dans
+    soit digest = Digest.file absolute_path dans
+    soit is_up_to_date =
+      essaie
+        soit digest' = Digest_cache.get key dans
         digest = digest'
-      with Not_found ->
-        false
-    in
-    is_up_to_date || (Digest_cache.put key digest; false)
+      avec Not_found ->
+        faux
+    dans
+    is_up_to_date || (Digest_cache.put key digest; faux)
 
-  let source_is_up_to_date r_in_source_dir r_in_build_dir =
-    let key = "Resource: " ^ r_in_source_dir in
-    let digest = Digest.file r_in_source_dir in
-    let r_is_up_to_date =
+  soit source_is_up_to_date r_in_source_dir r_in_build_dir =
+    soit key = "Resource: " ^ r_in_source_dir dans
+    soit digest = Digest.file r_in_source_dir dans
+    soit r_is_up_to_date =
       Pathname.exists r_in_build_dir &&
-      try
-        let digest' = Digest_cache.get key in
+      essaie
+        soit digest' = Digest_cache.get key dans
         digest = digest'
-      with Not_found ->
-        false
-    in
-    r_is_up_to_date || (Digest_cache.put key digest; false)
+      avec Not_found ->
+        faux
+    dans
+    r_is_up_to_date || (Digest_cache.put key digest; faux)
 
-  let prod_is_up_to_date p =
-    let x = in_build_dir p in
+  soit prod_is_up_to_date p =
+    soit x = in_build_dir p dans
     not (exists_in_source_dir p) || Pathname.exists x && Pathname.same_contents x (in_source_dir p)
 
-  let rec resource_has_changed r =
-    let cache_entry = get r in
-    match cache_entry.changed with
-    | Yes -> true
-    | No -> false
+  soit rec resource_has_changed r =
+    soit cache_entry = get r dans
+    filtre cache_entry.changed avec
+    | Yes -> vrai
+    | No -> faux
     | Unknown ->
-      let res =
-        match cache_entry.built with
-        | Bbuilt -> false
-        | Bsuspension _ -> assert false
-        | Bcannot_be_built -> false
-        | Bnot_built_yet -> not (prod_is_up_to_date r) in
-      let () = cache_entry.changed <- if res then Yes else No in res
+      soit res =
+        filtre cache_entry.built avec
+        | Bbuilt -> faux
+        | Bsuspension _ -> affirme faux
+        | Bcannot_be_built -> faux
+        | Bnot_built_yet -> not (prod_is_up_to_date r) dans
+      soit () = cache_entry.changed <- si res alors Yes sinon No dans res
 
-  let resource_state r = (get r).built
+  soit resource_state r = (get r).built
 
-  let resource_built r = (get r).built <- Bbuilt
+  soit resource_built r = (get r).built <- Bbuilt
 
-  let resource_failed r = (get r).built <- Bcannot_be_built
+  soit resource_failed r = (get r).built <- Bcannot_be_built
 
-  let import_in_build_dir r =
-    let cache_entry = get r in
-    let r_in_build_dir = in_build_dir r in
-    let r_in_source_dir = in_source_dir r in
-    if source_is_up_to_date r_in_source_dir r_in_build_dir then begin
+  soit import_in_build_dir r =
+    soit cache_entry = get r dans
+    soit r_in_build_dir = in_build_dir r dans
+    soit r_in_source_dir = in_source_dir r dans
+    si source_is_up_to_date r_in_source_dir r_in_build_dir alors début
       dprintf 5 "%a exists and up to date" print r;
-    end else begin
+    fin sinon début
       dprintf 5 "%a exists in source dir -> import it" print r;
       Shell.mkdir_p (Pathname.dirname r);
       Pathname.copy r_in_source_dir r_in_build_dir;
       cache_entry.changed <- Yes;
-    end;
+    fin;
     cache_entry.built <- Bbuilt
 
-  let suspend_resource r cmd kont prods =
-    let cache_entry = get r in
-    match cache_entry.built with
+  soit suspend_resource r cmd kont prods =
+    soit cache_entry = get r dans
+    filtre cache_entry.built avec
     | Bsuspension _ -> ()
     | Bbuilt -> ()
-    | Bcannot_be_built -> assert false
+    | Bcannot_be_built -> affirme faux
     | Bnot_built_yet ->
-        let kont = begin fun () ->
+        soit kont = début fonc () ->
           kont ();
-          List.iter begin fun prod ->
+          List.iter début fonc prod ->
             (get prod).built <- Bbuilt
-          end prods
-        end in cache_entry.built <- Bsuspension(cmd, kont)
+          fin prods
+        fin dans cache_entry.built <- Bsuspension(cmd, kont)
 
-  let resume_suspension (cmd, kont) =
+  soit resume_suspension (cmd, kont) =
     Command.execute cmd;
     kont ()
 
-  let resume_resource r =
-    let cache_entry = get r in
-    match cache_entry.built with
+  soit resume_resource r =
+    soit cache_entry = get r dans
+    filtre cache_entry.built avec
     | Bsuspension(s) -> resume_suspension s
     | Bbuilt -> ()
     | Bcannot_be_built -> ()
     | Bnot_built_yet -> ()
 
-  let get_optional_resource_suspension r =
-    match (get r).built with
+  soit get_optional_resource_suspension r =
+    filtre (get r).built avec
     | Bsuspension cmd_kont -> Some cmd_kont
     | Bbuilt | Bcannot_be_built | Bnot_built_yet -> None
 
-  let clear_resource_failed r = (get r).built <- Bnot_built_yet
+  soit clear_resource_failed r = (get r).built <- Bnot_built_yet
 
-  let dependencies r = (get r).dependencies
+  soit dependencies r = (get r).dependencies
 
-  let fold_dependencies f =
-    fold_cache (fun k v -> Resources.fold (f k) v.dependencies)
+  soit fold_dependencies f =
+    fold_cache (fonc k v -> Resources.fold (f k) v.dependencies)
 
-  let add_dependency r s =
-    let cache_entry = get r in
+  soit add_dependency r s =
+    soit cache_entry = get r dans
     cache_entry.dependencies <- Resources.add s cache_entry.dependencies
 
-  let print_dependencies = print_graph
+  soit print_dependencies = print_graph
 
-end
+fin
 
-let digest p =
-  let f = Pathname.to_string (in_build_dir p) in
-  let buf = Buffer.create 1024 in
+soit digest p =
+  soit f = Pathname.to_string (in_build_dir p) dans
+  soit buf = Buffer.create 1024 dans
   Buffer.add_string buf f;
-  (if sys_file_exists f then Buffer.add_string buf (Digest.file f));
+  (si sys_file_exists f alors Buffer.add_string buf (Digest.file f));
   Digest.string (Buffer.contents buf)
 
-let exists_in_build_dir p = Pathname.exists (in_build_dir p)
+soit exists_in_build_dir p = Pathname.exists (in_build_dir p)
 
 (*
 type env = string
@@ -288,7 +288,7 @@ let print_env = pp_print_string
 *)
 
 (* Should normalize *)
-let import x = Pathname.normalize x
+soit import x = Pathname.normalize x
 
 module MetaPath : sig
 
@@ -300,62 +300,62 @@ module MetaPath : sig
         val subst : env -> t -> string
         val print_env : Format.formatter -> env -> unit
 
-end = struct
-        open Glob_ast
+fin = struct
+        ouvre Glob_ast
 
-        type atoms = A of string | V of string * Glob.globber
+        type atoms = A de string | V de string * Glob.globber
         type t = atoms list
         type env = (string * string) list
 
         exception No_solution
 
-        let mk (pattern_allowed, s) = List.map begin function
+        soit mk (pattern_allowed, s) = List.map début fonction
           | `Var(var_name, globber) -> V(var_name, globber)
           | `Word s -> A s
-        end (Lexers.path_scheme pattern_allowed (Lexing.from_string s))
+        fin (Lexers.path_scheme pattern_allowed (Lexing.from_string s))
 
-        let mk = memo mk
+        soit mk = memo mk
 
-        let match_prefix s pos prefix =
-                match String.contains_string s pos prefix with
-                | Some(pos') -> if pos = pos' then pos' + String.length prefix else raise No_solution
+        soit match_prefix s pos prefix =
+                filtre String.contains_string s pos prefix avec
+                | Some(pos') -> si pos = pos' alors pos' + String.length prefix sinon raise No_solution
                 | None -> raise No_solution
 
-        let matchit p s =
-          let sl = String.length s in
-                let rec loop xs pos acc delta =
-                        match xs with
-                        | [] -> if pos = sl then acc else raise No_solution
+        soit matchit p s =
+          soit sl = String.length s dans
+                soit rec loop xs pos acc delta =
+                        filtre xs avec
+                        | [] -> si pos = sl alors acc sinon raise No_solution
                         | A prefix :: xs -> loop xs (match_prefix s pos prefix) acc 0
                         | V(var, patt) :: A s2 :: xs' ->
-                            begin match String.contains_string s (pos + delta) s2 with
+                            début filtre String.contains_string s (pos + delta) s2 avec
                             | Some(pos') ->
-                                let matched = String.sub s pos (pos' - pos) in
-                                if Glob.eval patt matched
-                                then
-                                  try loop xs' (pos' + String.length s2) ((var, matched) :: acc) 0
-                                  with No_solution -> loop xs  pos acc (pos' - pos + 1)
-                                else loop xs  pos acc (pos' - pos + 1)
+                                soit matched = String.sub s pos (pos' - pos) dans
+                                si Glob.eval patt matched
+                                alors
+                                  essaie loop xs' (pos' + String.length s2) ((var, matched) :: acc) 0
+                                  avec No_solution -> loop xs  pos acc (pos' - pos + 1)
+                                sinon loop xs  pos acc (pos' - pos + 1)
                             | None -> raise No_solution
-                            end
+                            fin
                         | [V(var, patt)] ->
-                            let matched = String.sub s pos (sl - pos) in
-                            if Glob.eval patt matched then (var, matched) :: acc else raise No_solution
-                        | V _ :: _ -> assert false
-                in
-                try     Some (loop p 0 [] 0)
-                with No_solution -> None
+                            soit matched = String.sub s pos (sl - pos) dans
+                            si Glob.eval patt matched alors (var, matched) :: acc sinon raise No_solution
+                        | V _ :: _ -> affirme faux
+                dans
+                essaie     Some (loop p 0 [] 0)
+                avec No_solution -> None
 
-  let pp_opt pp_elt f =
-    function
+  soit pp_opt pp_elt f =
+    fonction
     | None -> pp_print_string f "None"
     | Some x -> Format.fprintf f "Some(%a)" pp_elt x
 
-  let print_env f env =
-    List.iter begin fun (k, v) ->
-      if k = "" then Format.fprintf f "%%=%s " v
-      else Format.fprintf f "%%(%s)=%s " k v
-    end env
+  soit print_env f env =
+    List.iter début fonc (k, v) ->
+      si k = "" alors Format.fprintf f "%%=%s " v
+      sinon Format.fprintf f "%%(%s)=%s " k v
+    fin env
 
   (* let matchit p s =
     let res = matchit p s in
@@ -372,26 +372,26 @@ end = struct
     exit 42
   end;; *)
 
-  let subst env s =
-    String.concat "" begin
-      List.map begin fun x ->
-        match x with
+  soit subst env s =
+    String.concat "" début
+      List.map début fonc x ->
+        filtre x avec
         | A atom -> atom
-        | V(var, _) -> try List.assoc var env with Not_found -> (* unbound variable *) ""
-      end s
-    end
-end
+        | V(var, _) -> essaie List.assoc var env avec Not_found -> (* unbound variable *) ""
+      fin s
+    fin
+fin
 
 type env = MetaPath.env
 type resource_pattern = (Pathname.t * MetaPath.t)
 
-let print_pattern f (x, _) = Pathname.print f x
+soit print_pattern f (x, _) = Pathname.print f x
 
-let import_pattern x = x, MetaPath.mk (true, x)
-let matchit (_, p) x = MetaPath.matchit p x
+soit import_pattern x = x, MetaPath.mk (vrai, x)
+soit matchit (_, p) x = MetaPath.matchit p x
 
-let subst env s = MetaPath.subst env (MetaPath.mk (false, s))
-let subst_any env s = MetaPath.subst env (MetaPath.mk (true, s))
-let subst_pattern env (_, p) = MetaPath.subst env p
+soit subst env s = MetaPath.subst env (MetaPath.mk (faux, s))
+soit subst_any env s = MetaPath.subst env (MetaPath.mk (vrai, s))
+soit subst_pattern env (_, p) = MetaPath.subst env p
 
-let print_env = MetaPath.print_env
+soit print_env = MetaPath.print_env

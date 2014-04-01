@@ -13,46 +13,46 @@
 
 (************************ Source management ****************************)
 
-open Misc
-open Primitives
+ouvre Misc
+ouvre Primitives
 
-let source_extensions = [".ml"]
+soit source_extensions = [".ml"]
 
 (*** Conversion function. ***)
 
-let source_of_module pos mdle =
-  let is_submodule m m' =
-    let len' = String.length m' in
-    try
+soit source_of_module pos mdle =
+  soit is_submodule m m' =
+    soit len' = String.length m' dans
+    essaie
       (String.sub m 0 len') = m' && (String.get m len') = '.'
-    with
-        Invalid_argument _ -> false in
-  let path =
+    avec
+        Invalid_argument _ -> faux dans
+  soit path =
     Hashtbl.fold
-      (fun mdl dirs acc ->
-        if is_submodule mdle mdl then
+      (fonc mdl dirs acc ->
+        si is_submodule mdle mdl alors
           dirs
-        else
+        sinon
           acc)
       Debugger_config.load_path_for
-      !Config.load_path in
-  let fname = pos.Lexing.pos_fname in
-  if fname = "" then
-    let innermost_module =
-      try
-        let dot_index = String.rindex mdle '.' in
+      !Config.load_path dans
+  soit fname = pos.Lexing.pos_fname dans
+  si fname = "" alors
+    soit innermost_module =
+      essaie
+        soit dot_index = String.rindex mdle '.' dans
         String.sub mdle (succ dot_index) (pred (String.length mdle - dot_index))
-      with Not_found -> mdle in
-    let rec loop =
-      function
+      avec Not_found -> mdle dans
+    soit rec loop =
+      fonction
         | [] -> raise Not_found
         | ext :: exts ->
-          try find_in_path_uncap path (innermost_module ^ ext)
-          with Not_found -> loop exts
-    in loop source_extensions
-  else   if Filename.is_implicit fname then
+          essaie find_in_path_uncap path (innermost_module ^ ext)
+          avec Not_found -> loop exts
+    dans loop source_extensions
+  sinon   si Filename.is_implicit fname alors
     find_in_path path fname
-  else
+  sinon
     fname
 
 (*** Buffer cache ***)
@@ -60,30 +60,30 @@ let source_of_module pos mdle =
 (* Buffer and cache (to associate lines and positions in the buffer). *)
 type buffer = string * (int * int) list ref
 
-let buffer_max_count = ref 10
+soit buffer_max_count = ref 10
 
-let cache_size = 30
+soit cache_size = 30
 
-let buffer_list =
+soit buffer_list =
   ref ([] : (string * buffer) list)
 
-let flush_buffer_list () =
+soit flush_buffer_list () =
   buffer_list := []
 
-let get_buffer pos mdle =
-  try List.assoc mdle !buffer_list with
+soit get_buffer pos mdle =
+  essaie List.assoc mdle !buffer_list avec
     Not_found ->
-      let inchan = open_in_bin (source_of_module pos mdle) in
-      let content = Misc.input_bytes inchan (in_channel_length inchan) in
-      let buffer = (content, ref []) in
+      soit inchan = open_in_bin (source_of_module pos mdle) dans
+      soit content = Misc.input_bytes inchan (in_channel_length inchan) dans
+      soit buffer = (content, ref []) dans
       buffer_list :=
         (list_truncate !buffer_max_count ((mdle, buffer)::!buffer_list));
       buffer
 
-let buffer_content =
+soit buffer_content =
   (fst : buffer -> string)
 
-let buffer_length x =
+soit buffer_length x =
   String.length (buffer_content x)
 
 (*** Position conversions. ***)
@@ -91,98 +91,98 @@ let buffer_length x =
 type position = int * int
 
 (* Insert a new pair (position, line) in the cache of the given buffer. *)
-let insert_pos buffer ((position, line) as pair) =
-  let rec new_list =
-    function
+soit insert_pos buffer ((position, line) tel pair) =
+  soit rec new_list =
+    fonction
       [] ->
         [(position, line)]
-    | ((pos, lin) as a::l) as l' ->
-        if lin < line then
+    | ((pos, lin) tel a::l) tel l' ->
+        si lin < line alors
           pair::l'
-        else if lin = line then
+        sinon si lin = line alors
           l'
-        else
+        sinon
           a::(new_list l)
-  in
-    let buffer_cache = snd buffer in
+  dans
+    soit buffer_cache = snd buffer dans
       buffer_cache := new_list !buffer_cache
 
 (* Position of the next linefeed after `pos'. *)
 (* Position just after the buffer end if no linefeed found. *)
 (* Raise `Out_of_range' if already there. *)
-let next_linefeed (buffer, _) pos =
-  let len = String.length buffer in
-    if pos >= len then
+soit next_linefeed (buffer, _) pos =
+  soit len = String.length buffer dans
+    si pos >= len alors
       raise Out_of_range
-    else
-      let rec search p =
-        if p = len || String.get buffer p = '\n' then
+    sinon
+      soit rec search p =
+        si p = len || String.get buffer p = '\n' alors
           p
-        else
+        sinon
           search (succ p)
-      in
+      dans
         search pos
 
 (* Go to next line. *)
-let next_line buffer (pos, line) =
+soit next_line buffer (pos, line) =
   (next_linefeed buffer pos + 1, line + 1)
 
 (* Convert a position in the buffer to a line number. *)
-let line_of_pos buffer position =
-  let rec find =
-    function
+soit line_of_pos buffer position =
+  soit rec find =
+    fonction
     | [] ->
-        if position < 0 then
+        si position < 0 alors
           raise Out_of_range
-        else
+        sinon
           (0, 1)
-    | ((pos, line) as pair)::l ->
-        if pos > position then
+    | ((pos, line) tel pair)::l ->
+        si pos > position alors
           find l
-        else
+        sinon
           pair
-  and find_line previous =
-    let (pos, line) as next = next_line buffer previous in
-      if pos <= position then
+  et find_line previous =
+    soit (pos, line) tel next = next_line buffer previous dans
+      si pos <= position alors
         find_line next
-      else
+      sinon
         previous
-  in
-    let result = find_line (find !(snd buffer)) in
+  dans
+    soit result = find_line (find !(snd buffer)) dans
       insert_pos buffer result;
       result
 
 (* Convert a line number to a position. *)
-let pos_of_line buffer line =
-  let rec find =
-    function
+soit pos_of_line buffer line =
+  soit rec find =
+    fonction
       [] ->
-        if line <= 0 then
+        si line <= 0 alors
           raise Out_of_range
-        else
+        sinon
           (0, 1)
-    | ((pos, lin) as pair)::l ->
-        if lin > line then
+    | ((pos, lin) tel pair)::l ->
+        si lin > line alors
           find l
-        else
+        sinon
           pair
-  and find_pos previous =
-    let (_, lin) as next = next_line buffer previous in
-      if lin <= line then
+  et find_pos previous =
+    soit (_, lin) tel next = next_line buffer previous dans
+      si lin <= line alors
         find_pos next
-      else
+      sinon
         previous
-  in
-    let result = find_pos (find !(snd buffer)) in
+  dans
+    soit result = find_pos (find !(snd buffer)) dans
       insert_pos buffer result;
       result
 
 (* Convert a coordinate (line / column) into a position. *)
 (* --- The first line and column are line 1 and column 1. *)
-let point_of_coord buffer line column =
+soit point_of_coord buffer line column =
   fst (pos_of_line buffer line) + (pred column)
 
-let start_and_cnum buffer pos =
-  let line_number = pos.Lexing.pos_lnum in
-  let start = point_of_coord buffer line_number 1 in
+soit start_and_cnum buffer pos =
+  soit line_number = pos.Lexing.pos_lnum dans
+  soit start = point_of_coord buffer line_number 1 dans
   start, start + (pos.Lexing.pos_cnum - pos.Lexing.pos_bol)

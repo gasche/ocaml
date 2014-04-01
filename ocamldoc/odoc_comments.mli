@@ -19,7 +19,7 @@ module type Texter =
   sig
     (** Return a text structure from a string. *)
     val text_of_string : string -> Odoc_types.text
-  end
+  fin
 
 (** The basic module for special comments analysis.*)
 module Basic_info_retriever :
@@ -53,7 +53,7 @@ module Basic_info_retriever :
         (Odoc_types.text -> 'a) ->
           string -> string -> Odoc_types.info option * 'a list
 
-  end
+  fin
 
 (** [info_of_string s] parses the given string
    like a regular ocamldoc comment and return an

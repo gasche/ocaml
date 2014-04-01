@@ -12,10 +12,10 @@
 
 
 (* Original author: Berke Durak *)
-open Glob_ast
+ouvre Glob_ast
 
 type token =
-| ATOM of pattern atom
+| ATOM de pattern atom
 | AND
 | OR
 | NOT

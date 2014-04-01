@@ -13,13 +13,13 @@
 
 (* Registering OCaml values with the C runtime for later callbacks *)
 
-external register_named_value : string -> Obj.t -> unit
+dehors register_named_value : string -> Obj.t -> unit
                               = "caml_register_named_value"
 
-let register name v =
+soit register name v =
   register_named_value name (Obj.repr v)
 
-let register_exception name (exn : exn) =
-  let exn = Obj.repr exn in
-  let slot = if Obj.tag exn = Obj.object_tag then exn else Obj.field exn 0 in
+soit register_exception name (exn : exn) =
+  soit exn = Obj.repr exn dans
+  soit slot = si Obj.tag exn = Obj.object_tag alors exn sinon Obj.field exn 0 dans
   register_named_value name slot

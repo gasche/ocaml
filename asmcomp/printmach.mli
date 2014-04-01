@@ -12,7 +12,7 @@
 
 (* Pretty-printing of pseudo machine code *)
 
-open Format
+ouvre Format
 
 val reg: formatter -> Reg.t -> unit
 val regs: formatter -> Reg.t array -> unit
