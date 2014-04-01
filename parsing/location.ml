@@ -227,7 +227,7 @@ let reset () =
   num_loc_lines := 0
 
 let (msg_file, msg_line, msg_chars, msg_to, msg_colon) =
-  ("File \"", "\", line ", ", characters ", "-", ":")
+  ("Fichier \"", "\", ligne ", ", lettres ", "-", ":")
 
 (* return file, line, char from the given position *)
 let get_pos_info pos =
@@ -339,7 +339,7 @@ let rec report_error ppf ({loc; msg; sub; if_highlight} as err) =
 let error_of_printer loc print x =
   let buf = Buffer.create 64 in
   let ppf = Format.formatter_of_buffer buf in
-  pp_print_string ppf "Error: ";
+  pp_print_string ppf "Erreur: ";
   print ppf x;
   pp_print_flush ppf ();
   let msg = Buffer.contents buf in

@@ -28,29 +28,29 @@ let prepare_error = function
       Location.errorf ~loc:closing_loc
         ~sub:[
           Location.error ~loc:opening_loc
-            (Printf.sprintf "Error: This '%s' might be unmatched" opening)
+            (Printf.sprintf "Erreur: Ce '%s' pourrait être un orphelin" opening)
         ]
         ~if_highlight:
-          (Printf.sprintf "Syntax error: '%s' expected, \
-                           the highlighted '%s' might be unmatched"
+          (Printf.sprintf "Erreur de syntaxe: '%s' attendu, \
+                           le '%s' souligné pourrait être orphelin"
              closing opening)
-        "Error: Syntax error: '%s' expected" closing
+        "Erreur: erreur de syntaxe: '%s' attendu" closing
 
   | Expecting (loc, nonterm) ->
-      Location.errorf ~loc "Error: Syntax error: %s expected." nonterm
+      Location.errorf ~loc "Erreur: erreur de syntaxe: '%s' attendu" nonterm
   | Not_expecting (loc, nonterm) ->
-      Location.errorf ~loc "Error: Syntax error: %s not expected." nonterm
+      Location.errorf ~loc "Erreur: erreur de syntaxe: '%s' inattendu" nonterm
   | Applicative_path loc ->
       Location.errorf ~loc
-        "Error: Syntax error: applicative paths of the form F(X).t \
-         are not supported when the option -no-app-func is set."
+        "Erreur: erreur de syntaxe: les chemins applicatifs de la forme F(X).t \
+         ne sont pas tolérés quand l'option -no-app-func est activée."
   | Variable_in_scope (loc, var) ->
       Location.errorf ~loc
-        "Error: In this scoped type, variable '%s \
-         is reserved for the local type %s."
+        "Erreur: Dans ce type téléscopé, la variable '%s \
+         est réservée pour le type local %s."
         var var
   | Other loc ->
-      Location.error ~loc "Error: Syntax error"
+      Location.error ~loc "Erreur: erreur de syntaxe"
 
 let () =
   Location.register_error_of_exn
