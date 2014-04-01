@@ -197,9 +197,36 @@ let keywords_assoc = [
 let keyword_table =
   create_hashtable 149 keywords_assoc
 
-let string_of_keyword_table =
-  create_hashtable 149
-    (List.rev_map (fun (str,kwd) -> (kwd,str)) keywords_assoc)
+let reverse_keyword_table_en, reverse_keyword_table_fr =
+  let en, fr = Hashtbl.create 63, Hashtbl.create 63 in
+  let add (kwd, token) =
+    if not (Hashtbl.mem en token) then begin
+      (* first time we see this token *)
+      assert (not (Hashtbl.mem fr token));
+      Hashtbl.replace en token kwd;
+      Hashtbl.replace fr token kwd;
+     (* if the same name is used in both languages, it is not
+        repeated; so when encountering a word for the first time we
+        assume it may not be repeated and add it also in the french
+        dictionary *)
+    end else begin
+      (* token already bound for english: this is its second
+         occurence, so it should go to the french dict *)
+      Hashtbl.replace fr token kwd
+    end
+  in
+  List.iter add keywords_assoc;
+  (en, fr)
+
+let reverse_keyword_table =
+  let relex_conf =
+    try Some (Sys.getenv "OCAML_LEX_ROUNDTRIP") with _ -> None in
+  match relex_conf with
+  | None -> reverse_keyword_table_en
+  | Some lang ->
+    if (try search_substring "fr" lang 0 = 0 with Not_found -> false)
+    then reverse_keyword_table_fr
+    else reverse_keyword_table_en
 
 let string_of_token = function
   (* first, rule out the keywords (tokens but not symbols) *)
@@ -263,8 +290,8 @@ let string_of_token = function
   | INFIXOP4("asr")
   as kwd
     ->
-    assert (Hashtbl.mem string_of_keyword_table kwd);
-    Hashtbl.find string_of_keyword_table kwd
+    assert (Hashtbl.mem reverse_keyword_table kwd);
+    Hashtbl.find reverse_keyword_table kwd
 
   | AMPERAMPER -> "&&"
   | AMPERSAND -> "&"
