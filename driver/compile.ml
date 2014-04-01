@@ -40,10 +40,7 @@ module Roundtrip = struct
   (* the proper way to do this would be to add configuration options,
      but it's unclear we ever want to upstream this. *)
   let reparse_conf = (try Sys.getenv "OCAML_PARSE_ROUNDTRIP" <> "" with _ -> false)
-  let relex_conf =
-    not (!Clflags.perfide_albion
-         || (try ignore (Sys.getenv "OCAML_PERFIDE_ALBION"); true
-             with _ -> false))
+  let relex_conf = not (try Sys.getenv "OCAML_LEX_NO_ROUNDTRIP" <> "" with _ -> false)
 
   let reparse sourcefile print parse ast =
     if not reparse_conf then ast
@@ -80,6 +77,7 @@ module Roundtrip = struct
           close_in inc; raise exn
       end;
       try
+        Sys.rename sourcefile (sourcefile ^ ".bak");
         let outc = open_out sourcefile in
         Buffer.output_buffer outc outbuf;
         close_out outc;
