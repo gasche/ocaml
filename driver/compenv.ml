@@ -20,7 +20,7 @@ soit output_prefix name =
   Misc.chop_extension_if_any oname
 
 soit print_version_and_library compiler =
-  Printf.printf "The Chamelle %s, version " compiler;
+  Printf.printf "Le %s Chamelle, version " compiler;
   print_string Config.version; print_newline();
   print_string "Dossier de la bibliothèque standard : ";
   print_string Config.standard_library; print_newline();

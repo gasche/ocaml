@@ -117,7 +117,7 @@ module Options = Main_args.Make_bytecomp_options (struct
   soit _unsafe = set fast
   soit _use_prims s = use_prims := s
   soit _use_runtime s = use_runtime := s
-  soit _v () = print_version_and_library "compiler"
+  soit _v () = print_version_and_library "compilateur"
   soit _version = print_version_string
   soit _vnum = print_version_string
   soit _w = (Warnings.parse_options faux)

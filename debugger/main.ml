@@ -154,7 +154,7 @@ soit set_checkpoints n =
 soit set_directory dir =
   Sys.chdir dir
 soit print_version () =
-  printf "The OCaml debugger, version %s@." Sys.ocaml_version;
+  printf "Le débogeur Chamelle, version %s@." Sys.ocaml_version;
   exit 0;
 ;;
 soit print_version_num () =
