@@ -125,7 +125,7 @@ let highlight_dumb ppf lb loc =
     end
   done;
   (* Print character location (useful for Emacs) *)
-  Format.fprintf ppf "Characters %i-%i:@."
+  Format.fprintf ppf "Lettres %i-%i:@."
                  loc.loc_start.pos_cnum loc.loc_end.pos_cnum;
   (* Print the input, underlining the location *)
   Format.pp_print_string ppf "  ";
@@ -239,7 +239,7 @@ let print_loc ppf loc =
   let endchar = loc.loc_end.pos_cnum - loc.loc_start.pos_cnum + startchar in
   if file = "//toplevel//" then begin
     if highlight_locations ppf [loc] then () else
-      fprintf ppf "Characters %i-%i"
+      fprintf ppf "Lettres %i-%i"
               loc.loc_start.pos_cnum loc.loc_end.pos_cnum
   end else begin
     fprintf ppf "%s%a%s%i" msg_file print_filename file msg_line line;
@@ -256,7 +256,7 @@ let print ppf loc =
 
 let print_error ppf loc =
   print ppf loc;
-  fprintf ppf "Error: ";
+  fprintf ppf "Erreur: ";
 ;;
 
 let print_error_cur_file ppf = print_error ppf (in_file !input_name);;
@@ -268,7 +268,7 @@ let print_warning loc ppf w =
       num_loc_lines := !num_loc_lines + n
     in
     print ppf loc;
-    fprintf ppf "Warning %a@." printw w;
+    fprintf ppf "Avertissement %a@." printw w;
     pp_print_flush ppf ();
     incr num_loc_lines;
   end
@@ -352,11 +352,11 @@ let () =
   register_error_of_exn
     (function
       | Sys_error msg ->
-          Some (errorf ~loc:(in_file !input_name) "Error: I/O error: %s" msg)
+          Some (errorf ~loc:(in_file !input_name) "Erreur: erreur E/S: %s" msg)
       | Warnings.Errors n ->
           Some
             (errorf ~loc:(in_file !input_name)
-               "Error: Some fatal warnings were triggered (%d occurrences)" n)
+               "Erreur: des avertissements mortels ont retenti (%d fois)" n)
       | _ ->
           None
     )
