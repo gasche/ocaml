@@ -219,14 +219,11 @@ let reverse_keyword_table_en, reverse_keyword_table_fr =
   (en, fr)
 
 let reverse_keyword_table =
-  let relex_conf =
-    try Some (Sys.getenv "OCAML_LEX_ROUNDTRIP") with _ -> None in
-  match relex_conf with
-  | None -> reverse_keyword_table_en
-  | Some lang ->
-    if (try search_substring "fr" lang 0 = 0 with Not_found -> false)
-    then reverse_keyword_table_fr
-    else reverse_keyword_table_en
+ if !Clflags.perfide_albion
+    || (try ignore (Sys.getenv "OCAML_PERFIDE_ALBION"); true
+        with _ -> false)
+ then reverse_keyword_table_en
+ else reverse_keyword_table_fr
 
 let string_of_token = function
   (* first, rule out the keywords (tokens but not symbols) *)

@@ -73,6 +73,8 @@ module type Bytecomp_options =
     val _dlambda : unit -> unit
     val _dinstr : unit -> unit
 
+    val _perfide_albion : unit -> unit
+
     val anonymous : string -> unit
   end
 ;;

@@ -430,6 +430,12 @@ let mk__ f =
   "<file>  Treat <file> as a file name (even if it starts with `-')"
 ;;
 
+let mk_perfide_albion f =
+  "-perfide-albion", Arg.Unit f,
+  " compatibilité mode pour inférieurs langages\n\
+  \ (aussi possible avec variable d'environnement OCAML_PERFIDE_ALBION=1)"
+;;
+
 module type Bytecomp_options = sig
   val _a : unit -> unit
   val _absname : unit -> unit
@@ -491,6 +497,8 @@ module type Bytecomp_options = sig
   val _drawlambda : unit -> unit
   val _dlambda : unit -> unit
   val _dinstr : unit -> unit
+
+  val _perfide_albion : unit -> unit
 
   val anonymous : string -> unit
 end;;
@@ -733,6 +741,8 @@ struct
     mk_drawlambda F._drawlambda;
     mk_dlambda F._dlambda;
     mk_dinstr F._dinstr;
+
+    mk_perfide_albion F._perfide_albion;
 
     mk__ F.anonymous;
   ]
