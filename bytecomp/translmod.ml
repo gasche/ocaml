@@ -147,7 +147,7 @@ let mod_prim name =
       (fst (Env.lookup_value (Ldot (Lident "CamlinternalMod", name))
                              Env.empty))
   with Not_found ->
-    fatal_error ("Primitive " ^ name ^ " not found.")
+    fatal_error ("Primitive " ^ name ^ " introuvable.")
 
 let undefined_location loc =
   let (fname, line, char) = Location.get_pos_info loc.Location.loc_start in

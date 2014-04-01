@@ -132,7 +132,7 @@ let calling_conventions
 
 let incoming ofs = Incoming ofs
 let outgoing ofs = Outgoing ofs
-let not_supported ofs = fatal_error "Proc.loc_results: cannot call"
+let not_supported ofs = fatal_error "Proc.loc_results: impossible d'appeler"
 
 (* OCaml calling convention:
      first integer args in r0...r15

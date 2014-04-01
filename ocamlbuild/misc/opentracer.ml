@@ -24,7 +24,7 @@ module Ktrace = struct
     if wait_a_string then
       match strings with
       | [_; _; "NAMI"; file] -> false, StringSet.add file set
-      | _ -> failwith (Printf.sprintf "unexpected ktrace output line (%S)" line)
+      | _ -> failwith (Printf.sprintf "ligne de sortie de ktrace inattendue (%S)" line)
     else
       match strings with
       | [_; _; "CALL"; fct] ->

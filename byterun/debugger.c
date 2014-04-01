@@ -115,13 +115,13 @@ static void open_connection(void)
 #endif
   if (dbg_socket == -1 ||
       connect(dbg_socket, &sock_addr.s_gen, sock_addr_len) == -1){
-    caml_fatal_error_arg2 ("cannot connect to debugger at %s\n", dbg_addr,
-                           "error: %s\n", strerror (errno));
+    caml_fatal_error_arg2 ("impossible de se connecter au débuggeur à %s\n", dbg_addr,
+                           "erreur: %s\n", strerror (errno));
   }
 #ifdef _WIN32
   dbg_socket = _open_osfhandle(dbg_socket, 0);
   if (dbg_socket == -1)
-    caml_fatal_error("_open_osfhandle failed");
+    caml_fatal_error("_open_osfhandle a échoué");
 #endif
   dbg_in = caml_open_descriptor_in(dbg_socket);
   dbg_out = caml_open_descriptor_out(dbg_socket);
@@ -146,7 +146,7 @@ static void winsock_startup(void)
 {
   WSADATA wsaData;
   int err = WSAStartup(MAKEWORD(2, 0), &wsaData);
-  if (err) caml_fatal_error("WSAStartup failed");
+  if (err) caml_fatal_error("WSAStartup a échoué");
 }
 
 static void winsock_cleanup(void)
@@ -191,7 +191,7 @@ void caml_debugger_init(void)
       ((char *)&(sock_addr.s_unix.sun_path) - (char *)&(sock_addr.s_unix))
         + strlen(address);
 #else
-    caml_fatal_error("Unix sockets not supported");
+    caml_fatal_error("Chaussettes Unix non supportées");
 #endif
   } else {
     /* Internet domain */
@@ -203,7 +203,7 @@ void caml_debugger_init(void)
     if (sock_addr.s_inet.sin_addr.s_addr == -1) {
       host = gethostbyname(address);
       if (host == NULL)
-        caml_fatal_error_arg("Unknown debugging host %s\n", address);
+        caml_fatal_error_arg("Hôte de debuggage inconnu %s\n", address);
       memmove(&sock_addr.s_inet.sin_addr, host->h_addr, host->h_length);
     }
     sock_addr.s_inet.sin_port = htons(atoi(port));
@@ -327,7 +327,7 @@ void caml_debugger(enum event_kind event)
         caml_flush(dbg_out);
       }
 #else
-      caml_fatal_error("error: REQ_CHECKPOINT command");
+      caml_fatal_error("erreur: commande REQ_CHECKPOINT");
       exit(-1);
 #endif
       break;
@@ -341,7 +341,7 @@ void caml_debugger(enum event_kind event)
 #ifndef _WIN32
       wait(NULL);
 #else
-      caml_fatal_error("Fatal error: REQ_WAIT command");
+      caml_fatal_error("Erreur fatale: commande REQ_WAIT");
       exit(-1);
 #endif
       break;

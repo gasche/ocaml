@@ -132,7 +132,7 @@ let calling_conventions first_int last_int first_float last_float make_stack
 
 let incoming ofs = Incoming ofs
 let outgoing ofs = Outgoing ofs
-let not_supported ofs = fatal_error "Proc.loc_results: cannot call"
+let not_supported ofs = fatal_error "Proc.loc_results: impossible d'appeler"
 
 let loc_arguments arg =
   calling_conventions 6 15 100 105 outgoing arg
@@ -155,7 +155,7 @@ let loc_external_arguments arg =
           loc := phys_reg !reg :: !loc;
           incr reg
       | Float ->
-          if !reg = 5 then fatal_error "Proc_sparc: cannot call";
+          if !reg = 5 then fatal_error "Proc_sparc: impossible d'appeler";
           loc := phys_reg (!reg + 1) :: phys_reg !reg :: !loc;
           reg := !reg + 2
     end else begin

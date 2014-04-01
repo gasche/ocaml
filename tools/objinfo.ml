@@ -174,7 +174,7 @@ let read_dyn_header filename ic =
                                 (Filename.quote helper)
                                 (Filename.quote filename)
                                 tempfile) in
-        if rc <> 0 then failwith "cannot read";
+        if rc <> 0 then failwith "impossible de lire";
         let tc = open_in tempfile in
         try_finally
           (fun () ->
@@ -227,23 +227,23 @@ let dump_obj filename =
       flush stdout;
       match read_dyn_header filename ic with
       | None ->
-          printf "Unable to read info on file %s\n" filename;
+          printf "Impossible de lire les informations sur le fichier %s\n" filename;
           exit 2
       | Some header ->
           if header.dynu_magic = Config.cmxs_magic_number then
             print_cmxs_infos header
           else begin
-            printf "Wrong magic number\n"; exit 2
+            printf "Mauvais nombre magique\n"; exit 2
           end;
           close_in ic
     end else begin
-      printf "Not an OCaml object file\n"; exit 2
+      printf "Ce n'est pas un fichier objet Chamelle\n"; exit 2
     end
   end
 
 let arg_list = []
 let arg_usage =
-   Printf.sprintf "%s [OPTIONS] FILES : give information on files" Sys.argv.(0)
+   Printf.sprintf "%s [OPTIONS] FILES : donne des informations sur les fichiers" Sys.argv.(0)
 
 let main() =
   Arg.parse arg_list dump_obj arg_usage;

@@ -78,7 +78,7 @@ let _H2 = assert (parent_dir_name = "..")
 let rec normalize_list = function
   | [] -> []
   | "." :: xs -> normalize_list xs
-  | ".." :: _ -> failwith "Pathname.normalize_list: .. is forbidden here"
+  | ".." :: _ -> failwith "Pathname.normalize_list: .. est interdit ici"
   | _ :: ".." :: xs -> normalize_list xs
   | x :: xs -> x :: normalize_list xs
 
@@ -113,7 +113,7 @@ let chop_extensions x =
   try
     let pos = String.index basename '.' in
     dirname / (String.before basename pos)
-  with Not_found -> invalid_arg "chop_extensions: no extensions"
+  with Not_found -> invalid_arg "chop_extensions: pas d'extensions"
 let remove_extensions x =
   try chop_extensions x
   with Invalid_argument _ -> x

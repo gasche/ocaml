@@ -86,7 +86,7 @@ let file filename =
         close_in ic; Lexcmm.report_error lb msg
     | Parsing.Parse_error ->
         close_in ic;
-        prerr_string "Syntax error near character ";
+        prerr_string "Erreur de syntaxe près du caractère ";
         prerr_int (Lexing.lexeme_start lb);
         prerr_newline()
     | Parsecmmaux.Error msg ->

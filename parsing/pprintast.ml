@@ -244,7 +244,7 @@ class printer  ()= object(self:'self)
           | Ptyp_constr ({txt;_}, l) ->
               assert (is_predef_option txt);
               pp f "%s:%a" s (self#list self#core_type1) l
-          | _ -> failwith "invalid input in print_type_with_label"
+          | _ -> failwith "entrée invalide dans print_type_with_label"
         else pp f "%s:%a" s self#core_type1 c
   method core_type f x =
     if x.ptyp_attributes <> [] then begin

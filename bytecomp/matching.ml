@@ -1453,12 +1453,12 @@ let get_mod_field modname field =
       let p = try
         match Env.lookup_value (Longident.Lident field) env with
         | (Path.Pdot(_,_,i), _) -> i
-        | _ -> fatal_error ("Primitive "^modname^"."^field^" not found.")
+        | _ -> fatal_error ("Primitive "^modname^"."^field^" introuvable.")
       with Not_found ->
-        fatal_error ("Primitive "^modname^"."^field^" not found.")
+        fatal_error ("Primitive "^modname^"."^field^" introuvable.")
       in
       Lprim(Pfield p, [Lprim(Pgetglobal mod_ident, [])])
-    with Not_found -> fatal_error ("Module "^modname^" unavailable.")
+    with Not_found -> fatal_error ("Module "^modname^" non disponible.")
   )
 
 let code_force_lazy_block =

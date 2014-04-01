@@ -636,7 +636,7 @@ and transl_exp0 e =
       raise(Error(e.exp_loc, Free_super_var))
   | Texp_ident(path, _, {val_kind = Val_reg | Val_self _}) ->
       transl_path ~loc:e.exp_loc e.exp_env path
-  | Texp_ident _ -> fatal_error "Translcore.transl_exp: bad Texp_ident"
+  | Texp_ident _ -> fatal_error "Translcore.transl_exp: Texp_ident incorrect"
   | Texp_constant cst ->
       Lconst(Const_base cst)
   | Texp_let(rec_flag, pat_expr_list, body) ->
@@ -677,10 +677,10 @@ and transl_exp0 e =
       else begin
         if p.prim_name = "%sequand" && Path.last path = "&" then
           Location.prerr_warning fn.exp_loc
-            (Warnings.Deprecated "operator (&); you should use (&&) instead");
+            (Warnings.Deprecated "operateur (&); vous devriez plutôt utiliser (&&)");
         if p.prim_name = "%sequor" && Path.last path = "or" then
           Location.prerr_warning fn.exp_loc
-            (Warnings.Deprecated "operator (or); you should use (||) instead");
+            (Warnings.Deprecated "operater (or); vous devriez plutôt utiliser (||)");
         let prim = transl_prim e.exp_loc p args in
         match (prim, args) with
           (Praise k, [arg1]) ->
@@ -754,7 +754,7 @@ and transl_exp0 e =
   | Texp_record ((_, lbl1, _) :: _ as lbl_expr_list, opt_init_expr) ->
       transl_record lbl1.lbl_all lbl1.lbl_repres lbl_expr_list opt_init_expr
   | Texp_record ([], _) ->
-      fatal_error "Translcore.transl_exp: bad Texp_record"
+      fatal_error "Translcore.transl_exp: Texp_record incorrect"
   | Texp_field(arg, _, lbl) ->
       let access =
         match lbl.lbl_repres with
@@ -1133,15 +1133,15 @@ open Format
 let report_error ppf = function
   | Illegal_letrec_pat ->
       fprintf ppf
-        "Only variables are allowed as left-hand side of `let rec'"
+        "Seules les variables sont autorisées comme membre gauche de `soit rec'"
   | Illegal_letrec_expr ->
       fprintf ppf
-        "This kind of expression is not allowed as right-hand side of `let rec'"
+        "Cette sorte d'expression n'est pas autorisée comme membre droit de `soit rec'"
   | Free_super_var ->
       fprintf ppf
-        "Ancestor names can only be used to select inherited methods"
+        "Les noms d'ancêtres ne peuvent qu'être utilisés pour sélectionner des méthodes héritées"
   | Unknown_builtin_primitive prim_name ->
-    fprintf ppf  "Unknown builtin primitive \"%s\"" prim_name
+      fprintf ppf  "Primitive builtin inconnue \"%s\"" prim_name
 
 let () =
   Location.register_error_of_exn

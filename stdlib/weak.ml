@@ -196,7 +196,7 @@ module Make (H : Hashtbl.HashedType) : (S with type data = H.t) = struct
     let rec loop i =
       if i >= sz then begin
         let newsz = min (3 * sz / 2 + 3) (Sys.max_array_length - 1) in
-        if newsz <= sz then failwith "Weak.Make: hash bucket cannot grow more";
+        if newsz <= sz then failwith "Weak.Make: le seau de hachage ne peut plus s'agrandir";
         let newbucket = weak_create newsz in
         let newhashes = Array.make newsz 0 in
         blit bucket 0 newbucket 0 sz;

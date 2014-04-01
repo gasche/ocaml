@@ -43,7 +43,7 @@ let open_implicit_module m env =
   try
     Env.open_pers_signature m env
   with Not_found ->
-    Misc.fatal_error (Printf.sprintf "cannot open implicit module %S" m)
+    Misc.fatal_error (Printf.sprintf "impossible d'ouvrir le module implicite %S" m)
 
 let initial_env () =
   Ident.reinit();

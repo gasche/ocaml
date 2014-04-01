@@ -466,7 +466,7 @@ let unadjusted_string_of_nat nat off len_nat =
        and copy2 = make_nat !len_copy
        and rest_digit = make_nat 2 in
          if len > biggest_int / (succ pmax)
-            then failwith "number too long"
+            then failwith "le nombre est trop long"
             else let len_s = (succ pmax) * len in
                  let s = String.make len_s '0'
                  and pos_ref = ref len_s in
@@ -512,7 +512,7 @@ let base_digit_of_char c base =
     if n >= 48 && n <= 47 + min base 10 then n - 48
     else if n >= 65 && n <= 65 + base - 11 then n - 55
     else if n >= 97 && n <= 97 + base - 11 then n - 87
-    else failwith "invalid digit"
+    else failwith "chiffre invalide"
 
 (*
    La sous-chaine (s, off, len) represente un nat en base base que

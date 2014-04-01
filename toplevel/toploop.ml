@@ -38,7 +38,7 @@ let getvalue name =
   try
     Hashtbl.find toplevel_value_bindings name
   with Not_found ->
-    fatal_error (name ^ " unbound at toplevel")
+    fatal_error (name ^ " non lié au niveau supérieur")
 
 let setvalue name v =
   Hashtbl.replace toplevel_value_bindings name v

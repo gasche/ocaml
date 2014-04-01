@@ -119,10 +119,10 @@ let set_fixed_row env loc p decl =
     | Tobject (ty, _) ->
         snd (Ctype.flatten_fields ty)
     | _ ->
-        raise (Error (loc, Bad_fixed_type "is not an object or variant"))
+        raise (Error (loc, Bad_fixed_type "n'est pas un objet ou variant"))
   in
   if not (Btype.is_Tvar rv) then
-    raise (Error (loc, Bad_fixed_type "has no row variable"));
+    raise (Error (loc, Bad_fixed_type "n'a pas de variable de rangée"));
   rv.desc <- Tconstr (p, decl.type_params, ref Mnil)
 
 (* Translate one type declaration *)
@@ -859,7 +859,7 @@ let check_duplicates sdecl_list =
               let name' = Hashtbl.find constrs pcd.pcd_name.txt in
               Location.prerr_warning pcd.pcd_loc
                 (Warnings.Duplicate_definitions
-                   ("constructor", pcd.pcd_name.txt, name', sdecl.ptype_name.txt))
+                   ("constructeur", pcd.pcd_name.txt, name', sdecl.ptype_name.txt))
             with Not_found -> Hashtbl.add constrs pcd.pcd_name.txt sdecl.ptype_name.txt)
           cl
     | Ptype_record fl ->
@@ -1139,7 +1139,7 @@ let transl_with_constraint env id row_path orig_decl sdecl =
   if arity_ok && orig_decl.type_kind <> Type_abstract
   && sdecl.ptype_private = Private then
     Location.prerr_warning sdecl.ptype_loc
-      (Warnings.Deprecated "spurious use of private");
+      (Warnings.Deprecated "utilisation de privé étrange");
   let decl =
     { type_params = params;
       type_arity = List.length params;
@@ -1229,7 +1229,7 @@ let explain_unbound ppf tv tl typ kwd lab =
       Btype.newgenty (Tobject(tv, ref None)) in
     Printtyp.reset_and_mark_loops_list [typ ti; ty0];
     fprintf ppf
-      ".@.@[<hov2>In %s@ %s%a@;<1 -2>the variable %a is unbound@]"
+      ".@.@[<hov2>Dans %s@ %s%a@;<1 -2>la variable %a n'est pas liée@]"
       kwd (lab ti) Printtyp.type_expr (typ ti) Printtyp.type_expr tv
   with Not_found -> ()
 
@@ -1256,123 +1256,121 @@ let explain_unbound_single ppf tv ty =
 
 let report_error ppf = function
   | Repeated_parameter ->
-      fprintf ppf "A type parameter occurs several times"
+      fprintf ppf "Un paramètre de type apparaît plusieurs fois"
   | Duplicate_constructor s ->
-      fprintf ppf "Two constructors are named %s" s
+      fprintf ppf "Deux constructeurs sont nommés %s" s
   | Too_many_constructors ->
       fprintf ppf
-        "@[Too many non-constant constructors@ -- maximum is %i %s@]"
-        (Config.max_tag + 1) "non-constant constructors"
+        "@[Trop de constructeurs non constants@ -- le maximum est is %i %s@]"
+        (Config.max_tag + 1) "constructeurs non constants"
   | Duplicate_label s ->
-      fprintf ppf "Two labels are named %s" s
+      fprintf ppf "Deux labels sont nommés %s" s
   | Recursive_abbrev s ->
-      fprintf ppf "The type abbreviation %s is cyclic" s
+      fprintf ppf "L'abréviation de type %s est cyclique" s
   | Definition_mismatch (ty, errs) ->
       Printtyp.reset_and_mark_loops ty;
       fprintf ppf "@[<v>@[<hov>%s@ %s@;<1 2>%a@]%a@]"
-        "This variant or record definition" "does not match that of type"
+        "Cette définition de type somme ou d'enregistrement"
+        "ne correspond pas à celle du type"
         Printtyp.type_expr ty
-        (Includecore.report_type_mismatch "the original" "this" "definition")
+        (Includecore.report_type_mismatch "la définition originale" "cette définition")
         errs
   | Constraint_failed (ty, ty') ->
       Printtyp.reset_and_mark_loops ty;
       Printtyp.mark_loops ty';
-      fprintf ppf "@[%s@ @[<hv>Type@ %a@ should be an instance of@ %a@]@]"
-        "Constraints are not satisfied in this type."
+      fprintf ppf "@[%s@ @[<hv>Le type@ %a@ devrait être une instance de@ %a@]@]"
+        "Les contraintes ne soint pas satisfaites dans ce type."
         Printtyp.type_expr ty Printtyp.type_expr ty'
   | Parameters_differ (path, ty, ty') ->
       Printtyp.reset_and_mark_loops ty;
       Printtyp.mark_loops ty';
       fprintf ppf
-        "@[<hv>In the definition of %s, type@ %a@ should be@ %a@]"
+        "@[<hv>Dans la définition de %s, le type@ %a@ devrait être@ %a@]"
         (Path.name path) Printtyp.type_expr ty Printtyp.type_expr ty'
   | Inconsistent_constraint (env, trace) ->
-      fprintf ppf "The type constraints are not consistent.@.";
+      fprintf ppf "Les contraintes de type ne sont pas consistentes.@.";
       Printtyp.report_unification_error ppf env trace
         (fun ppf -> fprintf ppf "Type")
         (fun ppf -> fprintf ppf "is not compatible with type")
   | Type_clash (env, trace) ->
       Printtyp.report_unification_error ppf env trace
         (function ppf ->
-           fprintf ppf "This type constructor expands to type")
+           fprintf ppf "Ce constructeur de type s'étend au type")
         (function ppf ->
-           fprintf ppf "but is used here with type")
+           fprintf ppf "mais est utilisé ici avec le type")
   | Null_arity_external ->
-      fprintf ppf "External identifiers must be functions"
+      fprintf ppf "Les identifiants externes doivent être des fonctions"
   | Missing_native_external ->
-      fprintf ppf "@[<hv>An external function with more than 5 arguments \
-                   requires a second stub function@ \
-                   for native-code compilation@]"
+      fprintf ppf "@[<hv>Une fonction externe de plus de 5 arguments \
+                   requiert une seconde fonction talon@ \
+                   pour la compilation en code natif@]"
   | Unbound_type_var (ty, decl) ->
-      fprintf ppf "A type variable is unbound in this type declaration";
+      fprintf ppf "Une variable de type n'est pas liée dans cette déclaration de type";
       let ty = Ctype.repr ty in
       begin match decl.type_kind, decl.type_manifest with
       | Type_variant tl, _ ->
           explain_unbound ppf ty tl (fun c ->
             Btype.newgenty (Ttuple c.Types.cd_args))
-            "case" (fun c -> Ident.name c.Types.cd_id ^ " of ")
+            "le cas" (fun c -> Ident.name c.Types.cd_id ^ " de ")
       | Type_record (tl, _), _ ->
           explain_unbound ppf ty tl (fun l -> l.Types.ld_type)
-            "field" (fun l -> Ident.name l.Types.ld_id ^ ": ")
+            "le champ" (fun l -> Ident.name l.Types.ld_id ^ ": ")
       | Type_abstract, Some ty' ->
           explain_unbound_single ppf ty ty'
       | _ -> ()
       end
   | Unbound_type_var_exc (tv, ty) ->
-      fprintf ppf "A type variable is unbound in this exception declaration";
+      fprintf ppf "Une variable de type n'est pas liée dans cette déclaration d'exception";
       explain_unbound_single ppf (Ctype.repr tv) ty
   | Unbound_exception lid ->
-      fprintf ppf "Unbound exception constructor@ %a" Printtyp.longident lid
+      fprintf ppf "Constructeur d'exception non lié@ %a" Printtyp.longident lid
   | Not_an_exception lid ->
-      fprintf ppf "The constructor@ %a@ is not an exception"
+      fprintf ppf "Le constructeur@ %a@ n'est pas une exception"
         Printtyp.longident lid
   | Bad_variance (n, v1, v2) ->
       let variance (p,n,i) =
         let inj = if i then "injective " else "" in
         match p, n with
-          true,  true  -> inj ^ "invariant"
-        | true,  false -> inj ^ "covariant"
-        | false, true  -> inj ^ "contravariant"
-        | false, false -> if inj = "" then "unrestricted" else inj
+          true,  true  -> inj ^ "invariante"
+        | true,  false -> inj ^ "covariante"
+        | false, true  -> inj ^ "contravariante"
+        | false, false -> if inj = "" then "non restreinte" else inj
       in
       let suffix n =
-        let teen = (n mod 100)/10 = 1 in
-        match n mod 10 with
-        | 1 when not teen -> "st"
-        | 2 when not teen -> "nd"
-        | 3 when not teen -> "rd"
-        | _ -> "th"
+        match n with
+        | 1 -> "er"
+        | _ -> "ème"
       in
       if n = -1 then
-        fprintf ppf "@[%s@ %s@ It"
-          "In this definition, a type variable has a variance that"
-          "is not reflected by its occurrence in type parameters."
+        fprintf ppf "@[%s@ %s@ Elle"
+          "Dans cette définition, une variable de type a une variance qui"
+          "n'est pas reflétée par son occurence dans les paramètres de type."
       else if n = -2 then
-        fprintf ppf "@[%s@ %s@]"
-          "In this definition, a type variable cannot be deduced"
-          "from the type parameters."
+        fprintf ppf "@[%s@ %s@ Elle"
+          "Dans cette définition, une variable de type ne peut pas être déduite"
+          "des paramètres de type."
       else if n = -3 then
-        fprintf ppf "@[%s@ %s@ It"
+        fprintf ppf "@[%s@ %s@ Elle"
           "In this definition, a type variable has a variance that"
           "cannot be deduced from the type parameters."
       else
-        fprintf ppf "@[%s@ %s@ The %d%s type parameter"
-          "In this definition, expected parameter"
-          "variances are not satisfied."
+        fprintf ppf "@[%s@ %s@ Le %d%s paramètre de type"
+          "Dans cette définition, les variances des paramètres"
+          "ne sont pas satisfaites."
           n (suffix n);
       if n <> -2 then
-        fprintf ppf " was expected to be %s,@ but it is %s.@]"
+        fprintf ppf " devait être %s,@ mais elle est %s.@]"
           (variance v2) (variance v1)
   | Unavailable_type_constructor p ->
-      fprintf ppf "The definition of type %a@ is unavailable" Printtyp.path p
+      fprintf ppf "La définition du type %a@ n'est pas disponible" Printtyp.path p
   | Bad_fixed_type r ->
-      fprintf ppf "This fixed type %s" r
+      fprintf ppf "Ce type fixé %s" r
   | Varying_anonymous ->
       fprintf ppf "@[%s@ %s@ %s@]"
-        "In this GADT definition," "the variance of some parameter"
-        "cannot be checked"
+        "Dans cette définition de TDAG," "la variance d'un paramètre"
+        "ne peut pas être vérifiée"
   | Exception_constructor_with_result ->
-      fprintf ppf "Exception constructors cannot specify a result type"
+      fprintf ppf "Les constructeurs d'exception ne peuvent pas spécifier un type de retour"
 
 let () =
   Location.register_error_of_exn

@@ -131,7 +131,7 @@ let calling_conventions
 
 let incoming ofs = Incoming ofs
 let outgoing ofs = Outgoing ofs
-let not_supported ofs = fatal_error "Proc.loc_results: cannot call"
+let not_supported ofs = fatal_error "Proc.loc_results: impossible d'appeler"
 
 let loc_arguments arg =
   calling_conventions 0 7 100 112 outgoing 0 arg

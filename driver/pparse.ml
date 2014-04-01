@@ -112,7 +112,7 @@ let file ppf inputfile parse_fun ast_magic =
       else false
     with
       Outdated_version ->
-        Misc.fatal_error "OCaml and preprocessor have incompatible versions"
+        Misc.fatal_error "Chamellle et le préprocesseur ont des versions incompatibles"
     | _ -> false
   in
   let ast =
@@ -120,8 +120,8 @@ let file ppf inputfile parse_fun ast_magic =
       if is_ast_file then begin
         if !Clflags.fast then
           (* FIXME make this a proper warning *)
-          fprintf ppf "@[Warning: %s@]@."
-            "option -unsafe used with a preprocessor returning a syntax tree";
+          fprintf ppf "@[Attention: %s@]@."
+            "option -unsafe utilisée avec un préprocesseur renvoyant un arbre de syntaxe.";
         Location.input_name := input_value ic;
         input_value ic
       end else begin

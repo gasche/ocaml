@@ -204,13 +204,13 @@ let prohibit names =
   allow_extension := false
 
 let digest_interface _ _ =
-  failwith "Dynlink.digest_interface: not implemented in native code"
+  failwith "Dynlink.digest_interface: non implémenté en code natif"
 let add_interfaces _ _ =
-  failwith "Dynlink.add_interfaces: not implemented in native code"
+  failwith "Dynlink.add_interfaces: non implémenté en code natif"
 let add_available_units _ =
-  failwith "Dynlink.add_available_units: not implemented in native code"
+  failwith "Dynlink.add_available_units: non implémenté en code natif"
 let clear_available_units _ =
-  failwith "Dynlink.clear_available_units: not implemented in native code"
+  failwith "Dynlink.clear_available_units: non implémenté en code natif"
 let allow_unsafe_modules _ =
   ()
 
@@ -218,30 +218,30 @@ let allow_unsafe_modules _ =
 
 let error_message = function
     Not_a_bytecode_file name ->
-      name ^ " is not an object file"
+      name ^ " n'est pas un fichier objet"
   | Inconsistent_import name ->
-      "interface mismatch on " ^ name
+      "interface ne correspondant pas dans " ^ name
   | Unavailable_unit name ->
-      "no implementation available for " ^ name
+      "pas d'implémentation disponible pour " ^ name
   | Unsafe_file ->
-      "this object file uses unsafe features"
+      "ce fichier objet utilise des fonctionnalités dangeureuses"
   | Linking_error (name, Undefined_global s) ->
-      "error while linking " ^ name ^ ".\n" ^
-      "Reference to undefined global `" ^ s ^ "'"
+      "erreur en liant " ^ name ^ ".\n" ^
+      "Référence à un global non défini `" ^ s ^ "'"
   | Linking_error (name, Unavailable_primitive s) ->
-      "error while linking " ^ name ^ ".\n" ^
-      "The external function `" ^ s ^ "' is not available"
+      "erreur en liant " ^ name ^ ".\n" ^
+      "La fonction externe `" ^ s ^ "' n'est pas disponible"
   | Linking_error (name, Uninitialized_global s) ->
-      "error while linking " ^ name ^ ".\n" ^
-      "The module `" ^ s ^ "' is not yet initialized"
+      "erreur en liant " ^ name ^ ".\n" ^
+      "Le module `" ^ s ^ "' n'est pas encore initialisé"
   | Corrupted_interface name ->
-      "corrupted interface file " ^ name
+      "fichier d'interface corrompu " ^ name
   | File_not_found name ->
-      "cannot find file " ^ name ^ " in search path"
+      "impossible de trouver le fichier " ^ name ^ " dans le chemin de recherche"
   | Cannot_open_dll reason ->
-      "error loading shared library: " ^ reason
+      "erreur en chargeant la bibliothèque partagée : " ^ reason
   | Inconsistent_implementation name ->
-      "implementation mismatch on " ^ name
+      "implémentation ne correspondant pas dans " ^ name
 
 let is_native = true
 let adapt_filename f = Filename.chop_extension f ^ ".cmxs"

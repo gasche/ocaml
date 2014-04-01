@@ -51,7 +51,7 @@ let find_exception tag =
 *)
 
 let error_matching () =
-  prerr_endline "Pattern matching failed";
+  prerr_endline "Le filtrage de motif a échoué";
   raise Toplevel
 
 (*
@@ -88,7 +88,7 @@ let rec pattern_matching pattern obj ty =
              pattern_matching_list pattern_list obj ty_list
          | P_nth (n, patt) ->
              if n >= List.length ty_list then
-               (prerr_endline "Out of range."; raise Toplevel);
+               (prerr_endline "En dehors de l'intervalle."; raise Toplevel);
              pattern_matching patt (Debugcom.get_field obj n)
                               (List.nth ty_list n)
          | _ ->
@@ -182,7 +182,7 @@ and match_concrete_type pattern obj cstr ty ty_list =
                          | P_nth (n2, patt) ->
                              let ty_list = filter_product n ty_arg in
                                if n2 >= n then
-                                 (prerr_endline "Out of range.";
+                                 (prerr_endline "En dehors de l'intervalle.";
                                   raise Toplevel);
                                pattern_matching
                                  patt
@@ -203,7 +203,7 @@ and match_concrete_type pattern obj cstr ty ty_list =
            Not_found ->
              error_matching ()
          | Unify ->
-             fatal_error "pattern_matching: types should match")
+             fatal_error "pattern_matching: les types devraient correspondre")
   | Record_type label_list ->
       let match_field (label, patt) =
         let lbl =
@@ -212,7 +212,7 @@ and match_concrete_type pattern obj cstr ty ty_list =
               (function l -> same_name l label)
               label_list
           with Not_found ->
-              prerr_endline "Label not found.";
+              prerr_endline "Label introuvable.";
               raise Toplevel
         in
           let (ty_res, ty_arg) =

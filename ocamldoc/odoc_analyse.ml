@@ -38,14 +38,14 @@ let initial_env () =
     then Env.initial
     else Env.open_pers_signature "Pervasives" Env.initial
   with Not_found ->
-    fatal_error "cannot open pervasives.cmi"
+    fatal_error "impossible d'ouvrir pervasives.cmi"
 
 (** Optionally preprocess a source file *)
 let preprocess sourcefile =
   try
     Pparse.preprocess sourcefile
   with Pparse.Error err ->
-    Format.eprintf "Preprocessing error@.%a@."
+    Format.eprintf "Erreur de prétraitement@.%a@."
       Pparse.report_error err;
     exit 2
 
@@ -108,7 +108,7 @@ let process_error exn =
       fprintf Format.err_formatter "@[%a@]@." Location.report_error err
   | None ->
       fprintf Format.err_formatter
-        "Compilation error(%s). Use the OCaml compiler to get more details.@."
+        "Erreur de compilation(%s). Utilisez le compilateur Chamelle pour obtenir plus de détails.@."
         (Printexc.to_string exn)
 
 (** Process the given file, according to its extension. Return the Module.t created, if any.*)

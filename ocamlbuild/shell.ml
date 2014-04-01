@@ -41,7 +41,7 @@ let run args target =
       Log.event cmd target Tags.empty;
       let st = sys_command cmd in
       if st <> 0 then
-        failwith (Printf.sprintf "Error during command `%s'.\nExit code %d.\n" cmd st)
+        failwith (Printf.sprintf "Erreur pendant la commande `%s'.\nCode de sortie %d.\n" cmd st)
       else
         ()
     end
@@ -49,7 +49,7 @@ let run args target =
     match My_unix.execute_many ~ticker:Log.update ~display:Log.display [[(fun () -> cmd)]] with
     | None -> ()
     | Some(_, x) ->
-      failwith (Printf.sprintf "Error during command %S: %s" cmd (Printexc.to_string x))
+      failwith (Printf.sprintf "Erreur pendant la commande %S: %s" cmd (Printexc.to_string x))
 let rm = sys_remove
 let rm_f x =
   if sys_file_exists x then rm x

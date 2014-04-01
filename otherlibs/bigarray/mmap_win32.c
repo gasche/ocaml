@@ -84,12 +84,12 @@ CAMLprim value caml_ba_map_file(value vfd, value vkind, value vlayout,
   if (dim[major_dim] == -1) {
     /* Determine first/last dimension from file size */
     if (file_size < startpos)
-      caml_failwith("Bigarray.mmap: file position exceeds file size");
+      caml_failwith("Bigarray.mmap: la position dans le fichier exède la taille du fichier");
     data_size = file_size - startpos;
     dim[major_dim] = (uintnat) (data_size / array_size);
     array_size = dim[major_dim] * array_size;
     if (array_size != data_size)
-      caml_failwith("Bigarray.mmap: file size doesn't match array dimensions");
+      caml_failwith("Bigarray.mmap: la taille du fichier ne correspond pas à la dimension du tableau");
   }
   /* Restore original file position */
   caml_ba_set_file_pointer(fd, currpos, FILE_BEGIN);
@@ -148,6 +148,6 @@ static void caml_ba_sys_error(void)
                      buffer,
                      sizeof(buffer),
                      NULL))
-    sprintf(buffer, "Unknown error %ld\n", errnum);
+    sprintf(buffer, "Erreur inconnue %ld\n", errnum);
   caml_raise_sys_error(caml_copy_string(buffer));
 }

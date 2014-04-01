@@ -41,7 +41,7 @@ let clambda_dump_if ppf ulambda =
 let rec regalloc ppf round fd =
   if round > 50 then
     fatal_error(fd.Mach.fun_name ^
-                ": function too complex, cannot complete register allocation");
+                ": fonction trop complexe, impossible de finir l'allocation de registres");
   dump_if ppf dump_live "Liveness analysis" fd;
   Interf.build_graph fd;
   if !dump_interf then Printmach.interferences ppf ();
@@ -138,7 +138,7 @@ let compile_implementation ?toplevel prefixname ppf (size, lam) =
 
 let report_error ppf = function
   | Assembler_error file ->
-      fprintf ppf "Assembler error, input left in file %a"
+      fprintf ppf "Erreur d'assemblage, entrée laissée dans le fichier %a"
         Location.print_filename file
 
 let () =

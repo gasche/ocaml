@@ -306,7 +306,7 @@ let init_toplevel () =
     sect.close_reader();
     crcintfs
   with Bytesections.Bad_magic_number | Not_found | Failure _ ->
-    fatal_error "Toplevel bytecode executable is corrupted"
+    fatal_error "L'exécutable bytecode de l'entrée interactive est corrompu"
 
 (* Find the value of a global identifier *)
 

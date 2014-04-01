@@ -30,7 +30,7 @@ module Sformat = struct
   ;;
   let index_of_int i =
     if i >= 0 then unsafe_index_of_int i
-    else failwith ("Sformat.index_of_int: negative argument " ^ string_of_int i)
+    else failwith ("Sformat.index_of_int: argument négatif " ^ string_of_int i)
   ;;
   external int_of_index : index -> int = "%identity"
   ;;
@@ -63,8 +63,8 @@ end
 
 let bad_conversion sfmt i c =
   invalid_arg
-    ("Printf: bad conversion %" ^ String.make 1 c ^ ", at char number " ^
-     string_of_int i ^ " in format string \'" ^ sfmt ^ "\'")
+    ("Printf: conversion incorrecte %" ^ String.make 1 c ^ ", au caractère numéro " ^
+     string_of_int i ^ " dans la chaîne de format \'" ^ sfmt ^ "\'")
 ;;
 
 let bad_conversion_format fmt i c =
@@ -73,7 +73,7 @@ let bad_conversion_format fmt i c =
 
 let incomplete_format fmt =
   invalid_arg
-    ("Printf: premature end of format string \'" ^
+    ("Printf: fin de chaîne de format prématurée \'" ^
      Sformat.to_string fmt ^ "\'")
 ;;
 
@@ -401,7 +401,7 @@ let scan_positional_spec fmt got_spec i =
         get_int_literal (10 * accu + (int_of_char d - 48)) (succ j)
       | '$' ->
         if accu = 0 then
-          failwith "printf: bad positional specification (0)." else
+          failwith "printf: spécification positionnelle incorrecte (0)." else
         got_spec (Spec_index (Sformat.index_of_literal_position accu)) (succ j)
       (* Not a positional specification: tell so the caller, and go back to
          scanning the format from the original [i] position we were called at
@@ -458,9 +458,9 @@ let format_float_lexeme =
    | FP_normal | FP_subnormal | FP_zero ->
        make_valid_float_lexeme (format_float sfmt x)
    | FP_infinite ->
-       if x < 0.0 then "neg_infinity" else "infinity"
+       if x < 0.0 then "moins l'infini" else "l'infini"
    | FP_nan ->
-       "nan")
+       "pas un nombre")
 ;;
 
 (* Decode a format string and act on it.

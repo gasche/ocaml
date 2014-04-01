@@ -368,7 +368,7 @@ static void intern_rec(value *dest)
         break;
 #else
         intern_cleanup();
-        caml_failwith("input_value: integer too large");
+        caml_failwith("input_value: entier trop gros");
         break;
 #endif
       case CODE_SHARED8:
@@ -398,7 +398,7 @@ static void intern_rec(value *dest)
         goto read_block;
 #else
         intern_cleanup();
-        caml_failwith("input_value: data block too large");
+        caml_failwith("input_value: bloc de données trop gros");
         break;
 #endif
       case CODE_STRING8:
@@ -460,7 +460,7 @@ static void intern_rec(value *dest)
         ops = caml_find_custom_operations((char *) intern_src);
         if (ops == NULL) {
           intern_cleanup();
-          caml_failwith("input_value: unknown custom block identifier");
+          caml_failwith("input_value: identifiant de bloc personnalisé inconnu");
         }
         while (*intern_src++ != 0) /*nothing*/;  /*skip identifier*/
         size = ops->deserialize((void *) (intern_dest + 2));
@@ -473,7 +473,7 @@ static void intern_rec(value *dest)
         break;
       default:
         intern_cleanup();
-        caml_failwith("input_value: ill-formed message");
+        caml_failwith("input_value: message malformé");
       }
     }
   }
@@ -559,9 +559,9 @@ value caml_input_val(struct channel *chan)
   value res;
 
   if (! caml_channel_binary_mode(chan))
-    caml_failwith("input_value: not a binary channel");
+    caml_failwith("input_value: ce n'est pas un canal binaire");
   magic = caml_getword(chan);
-  if (magic != Intext_magic_number) caml_failwith("input_value: bad object");
+  if (magic != Intext_magic_number) caml_failwith("input_value: objet incorrect");
   block_len = caml_getword(chan);
   num_objects = caml_getword(chan);
 #ifdef ARCH_SIXTYFOUR
@@ -579,7 +579,7 @@ value caml_input_val(struct channel *chan)
      is over before using [intern_input] and the other global vars. */
   if (caml_really_getblock(chan, block, block_len) == 0) {
     caml_stat_free(block);
-    caml_failwith("input_value: truncated object");
+    caml_failwith("input_value: objet tronqué");
   }
   intern_input = (unsigned char *) block;
   intern_input_malloced = 1;
@@ -671,7 +671,7 @@ CAMLexport value caml_input_value_from_malloc(char * data, intnat ofs)
   intern_input_malloced = 1;
   magic = read32u();
   if (magic != Intext_magic_number)
-    caml_failwith("input_value_from_malloc: bad object");
+    caml_failwith("input_value_from_malloc: objet incorrect");
   intern_src += 4;  /* Skip block_len */
   obj = input_val_from_block();
   /* Free the input */
@@ -690,10 +690,10 @@ CAMLexport value caml_input_value_from_block(char * data, intnat len)
   intern_input_malloced = 0;
   magic = read32u();
   if (magic != Intext_magic_number)
-    caml_failwith("input_value_from_block: bad object");
+    caml_failwith("input_value_from_block: objet incorrect");
   block_len = read32u();
   if (5*4 + block_len > len)
-    caml_failwith("input_value_from_block: bad block length");
+    caml_failwith("input_value_from_block: taille de bloc incorrecte");
   obj = input_val_from_block();
   return obj;
 }
@@ -707,7 +707,7 @@ CAMLprim value caml_marshal_data_size(value buff, value ofs)
   intern_input_malloced = 0;
   magic = read32u();
   if (magic != Intext_magic_number){
-    caml_failwith("Marshal.data_size: bad object");
+    caml_failwith("Marshal.data_size: objet incorrect");
   }
   block_len = read32u();
   return Val_long(block_len);

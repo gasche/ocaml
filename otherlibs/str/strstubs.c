@@ -478,7 +478,7 @@ CAMLprim value re_replacement_text(value repl, value groups, value orig)
     if(c != '\\')
       len++;
     else {
-      if (n == 0) failwith("Str.replace: illegal backslash sequence");
+      if (n == 0) failwith("Str.replace: séquence backslash illégale");
       c = *p++; n--;
       switch (c) {
       case '\\':
@@ -487,11 +487,11 @@ CAMLprim value re_replacement_text(value repl, value groups, value orig)
       case '5': case '6': case '7': case '8': case '9':
         c -= '0';
         if (c*2 >= Wosize_val(groups))
-          failwith("Str.replace: reference to unmatched group");
+          failwith("Str.replace: référence à un groupe non référencé");
         start = Long_val(Field(groups, c*2));
         end = Long_val(Field(groups, c*2 + 1));
         if (start == (mlsize_t) -1)
-          failwith("Str.replace: reference to unmatched group");
+          failwith("Str.replace: référence à un groupe non référencé");
         len += end - start;
         break;
       default:

@@ -20,9 +20,9 @@ let output_prefix name =
   Misc.chop_extension_if_any oname
 
 let print_version_and_library compiler =
-  Printf.printf "The OCaml %s, version " compiler;
+  Printf.printf "The Chamelle %s, version " compiler;
   print_string Config.version; print_newline();
-  print_string "Standard library directory: ";
+  print_string "Dossier de la bibliothèque standard : ";
   print_string Config.standard_library; print_newline();
   exit 0
 
@@ -39,7 +39,7 @@ let fatal err =
 let extract_output = function
   | Some s -> s
   | None ->
-      fatal "Please specify the name of the output file, using option -o"
+      fatal "Veuillez spécifier le nom du fichier de sortie, en utilisant l'option -o"
 
 let default_output = function
   | Some s -> s

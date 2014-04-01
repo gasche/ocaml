@@ -92,4 +92,4 @@ open Format
 
 let report_error ppf = function
   | Module_not_found p ->
-      fprintf ppf "@[Cannot find module %a@].@." Printtyp.path p
+      fprintf ppf "@[Impossible de trouver le module %a@].@." Printtyp.path p

@@ -549,7 +549,7 @@ let apply ~source ~target mapper =
   really_input ic magic 0 (String.length magic);
   if magic <> Config.ast_impl_magic_number
   && magic <> Config.ast_intf_magic_number then
-    failwith "Ast_mapper: unknown magic number";
+    failwith "Ast_mapper: nombre magique inconnu";
   Location.input_name := input_value ic;
   let ast = input_value ic in
   close_in ic;

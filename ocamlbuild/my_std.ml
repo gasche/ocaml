@@ -286,14 +286,14 @@ open Format
 
 let invalid_arg' fmt = ksbprintf invalid_arg fmt
 
-let the = function Some x -> x | None -> invalid_arg "the: expect Some not None"
+let the = function Some x -> x | None -> invalid_arg "the: Some est attendu, pas None"
 
 let getenv ?default var =
   try Sys.getenv var
   with Not_found ->
     match default with
     | Some x -> x
-    | None -> failwith (sprintf "This command must have %S in his environment" var);;
+    | None -> failwith (sprintf "Cette commande doit avoir %S dans son environnement" var);;
 
 let with_input_file ?(bin=false) x f =
   let ic = (if bin then open_in_bin else open_in) x in

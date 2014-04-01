@@ -28,14 +28,14 @@ let convert_address address =
          ADDR_INET
            ((try inet_addr_of_string host with Failure _ ->
                try (gethostbyname host).h_addr_list.(0) with Not_found ->
-                 prerr_endline ("Unknown host: " ^ host);
-                 failwith "Can't convert address"),
+                 prerr_endline ("Hôte inconnu: " ^ host);
+                 failwith "Impossible de convertir l'adresse"),
             (try int_of_string port with Failure _ ->
-               prerr_endline "The port number should be an integer";
-               failwith "Can't convert address")))
+               prerr_endline "Le numéro du port doit être un entier";
+               failwith "Impossible de convertir l'adresse")))
   with Not_found ->
     match Sys.os_type with
-      "Win32" -> failwith "Unix sockets not supported"
+      "Win32" -> failwith "Les chausettes Unix ne sont pas supportées"
     | _ -> (PF_UNIX, ADDR_UNIX address)
 
 (*** Report a unix error. ***)
@@ -50,7 +50,7 @@ let report_error = function
         prerr_string "'");
      prerr_string ": ";
      prerr_endline (error_message err)
-  | _ -> fatal_error "report_error: not a Unix error"
+  | _ -> fatal_error "report_error: ce n'est pas une erreur Unix"
 
 (* Find program `name' in `PATH'. *)
 (* Return the full path if found. *)

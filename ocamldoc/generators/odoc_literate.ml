@@ -27,7 +27,7 @@ module Html =
    | Some (Odoc_gen.Html m) -> m
    | _ ->
        failwith
-         "A non-html generator is already set. Cannot install the Todo-list html generator"
+         "Un générateur non-html est déjà choisi. Impossible d'installer le générateur html Todo-list"
   ) : Odoc_html.Html_generator)
 ;;
 

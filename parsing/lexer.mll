@@ -554,7 +554,7 @@ let update_loc lexbuf file line absolute chars =
 
 let warn_latin1 lexbuf =
   Location.prerr_warning (Location.curr lexbuf)
-    (Warnings.Deprecated "ISO-Latin1 characters in identifiers")
+    (Warnings.Deprecated "Caractères ISO-Latin1 dans les identifiants")
 ;;
 
 (* Error report *)
@@ -563,21 +563,20 @@ open Format
 
 let report_error ppf = function
   | Illegal_character c ->
-      fprintf ppf "Illegal character (%s)" (Char.escaped c)
+      fprintf ppf "Caractère illégal (%s)" (Char.escaped c)
   | Illegal_escape s ->
-      fprintf ppf "Illegal backslash escape in string or character (%s)" s
+      fprintf ppf "Échappement backslash illégal dans une chaîne ou un caractère (%s)" s
   | Unterminated_comment _ ->
-      fprintf ppf "Comment not terminated"
+      fprintf ppf "Commentaire non terminé"
   | Unterminated_string ->
-      fprintf ppf "String literal not terminated"
+      fprintf ppf "Littéral de chaîne de caractère non terminé"
   | Unterminated_string_in_comment (_, loc) ->
-      fprintf ppf "This comment contains an unterminated string literal@.%aString literal begins here"
+      fprintf ppf "Ce commentaire contient un littéral de chaîne non terminé@.%aLe littéral de chaîne commence ici"
         Location.print_error loc
   | Keyword_as_label kwd ->
-      fprintf ppf "`%s' is a keyword, it cannot be used as label name" kwd
+      fprintf ppf "`%s' est un mot-clé, il ne peut pas être utilisé comme nom de label" kwd
   | Literal_overflow ty ->
-      fprintf ppf "Integer literal exceeds the range of representable \
-                   integers of type %s" ty
+      fprintf ppf "Le littéral d'entier excède l'interval des entiers représentables au type %s" ty
 
 let () =
   Location.register_error_of_exn

@@ -345,7 +345,7 @@ and elements = parse
       }
   | _ {
         let s = Lexing.lexeme lexbuf in
-        failwith ("Unexpected character '"^s^"'")
+        failwith ("Caractère inattendu '"^s^"'")
       }
 
 

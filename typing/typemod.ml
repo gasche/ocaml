@@ -1623,83 +1623,83 @@ open Printtyp
 let report_error ppf = function
     Cannot_apply mty ->
       fprintf ppf
-        "@[This module is not a functor; it has type@ %a@]" modtype mty
+        "@[Ce module n'est pas un foncteur; il a le type@ %a@]" modtype mty
   | Not_included errs ->
       fprintf ppf
-        "@[<v>Signature mismatch:@ %a@]" Includemod.report_error errs
+        "@[<v>Différence dans les signatures :@ %a@]" Includemod.report_error errs
   | Cannot_eliminate_dependency mty ->
       fprintf ppf
-        "@[This functor has type@ %a@ \
-           The parameter cannot be eliminated in the result type.@  \
-           Please bind the argument to a module identifier.@]" modtype mty
-  | Signature_expected -> fprintf ppf "This module type is not a signature"
+        "@[Ce foncteur a pour type@ %a@ \
+           Le paramètre ne peut pas être éliminé dans le type de résultat.@  \
+           Veuillez lier l'argument à un identifiant de module.@]" modtype mty
+  | Signature_expected -> fprintf ppf "Ce type de module n'est pas une signature"
   | Structure_expected mty ->
       fprintf ppf
-        "@[This module is not a structure; it has type@ %a" modtype mty
+        "@[Ce module n'est pas une structure ; il a pour type@ %a" modtype mty
   | With_no_component lid ->
       fprintf ppf
-        "@[The signature constrained by `with' has no component named %a@]"
+        "@[La signature contrainte par `avec' n'a pas de composante nomée %a@]"
         longident lid
   | With_mismatch(lid, explanation) ->
       fprintf ppf
         "@[<v>\
-           @[In this `with' constraint, the new definition of %a@ \
-             does not match its original definition@ \
-             in the constrained signature:@]@ \
+           @[Dans cette contrainte `avec', la nouvelle définition de %a@ \
+             ne correspond pas à sa définition originale@ \
+             dans la signature contrainte :@]@ \
            %a@]"
         longident lid Includemod.report_error explanation
   | Repeated_name(kind, name) ->
       fprintf ppf
-        "@[Multiple definition of the %s name %s.@ \
-           Names must be unique in a given structure or signature.@]" kind name
+        "@[Définition multiple du nom de %s %s.@ \
+           Les noms doivent être uniques dans une structure ou signature donnée.@]" kind name
   | Non_generalizable typ ->
       fprintf ppf
-        "@[The type of this expression,@ %a,@ \
-           contains type variables that cannot be generalized@]" type_scheme typ
+        "@[Le type de cette expression,@ %a,@ \
+           contient des variables de type qui ne peuvent pas être généralisées@]" type_scheme typ
   | Non_generalizable_class (id, desc) ->
       fprintf ppf
-        "@[The type of this class,@ %a,@ \
-           contains type variables that cannot be generalized@]"
+        "@[Le type de cette classe,@ %a,@ \
+           contient des variables de type qui ne peuvent pas être généralisées@]"
         (class_declaration id) desc
   | Non_generalizable_module mty ->
       fprintf ppf
-        "@[The type of this module,@ %a,@ \
-           contains type variables that cannot be generalized@]" modtype mty
+        "@[Le type de ce module,@ %a,@ \
+           contient des variables de type qui ne peuvent pas être généralisées@]" modtype mty
   | Implementation_is_required intf_name ->
       fprintf ppf
-        "@[The interface %a@ declares values, not just types.@ \
-           An implementation must be provided.@]"
+        "@[L'interface %a@ déclare des valeurs, et non juste des types.@ \
+           Un implémentation doit être fournie.@]"
         Location.print_filename intf_name
   | Interface_not_compiled intf_name ->
       fprintf ppf
-        "@[Could not find the .cmi file for interface@ %a.@]"
+        "@[Impossible de trouver le fichier .cmi pour l'interface@ %a.@]"
         Location.print_filename intf_name
   | Not_allowed_in_functor_body ->
       fprintf ppf
-        "@[This expression creates fresh types.@ %s@]"
-        "It is not allowed inside applicative functors."
+        "@[Cette expression crée des types frais.@ %s@]"
+        "Cela n'est pas autorisé dans les foncteurs applicatifs."
   | With_need_typeconstr ->
       fprintf ppf
-        "Only type constructors with identical parameters can be substituted."
+        "Seuls les constructeurs de type avec des paramètres identiques peuvent être substitués."
   | Not_a_packed_module ty ->
       fprintf ppf
-        "This expression is not a packed module. It has type@ %a"
+        "Cette expression n'est pas un module empaqueté. Elle a le type@ %a"
         type_expr ty
   | Incomplete_packed_module ty ->
       fprintf ppf
-        "The type of this packed module contains variables:@ %a"
+        "Le type de ce module empaqueté contient des variables :@ %a"
         type_expr ty
   | Scoping_pack (lid, ty) ->
       fprintf ppf
-        "The type %a in this module cannot be exported.@ " longident lid;
+        "Le type %a dans ce module ne peut pas être exporté.@ " longident lid;
       fprintf ppf
-        "Its type contains local dependencies:@ %a" type_expr ty
+        "Son type contient des dépendances locales :@ %a" type_expr ty
   | Extension s ->
-      fprintf ppf "Uninterpreted extension '%s'." s
+      fprintf ppf "Extension non interprétée '%s'." s
   | Recursive_module_require_explicit_type ->
-      fprintf ppf "Recursive modules require an explicit module type."
+      fprintf ppf "Les modules récursifs requièrent un type de module explicite."
   | Apply_generative ->
-      fprintf ppf "This is a generative functor. It can only be applied to ()"
+      fprintf ppf "Ceci est un foncteur génératif. Il ne peut être appliqué qu'à ()"
 
 let report_error env ppf err =
   Printtyp.wrap_printing_env env (fun () -> report_error ppf err)

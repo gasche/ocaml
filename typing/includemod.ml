@@ -130,13 +130,13 @@ type field_desc =
   | Field_classtype of string
 
 let kind_of_field_desc = function
-  | Field_value _ -> "value"
+  | Field_value _ -> "valeur"
   | Field_type _ -> "type"
   | Field_exception _ -> "exception"
   | Field_module _ -> "module"
-  | Field_modtype _ -> "module type"
-  | Field_class _ -> "class"
-  | Field_classtype _ -> "class type"
+  | Field_modtype _ -> "type de module"
+  | Field_class _ -> "classe"
+  | Field_classtype _ -> "type de classe"
 
 let item_ident_name = function
     Sig_value(id, d) -> (id, d.val_loc, Field_value(Ident.name id))
@@ -423,69 +423,69 @@ let show_loc msg ppf loc =
   else fprintf ppf "@\n@[<2>%a:@ %s@]" Location.print_loc loc msg
 
 let show_locs ppf (loc1, loc2) =
-  show_loc "Expected declaration" ppf loc2;
-  show_loc "Actual declaration" ppf loc1
+  show_loc "Déclaration attendue" ppf loc2;
+  show_loc "Déclaration effective" ppf loc1
 
 let include_err ppf = function
   | Missing_field (id, loc, kind) ->
-      fprintf ppf "The %s `%a' is required but not provided" kind ident id;
-      show_loc "Expected declaration" ppf loc
+      fprintf ppf "Le %s `%a' est requis mais pas fourni" kind ident id;
+      show_loc "Déclaration attendue" ppf loc
   | Value_descriptions(id, d1, d2) ->
       fprintf ppf
-        "@[<hv 2>Values do not match:@ %a@;<1 -2>is not included in@ %a@]"
+        "@[<hv 2>Les valeurs ne correspondent pas :@ %a@;<1 -2>n'est pas incluse dans@ %a@]"
         (value_description id) d1 (value_description id) d2;
       show_locs ppf (d1.val_loc, d2.val_loc);
   | Type_declarations(id, d1, d2, errs) ->
       fprintf ppf "@[<v>@[<hv>%s:@;<1 2>%a@ %s@;<1 2>%a@]%a%a@]"
-        "Type declarations do not match"
+        "Les déclaration de type ne correspondent pas"
         (type_declaration id) d1
-        "is not included in"
+        "n'est pas inclus dans"
         (type_declaration id) d2
         show_locs (d1.type_loc, d2.type_loc)
         (Includecore.report_type_mismatch
-           "the first" "the second" "declaration") errs
+           "la première déclaration" "la seconde déclaration") errs
   | Exception_declarations(id, d1, d2) ->
       fprintf ppf
-       "@[<hv 2>Exception declarations do not match:@ \
+       "@[<hv 2>Les déclarations d'exception ne correspondent pas:@ \
         %a@;<1 -2>is not included in@ %a@]"
         (exception_declaration id) d1
         (exception_declaration id) d2;
       show_locs ppf (d1.exn_loc, d2.exn_loc)
   | Module_types(mty1, mty2)->
       fprintf ppf
-       "@[<hv 2>Modules do not match:@ \
-        %a@;<1 -2>is not included in@ %a@]"
+       "@[<hv 2>Les modules ne correspondent pas : @ \
+        %a@;<1 -2>n'est pas inclus dans@ %a@]"
       modtype mty1
       modtype mty2
   | Modtype_infos(id, d1, d2) ->
       fprintf ppf
-       "@[<hv 2>Module type declarations do not match:@ \
-        %a@;<1 -2>does not match@ %a@]"
+       "@[<hv 2>Les déclarations de type de module ne correspondent pas :@ \
+        %a@;<1 -2>ne correspond pas à@ %a@]"
       (modtype_declaration id) d1
       (modtype_declaration id) d2
   | Modtype_permutation ->
-      fprintf ppf "Illegal permutation of structure fields"
+      fprintf ppf "Permutation illégale des champs d'une structure"
   | Interface_mismatch(impl_name, intf_name) ->
-      fprintf ppf "@[The implementation %s@ does not match the interface %s:"
+      fprintf ppf "@[L'implémentation %s@ ne correspond pas à l'interface %s:"
        impl_name intf_name
   | Class_type_declarations(id, d1, d2, reason) ->
       fprintf ppf
-       "@[<hv 2>Class type declarations do not match:@ \
-        %a@;<1 -2>does not match@ %a@]@ %a"
+       "@[<hv 2>Les déclarations de type de classe ne correspondent pas :@ \
+        %a@;<1 -2>ne correspond pas à@ %a@]@ %a"
       (Printtyp.cltype_declaration id) d1
       (Printtyp.cltype_declaration id) d2
       Includeclass.report_error reason
   | Class_declarations(id, d1, d2, reason) ->
       fprintf ppf
-       "@[<hv 2>Class declarations do not match:@ \
-        %a@;<1 -2>does not match@ %a@]@ %a"
+       "@[<hv 2>Les déclarations de classes ne correspondent pas :@ \
+        %a@;<1 -2>ne correspond pas à@ %a@]@ %a"
       (Printtyp.class_declaration id) d1
       (Printtyp.class_declaration id) d2
       Includeclass.report_error reason
   | Unbound_modtype_path path ->
-      fprintf ppf "Unbound module type %a" Printtyp.path path
+      fprintf ppf "Type de module non lié %a" Printtyp.path path
   | Unbound_module_path path ->
-      fprintf ppf "Unbound module %a" Printtyp.path path
+      fprintf ppf "Module non lié %a" Printtyp.path path
 
 let rec context ppf = function
     Module id :: rem ->
@@ -493,14 +493,14 @@ let rec context ppf = function
   | Modtype id :: rem ->
       fprintf ppf "@[<2>module type %a =@ %a@]" ident id context_mty rem
   | Body x :: rem ->
-      fprintf ppf "functor (%a) ->@ %a" ident x context_mty rem
+      fprintf ppf "foncteur (%a) ->@ %a" ident x context_mty rem
   | Arg x :: rem ->
-      fprintf ppf "functor (%a : %a) -> ..." ident x context_mty rem
+      fprintf ppf "foncteur (%a : %a) -> ..." ident x context_mty rem
   | [] ->
-      fprintf ppf "<here>"
+      fprintf ppf "<ici>"
 and context_mty ppf = function
     (Module _ | Modtype _) :: _ as rem ->
-      fprintf ppf "@[<2>sig@ %a@;<1 -2>end@]" context rem
+      fprintf ppf "@[<2>sig@ %a@;<1 -2>fin@]" context rem
   | cxt -> context ppf cxt
 and args ppf = function
     Body x :: rem ->
@@ -522,9 +522,9 @@ let path_of_context = function
 let context ppf cxt =
   if cxt = [] then () else
   if List.for_all (function Module _ -> true | _ -> false) cxt then
-    fprintf ppf "In module %a:@ " path (path_of_context cxt)
+    fprintf ppf "Dans le module %a:@ " path (path_of_context cxt)
   else
-    fprintf ppf "@[<hv 2>At position@ %a@]@ " context cxt
+    fprintf ppf "@[<hv 2>À la position@ %a@]@ " context cxt
 
 let include_err ppf (cxt, env, err) =
   Printtyp.wrap_printing_env env (fun () ->

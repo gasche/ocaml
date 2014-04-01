@@ -322,7 +322,7 @@ and ge_big_int_ratio bi r = compare_big_int_ratio bi r >= 0
 let int_of_ratio r =
  if ((is_integer_ratio r) && (is_int_big_int r.numerator))
  then (int_of_big_int r.numerator)
- else failwith "integer argument required"
+ else failwith "argument entier requis"
 
 and ratio_of_int i =
  { numerator = big_int_of_int i;

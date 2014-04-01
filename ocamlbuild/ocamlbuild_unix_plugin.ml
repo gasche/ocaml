@@ -19,7 +19,7 @@ open My_unix
 let report_error f =
   function
   | Unix.Unix_error(err, fun_name, arg) ->
-      fprintf f "%s: %S failed" Sys.argv.(0) fun_name;
+      fprintf f "%s: %S a échoué" Sys.argv.(0) fun_name;
       if String.length arg > 0 then
         fprintf f " on %S" arg;
       fprintf f ": %s" (Unix.error_message err)
@@ -52,7 +52,7 @@ let run_and_open s kont =
     match Unix.close_process_in ic with
     | Unix.WEXITED 0 -> ()
     | Unix.WEXITED _ | Unix.WSIGNALED _ | Unix.WSTOPPED _ ->
-        failwith (Printf.sprintf "Error while running: %s" s) in
+        failwith (Printf.sprintf "Erreur en exécutant: %s" s) in
   let res = try
       kont ic
     with e -> (close (); raise e)

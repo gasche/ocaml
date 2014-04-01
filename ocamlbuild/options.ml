@@ -275,7 +275,7 @@ let init () =
     if log = "" then Log.init None
     else if not (Filename.is_implicit log) then
       failwith
-        (sprintf "Bad log file name: the file name must be implicit (not %S)" log)
+        (sprintf "Nom de fichier de journal incorrect: le nom de fichier doit être implicite (pas %S)" log)
     else
       let log = filename_concat !build_dir log in
       Shell.mkdir_p (Filename.dirname log);
@@ -288,7 +288,7 @@ let init () =
     ocamlfind_cmd := A "ocamlfind";
     let cmd = Command.string_of_command_spec !ocamlfind_cmd in
     begin try ignore(Command.search_in_path cmd)
-    with Not_found -> failwith "ocamlfind not found on path, but -no-ocamlfind not used" end;
+    with Not_found -> failwith "ocamlfind introuvable dans le path, mais -no-ocamlfind n'est pas utilisé" end;
     (* TODO: warning message when using an option such as -ocamlc *)
     (* Note that plugins can still modify these variables After_options.
        This design decision can easily be changed. *)
@@ -322,7 +322,7 @@ let init () =
       sys_file_exists dir
     else
       failwith
-        (sprintf "Included or excluded directories must be implicit (not %S)" dir)
+        (sprintf "Les répertoires inclus ou exclus doivent être implicites (not %S)" dir)
   in
   let dir_reorder my dir =
     let d = !dir in

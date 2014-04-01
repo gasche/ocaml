@@ -315,7 +315,7 @@ void caml_realloc_ref_table (struct caml_ref_table *tbl)
                      (intnat) sz/1024);
     tbl->base = (value **) realloc ((char *) tbl->base, sz);
     if (tbl->base == NULL){
-      caml_fatal_error ("Fatal error: ref_table overflow\n");
+      caml_fatal_error ("Erreur fatale: débordement de ref_table\n");
     }
     tbl->end = tbl->base + tbl->size + tbl->reserve;
     tbl->threshold = tbl->base + tbl->size;

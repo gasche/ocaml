@@ -145,7 +145,7 @@ let find_label lbl lbls =
   try
     let l = List.nth lbls lbl.lbl_pos in
     l.Types.ld_id
-  with Failure "nth" -> Ident.create "*Unknown label*"
+  with Failure "nth" -> Ident.create "*Label inconnu*"
 
 let rec get_record_labels ty tenv =
   match get_type_descr ty tenv with
@@ -168,7 +168,7 @@ let get_constr_name tag ty tenv  = match tag with
   try
     let cd = get_constr tag ty tenv in Ident.name cd.cd_id
   with
-  | Datarepr.Constr_not_found -> "*Unknown constructor*"
+  | Datarepr.Constr_not_found -> "*Constructeur inconnu*"
 
 let is_cons tag v  = match get_constr_name tag v.pat_type v.pat_env with
 | "::" -> true
@@ -229,9 +229,9 @@ let rec pretty_val ppf v =
   | Tpat_array vs ->
       fprintf ppf "@[[| %a |]@]" (pretty_vals " ;") vs
   | Tpat_lazy v ->
-      fprintf ppf "@[<2>lazy@ %a@]" pretty_arg v
+      fprintf ppf "@[<2>paresseux@ %a@]" pretty_arg v
   | Tpat_alias (v, x,_) ->
-      fprintf ppf "@[(%a@ as %a)@]" pretty_val v Ident.print x
+      fprintf ppf "@[(%a@ comme %a)@]" pretty_val v Ident.print x
   | Tpat_or (v,w,_)    ->
       fprintf ppf "@[(%a|@,%a)@]" pretty_or v pretty_or w
 
@@ -292,13 +292,13 @@ let pretty_line ps =
     ps
 
 let pretty_matrix (pss : matrix) =
-  prerr_endline "begin matrix" ;
+  prerr_endline "début matrice" ;
   List.iter
     (fun ps ->
       pretty_line ps ;
       prerr_endline "")
     pss ;
-  prerr_endline "end matrix"
+  prerr_endline "fin matrice"
 
 
 (****************************)
@@ -1295,13 +1295,13 @@ let pretty_row {ors=ors ; no_ors=no_ors; active=active} =
   pretty_line active
 
 let pretty_rows rs =
-  prerr_endline "begin matrix" ;
+  prerr_endline "début matrice" ;
   List.iter
     (fun r ->
       pretty_row r ;
       prerr_endline "")
     rs ;
-  prerr_endline "end matrix"
+  prerr_endline "fin matrice"
 
 (* Initial build *)
 let make_row ps = {ors=[] ; no_ors=[]; active=ps}
@@ -1874,7 +1874,7 @@ let do_check_partial ?pred exhaust loc casel pss = match pss with
                        Forget about loc, because printing two locations
                        is a pain in the top-level *)
                     Buffer.add_string buf
-                      "\n(However, some guarded clause may match this value.)"
+                      "\n(Cependant, des clauses gardées peuvent filtrer cette valeur.)"
                 end ;
                 Buffer.contents buf
               with _ ->

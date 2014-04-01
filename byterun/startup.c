@@ -73,7 +73,7 @@ static void init_atoms(void)
   for(i = 0; i < 256; i++) caml_atom_table[i] = Make_header(0, i, Caml_white);
   if (caml_page_table_add(In_static_data,
                           caml_atom_table, caml_atom_table + 256) != 0) {
-    caml_fatal_error("Fatal error: not enough memory for initial page table");
+    caml_fatal_error("Erreur fatale: pas assez de mémoire pour la table de pages initiale");
   }
 }
 
@@ -143,7 +143,7 @@ void caml_read_section_descriptors(int fd, struct exec_trailer *trail)
   trail->section = caml_stat_alloc(toc_size);
   lseek(fd, - (long) (TRAILER_SIZE + toc_size), SEEK_END);
   if (read(fd, (char *) trail->section, toc_size) != toc_size)
-    caml_fatal_error("Fatal error: cannot read section table\n");
+    caml_fatal_error("Erreur fatale: impossible de lire la table des sections\n");
   /* Fixup endianness of lengths */
   for (i = 0; i < trail->num_sections; i++)
     fixup_endianness_trailer(&(trail->section[i].len));
@@ -176,7 +176,7 @@ int32 caml_seek_section(int fd, struct exec_trailer *trail, char *name)
 {
   int32 len = caml_seek_optional_section(fd, trail, name);
   if (len == -1)
-    caml_fatal_error_arg("Fatal_error: section `%s' is missing\n", name);
+    caml_fatal_error_arg("Erreur fatale: la section `%s' est manquante\n", name);
   return len;
 }
 
@@ -192,7 +192,7 @@ static char * read_section(int fd, struct exec_trailer *trail, char *name)
   if (len == -1) return NULL;
   data = caml_stat_alloc(len + 1);
   if (read(fd, data, len) != len)
-    caml_fatal_error_arg("Fatal error: error reading section %s\n", name);
+    caml_fatal_error_arg("Erreur fatale: erreur en lisant la section %s\n", name);
   data[len] = 0;
   return data;
 }
@@ -246,7 +246,7 @@ static int parse_command_line(char **argv)
 #endif
     case 'v':
       if (!strcmp (argv[i], "-version")){
-        printf ("The OCaml runtime, version " OCAML_VERSION "\n");
+        printf ("Le runtime Chamelle, version " OCAML_VERSION "\n");
         exit (0);
       }else if (!strcmp (argv[i], "-vnum")){
         printf (OCAML_VERSION "\n");
@@ -270,7 +270,7 @@ static int parse_command_line(char **argv)
       }
       break;
     default:
-      caml_fatal_error_arg("Unknown option %s.\n", argv[i]);
+      caml_fatal_error_arg("Option inconnue %s.\n", argv[i]);
     }
   }
   return i;
@@ -382,16 +382,16 @@ CAMLexport void caml_main(char **argv)
   if (fd < 0) {
     pos = parse_command_line(argv);
     if (argv[pos] == 0)
-      caml_fatal_error("No bytecode file specified.\n");
+      caml_fatal_error("Pas de fichier de bytecode specifié.\n");
     exe_name = argv[pos];
     fd = caml_attempt_open(&exe_name, &trail, 1);
     switch(fd) {
     case FILE_NOT_FOUND:
-      caml_fatal_error_arg("Fatal error: cannot find file '%s'\n", argv[pos]);
+      caml_fatal_error_arg("Erreur fatale: impossible de trouver le fichier '%s'\n", argv[pos]);
       break;
     case BAD_BYTECODE:
       caml_fatal_error_arg(
-        "Fatal error: the file '%s' is not a bytecode executable file\n",
+        "Erreur fatale: le fichier '%s' n'est pas un fichier de bytecode exécutable\n",
         exe_name);
       break;
     }
@@ -414,7 +414,7 @@ CAMLexport void caml_main(char **argv)
   shared_lib_path = read_section(fd, &trail, "DLPT");
   shared_libs = read_section(fd, &trail, "DLLS");
   req_prims = read_section(fd, &trail, "PRIM");
-  if (req_prims == NULL) caml_fatal_error("Fatal error: no PRIM section\n");
+  if (req_prims == NULL) caml_fatal_error("Erreur fatale: pas de section PRIM\n");
   caml_build_primitive_table(shared_lib_path, shared_libs, req_prims);
   caml_stat_free(shared_lib_path);
   caml_stat_free(shared_libs);

@@ -110,13 +110,13 @@ let object_file_name name =
     try
       find_in_path !load_path name
     with Not_found ->
-      fatal_error "Asmlink.object_file_name: not found" in
+      fatal_error "Asmlink.object_file_name: introuvable" in
   if Filename.check_suffix file_name ".cmx" then
     Filename.chop_suffix file_name ".cmx" ^ ext_obj
   else if Filename.check_suffix file_name ".cmxa" then
     Filename.chop_suffix file_name ".cmxa" ^ ext_lib
   else
-    fatal_error "Asmlink.object_file_name: bad ext"
+    fatal_error "Asmlink.object_file_name: extension incorrecte"
 
 (* First pass: determine which units are needed *)
 

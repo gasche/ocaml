@@ -117,14 +117,14 @@ let virtual_solver virtual_command =
     try
       Hashtbl.find virtual_solvers virtual_command
     with Not_found ->
-      failwith (sbprintf "no solver for the virtual command %S \
-                          (setup one with Command.setup_virtual_command_solver)"
+      failwith (sbprintf "pas de solveur pour la commande virtuelle %S \
+                          (installez-en un avec Command.setup_virtual_command_solver)"
                 virtual_command)
   in
   try solver ()
   with Not_found ->
-    failwith (Printf.sprintf "the solver for the virtual command %S \
-                              has failed finding a valid command" virtual_command)
+    failwith (Printf.sprintf "le solveur pour la commande virtuelle %S \
+                              n'a pas réussi a trouver un commande valide" virtual_command)
 
 (* On Windows, we need to also check for the ".exe" version of the file. *)
 let file_or_exe_exists file =

@@ -138,7 +138,7 @@ let calling_conventions first_int last_int first_float last_float make_stack
 
 let incoming ofs = Incoming ofs
 let outgoing ofs = Outgoing ofs
-let not_supported ofs = fatal_error "Proc.loc_results: cannot call"
+let not_supported ofs = fatal_error "Proc.loc_results: impossible d'appeler"
 
 let loc_arguments arg =
   calling_conventions 0 5 100 99 outgoing arg

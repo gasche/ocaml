@@ -59,7 +59,7 @@ let size_expr env exp =
           let regs = Tbl.find id env in
           size_machtype (Array.map (fun r -> r.typ) regs)
         with Not_found ->
-          fatal_error("Selection.size_expr: unbound var " ^
+          fatal_error("Selection.size_expr: variable non liée " ^
                       Ident.unique_name id)
         end
     | Ctuple el ->
@@ -411,7 +411,7 @@ method emit_expr env exp =
       begin try
         Some(Tbl.find v env)
       with Not_found ->
-        fatal_error("Selection.emit_expr: unbound var " ^ Ident.unique_name v)
+        fatal_error("Selection.emit_expr: variable non liée " ^ Ident.unique_name v)
       end
   | Clet(v, e1, e2) ->
       begin match self#emit_expr env e1 with
@@ -423,7 +423,7 @@ method emit_expr env exp =
         try
           Tbl.find v env
         with Not_found ->
-          fatal_error ("Selection.emit_expr: unbound var " ^ Ident.name v) in
+          fatal_error ("Selection.emit_expr: variable non liée " ^ Ident.name v) in
       begin match self#emit_expr env e1 with
         None -> None
       | Some r1 -> self#insert_moves r1 rv; Some [||]

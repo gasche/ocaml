@@ -710,9 +710,9 @@ value thread_wakeup(value thread)     /* ML */
     Assign(th->retval, RESUMED_WAKEUP);
     break;
   case KILLED:
-    failwith("Thread.wakeup: killed thread");
+    failwith("Thread.wakeup: processus léger tué");
   default:
-    failwith("Thread.wakeup: thread not suspended");
+    failwith("Thread.wakeup: processus léger non suspendu");
   }
   return Val_unit;
 }

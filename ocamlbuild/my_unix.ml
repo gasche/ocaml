@@ -62,7 +62,7 @@ let run_and_open s kont =
   with_temp_file "ocamlbuild" "out" begin fun tmp ->
     let s = Printf.sprintf "%s > '%s'" s tmp in
     let st = sys_command s in
-    if st <> 0 then failwith (Printf.sprintf "Error while running: %s" s);
+    if st <> 0 then failwith (Printf.sprintf "Erreur en exécutant : %s" s);
     with_input_file tmp kont
   end
 

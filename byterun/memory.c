@@ -411,7 +411,7 @@ CAMLexport value caml_alloc_shr (mlsize_t wosize, tag_t tag)
     new_block = expand_heap (wosize);
     if (new_block == NULL) {
       if (caml_in_minor_collection)
-        caml_fatal_error ("Fatal error: out of memory.\n");
+        caml_fatal_error ("Erreur fatale: plus de mémoire.\n");
       else
         caml_raise_out_of_memory ();
     }

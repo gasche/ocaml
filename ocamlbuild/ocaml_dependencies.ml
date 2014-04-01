@@ -160,7 +160,7 @@ module Make (I : INPUT) = struct
       | [] -> x
       | [x] -> resolve_packages x
       | pkgs ->
-          failwith (sbprintf "the file %S is included in more than one active open package (%a)"
+          failwith (sbprintf "le fichier %S est inclus dans plus d'un paquet actif (%a)"
                              x pp_l pkgs) in
 
     let libs_of x = find_all_list x !*lib_index in
@@ -170,7 +170,7 @@ module Make (I : INPUT) = struct
       | [] -> None
       | [lib] -> Some(lib)
       | libs ->
-          failwith (sbprintf "the file %S is included in more than one active library (%a)"
+          failwith (sbprintf "le fichier %S est inclus dans plus d'une biliothèque active (%a)"
                              x pp_l libs) in
 
     let convert_dependency src dst acc =

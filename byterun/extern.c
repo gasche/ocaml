@@ -229,7 +229,7 @@ static void grow_extern_output(intnat required)
   intnat extra;
 
   if (extern_userprovided_output != NULL) {
-    extern_failwith("Marshal.to_buffer: buffer overflow");
+    extern_failwith("Marshal.to_buffer: débordement du tampon");
   }
   extern_output_block->end = extern_ptr;
   if (required <= SIZE_EXTERN_OUTPUT_BLOCK / 2)
@@ -379,8 +379,7 @@ static void extern_rec(value v)
 #ifdef ARCH_SIXTYFOUR
     } else if (n < -((intnat)1 << 30) || n >= ((intnat)1 << 30)) {
       if (extern_flags & COMPAT_32)
-        extern_failwith("output_value: integer cannot be read back on "
-                        "32-bit platform");
+        extern_failwith("output_value: l'entier ne peut pas être relu sur une plateforme 32 bits");
       writecode64(CODE_INT64, n);
 #endif
     } else
@@ -437,8 +436,7 @@ static void extern_rec(value v)
       } else {
 #ifdef ARCH_SIXTYFOUR
         if (len > 0xFFFFFB && (extern_flags & COMPAT_32))
-          extern_failwith("output_value: string cannot be read back on "
-                          "32-bit platform");
+          extern_failwith("output_value: la chaîne de caractères ne peut pas être relue sur une plateforme 32 bits");
 #endif
         writecode32(CODE_STRING32, len);
       }
@@ -450,7 +448,7 @@ static void extern_rec(value v)
     }
     case Double_tag: {
       if (sizeof(double) != 8)
-        extern_invalid_argument("output_value: non-standard floats");
+        extern_invalid_argument("output_value: nombres flottants non-standards");
       Write(CODE_DOUBLE_NATIVE);
       writeblock_float8((double *) v, 1);
       size_32 += 1 + 2;
@@ -461,15 +459,14 @@ static void extern_rec(value v)
     case Double_array_tag: {
       mlsize_t nfloats;
       if (sizeof(double) != 8)
-        extern_invalid_argument("output_value: non-standard floats");
+        extern_invalid_argument("output_value: nombres flottants non-standards");
       nfloats = Wosize_val(v) / Double_wosize;
       if (nfloats < 0x100) {
         writecode8(CODE_DOUBLE_ARRAY8_NATIVE, nfloats);
       } else {
 #ifdef ARCH_SIXTYFOUR
         if (nfloats > 0x1FFFFF && (extern_flags & COMPAT_32))
-          extern_failwith("output_value: float array cannot be read back on "
-                          "32-bit platform");
+          extern_failwith("output_value: le tableau de nombres flottants ne peut pas être relu sur une plateforme 32 bits");
 #endif
         writecode32(CODE_DOUBLE_ARRAY32_NATIVE, nfloats);
       }
@@ -480,7 +477,7 @@ static void extern_rec(value v)
       break;
     }
     case Abstract_tag:
-      extern_invalid_argument("output_value: abstract value (Abstract)");
+      extern_invalid_argument("output_value: valeur abstraite (Abstract)");
       break;
     case Infix_tag:
       writecode32(CODE_INFIXPOINTER, Infix_offset_hd(hd));
@@ -493,7 +490,7 @@ static void extern_rec(value v)
                         uintnat * wsize_64)
         = Custom_ops_val(v)->serialize;
       if (serialize == NULL)
-        extern_invalid_argument("output_value: abstract value (Custom)");
+        extern_invalid_argument("output_value: valeur abstraite (Custom)");
       Write(CODE_CUSTOM);
       writeblock(ident, strlen(ident) + 1);
       Custom_ops_val(v)->serialize(v, &sz_32, &sz_64);
@@ -514,8 +511,7 @@ static void extern_rec(value v)
       } else {
 #ifdef ARCH_SIXTYFOUR
         if (sz > 0x3FFFFF && (extern_flags & COMPAT_32))
-          extern_failwith("output_value: array cannot be read back on "
-                          "32-bit platform");
+          extern_failwith("output_value: le tableau ne peut pas être relu sur une plateforme 32 bits");
 #endif
         writecode32(CODE_BLOCK32, Whitehd_hd (hd));
       }
@@ -538,11 +534,11 @@ static void extern_rec(value v)
   }
   else if ((cf = extern_find_code((char *) v)) != NULL) {
     if ((extern_flags & CLOSURES) == 0)
-      extern_invalid_argument("output_value: functional value");
+      extern_invalid_argument("output_value: valeur fonctionnelle");
     writecode32(CODE_CODEPOINTER, (char *) v - cf->code_start);
     writeblock((char *) cf->digest, 16);
   } else {
-    extern_invalid_argument("output_value: abstract value (outside heap)");
+    extern_invalid_argument("output_value: valeur abstraite (en dehors du tas)");
   }
   next_item:
     /* Pop one more item to marshal, if any */
@@ -588,7 +584,7 @@ static intnat extern_value(value v, value flags)
        Besides, some of the array lengths or string lengths or shared offsets
        it contains may have overflowed the 32 bits used to write them. */
     free_extern_output();
-    caml_failwith("output_value: object too big");
+    caml_failwith("output_value: l'objet est trop gros");
   }
 #endif
   if (extern_userprovided_output != NULL)
@@ -609,7 +605,7 @@ void caml_output_val(struct channel *chan, value v, value flags)
   struct output_block * blk, * nextblk;
 
   if (! caml_channel_binary_mode(chan))
-    caml_failwith("output_value: not a binary channel");
+    caml_failwith("output_value: ce n'est pas un canal binaire");
   init_extern_output();
   extern_value(v, flags);
   /* During [caml_really_putblock], concurrent [caml_output_val] operations

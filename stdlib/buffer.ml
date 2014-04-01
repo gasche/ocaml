@@ -66,7 +66,7 @@ let resize b more =
   if !new_len > Sys.max_string_length then begin
     if b.position + more <= Sys.max_string_length
     then new_len := Sys.max_string_length
-    else failwith "Buffer.add: cannot grow buffer"
+    else failwith "Buffer.add: impossible d'agrandir le tampon"
   end;
   let new_buffer = String.create !new_len in
   String.blit b.buffer 0 new_buffer 0 b.position;

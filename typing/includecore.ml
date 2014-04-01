@@ -122,37 +122,37 @@ type type_mismatch =
   | Field_missing of bool * Ident.t
   | Record_representation of bool
 
-let report_type_mismatch0 first second decl ppf err =
+let report_type_mismatch0 first second ppf err =
   let pr fmt = Format.fprintf ppf fmt in
   match err with
-    Arity -> pr "They have different arities"
-  | Privacy -> pr "A private type would be revealed"
-  | Kind -> pr "Their kinds differ"
-  | Constraint -> pr "Their constraints differ"
+    Arity -> pr "Ils ont des arités différentes"
+  | Privacy -> pr "Un type privé devrait être révélé"
+  | Kind -> pr "Leurs sortes diffèrent"
+  | Constraint -> pr "Leurs contraintes diffèrent"
   | Manifest -> ()
-  | Variance -> pr "Their variances do not agree"
+  | Variance -> pr "Leur variances ne correspondent pas"
   | Field_type s ->
-      pr "The types for field %s are not equal" (Ident.name s)
+      pr "Les types pour le champ %s ne sont pas égaux" (Ident.name s)
   | Field_mutable s ->
-      pr "The mutability of field %s is different" (Ident.name s)
+      pr "La mutabilité du champ %s est différente" (Ident.name s)
   | Field_arity s ->
-      pr "The arities for field %s differ" (Ident.name s)
+      pr "Les arités pour le champ %s diffèrent" (Ident.name s)
   | Field_names (n, name1, name2) ->
-      pr "Fields number %i have different names, %s and %s"
+      pr "Les champs numéro %i ont des noms différents, %s and %s"
         n (Ident.name name1) (Ident.name name2)
   | Field_missing (b, s) ->
-      pr "The field %s is only present in %s %s"
-        (Ident.name s) (if b then second else first) decl
+      pr "Le champ %s est seulement présent dans %s"
+        (Ident.name s) (if b then second else first)
   | Record_representation b ->
-      pr "Their internal representations differ:@ %s %s %s"
-        (if b then second else first) decl
-        "uses unboxed float representation"
+      pr "Leurs représentations internes diffèrent :@ %s %s"
+        (if b then second else first)
+        "utilise une représentation déballée des nombres flottants"
 
-let report_type_mismatch first second decl ppf =
+let report_type_mismatch first second ppf =
   List.iter
     (fun err ->
       if err = Manifest then () else
-      Format.fprintf ppf "@ %a." (report_type_mismatch0 first second decl) err)
+      Format.fprintf ppf "@ %a." (report_type_mismatch0 first second) err)
 
 let rec compare_variants env decl1 decl2 n cstrs1 cstrs2 =
   match cstrs1, cstrs2 with

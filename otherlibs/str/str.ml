@@ -255,7 +255,7 @@ let compile fold_case re =
   let allocate_register_if_nullable r =
     if is_nullable r then begin
       let n = !numregs in
-      if n >= 64 then failwith "too many r* or r+ where r is nullable";
+      if n >= 64 then failwith "top de r* ou r+ où r est nullable";
       incr numregs;
       n
     end else
@@ -367,7 +367,7 @@ let compile fold_case re =
       let lbl = !progpos in
       patch_instr pos_pushback op_PUSHBACK lbl
   | Group(n, r) ->
-      if n >= 32 then failwith "too many \\(...\\) groups";
+      if n >= 32 then failwith "trop de groupes \\(...\\)";
       emit_instr op_BEGGROUP n;
       emit_code r;
       emit_instr op_ENDGROUP n;
@@ -513,7 +513,7 @@ let parse s =
             then (Group(group_no, r), j + 2)
             else (r, j + 2)
           else
-            failwith "\\( group not closed by \\)"
+            failwith "le groupe \\( n'est pas fermé par \\)"
       | '1' .. '9' as c ->
           (Refgroup(Char.code c - 48), i + 1)
       | 'b' ->
@@ -529,7 +529,7 @@ let parse s =
     let j = regexpclass2 c i i in
     (c, j)
   and regexpclass2 c start i =
-    if i >= len then failwith "[ class not closed by ]";
+    if i >= len then failwith "la classe [ n'est pas fermée par ]";
     if s.[i] = ']' && i > start then i+1 else begin
       let c1 = s.[i] in
       if i+2 < len && s.[i+1] = '-' && s.[i+2] <> ']' then begin
@@ -543,7 +543,7 @@ let parse s =
     end in
 
   let (r, j) = regexp0 0 in
-  if j = len then r else failwith "spurious \\) in regular expression"
+  if j = len then r else failwith "\\) étrange dans l'expression régulière"
 
 (** Parsing and compilation *)
 

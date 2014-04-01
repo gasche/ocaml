@@ -235,135 +235,135 @@ let () = parse_options false defaults_w;;
 let () = parse_options true defaults_warn_error;;
 
 let message = function
-  | Comment_start -> "this is the start of a comment."
-  | Comment_not_end -> "this is not the end of a comment."
-  | Deprecated s -> "deprecated feature: " ^ s
+  | Comment_start -> "ceci est le début d'un commentaire."
+  | Comment_not_end -> "ceci n'est pas la fin d'un commentaire."
+  | Deprecated s -> "fonctionnalité dépréciée: " ^ s
   | Fragile_match "" ->
-      "this pattern-matching is fragile."
+      "ce filtrage de motif est fragile."
   | Fragile_match s ->
-      "this pattern-matching is fragile.\n\
-       It will remain exhaustive when constructors are added to type " ^ s ^ "."
+      "ce filtrage de motif est fragile.\n\
+       Il restera exhaustif lorsque des constructeur seront ajouté au type " ^ s ^ "."
   | Partial_application ->
-      "this function application is partial,\n\
-       maybe some arguments are missing."
+      "cette application de fonction est partielle,\n\
+       des argument manquent peut-être."
   | Labels_omitted ->
-      "labels were omitted in the application of this function."
+      "des labels ont été omis dans l'application de cette fonction."
   | Method_override [lab] ->
-      "the method " ^ lab ^ " is overridden."
+      "la méthode " ^ lab ^ " est redéfinie."
   | Method_override (cname :: slist) ->
       String.concat " "
-        ("the following methods are overridden by the class"
+        ("les méthodes suivantes sont redéfinies par la classe"
          :: cname  :: ":\n " :: slist)
   | Method_override [] -> assert false
-  | Partial_match "" -> "this pattern-matching is not exhaustive."
+  | Partial_match "" -> "ce filtrage de motif n'est pas exhaustif."
   | Partial_match s ->
-      "this pattern-matching is not exhaustive.\n\
-       Here is an example of a value that is not matched:\n" ^ s
+      "ce filtrage de motif n'est pas exhaustif.\n\
+       Ceci est un exemple de valeur qui n'est pas filtrée:\n" ^ s
   | Non_closed_record_pattern s ->
-      "the following labels are not bound in this record pattern:\n" ^ s ^
-      "\nEither bind these labels explicitly or add '; _' to the pattern."
+      "les labels suivants ne sont pas liés dans le motif d'enregistrement:\n" ^ s ^
+      "\nVeillez soit lier ces label explicitement ou ajouter '; _' au motif."
   | Statement_type ->
-      "this expression should have type unit."
-  | Unused_match -> "this match case is unused."
-  | Unused_pat   -> "this sub-pattern is unused."
+      "cette expression devrait avoir le type unité."
+  | Unused_match -> "ce cas de filtrage est inutile."
+  | Unused_pat   -> "ce sous-filtrage est inutile."
   | Instance_variable_override [lab] ->
-      "the instance variable " ^ lab ^ " is overridden.\n" ^
-      "The behaviour changed in ocaml 3.10 (previous behaviour was hiding.)"
+      "la variable d'instance " ^ lab ^ " est redéfinie.\n" ^
+      "Le comportement a changé dans ocaml 3.10 (le comportement précédent était de cacher.)"
   | Instance_variable_override (cname :: slist) ->
       String.concat " "
-        ("the following instance variables are overridden by the class"
+        ("les variables d'instance suivantes sont redéfinies par la classe"
          :: cname  :: ":\n " :: slist) ^
-      "\nThe behaviour changed in ocaml 3.10 (previous behaviour was hiding.)"
+      "\nLe comportement a changé dans ocaml 3.10 (le comportement précédant était de cacher.)"
   | Instance_variable_override [] -> assert false
-  | Illegal_backslash -> "illegal backslash escape in string."
+  | Illegal_backslash -> "échappement par backslash illégal dans la chaîne."
   | Implicit_public_methods l ->
-      "the following private methods were made public implicitly:\n "
+      "les méthodes privées suivantes ont été rendues publiques implicitement :\n "
       ^ String.concat " " l ^ "."
-  | Unerasable_optional_argument -> "this optional argument cannot be erased."
-  | Undeclared_virtual_method m -> "the virtual method "^m^" is not declared."
-  | Not_principal s -> s^" is not principal."
-  | Without_principality s -> s^" without principality."
-  | Unused_argument -> "this argument will not be used by the function."
+  | Unerasable_optional_argument -> "l'argument optionnel ne peut pas être supprimé."
+  | Undeclared_virtual_method m -> "la méthode virtuelle "^m^" n'est pas déclarée."
+  | Not_principal s -> s^" n'est pas principal."
+  | Without_principality s -> s^" sans principalité."
+  | Unused_argument -> "cet argument ne sera pas utilisé par la fonction."
   | Nonreturning_statement ->
-      "this statement never returns (or has an unsound type.)"
+      "cette instruction ne retourne jamais.)"
   | Camlp4 s -> s
   | Useless_record_with ->
-      "all the fields are explicitly listed in this record:\n\
-       the 'with' clause is useless."
+      "tous les champs sont exlicitement listé dans cet enregistrement:\n\
+       la clause 'with' est inutile."
   | Bad_module_name (modname) ->
-      "bad source file name: \"" ^ modname ^ "\" is not a valid module name."
+      "nom de fichier source incorrect : \"" ^ modname ^ "\" n'est pas un nom de module valide."
   | All_clauses_guarded ->
-      "bad style, all clauses in this pattern-matching are guarded."
-  | Unused_var v | Unused_var_strict v -> "unused variable " ^ v ^ "."
+      "mauvais style, toutes les clauses de ce filtrage de motif sont gardées."
+  | Unused_var v | Unused_var_strict v -> "variable inutilisée " ^ v ^ "."
   | Wildcard_arg_to_constant_constr ->
-     "wildcard pattern given as argument to a constant constructor"
+     "motif joker donné en argument à un constructeur coonstant"
   | Eol_in_string ->
-     "unescaped end-of-line in a string constant (non-portable code)"
+     "fin de ligne non échapée dans une constante de chaîne de caractères (code non portable)"
   | Duplicate_definitions (kind, cname, tc1, tc2) ->
-      Printf.sprintf "the %s %s is defined in both types %s and %s."
+      Printf.sprintf "le %s %s est défini dans les types %s et %s."
         kind cname tc1 tc2
   | Multiple_definition(modname, file1, file2) ->
       Printf.sprintf
-        "files %s and %s both define a module named %s"
+        "les fichiers %s et %s définissent tous deux un module nommé %s"
         file1 file2 modname
-  | Unused_value_declaration v -> "unused value " ^ v ^ "."
-  | Unused_open s -> "unused open " ^ s ^ "."
-  | Unused_type_declaration s -> "unused type " ^ s ^ "."
-  | Unused_for_index s -> "unused for-loop index " ^ s ^ "."
-  | Unused_ancestor s -> "unused ancestor variable " ^ s ^ "."
-  | Unused_constructor (s, false, false) -> "unused constructor " ^ s ^ "."
+  | Unused_value_declaration v -> "valeur inutilisée " ^ v ^ "."
+  | Unused_open s -> "ouvrir inutile " ^ s ^ "."
+  | Unused_type_declaration s -> "type inutilisé" ^ s ^ "."
+  | Unused_for_index s -> "indice de boucle pour inutilisé " ^ s ^ "."
+  | Unused_ancestor s -> "variable d'ancêtre inutilisée " ^ s ^ "."
+  | Unused_constructor (s, false, false) -> "constructeur inutilisé " ^ s ^ "."
   | Unused_constructor (s, true, _) ->
-      "constructor " ^ s ^
-      " is never used to build values.\n\
-        (However, this constructor appears in patterns.)"
+      "le constructeur " ^ s ^
+      " n'est jamais utilisé pour construire des valeurs.\n\
+        (Cependant, ce constructeur apparaît dans des motifs.)"
   | Unused_constructor (s, false, true) ->
-      "constructor " ^ s ^
-      " is never used to build values.\n\
-        Its type is exported as a private type."
+      "le constructeur " ^ s ^
+      " n'est jamais utilisé pour construire de valeurs.\n\
+        Son type est exporté en tant que type privé."
   | Unused_exception (s, false) ->
-      "unused exception constructor " ^ s ^ "."
+      "constructeur d'exception inutilisé " ^ s ^ "."
   | Unused_exception (s, true) ->
-      "exception constructor " ^ s ^
-      " is never raised or used to build values.\n\
-        (However, this constructor appears in patterns.)"
+      "le constructeur d'exception " ^ s ^
+      " n'est jamais levé ou utilisé pour construire des valeurs.\n\
+        (Cependant, ce constructeur apparaît dans des motifs.)"
   | Unused_rec_flag ->
-      "unused rec flag."
+      "drapeau rec inutile."
   | Name_out_of_scope (ty, [nm], false) ->
-      nm ^ " was selected from type " ^ ty ^
-      ".\nIt is not visible in the current scope, and will not \n\
-       be selected if the type becomes unknown."
+      nm ^ " a été selectionné depuis le type " ^ ty ^
+      ".\nIl n'est pas visible dans la portée courante, et il ne sera pas \n\
+       selectionné si le type devient inconnu."
   | Name_out_of_scope (_, _, false) -> assert false
   | Name_out_of_scope (ty, slist, true) ->
-      "this record of type "^ ty ^" contains fields that are \n\
-       not visible in the current scope: "
+      "cet enregistrement de type "^ ty ^" contient des champs qui ne sont \n\
+       pas visible dans la portée courante : "
       ^ String.concat " " slist ^ ".\n\
-       They will not be selected if the type becomes unknown."
+       Ils ne seront plus selectionnés si le type devient inconnu."
   | Ambiguous_name ([s], tl, false) ->
-      s ^ " belongs to several types: " ^ String.concat " " tl ^
-      "\nThe first one was selected. Please disambiguate if this is wrong."
+      s ^ " appartient à plusieurs types : " ^ String.concat " " tl ^
+      "\nLe premier a été selectionné. Veuillez désambiguïser si cela est faux."
   | Ambiguous_name (_, _, false) -> assert false
   | Ambiguous_name (slist, tl, true) ->
-      "these field labels belong to several types: " ^
+      "ces labels de champs appartiennent à plusieurs types : " ^
       String.concat " " tl ^
-      "\nThe first one was selected. Please disambiguate if this is wrong."
+      "\nLe premier a été sélectionné? Veuillez désambiguïser si cela est faux."
   | Disambiguated_name s ->
-      "this use of " ^ s ^ " required disambiguation."
+      "cette utilisation de " ^ s ^ " a nécessité une désambiguïsation."
   | Nonoptional_label s ->
-      "the label " ^ s ^ " is not optional."
+      "le label " ^ s ^ " n'est pas optionnel."
   | Open_shadow_identifier (kind, s) ->
       Printf.sprintf
-        "this open statement shadows the %s identifier %s (which is later used)"
+        "cette instruction ouvrir cache l'identifiant de %s %s (qui est utilisé par la suite)"
         kind s
   | Open_shadow_label_constructor (kind, s) ->
       Printf.sprintf
-        "this open statement shadows the %s %s (which is later used)"
+        "cette instruction ouvrir cache le %s %s (qui est utilisé par la suite)"
         kind s
   | Bad_env_variable (var, s) ->
-      Printf.sprintf "illegal environment variable %s : %s" var s
+      Printf.sprintf "environnement de variable %s illégal : %s" var s
   | Attribute_payload (a, s) ->
-      Printf.sprintf "illegal payload for attribute '%s'.\n%s" a s
+      Printf.sprintf "charge utile illégale pour l'attribut '%s'.\n%s" a s
   | Eliminated_optional_arguments sl ->
-      Printf.sprintf "implicit elimination of optional argument%s %s"
+      Printf.sprintf "élimination implicite d'argument optionnel%s %s"
         (if List.length sl = 1 then "" else "s")
         (String.concat ", " sl)
 ;;
@@ -401,79 +401,78 @@ let check_fatal () =
 
 let descriptions =
   [
-    1, "Suspicious-looking start-of-comment mark.";
-    2, "Suspicious-looking end-of-comment mark.";
-    3, "Deprecated feature.";
-    4, "Fragile pattern matching: matching that will remain complete even\n\
-   \    if additional constructors are added to one of the variant types\n\
-   \    matched.";
-    5, "Partially applied function: expression whose result has function\n\
-   \    type and is ignored.";
-    6, "Label omitted in function application.";
-    7, "Method overridden.";
-    8, "Partial match: missing cases in pattern-matching.";
-    9, "Missing fields in a record pattern.";
-   10, "Expression on the left-hand side of a sequence that doesn't have type\n\
-   \    \"unit\" (and that is not a function, see warning number 5).";
-   11, "Redundant case in a pattern matching (unused match case).";
-   12, "Redundant sub-pattern in a pattern-matching.";
-   13, "Instance variable overridden.";
-   14, "Illegal backslash escape in a string constant.";
-   15, "Private method made public implicitly.";
-   16, "Unerasable optional argument.";
-   17, "Undeclared virtual method.";
-   18, "Non-principal type.";
-   19, "Type without principality.";
-   20, "Unused function argument.";
-   21, "Non-returning statement.";
-   22, "Camlp4 warning.";
-   23, "Useless record \"with\" clause.";
-   24, "Bad module name: the source file name is not a valid OCaml module \
-        name.";
-   25, "Pattern-matching with all clauses guarded.  Exhaustiveness cannot be\n\
-   \    checked.";
-   26, "Suspicious unused variable: unused variable that is bound\n\
-   \    with \"let\" or \"as\", and doesn't start with an underscore (\"_\")\n\
-   \    character.";
-   27, "Innocuous unused variable: unused variable that is not bound with\n\
-   \    \"let\" nor \"as\", and doesn't start with an underscore (\"_\")\n\
-   \    character.";
-   28, "Wildcard pattern given as argument to a constant constructor.";
-   29, "Unescaped end-of-line in a string constant (non-portable code).";
-   30, "Two labels or constructors of the same name are defined in two\n\
-   \    mutually recursive types.";
-   31, "A module is linked twice in the same executable.";
-   32, "Unused value declaration.";
-   33, "Unused open statement.";
-   34, "Unused type declaration.";
-   35, "Unused for-loop index.";
-   36, "Unused ancestor variable.";
-   37, "Unused constructor.";
-   38, "Unused exception constructor.";
-   39, "Unused rec flag.";
-   40, "Constructor or label name used out of scope.";
-   41, "Ambiguous constructor or label name.";
-   42, "Disambiguated constructor or label name.";
-   43, "Nonoptional label applied as optional.";
-   44, "Open statement shadows an already defined identifier.";
-   45, "Open statement shadows an already defined label or constructor.";
-   46, "Illegal environment variable";
-   47, "Illegal attribute payload";
-   48, "Implicit elimination of optional arguments";
+    1, "Marque de début de commentaire suspecte.";
+    2, "Marque de fin de commentaire suspecte.";
+    3, "Fopnctionnalité dépréciée.";
+    4, "Filtrage de mottif fragile : le filtrage restera complet même si\n\
+   \    des constructeurs supplementaires sont ajoutés à l'un des types\n\
+   \    sommes filtrés.";
+    5, "Fonction appliquée partiellement : une expression dont le résultat\n\
+   \    a un type de fonction et est ignoré.";
+    6, "Label omis dans l'application de fonction.";
+    7, "Méthode redéfinie.";
+    8, "Filtrage partiel : cas manquant dans le filtrage de motif.";
+    9, "Champs manquants dans un motif d'enregistrement.";
+   10, "Expression au membre gauche d'une séquence qui n'a pas le type\n\
+   \    \"unité\" (et qui n'est pas une fonction, voir avertissement n°5).";
+   11, "Cas redondant dans un filtrage de motif (cas de filtrage inutilisé).";
+   12, "Sous-motif redondant dans un filtrage de motif.";
+   13, "Variable d'instance redéfinie.";
+   14, "Échappement backslash illégal dans une constante de chaîne de caractères.";
+   15, "Méthode privée rendue publique implicitement.";
+   16, "Argument optionnel non effaçable.";
+   17, "Méthodde virtuelle non déclarée.";
+   18, "Type non principal.";
+   19, "Type sans principalité.";
+   20, "Argument de fonction inutilisé.";
+   21, "Instruction ne retournant pas.";
+   22, "Avertissement Chamellep4.";
+   23, "Clause \"avec\" inutile dans un enregistrement.";
+   24, "Nom de module incorrect : le nom du fichier source n'est pas un nome\n\
+   \    de module Chamelle valide.";
+   25, "Filtrage de motif dont toutes les clauses sont gardées. Le test\n\
+   \    d'exhaustivité ne peut rien vérifier.";
+   26, "Variable inutilisée suspecte : variable inutilisée qui est liée avec\n\
+   \    \"soit\" ou \"comme\", et qui ne commence pas par un tiret bas (\"_\").";
+   27, "Variable inutilisée innofensive : variable inutilisée qui n'est pas\n\
+   \    liée avec \"soit\" ni \"comme\", et qui ne commence pas par un\n\
+   \    tiret bas (\"_\").";
+   28, "Motif joker donné en argument à un constructeur constant.";
+   29, "Fin de line non échappée dans une constante de chaîne de caractères.";
+   30, "Deux labels ou constructeurs de même nom sont définis dans deux types\n\
+   \    mutuellement récursifs.";
+   31, "Un module est lié deux fois dans le même exécutable.";
+   32, "Déclaration de valeur inutilisée.";
+   33, "Instruction ouvrir inutilisée.";
+   34, "Déclaration de type inutilisée.";
+   35, "Indice de boucle pour inutilisé.";
+   36, "Variable d'ancêtre inutilisée.";
+   37, "Constructeur inutilisé.";
+   38, "Constructeur d'exception inutilisé.";
+   39, "Drapeau rec inutilisé.";
+   40, "Nom de constructeur ou de label utilisé hors de sa portée.";
+   41, "Nom de constructeur ou de label ambigu.";
+   42, "Nom de constructeur ou de labl désambiguïsé.";
+   43, "Label non optionnel appliqué comme optionnel.";
+   44, "L'instruction ouvrir cache un identifiant déjà défini.";
+   45, "L'instruction ouvrir cache un label ou constructeur déjà défini.";
+   46, "Variable d'environnement illégale.";
+   47, "Charge utile d'attribut illégale.";
+   48, "Élimination d'arguments optionnels implicite.";
   ]
 ;;
 
 let help_warnings () =
   List.iter (fun (i, s) -> Printf.printf "%3i %s\n" i s) descriptions;
-  print_endline "  A All warnings.";
+  print_endline "  A Tous les avertissements.";
   for i = Char.code 'b' to Char.code 'z' do
     let c = Char.chr i in
     match letter c with
     | [] -> ()
     | [n] ->
-        Printf.printf "  %c Synonym for warning %i.\n" (Char.uppercase c) n
+        Printf.printf "  %c Synonyme pour l'avertissement %i.\n" (Char.uppercase c) n
     | l ->
-        Printf.printf "  %c Set of warnings %s.\n"
+        Printf.printf "  %c Ensemble d'avertissements %s.\n"
           (Char.uppercase c)
           (String.concat ", " (List.map string_of_int l))
   done;

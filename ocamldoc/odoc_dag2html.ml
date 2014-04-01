@@ -1542,7 +1542,7 @@ let input_dag ic =
             else input_children nl pl [] cnt (Some line)
         | _ -> failwith line
         end
-    | None -> if pl = [] then nl, cnt else failwith "end of file 1"
+    | None -> if pl = [] then nl, cnt else failwith "fin de fichier 1"
   and input_children nl pl cl cnt =
     function
       Some "" -> input_children nl pl cl cnt (get_line ic)
@@ -1562,7 +1562,7 @@ let input_dag ic =
         | _ -> failwith line
         end
     | None ->
-        if cl = [] then failwith "end of file 2" else add_node pl cl nl cnt
+        if cl = [] then failwith "fin de fichier 2" else add_node pl cl nl cnt
   in
   let (nl, _) = input_parents [] [] 0 (get_line ic) in
   {dag = Array.of_list (List.rev nl)}

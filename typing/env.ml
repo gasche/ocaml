@@ -1022,7 +1022,7 @@ let rec scrape_alias env ?path mty =
       with Not_found ->
         Location.prerr_warning Location.none 
           (Warnings.Deprecated
-             ("module " ^ Path.name path ^ " cannot be accessed"));
+             ("le module " ^ Path.name path ^ " est inaccessible"));
         mty
       end      
   | mty, Some path ->
@@ -1262,7 +1262,7 @@ and check_usage loc id warn tbl =
 and store_value ?check slot id path decl env renv =
   may (fun f -> check_usage decl.val_loc id f value_declarations) check;
   { env with
-    values = EnvTbl.add "value" slot id (path, decl) env.values renv.values;
+    values = EnvTbl.add "valeur" slot id (path, decl) env.values renv.values;
     summary = Env_value(env.summary, id, decl) }
 
 and store_type ~check slot id path info env renv =
@@ -1298,7 +1298,7 @@ and store_type ~check slot id path info env renv =
     constrs =
       List.fold_right
         (fun (id, descr) constrs ->
-          EnvTbl.add "constructor" slot id descr constrs renv.constrs)
+          EnvTbl.add "constructeur" slot id descr constrs renv.constrs)
         constructors
         env.constrs;
     labels =
@@ -1344,7 +1344,7 @@ and store_exception ~check slot id path decl env renv =
     end;
   end;
   { env with
-    constrs = EnvTbl.add "constructor" slot id
+    constrs = EnvTbl.add "constructeur" slot id
                          (Datarepr.exception_descr path decl) env.constrs
                          renv.constrs;
     summary = Env_exception(env.summary, id, decl) }
@@ -1360,18 +1360,18 @@ and store_module slot id path md env renv =
 
 and store_modtype slot id path info env renv =
   { env with
-    modtypes = EnvTbl.add "module type" slot id (path, info) env.modtypes
+    modtypes = EnvTbl.add "type de module" slot id (path, info) env.modtypes
                           renv.modtypes;
     summary = Env_modtype(env.summary, id, info) }
 
 and store_class slot id path desc env renv =
   { env with
-    classes = EnvTbl.add "class" slot id (path, desc) env.classes renv.classes;
+    classes = EnvTbl.add "classe" slot id (path, desc) env.classes renv.classes;
     summary = Env_class(env.summary, id, desc) }
 
 and store_cltype slot id path desc env renv =
   { env with
-    cltypes = EnvTbl.add "class type" slot id (path, desc) env.cltypes
+    cltypes = EnvTbl.add "type de classe" slot id (path, desc) env.cltypes
                          renv.cltypes;
     summary = Env_cltype(env.summary, id, desc) }
 
@@ -1536,7 +1536,7 @@ let open_signature ?(loc = Location.none) ?(toplevel = false) ovf root sg env =
         shadowed := (kind, s) :: !shadowed;
         let w =
           match kind with
-          | "label" | "constructor" ->
+          | "label" | "constructeur" ->
               Warnings.Open_shadow_label_constructor (kind, s)
           | _ -> Warnings.Open_shadow_identifier (kind, s)
         in
@@ -1744,26 +1744,26 @@ open Format
 
 let report_error ppf = function
   | Illegal_renaming(name, modname, filename) -> fprintf ppf
-      "Wrong file naming: %a@ contains the compiled interface for @ %s when %s was expected"
+      "Mauvais nommage de fichier : %a@ contient une interface compilée pour @ %s alors que %s était attendu"
       Location.print_filename filename name modname
   | Inconsistent_import(name, source1, source2) -> fprintf ppf
-      "@[<hov>The files %a@ and %a@ \
-              make inconsistent assumptions@ over interface %s@]"
+      "@[<hov>Les fichiers %a@ et %a@ \
+              font des hypothèses inconsistantes@ sur l'interface %s@]"
       Location.print_filename source1 Location.print_filename source2 name
   | Need_recursive_types(import, export) ->
       fprintf ppf
-        "@[<hov>Unit %s imports from %s, which uses recursive types.@ %s@]"
-        export import "The compilation flag -rectypes is required"
+        "@[<hov>L'unité %s importe %s, qui utilise des types récursifs.@ %s@]"
+        export import "Le drapeau de compilation -rectypes est requis"
   | Missing_module(_, path1, path2) ->
       fprintf ppf "@[@[<hov>";
       if Path.same path1 path2 then
-        fprintf ppf "Internal path@ %s@ is dangling." (Path.name path1)
+        fprintf ppf "Le chemin interne@ %s@ est suspendu" (Path.name path1)
       else
-        fprintf ppf "Internal path@ %s@ expands to@ %s@ which is dangling."
+        fprintf ppf "Le chemin interne@ %s@ s'étend en@ %s@, qui est suspendu"
           (Path.name path1) (Path.name path2);
       fprintf ppf "@]@ @[%s@ %s@ %s.@]@]"
-        "The compiled interface for module" (Ident.name (Path.head path2))
-        "was not found"
+        "L'interface compilée pour le module" (Ident.name (Path.head path2))
+        "n'a pas été trouvée"
 
 let () =
   Location.register_error_of_exn

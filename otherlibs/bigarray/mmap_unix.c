@@ -134,14 +134,14 @@ CAMLprim value caml_ba_map_file(value vfd, value vkind, value vlayout,
     /* Determine major dimension from file size */
     if (file_size < startpos) {
       caml_leave_blocking_section();
-      caml_failwith("Bigarray.mmap: file position exceeds file size");
+      caml_failwith("Bigarray.mmap: la position dans le fichier excède la taille du fichier");
     }
     data_size = file_size - startpos;
     dim[major_dim] = (uintnat) (data_size / array_size);
     array_size = dim[major_dim] * array_size;
     if (array_size != data_size) {
       caml_leave_blocking_section();
-      caml_failwith("Bigarray.mmap: file size doesn't match array dimensions");
+      caml_failwith("Bigarray.mmap: la taille du fichier ne correspond pas à la dimension du tableau");
     }
   } else {
     /* Check that file is large enough, and grow it otherwise */

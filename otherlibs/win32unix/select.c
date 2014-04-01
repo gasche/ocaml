@@ -893,7 +893,7 @@ static value find_handle(LPSELECTRESULT iterResult, value readfds, value writefd
   }
 
   if (list == Val_unit)
-    failwith ("select.c: original file handle not found");
+    failwith ("select.c: handle de fichier original introuvable");
 
   result = Field(list, 0);
 

@@ -88,13 +88,13 @@ static char * parse_ld_conf(void)
   }
   ldconf = open(ldconfname, O_RDONLY, 0);
   if (ldconf == -1)
-    caml_fatal_error_arg("Fatal error: cannot read loader config file %s\n",
+    caml_fatal_error_arg("Erreur fatale: impossible de lire le fichier de configuration du chargeur %s\n",
                          ldconfname);
   config = caml_stat_alloc(st.st_size + 1);
   nread = read(ldconf, config, st.st_size);
   if (nread == -1)
     caml_fatal_error_arg
-      ("Fatal error: error while reading loader config file %s\n",
+      ("Erreur fatale: erreur en lisant le fichier de configuration du chargeur %s\n",
        ldconfname);
   config[nread] = 0;
   q = config;
@@ -123,8 +123,8 @@ static void open_shared_lib(char * name)
                   (uintnat) realname);
   handle = caml_dlopen(realname, 1, 1);
   if (handle == NULL)
-    caml_fatal_error_arg2("Fatal error: cannot load shared library %s\n", name,
-                          "Reason: %s\n", caml_dlerror());
+    caml_fatal_error_arg2("Erreur fatale: impossible de charger la bibliothèque partagée %s\n", name,
+                          "Raison: %s\n", caml_dlerror());
   caml_ext_table_add(&shared_libs, handle);
   caml_stat_free(realname);
 }
@@ -163,7 +163,7 @@ void caml_build_primitive_table(char * lib_path,
   for (p = req_prims; *p != 0; p += strlen(p) + 1) {
     c_primitive prim = lookup_primitive(p);
     if (prim == NULL)
-          caml_fatal_error_arg("Fatal error: unknown C primitive `%s'\n", p);
+          caml_fatal_error_arg("Erreur fatale: primitive C inconnue `%s'\n", p);
     caml_ext_table_add(&caml_prim_table, (void *) prim);
 #ifdef DEBUG
     caml_ext_table_add(&caml_prim_name_table, strdup(p));

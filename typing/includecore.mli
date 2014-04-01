@@ -45,4 +45,4 @@ val class_types:
 *)
 
 val report_type_mismatch:
-    string -> string -> string -> Format.formatter -> type_mismatch list -> unit
+    string -> string -> Format.formatter -> type_mismatch list -> unit

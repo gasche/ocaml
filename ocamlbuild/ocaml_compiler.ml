@@ -234,7 +234,7 @@ let link_gen cmX_ext cma_ext a_ext extensions linker tagger cmX out env build =
   let is_not_stdlib x = x <> stdlib in
   let deps = List.filter is_not_stdlib deps in
 
-  if deps = [] then failwith "Link list cannot be empty";
+  if deps = [] then failwith "La liste de liens ne peut pas être vide";
   let () = dprintf 6 "link: %a -o %a" print_string_list deps Pathname.print out in
   linker (tags++"dont_link_with") deps out
 
