@@ -24,249 +24,249 @@ type 'a basic_event =
 type 'a behavior = int ref -> Condition.t -> int -> 'a basic_event
 
 type 'a event =
-    Communication of 'a behavior
-  | Choose of 'a event list
-  | WrapAbort of 'a event * (unit -> unit)
-  | Guard of (unit -> 'a event)
+    Communication de 'a behavior
+  | Choose de 'a event list
+  | WrapAbort de 'a event * (unit -> unit)
+  | Guard de (unit -> 'a event)
 
 (* Communication channels *)
 type 'a channel =
-  { mutable writes_pending: 'a communication Queue.t;
+  { modifiable writes_pending: 'a communication Queue.t;
                         (* All offers to write on it *)
-    mutable reads_pending:  'a communication Queue.t }
+    modifiable reads_pending:  'a communication Queue.t }
                         (* All offers to read from it *)
 
 (* Communication offered *)
-and 'a communication =
+et 'a communication =
   { performed: int ref;  (* -1 if not performed yet, set to the number *)
                          (* of the matching communication after rendez-vous. *)
     condition: Condition.t;             (* To restart the blocked thread. *)
-    mutable data: 'a option;            (* The data sent or received. *)
+    modifiable data: 'a option;            (* The data sent or received. *)
     event_number: int }                 (* Event number in select *)
 
 (* Create a channel *)
 
-let new_channel () =
+soit new_channel () =
   { writes_pending = Queue.create();
     reads_pending = Queue.create() }
 
 (* Basic synchronization function *)
 
-let masterlock = Mutex.create()
+soit masterlock = Mutex.create()
 
-let do_aborts abort_env genev performed =
-  if abort_env <> [] then begin
-    if performed >= 0 then begin
-      let ids_done = snd genev.(performed) in
+soit do_aborts abort_env genev performed =
+  si abort_env <> [] alors début
+    si performed >= 0 alors début
+      soit ids_done = snd genev.(performed) dans
       List.iter
-        (fun (id,f) -> if not (List.mem id ids_done) then f ())
+        (fonc (id,f) -> si not (List.mem id ids_done) alors f ())
         abort_env
-    end else begin
-      List.iter (fun (_,f) -> f ()) abort_env
-    end
-  end
+    fin sinon début
+      List.iter (fonc (_,f) -> f ()) abort_env
+    fin
+  fin
 
-let basic_sync abort_env genev =
-  let performed = ref (-1) in
-  let condition = Condition.create() in
-  let bev = Array.create (Array.length genev)
-                         (fst (genev.(0)) performed condition 0) in
-  for i = 1 to Array.length genev - 1 do
+soit basic_sync abort_env genev =
+  soit performed = ref (-1) dans
+  soit condition = Condition.create() dans
+  soit bev = Array.create (Array.length genev)
+                         (fst (genev.(0)) performed condition 0) dans
+  pour i = 1 à Array.length genev - 1 faire
     bev.(i) <- (fst genev.(i)) performed condition i
-  done;
+  fait;
   (* See if any of the events is already activable *)
-  let rec poll_events i =
-    if i >= Array.length bev
-    then false
-    else bev.(i).poll() || poll_events (i+1) in
+  soit rec poll_events i =
+    si i >= Array.length bev
+    alors faux
+    sinon bev.(i).poll() || poll_events (i+1) dans
   Mutex.lock masterlock;
-  if not (poll_events 0) then begin
+  si not (poll_events 0) alors début
     (* Suspend on all events *)
-    for i = 0 to Array.length bev - 1 do bev.(i).suspend() done;
+    pour i = 0 à Array.length bev - 1 faire bev.(i).suspend() fait;
     (* Wait until the condition is signalled *)
     Condition.wait condition masterlock
-  end;
+  fin;
   Mutex.unlock masterlock;
   (* Extract the result *)
-  if abort_env = [] then
+  si abort_env = [] alors
     (* Preserve tail recursion *)
     bev.(!performed).result()
-  else begin
-    let num = !performed in
-    let result = bev.(num).result() in
+  sinon début
+    soit num = !performed dans
+    soit result = bev.(num).result() dans
     (* Handle the aborts and return the result *)
     do_aborts abort_env genev num;
     result
-  end
+  fin
 
 (* Apply a random permutation on an array *)
 
-let scramble_array a =
-  let len = Array.length a in
-  if len = 0 then invalid_arg "Event.choose";
-  for i = len - 1 downto 1 do
-    let j = Random.int (i + 1) in
-    let temp = a.(i) in a.(i) <- a.(j); a.(j) <- temp
-  done;
+soit scramble_array a =
+  soit len = Array.length a dans
+  si len = 0 alors invalid_arg "Event.choose";
+  pour i = len - 1 descendant_jusqu'a 1 faire
+    soit j = Random.int (i + 1) dans
+    soit temp = a.(i) dans a.(i) <- a.(j); a.(j) <- temp
+  fait;
   a
 
 (* Main synchronization function *)
 
-let gensym = let count = ref 0 in fun () -> incr count; !count
+soit gensym = soit count = ref 0 dans fonc () -> incr count; !count
 
-let rec flatten_event
+soit rec flatten_event
       (abort_list : int list)
       (accu : ('a behavior * int list) list)
       (accu_abort : (int * (unit -> unit)) list)
       ev =
-  match ev with
+  filtre ev avec
      Communication bev -> ((bev,abort_list) :: accu) , accu_abort
   | WrapAbort (ev,fn) ->
-      let id = gensym () in
+      soit id = gensym () dans
       flatten_event (id :: abort_list) accu ((id,fn)::accu_abort) ev
   | Choose evl ->
-      let rec flatten_list accu' accu_abort'= function
+      soit rec flatten_list accu' accu_abort'= fonction
          ev :: l ->
-           let (accu'',accu_abort'') =
-             flatten_event abort_list accu' accu_abort' ev in
+           soit (accu'',accu_abort'') =
+             flatten_event abort_list accu' accu_abort' ev dans
            flatten_list accu'' accu_abort'' l
-       | [] -> (accu',accu_abort') in
+       | [] -> (accu',accu_abort') dans
       flatten_list accu accu_abort evl
   | Guard fn -> flatten_event abort_list accu accu_abort (fn ())
 
-let sync ev =
-  let (evl,abort_env) = flatten_event [] [] [] ev in
+soit sync ev =
+  soit (evl,abort_env) = flatten_event [] [] [] ev dans
   basic_sync abort_env (scramble_array(Array.of_list evl))
 
 (* Event polling -- like sync, but non-blocking *)
 
-let basic_poll abort_env genev =
-  let performed = ref (-1) in
-  let condition = Condition.create() in
-  let bev = Array.create(Array.length genev)
-                        (fst genev.(0) performed condition 0) in
-  for i = 1 to Array.length genev - 1 do
+soit basic_poll abort_env genev =
+  soit performed = ref (-1) dans
+  soit condition = Condition.create() dans
+  soit bev = Array.create(Array.length genev)
+                        (fst genev.(0) performed condition 0) dans
+  pour i = 1 à Array.length genev - 1 faire
     bev.(i) <- fst genev.(i) performed condition i
-  done;
+  fait;
   (* See if any of the events is already activable *)
-  let rec poll_events i =
-    if i >= Array.length bev
-    then false
-    else bev.(i).poll() || poll_events (i+1) in
+  soit rec poll_events i =
+    si i >= Array.length bev
+    alors faux
+    sinon bev.(i).poll() || poll_events (i+1) dans
   Mutex.lock masterlock;
-  let ready = poll_events 0 in
-  if ready then begin
+  soit ready = poll_events 0 dans
+  si ready alors début
     (* Extract the result *)
     Mutex.unlock masterlock;
-    let result = Some(bev.(!performed).result()) in
+    soit result = Some(bev.(!performed).result()) dans
     do_aborts abort_env genev !performed; result
-  end else begin
+  fin sinon début
     (* Cancel the communication offers *)
     performed := 0;
     Mutex.unlock masterlock;
     do_aborts abort_env genev (-1);
     None
-  end
+  fin
 
-let poll ev =
-  let (evl,abort_env) = flatten_event [] [] [] ev in
+soit poll ev =
+  soit (evl,abort_env) = flatten_event [] [] [] ev dans
   basic_poll abort_env (scramble_array(Array.of_list evl))
 
 (* Remove all communication opportunities already synchronized *)
 
-let cleanup_queue q =
-  let q' = Queue.create() in
-  Queue.iter (fun c -> if !(c.performed) = -1 then Queue.add c q') q;
+soit cleanup_queue q =
+  soit q' = Queue.create() dans
+  Queue.iter (fonc c -> si !(c.performed) = -1 alors Queue.add c q') q;
   q'
 
 (* Event construction *)
 
-let always data =
-  Communication(fun performed condition evnum ->
-    { poll = (fun () -> performed := evnum; true);
-      suspend = (fun () -> ());
-      result = (fun () -> data) })
+soit always data =
+  Communication(fonc performed condition evnum ->
+    { poll = (fonc () -> performed := evnum; vrai);
+      suspend = (fonc () -> ());
+      result = (fonc () -> data) })
 
-let send channel data =
-  Communication(fun performed condition evnum ->
-    let wcomm =
+soit send channel data =
+  Communication(fonc performed condition evnum ->
+    soit wcomm =
       { performed = performed;
         condition = condition;
         data = Some data;
-        event_number = evnum } in
-    { poll = (fun () ->
-        let rec poll () =
-          let rcomm = Queue.take channel.reads_pending in
-          if !(rcomm.performed) >= 0 then
+        event_number = evnum } dans
+    { poll = (fonc () ->
+        soit rec poll () =
+          soit rcomm = Queue.take channel.reads_pending dans
+          si !(rcomm.performed) >= 0 alors
             poll ()
-          else begin
+          sinon début
             rcomm.data <- wcomm.data;
             performed := evnum;
             rcomm.performed := rcomm.event_number;
             Condition.signal rcomm.condition
-          end in
-        try
+          fin dans
+        essaie
           poll();
-          true
-        with Queue.Empty ->
-          false);
-      suspend = (fun () ->
+          vrai
+        avec Queue.Empty ->
+          faux);
+      suspend = (fonc () ->
         channel.writes_pending <- cleanup_queue channel.writes_pending;
         Queue.add wcomm channel.writes_pending);
-      result = (fun () -> ()) })
+      result = (fonc () -> ()) })
 
-let receive channel =
-  Communication(fun performed condition evnum ->
-    let rcomm =
+soit receive channel =
+  Communication(fonc performed condition evnum ->
+    soit rcomm =
       { performed = performed;
         condition = condition;
         data = None;
-        event_number = evnum } in
-    { poll = (fun () ->
-        let rec poll () =
-          let wcomm = Queue.take channel.writes_pending in
-          if !(wcomm.performed) >= 0 then
+        event_number = evnum } dans
+    { poll = (fonc () ->
+        soit rec poll () =
+          soit wcomm = Queue.take channel.writes_pending dans
+          si !(wcomm.performed) >= 0 alors
             poll ()
-          else begin
+          sinon début
             rcomm.data <- wcomm.data;
             performed := evnum;
             wcomm.performed := wcomm.event_number;
             Condition.signal wcomm.condition
-          end in
-        try
+          fin dans
+        essaie
           poll();
-          true
-        with Queue.Empty ->
-          false);
-    suspend = (fun () ->
+          vrai
+        avec Queue.Empty ->
+          faux);
+    suspend = (fonc () ->
       channel.reads_pending <- cleanup_queue channel.reads_pending;
       Queue.add rcomm channel.reads_pending);
-    result = (fun () ->
-      match rcomm.data with
+    result = (fonc () ->
+      filtre rcomm.data avec
         None -> invalid_arg "Event.receive"
       | Some res -> res) })
 
-let choose evl = Choose evl
+soit choose evl = Choose evl
 
-let wrap_abort ev fn = WrapAbort(ev,fn)
+soit wrap_abort ev fn = WrapAbort(ev,fn)
 
-let guard fn = Guard fn
+soit guard fn = Guard fn
 
-let rec wrap ev fn =
-  match ev with
+soit rec wrap ev fn =
+  filtre ev avec
     Communication genev ->
-      Communication(fun performed condition evnum ->
-        let bev = genev performed condition evnum in
+      Communication(fonc performed condition evnum ->
+        soit bev = genev performed condition evnum dans
         { poll = bev.poll;
           suspend = bev.suspend;
-          result = (fun () -> fn(bev.result())) })
+          result = (fonc () -> fn(bev.result())) })
   | Choose evl ->
-      Choose(List.map (fun ev -> wrap ev fn) evl)
+      Choose(List.map (fonc ev -> wrap ev fn) evl)
   | WrapAbort (ev, f') ->
       WrapAbort (wrap ev fn, f')
   | Guard gu ->
-      Guard(fun () -> wrap (gu()) fn)
+      Guard(fonc () -> wrap (gu()) fn)
 
 (* Convenience functions *)
 
-let select evl = sync(Choose evl)
+soit select evl = sync(Choose evl)

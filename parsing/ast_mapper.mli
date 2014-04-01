@@ -12,7 +12,7 @@
 
 (** Helpers to write Parsetree rewriters *)
 
-open Parsetree
+ouvre Parsetree
 
 (** {2 A generic Parsetree mapper} *)
 

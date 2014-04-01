@@ -10,17 +10,17 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Typedtree
-open Lambda
+ouvre Typedtree
+ouvre Lambda
 
 val transl_class :
   Ident.t list -> Ident.t ->
   string list -> class_expr -> Asttypes.virtual_flag -> lambda;;
 
-type error = Illegal_class_expr | Tags of string * string
+type error = Illegal_class_expr | Tags de string * string
 
-exception Error of Location.t * error
+exception Error de Location.t * error
 
-open Format
+ouvre Format
 
 val report_error: formatter -> error -> unit

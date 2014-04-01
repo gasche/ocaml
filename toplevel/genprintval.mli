@@ -12,8 +12,8 @@
 
 (* Printing of values *)
 
-open Types
-open Format
+ouvre Types
+ouvre Format
 
 module type OBJ =
   sig
@@ -23,7 +23,7 @@ module type OBJ =
     val tag : t -> int
     val size : t -> int
     val field : t -> int -> t
-  end
+  fin
 
 module type EVALPATH =
   sig
@@ -31,7 +31,7 @@ module type EVALPATH =
     val eval_path: Env.t -> Path.t -> valu
     exception Error
     val same_value: valu -> valu -> bool
-  end
+  fin
 
 module type S =
   sig
@@ -44,7 +44,7 @@ module type S =
           int -> int ->
           (int -> t -> Types.type_expr -> Outcometree.out_value option) ->
           Env.t -> t -> type_expr -> Outcometree.out_value
-  end
+  fin
 
-module Make(O : OBJ)(EVP : EVALPATH with type valu = O.t) :
-         (S with type t = O.t)
+module Make(O : OBJ)(EVP : EVALPATH avec type valu = O.t) :
+         (S avec type t = O.t)

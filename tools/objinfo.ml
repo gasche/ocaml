@@ -16,48 +16,48 @@
 (* Dump info on .cmi, .cmo, .cmx, .cma, .cmxa, .cmxs files
    and on bytecode executables. *)
 
-open Printf
-open Misc
-open Config
-open Cmo_format
+ouvre Printf
+ouvre Misc
+ouvre Config
+ouvre Cmo_format
 
-let input_stringlist ic len =
-  let get_string_list sect len =
-    let rec fold s e acc =
-      if e != len then
-        if sect.[e] = '\000' then
+soit input_stringlist ic len =
+  soit get_string_list sect len =
+    soit rec fold s e acc =
+      si e != len alors
+        si sect.[e] = '\000' alors
           fold (e+1) (e+1) (String.sub sect s (e-s) :: acc)
-        else fold s (e+1) acc
-      else acc
-    in fold 0 0 []
-  in
-  let sect = Misc.input_bytes ic len in
+        sinon fold s (e+1) acc
+      sinon acc
+    dans fold 0 0 []
+  dans
+  soit sect = Misc.input_bytes ic len dans
   get_string_list sect len
 
-let print_name_crc (name, crc) =
+soit print_name_crc (name, crc) =
   printf "\t%s\t%s\n" (Digest.to_hex crc) name
 
-let print_line name =
+soit print_line name =
   printf "\t%s\n" name
 
-let print_cmo_infos cu =
+soit print_cmo_infos cu =
   printf "Unit name: %s\n" cu.cu_name;
   print_string "Interfaces imported:\n";
   List.iter print_name_crc cu.cu_imports;
   printf "Uses unsafe features: ";
-  (match cu.cu_primitives with
+  (filtre cu.cu_primitives avec
     | [] -> printf "no\n"
     | l  ->
         printf "YES\n";
         printf "Primitives declared in this module:\n";
         List.iter print_line l);
-  printf "Force link: %s\n" (if cu.cu_force_link then "YES" else "no")
+  printf "Force link: %s\n" (si cu.cu_force_link alors "YES" sinon "no")
 
-let print_spaced_string s =
+soit print_spaced_string s =
   printf " %s" s
 
-let print_cma_infos (lib : Cmo_format.library) =
-  printf "Force custom: %s\n" (if lib.lib_custom then "YES" else "no");
+soit print_cma_infos (lib : Cmo_format.library) =
+  printf "Force custom: %s\n" (si lib.lib_custom alors "YES" sinon "no");
   printf "Extra C object files:";
   (* PR#4949: print in linking order *)
   List.iter print_spaced_string (List.rev lib.lib_ccobjs);
@@ -69,12 +69,12 @@ let print_cma_infos (lib : Cmo_format.library) =
   printf "\n";
   List.iter print_cmo_infos lib.lib_units
 
-let print_cmi_infos name sign crcs =
+soit print_cmi_infos name sign crcs =
   printf "Unit name: %s\n" name;
   printf "Interfaces imported:\n";
   List.iter print_name_crc crcs
 
-let print_general_infos name crc defines cmi cmx =
+soit print_general_infos name crc defines cmi cmx =
   printf "Name: %s\n" name;
   printf "CRC of implementation: %s\n" (Digest.to_hex crc);
   printf "Globals defined:\n";
@@ -84,21 +84,21 @@ let print_general_infos name crc defines cmi cmx =
   printf "Implementations imported:\n";
   List.iter print_name_crc cmx
 
-open Cmx_format
+ouvre Cmx_format
 
-let print_cmx_infos (ui, crc) =
+soit print_cmx_infos (ui, crc) =
   print_general_infos
     ui.ui_name crc ui.ui_defines ui.ui_imports_cmi ui.ui_imports_cmx;
   printf "Approximation:\n";
   Format.fprintf Format.std_formatter "  %a@." Printclambda.approx ui.ui_approx;
-  let pr_funs _ fns =
-    List.iter (fun arity -> printf " %d" arity) fns in
+  soit pr_funs _ fns =
+    List.iter (fonc arity -> printf " %d" arity) fns dans
   printf "Currying functions:%a\n" pr_funs ui.ui_curry_fun;
   printf "Apply functions:%a\n" pr_funs ui.ui_apply_fun;
   printf "Send functions:%a\n" pr_funs ui.ui_send_fun;
-  printf "Force link: %s\n" (if ui.ui_force_link then "YES" else "no")
+  printf "Force link: %s\n" (si ui.ui_force_link alors "YES" sinon "no")
 
-let print_cmxa_infos (lib : Cmx_format.library_infos) =
+soit print_cmxa_infos (lib : Cmx_format.library_infos) =
   printf "Extra C object files:";
   List.iter print_spaced_string (List.rev lib.lib_ccobjs);
   printf "\nExtra C options:";
@@ -106,9 +106,9 @@ let print_cmxa_infos (lib : Cmx_format.library_infos) =
   printf "\n";
   List.iter print_cmx_infos lib.lib_units
 
-let print_cmxs_infos header =
+soit print_cmxs_infos header =
   List.iter
-    (fun ui ->
+    (fonc ui ->
        print_general_infos
          ui.dynu_name
          ui.dynu_crc
@@ -117,29 +117,29 @@ let print_cmxs_infos header =
          ui.dynu_imports_cmx)
     header.dynu_units
 
-let p_title title = printf "%s:\n" title
+soit p_title title = printf "%s:\n" title
 
-let p_section title = function
+soit p_section title = fonction
   | [] -> ()
   | l ->
       p_title title;
       List.iter print_name_crc l
 
-let p_list title print = function
+soit p_list title print = fonction
   | [] -> ()
   | l ->
       p_title title;
       List.iter print l
 
-let dump_byte ic =
+soit dump_byte ic =
   Bytesections.read_toc ic;
-  let toc = Bytesections.toc () in
-  let toc = List.sort Pervasives.compare toc in
+  soit toc = Bytesections.toc () dans
+  soit toc = List.sort Pervasives.compare toc dans
   List.iter
-    (fun (section, _) ->
-       try
-         let len = Bytesections.seek_section ic section in
-         if len > 0 then match section with
+    (fonc (section, _) ->
+       essaie
+         soit len = Bytesections.seek_section ic section dans
+         si len > 0 alors filtre section avec
            | "CRCS" ->
                p_section
                  "Imported units"
@@ -160,93 +160,93 @@ let dump_byte ic =
                  print_line
                  (input_stringlist ic len)
            | _ -> ()
-       with _ -> ()
+       avec _ -> ()
     )
     toc
 
-let read_dyn_header filename ic =
-  let tempfile = Filename.temp_file "objinfo" ".out" in
-  let helper = Filename.concat Config.standard_library "objinfo_helper" in
-  try
+soit read_dyn_header filename ic =
+  soit tempfile = Filename.temp_file "objinfo" ".out" dans
+  soit helper = Filename.concat Config.standard_library "objinfo_helper" dans
+  essaie
     try_finally
-      (fun () ->
-        let rc = Sys.command (sprintf "%s %s > %s"
+      (fonc () ->
+        soit rc = Sys.command (sprintf "%s %s > %s"
                                 (Filename.quote helper)
                                 (Filename.quote filename)
-                                tempfile) in
-        if rc <> 0 then failwith "impossible de lire";
-        let tc = open_in tempfile in
+                                tempfile) dans
+        si rc <> 0 alors failwith "impossible de lire";
+        soit tc = open_in tempfile dans
         try_finally
-          (fun () ->
-            let ofs = Scanf.fscanf tc "%Ld" (fun x -> x) in
+          (fonc () ->
+            soit ofs = Scanf.fscanf tc "%Ld" (fonc x -> x) dans
             LargeFile.seek_in ic ofs;
             Some(input_value ic : dynheader))
-          (fun () -> close_in tc))
-      (fun () -> remove_file tempfile)
-  with Failure _ | Sys_error _ -> None
+          (fonc () -> close_in tc))
+      (fonc () -> remove_file tempfile)
+  avec Failure _ | Sys_error _ -> None
 
-let dump_obj filename =
+soit dump_obj filename =
   printf "File %s\n" filename;
-  let ic = open_in_bin filename in
-  let len_magic_number = String.length cmo_magic_number in
-  let magic_number = Misc.input_bytes ic len_magic_number in
-  if magic_number = cmo_magic_number then begin
-    let cu_pos = input_binary_int ic in
+  soit ic = open_in_bin filename dans
+  soit len_magic_number = String.length cmo_magic_number dans
+  soit magic_number = Misc.input_bytes ic len_magic_number dans
+  si magic_number = cmo_magic_number alors début
+    soit cu_pos = input_binary_int ic dans
     seek_in ic cu_pos;
-    let cu = (input_value ic : compilation_unit) in
+    soit cu = (input_value ic : compilation_unit) dans
     close_in ic;
     print_cmo_infos cu
-  end else if magic_number = cma_magic_number then begin
-    let toc_pos = input_binary_int ic in
+  fin sinon si magic_number = cma_magic_number alors début
+    soit toc_pos = input_binary_int ic dans
     seek_in ic toc_pos;
-    let toc = (input_value ic : library) in
+    soit toc = (input_value ic : library) dans
     close_in ic;
     print_cma_infos toc
-  end else if magic_number = cmi_magic_number then begin
-    let cmi = Cmi_format.input_cmi ic in
+  fin sinon si magic_number = cmi_magic_number alors début
+    soit cmi = Cmi_format.input_cmi ic dans
     close_in ic;
     print_cmi_infos cmi.Cmi_format.cmi_name cmi.Cmi_format.cmi_sign
       cmi.Cmi_format.cmi_crcs
-  end else if magic_number = cmx_magic_number then begin
-    let ui = (input_value ic : unit_infos) in
-    let crc = Digest.input ic in
+  fin sinon si magic_number = cmx_magic_number alors début
+    soit ui = (input_value ic : unit_infos) dans
+    soit crc = Digest.input ic dans
     close_in ic;
     print_cmx_infos (ui, crc)
-  end else if magic_number = cmxa_magic_number then begin
-    let li = (input_value ic : library_infos) in
+  fin sinon si magic_number = cmxa_magic_number alors début
+    soit li = (input_value ic : library_infos) dans
     close_in ic;
     print_cmxa_infos li
-  end else begin
-    let pos_trailer = in_channel_length ic - len_magic_number in
-    let _ = seek_in ic pos_trailer in
-    let _ = really_input ic magic_number 0 len_magic_number in
-    if magic_number = Config.exec_magic_number then begin
+  fin sinon début
+    soit pos_trailer = in_channel_length ic - len_magic_number dans
+    soit _ = seek_in ic pos_trailer dans
+    soit _ = really_input ic magic_number 0 len_magic_number dans
+    si magic_number = Config.exec_magic_number alors début
       dump_byte ic;
       close_in ic
-    end else if Filename.check_suffix filename ".cmxs" then begin
+    fin sinon si Filename.check_suffix filename ".cmxs" alors début
       flush stdout;
-      match read_dyn_header filename ic with
+      filtre read_dyn_header filename ic avec
       | None ->
           printf "Impossible de lire les informations sur le fichier %s\n" filename;
           exit 2
       | Some header ->
-          if header.dynu_magic = Config.cmxs_magic_number then
+          si header.dynu_magic = Config.cmxs_magic_number alors
             print_cmxs_infos header
-          else begin
+          sinon début
             printf "Mauvais nombre magique\n"; exit 2
-          end;
+          fin;
           close_in ic
-    end else begin
+    fin sinon début
       printf "Ce n'est pas un fichier objet Chamelle\n"; exit 2
-    end
-  end
+    fin
+  fin
 
-let arg_list = []
-let arg_usage =
+soit arg_list = []
+soit arg_usage =
    Printf.sprintf "%s [OPTIONS] FILES : donne des informations sur les fichiers" Sys.argv.(0)
 
-let main() =
+soit main() =
   Arg.parse arg_list dump_obj arg_usage;
   exit 0
 
-let _ = main ()
+soit _ = main ()

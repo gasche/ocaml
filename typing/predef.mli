@@ -12,7 +12,7 @@
 
 (* Predefined type constructors (with special typing rules in typecore) *)
 
-open Types
+ouvre Types
 
 val type_int: type_expr
 val type_char: type_expr

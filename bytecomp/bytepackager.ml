@@ -13,106 +13,106 @@
 (* "Package" a set of .cmo files into one .cmo file having the
    original compilation units as sub-modules. *)
 
-open Misc
-open Instruct
-open Cmo_format
+ouvre Misc
+ouvre Instruct
+ouvre Cmo_format
 
 type error =
-    Forward_reference of string * Ident.t
-  | Multiple_definition of string * Ident.t
-  | Not_an_object_file of string
-  | Illegal_renaming of string * string * string
-  | File_not_found of string
+    Forward_reference de string * Ident.t
+  | Multiple_definition de string * Ident.t
+  | Not_an_object_file de string
+  | Illegal_renaming de string * string * string
+  | File_not_found de string
 
-exception Error of error
+exception Error de error
 
 (* References accumulating information on the .cmo files *)
 
-let relocs = ref ([] : (reloc_info * int) list)
-let events = ref ([] : debug_event list)
-let primitives = ref ([] : string list)
-let force_link = ref false
+soit relocs = ref ([] : (reloc_info * int) list)
+soit events = ref ([] : debug_event list)
+soit primitives = ref ([] : string list)
+soit force_link = ref faux
 
 (* Record a relocation.  Update its offset, and rename GETGLOBAL and
    SETGLOBAL relocations that correspond to one of the units being
    consolidated. *)
 
-let rename_relocation packagename objfile mapping defined base (rel, ofs) =
-  let rel' =
-    match rel with
+soit rename_relocation packagename objfile mapping defined base (rel, ofs) =
+  soit rel' =
+    filtre rel avec
       Reloc_getglobal id ->
-        begin try
-          let id' = List.assoc id mapping in
-          if List.mem id defined
-          then Reloc_getglobal id'
-          else raise(Error(Forward_reference(objfile, id)))
-        with Not_found ->
+        début essaie
+          soit id' = List.assoc id mapping dans
+          si List.mem id defined
+          alors Reloc_getglobal id'
+          sinon raise(Error(Forward_reference(objfile, id)))
+        avec Not_found ->
           (* PR#5276: unique-ize dotted global names, which appear
              if one of the units being consolidated is itself a packed
              module. *)
-          let name = Ident.name id in
-          if String.contains name '.' then
+          soit name = Ident.name id dans
+          si String.contains name '.' alors
             Reloc_getglobal (Ident.create_persistent (packagename ^ "." ^ name))
-          else
+          sinon
             rel
-        end
+        fin
     | Reloc_setglobal id ->
-        begin try
-          let id' = List.assoc id mapping in
-          if List.mem id defined
-          then raise(Error(Multiple_definition(objfile, id)))
-          else Reloc_setglobal id'
-        with Not_found ->
+        début essaie
+          soit id' = List.assoc id mapping dans
+          si List.mem id defined
+          alors raise(Error(Multiple_definition(objfile, id)))
+          sinon Reloc_setglobal id'
+        avec Not_found ->
           (* PR#5276, as above *)
-          let name = Ident.name id in
-          if String.contains name '.' then
+          soit name = Ident.name id dans
+          si String.contains name '.' alors
             Reloc_setglobal (Ident.create_persistent (packagename ^ "." ^ name))
-          else
+          sinon
             rel
-        end
+        fin
     | _ ->
-        rel in
+        rel dans
   relocs := (rel', base + ofs) :: !relocs
 
 (* Record and relocate a debugging event *)
 
-let relocate_debug base prefix subst ev =
-  let ev' = { ev with ev_pos = base + ev.ev_pos;
+soit relocate_debug base prefix subst ev =
+  soit ev' = { ev avec ev_pos = base + ev.ev_pos;
                       ev_module = prefix ^ "." ^ ev.ev_module;
-                      ev_typsubst = Subst.compose ev.ev_typsubst subst } in
+                      ev_typsubst = Subst.compose ev.ev_typsubst subst } dans
   events := ev' :: !events
 
 (* Read the unit information from a .cmo file. *)
 
-type pack_member_kind = PM_intf | PM_impl of compilation_unit
+type pack_member_kind = PM_intf | PM_impl de compilation_unit
 
 type pack_member =
   { pm_file: string;
     pm_name: string;
     pm_kind: pack_member_kind }
 
-let read_member_info file = (
-  let name =
-    String.capitalize(Filename.basename(chop_extensions file)) in
-  let kind =
-    if Filename.check_suffix file ".cmo" then begin
-    let ic = open_in_bin file in
-    try
-      let buffer = input_bytes ic (String.length Config.cmo_magic_number) in
-      if buffer <> Config.cmo_magic_number then
+soit read_member_info file = (
+  soit name =
+    String.capitalize(Filename.basename(chop_extensions file)) dans
+  soit kind =
+    si Filename.check_suffix file ".cmo" alors début
+    soit ic = open_in_bin file dans
+    essaie
+      soit buffer = input_bytes ic (String.length Config.cmo_magic_number) dans
+      si buffer <> Config.cmo_magic_number alors
         raise(Error(Not_an_object_file file));
-      let compunit_pos = input_binary_int ic in
+      soit compunit_pos = input_binary_int ic dans
       seek_in ic compunit_pos;
-      let compunit = (input_value ic : compilation_unit) in
-      if compunit.cu_name <> name
-      then raise(Error(Illegal_renaming(name, file, compunit.cu_name)));
+      soit compunit = (input_value ic : compilation_unit) dans
+      si compunit.cu_name <> name
+      alors raise(Error(Illegal_renaming(name, file, compunit.cu_name)));
       close_in ic;
       PM_impl compunit
-    with x ->
+    avec x ->
       close_in ic;
       raise x
-    end else
-      PM_intf in
+    fin sinon
+      PM_intf dans
   { pm_file = file; pm_name = name; pm_kind = kind }
 )
 
@@ -122,47 +122,47 @@ let read_member_info file = (
    Accumulate relocs, debug info, etc.
    Return size of bytecode. *)
 
-let rename_append_bytecode ppf packagename oc mapping defined ofs prefix subst
+soit rename_append_bytecode ppf packagename oc mapping defined ofs prefix subst
                            objfile compunit =
-  let ic = open_in_bin objfile in
-  try
+  soit ic = open_in_bin objfile dans
+  essaie
     Bytelink.check_consistency ppf objfile compunit;
     List.iter
       (rename_relocation packagename objfile mapping defined ofs)
       compunit.cu_reloc;
     primitives := compunit.cu_primitives @ !primitives;
-    if compunit.cu_force_link then force_link := true;
+    si compunit.cu_force_link alors force_link := vrai;
     seek_in ic compunit.cu_pos;
     Misc.copy_file_chunk ic oc compunit.cu_codesize;
-    if !Clflags.debug && compunit.cu_debug > 0 then begin
+    si !Clflags.debug && compunit.cu_debug > 0 alors début
       seek_in ic compunit.cu_debug;
       List.iter (relocate_debug ofs prefix subst) (input_value ic);
-    end;
+    fin;
     close_in ic;
     compunit.cu_codesize
-  with x ->
+  avec x ->
     close_in ic;
     raise x
 
 (* Same, for a list of .cmo and .cmi files.
    Return total size of bytecode. *)
 
-let rec rename_append_bytecode_list ppf packagename oc mapping defined ofs
+soit rec rename_append_bytecode_list ppf packagename oc mapping defined ofs
                                     prefix subst =
-  function
+  fonction
     [] ->
       ofs
   | m :: rem ->
-      match m.pm_kind with
+      filtre m.pm_kind avec
       | PM_intf ->
           rename_append_bytecode_list ppf packagename oc mapping defined ofs
                                       prefix subst rem
       | PM_impl compunit ->
-          let size =
+          soit size =
             rename_append_bytecode ppf packagename oc mapping defined ofs
-                                   prefix subst m.pm_file compunit in
-          let id = Ident.create_persistent m.pm_name in
-          let root = Path.Pident (Ident.create_persistent prefix) in
+                                   prefix subst m.pm_file compunit dans
+          soit id = Ident.create_persistent m.pm_name dans
+          soit root = Path.Pident (Ident.create_persistent prefix) dans
           rename_append_bytecode_list ppf packagename oc mapping (id :: defined)
             (ofs + size) prefix
             (Subst.add_module id (Path.Pdot (root, Ident.name id, Path.nopos))
@@ -171,56 +171,56 @@ let rec rename_append_bytecode_list ppf packagename oc mapping defined ofs
 
 (* Generate the code that builds the tuple representing the package module *)
 
-let build_global_target oc target_name members mapping pos coercion =
-  let components =
+soit build_global_target oc target_name members mapping pos coercion =
+  soit components =
     List.map2
-      (fun m (id1, id2) ->
-        match m.pm_kind with
+      (fonc m (id1, id2) ->
+        filtre m.pm_kind avec
         | PM_intf -> None
         | PM_impl _ -> Some id2)
-      members mapping in
-  let lam =
+      members mapping dans
+  soit lam =
     Translmod.transl_package
-      components (Ident.create_persistent target_name) coercion in
-  if !Clflags.dump_lambda then
+      components (Ident.create_persistent target_name) coercion dans
+  si !Clflags.dump_lambda alors
     Format.printf "%a@." Printlambda.lambda lam;
-  let instrs =
-    Bytegen.compile_implementation target_name lam in
-  let rel =
-    Emitcode.to_packed_file oc instrs in
-  relocs := List.map (fun (r, ofs) -> (r, pos + ofs)) rel @ !relocs
+  soit instrs =
+    Bytegen.compile_implementation target_name lam dans
+  soit rel =
+    Emitcode.to_packed_file oc instrs dans
+  relocs := List.map (fonc (r, ofs) -> (r, pos + ofs)) rel @ !relocs
 
 (* Build the .cmo file obtained by packaging the given .cmo files. *)
 
-let package_object_files ppf files targetfile targetname coercion =
-  let members =
-    map_left_right read_member_info files in
-  let unit_names =
-    List.map (fun m -> m.pm_name) members in
-  let mapping =
+soit package_object_files ppf files targetfile targetname coercion =
+  soit members =
+    map_left_right read_member_info files dans
+  soit unit_names =
+    List.map (fonc m -> m.pm_name) members dans
+  soit mapping =
     List.map
-      (fun name ->
+      (fonc name ->
           (Ident.create_persistent name,
            Ident.create_persistent(targetname ^ "." ^ name)))
-      unit_names in
-  let oc = open_out_bin targetfile in
-  try
+      unit_names dans
+  soit oc = open_out_bin targetfile dans
+  essaie
     output_string oc Config.cmo_magic_number;
-    let pos_depl = pos_out oc in
+    soit pos_depl = pos_out oc dans
     output_binary_int oc 0;
-    let pos_code = pos_out oc in
-    let ofs = rename_append_bytecode_list ppf targetname oc mapping [] 0
-                                          targetname Subst.identity members in
+    soit pos_code = pos_out oc dans
+    soit ofs = rename_append_bytecode_list ppf targetname oc mapping [] 0
+                                          targetname Subst.identity members dans
     build_global_target oc targetname members mapping ofs coercion;
-    let pos_debug = pos_out oc in
-    if !Clflags.debug && !events <> [] then
+    soit pos_debug = pos_out oc dans
+    si !Clflags.debug && !events <> [] alors
       output_value oc (List.rev !events);
-    let pos_final = pos_out oc in
-    let imports =
+    soit pos_final = pos_out oc dans
+    soit imports =
       List.filter
-        (fun (name, crc) -> not (List.mem name unit_names))
-        (Bytelink.extract_crc_interfaces()) in
-    let compunit =
+        (fonc (name, crc) -> not (List.mem name unit_names))
+        (Bytelink.extract_crc_interfaces()) dans
+    soit compunit =
       { cu_name = targetname;
         cu_pos = pos_code;
         cu_codesize = pos_debug - pos_code;
@@ -228,40 +228,40 @@ let package_object_files ppf files targetfile targetname coercion =
         cu_imports = (targetname, Env.crc_of_unit targetname) :: imports;
         cu_primitives = !primitives;
         cu_force_link = !force_link;
-        cu_debug = if pos_final > pos_debug then pos_debug else 0;
-        cu_debugsize = pos_final - pos_debug } in
+        cu_debug = si pos_final > pos_debug alors pos_debug sinon 0;
+        cu_debugsize = pos_final - pos_debug } dans
     output_value oc compunit;
     seek_out oc pos_depl;
     output_binary_int oc pos_final;
     close_out oc
-  with x ->
+  avec x ->
     close_out oc;
     raise x
 
 (* The entry point *)
 
-let package_files ppf files targetfile =
-    let files =
+soit package_files ppf files targetfile =
+    soit files =
     List.map
-        (fun f ->
-        try find_in_path !Config.load_path f
-        with Not_found -> raise(Error(File_not_found f)))
-        files in
-    let prefix = chop_extensions targetfile in
-    let targetcmi = prefix ^ ".cmi" in
-    let targetname = String.capitalize(Filename.basename prefix) in
-    try
-      let coercion = Typemod.package_units files targetcmi targetname in
-    let ret = package_object_files ppf files targetfile targetname coercion in
+        (fonc f ->
+        essaie find_in_path !Config.load_path f
+        avec Not_found -> raise(Error(File_not_found f)))
+        files dans
+    soit prefix = chop_extensions targetfile dans
+    soit targetcmi = prefix ^ ".cmi" dans
+    soit targetname = String.capitalize(Filename.basename prefix) dans
+    essaie
+      soit coercion = Typemod.package_units files targetcmi targetname dans
+    soit ret = package_object_files ppf files targetfile targetname coercion dans
     ret
-  with x ->
+  avec x ->
     remove_file targetfile; raise x
 
 (* Error report *)
 
-open Format
+ouvre Format
 
-let report_error ppf = function
+soit report_error ppf = fonction
     Forward_reference(file, ident) ->
       fprintf ppf "Forward reference to %s in file %a" (Ident.name ident)
         Location.print_filename file
@@ -279,9 +279,9 @@ let report_error ppf = function
   | File_not_found file ->
       fprintf ppf "File %s not found" file
 
-let () =
+soit () =
   Location.register_error_of_exn
-    (function
+    (fonction
       | Error err -> Some (Location.error_of_printer_file report_error err)
       | _ -> None
     )

@@ -10,133 +10,133 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Format
+ouvre Format
 
 type error =
-  | CannotRun of string
-  | WrongMagic of string
+  | CannotRun de string
+  | WrongMagic de string
 
-exception Error of error
+exception Error de error
 
 (* Optionally preprocess a source file *)
 
-let preprocess sourcefile =
-  match !Clflags.preprocessor with
+soit preprocess sourcefile =
+  filtre !Clflags.preprocessor avec
     None -> sourcefile
   | Some pp ->
-      let tmpfile = Filename.temp_file "ocamlpp" "" in
-      let comm = Printf.sprintf "%s %s > %s"
+      soit tmpfile = Filename.temp_file "ocamlpp" "" dans
+      soit comm = Printf.sprintf "%s %s > %s"
                                 pp (Filename.quote sourcefile) tmpfile
-      in
-      if Ccomp.command comm <> 0 then begin
+      dans
+      si Ccomp.command comm <> 0 alors début
         Misc.remove_file tmpfile;
         raise (Error (CannotRun comm));
-      end;
+      fin;
       tmpfile
 
-let remove_preprocessed inputfile =
-  match !Clflags.preprocessor with
+soit remove_preprocessed inputfile =
+  filtre !Clflags.preprocessor avec
     None -> ()
   | Some _ -> Misc.remove_file inputfile
 
-let write_ast magic ast =
-  let fn = Filename.temp_file "camlppx" "" in
-  let oc = open_out_bin fn in
+soit write_ast magic ast =
+  soit fn = Filename.temp_file "camlppx" "" dans
+  soit oc = open_out_bin fn dans
   output_string oc magic;
   output_value oc !Location.input_name;
   output_value oc ast;
   close_out oc;
   fn
 
-let apply_rewriter magic fn_in ppx =
-  let fn_out = Filename.temp_file "camlppx" "" in
-  let comm =
+soit apply_rewriter magic fn_in ppx =
+  soit fn_out = Filename.temp_file "camlppx" "" dans
+  soit comm =
     Printf.sprintf "%s %s %s" ppx (Filename.quote fn_in) (Filename.quote fn_out)
-  in
-  let ok = Ccomp.command comm = 0 in
+  dans
+  soit ok = Ccomp.command comm = 0 dans
   Misc.remove_file fn_in;
-  if not ok then begin
+  si not ok alors début
     Misc.remove_file fn_out;
     raise (Error (CannotRun comm));
-  end;
-  if not (Sys.file_exists fn_out) then
+  fin;
+  si not (Sys.file_exists fn_out) alors
     raise (Error (WrongMagic comm));
   (* check magic before passing to the next ppx *)
-  let ic = open_in_bin fn_out in
-  let buffer =
-    try Misc.input_bytes ic (String.length magic) with End_of_file -> "" in
+  soit ic = open_in_bin fn_out dans
+  soit buffer =
+    essaie Misc.input_bytes ic (String.length magic) avec End_of_file -> "" dans
   close_in ic;
-  if buffer <> magic then begin
+  si buffer <> magic alors début
     Misc.remove_file fn_out;
     raise (Error (WrongMagic comm));
-  end;
+  fin;
   fn_out
 
-let read_ast magic fn =
-  let ic = open_in_bin fn in
-  try
-    let buffer = Misc.input_bytes ic (String.length magic) in
-    assert(buffer = magic); (* already checked by apply_rewriter *)
+soit read_ast magic fn =
+  soit ic = open_in_bin fn dans
+  essaie
+    soit buffer = Misc.input_bytes ic (String.length magic) dans
+    affirme(buffer = magic); (* already checked by apply_rewriter *)
     Location.input_name := input_value ic;
-    let ast = input_value ic in
+    soit ast = input_value ic dans
     close_in ic;
     Misc.remove_file fn;
     ast
-  with exn ->
+  avec exn ->
     close_in ic;
     Misc.remove_file fn;
     raise exn
 
-let apply_rewriters magic ast =
-  match !Clflags.all_ppx with
+soit apply_rewriters magic ast =
+  filtre !Clflags.all_ppx avec
   | [] -> ast
   | ppxs ->
-      let fn =
+      soit fn =
         List.fold_left (apply_rewriter magic) (write_ast magic ast)
           (List.rev ppxs)
-      in
+      dans
       read_ast magic fn
 
 (* Parse a file or get a dumped syntax tree from it *)
 
 exception Outdated_version
 
-let file ppf inputfile parse_fun ast_magic =
-  let ic = open_in_bin inputfile in
-  let is_ast_file =
-    try
-      let buffer = Misc.input_bytes ic (String.length ast_magic) in
-      if buffer = ast_magic then true
-      else if String.sub buffer 0 9 = String.sub ast_magic 0 9 then
+soit file ppf inputfile parse_fun ast_magic =
+  soit ic = open_in_bin inputfile dans
+  soit is_ast_file =
+    essaie
+      soit buffer = Misc.input_bytes ic (String.length ast_magic) dans
+      si buffer = ast_magic alors vrai
+      sinon si String.sub buffer 0 9 = String.sub ast_magic 0 9 alors
         raise Outdated_version
-      else false
-    with
+      sinon faux
+    avec
       Outdated_version ->
         Misc.fatal_error "Chamellle et le préprocesseur ont des versions incompatibles"
-    | _ -> false
-  in
-  let ast =
-    try
-      if is_ast_file then begin
-        if !Clflags.fast then
+    | _ -> faux
+  dans
+  soit ast =
+    essaie
+      si is_ast_file alors début
+        si !Clflags.fast alors
           (* FIXME make this a proper warning *)
           fprintf ppf "@[Attention: %s@]@."
             "option -unsafe utilisée avec un préprocesseur renvoyant un arbre de syntaxe.";
         Location.input_name := input_value ic;
         input_value ic
-      end else begin
+      fin sinon début
         seek_in ic 0;
         Location.input_name := inputfile;
-        let lexbuf = Lexing.from_channel ic in
+        soit lexbuf = Lexing.from_channel ic dans
         Location.init lexbuf inputfile;
         parse_fun lexbuf
-      end
-    with x -> close_in ic; raise x
-  in
+      fin
+    avec x -> close_in ic; raise x
+  dans
   close_in ic;
   apply_rewriters ast_magic ast
 
-let report_error ppf = function
+soit report_error ppf = fonction
   | CannotRun cmd ->
       fprintf ppf "Error while running external preprocessor@.\
                    Command line: %s@." cmd
@@ -144,26 +144,26 @@ let report_error ppf = function
       fprintf ppf "External preprocessor does not produce a valid file@.\
                    Command line: %s@." cmd
 
-let () =
+soit () =
   Location.register_error_of_exn
-    (function
+    (fonction
       | Error err -> Some (Location.error_of_printer_file report_error err)
       | _ -> None
     )
 
-let parse_all parse_fun magic ppf sourcefile =
+soit parse_all parse_fun magic ppf sourcefile =
   Location.input_name := sourcefile;
-  let inputfile = preprocess sourcefile in
-  let ast =
-    try file ppf inputfile parse_fun magic
-    with exn ->
+  soit inputfile = preprocess sourcefile dans
+  soit ast =
+    essaie file ppf inputfile parse_fun magic
+    avec exn ->
       remove_preprocessed inputfile;
       raise exn
-  in
+  dans
   remove_preprocessed inputfile;
   ast
 
-let parse_implementation ppf sourcefile =
+soit parse_implementation ppf sourcefile =
   parse_all Parse.implementation Config.ast_impl_magic_number ppf sourcefile
-let parse_interface ppf sourcefile =
+soit parse_interface ppf sourcefile =
   parse_all Parse.interface Config.ast_intf_magic_number ppf sourcefile

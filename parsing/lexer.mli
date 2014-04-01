@@ -19,18 +19,18 @@ val skip_sharp_bang: Lexing.lexbuf -> unit
 val string_of_token : Parser.token -> string
 
 type error =
-  | Illegal_character of char
-  | Illegal_escape of string
-  | Unterminated_comment of Location.t
+  | Illegal_character de char
+  | Illegal_escape de string
+  | Unterminated_comment de Location.t
   | Unterminated_string
-  | Unterminated_string_in_comment of Location.t * Location.t
-  | Keyword_as_label of string
-  | Literal_overflow of string
+  | Unterminated_string_in_comment de Location.t * Location.t
+  | Keyword_as_label de string
+  | Literal_overflow de string
 ;;
 
-exception Error of error * Location.t
+exception Error de error * Location.t
 
-open Format
+ouvre Format
 
 val report_error: formatter -> error -> unit
  (* Deprecated.  Use Location.{error_of_exn, report_error}. *)

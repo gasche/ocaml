@@ -11,9 +11,9 @@
 (***********************************************************************)
 
 (* Detection of partial matches and unused match cases. *)
-open Asttypes
-open Typedtree
-open Types
+ouvre Asttypes
+ouvre Typedtree
+ouvre Types
 
 val pretty_const : constant -> string
 val top_pretty : Format.formatter -> pattern -> unit

@@ -13,8 +13,8 @@
 (* Translation from typed abstract syntax to lambda terms,
    for the module language *)
 
-open Typedtree
-open Lambda
+ouvre Typedtree
+ouvre Lambda
 
 val transl_implementation: string -> structure * module_coercion -> lambda
 val transl_store_phrases: string -> structure -> int * lambda
@@ -32,8 +32,8 @@ val nat_toplevel_name: Ident.t -> Ident.t * int
 val primitive_declarations: Primitive.description list ref
 
 type error =
-  Circular_dependency of Ident.t
+  Circular_dependency de Ident.t
 
-exception Error of Location.t * error
+exception Error de Location.t * error
 
 val report_error: Format.formatter -> error -> unit

@@ -10,9 +10,9 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Lambda
+ouvre Lambda
 
-open Format
+ouvre Format
 
 val structured_constant: formatter -> structured_constant -> unit
 val lambda: formatter -> lambda -> unit

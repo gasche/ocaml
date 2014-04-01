@@ -10,8 +10,8 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Typedtree;;
-open Format;;
+ouvre Typedtree;;
+ouvre Format;;
 
 val interface : formatter -> signature -> unit;;
 val implementation : formatter -> structure -> unit;;

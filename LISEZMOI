@@ -1,0 +1,140 @@
+APERÇU:
+
+Chamelle est une implémentation du langage ML, reposant sur le
+dialecte Caml Light étendu avec un système object à classe complet, un
+puissant système de module à la Standard ML, et une syntaxe
+révolutionnaire.
+
+Chamelle comprend deux compilateurs. Le premier génère du code octet
+qui est ensuite interprété par un programme C. Ce compilateur est
+rapide, génère du code compact avec des exigences mémorielles
+raisonnables, et est portable vers n'importe quelle machine Unix ayant
+32 ou 64 bits par mot. Les performances du programme génér sont bonnes
+(pour un interpréteur de code octet). Ce compilateur peut être utilisé
+soit comme un compilateur tenant debout, orienté grandes passes qui
+produit des programmes autonomes, ou comme un système interactif top
+niveau.
+
+Le second compilateur génère du code natif hautement efficient pour un
+certain nombre d'architectures. La compilation est plus lente et
+génère du code plus gros, mais les programmes générés nous gratifient
+d'excellentes performances, tout en préservant le raisonnable des
+exigences mémorielles du compilateur de code octet. Le compilateur
+natif tourne en ce moment-même sur les plateformes suivantes:
+
+Premier tiers (utilisé et maintenu activement par le Centre OCaml):
+
+    AMD64 (Opteron)    Linux, MacOS X, MS Windows
+    IA32 (Pentium)     Linux, FreeBSD, MacOS X, MS Windows
+    PowerPC            Linux, MacOS X
+    ARM                Linux
+
+Second tiers (maintenu selon arrivage, avec l'aide des utilisateurs):
+
+    AMD64              FreeBSD, OpenBSD
+    IA32 (Pentium)     NetBSD, OpenBSD, Solaris 9
+    PowerPC            NetBSD
+    SPARC              Solaris, Linux, NetBSD
+
+Pour chacune des architectures listées, les systèmes d'exploitation
+omis n'ont pas été testé, mais il est toujours possible que le
+compilateur marche, directement ou après un petit peu de travail.
+
+Avant l'introduction des objets, Chamelle était connu sous le nom de
+Caml Special Light; il s'est ensuite appelé OCaml jusqu'à l'abandon de
+la syntaxe saxonne. Chamelle est pleinement compatible avec OCaml, et
+partiellement compatible avec Caml Special Light, les différences
+tenant de mots clés supplémentaires ayant nécessité des changements de
+nom de fonctions.
+
+CONTENU:
+
+  Changes               what's new with each release
+  INSTALL               instructions for installation
+  LICENSE               license and copyright notice
+  Makefile              main Makefile
+  README                this file
+  README.win32          infos on the MS Windows ports of OCaml
+  asmcomp/              native-code compiler and linker
+  asmrun/               native-code runtime library
+  boot/                 bootstrap compiler
+  bytecomp/             bytecode compiler and linker
+  byterun/              bytecode interpreter and runtime system
+  config/               autoconfiguration stuff
+  debugger/             source-level replay debugger
+  driver/               driver code for the compilers
+  emacs/                OCaml editing mode and debugger interface for GNU Emacs
+  lex/                  lexer generator
+  maccaml/              the Macintosh GUI
+  ocamldoc/             documentation generator
+  otherlibs/            several external libraries
+  parsing/              syntax analysis
+  stdlib/               standard library
+  tools/                various utilities
+  toplevel/             interactive system
+  typing/               typechecking
+  utils/                utility libraries
+  yacc/                 parser generator
+
+COPYRIGHT:
+
+All files marked "Copyright INRIA" in this distribution are copyright
+1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
+2007, 2008, 2009, 2010, 2011, 2012 Institut National de Recherche en
+Informatique et en Automatique (INRIA) and distributed under the
+conditions stated in file LICENSE.
+
+INSTALLATION:
+
+Voir le fichier INSTALL pour des instructions d'installation sous
+Unix, Linux et MacOSX. Pour Windows, voir LISEZMOI.win32.
+
+DOCUMENTATION:
+
+Le manuel de l'ancienne version (OCaml) est disponible en ligne sous
+format HTML, PDF, Postscript, DVI ou Emacs Info. Il est disponible
+à l'adresse suivante :
+
+        http://caml.inria.fr/
+
+DISPONIBILITÉ:
+
+La distribution Chamelle complète est disponible à l'adresse suivante :
+
+        http://caml.inria.fr/
+
+RESTER EN TOUCHE AVEC LA COMMUNAUTÉ CHAMELLE :
+
+Il existe une liste de courier pour les utilisateurs des
+implémentations du langage Chamelle développées à l'INRIA. Cette liste
+permet de partager des expériences, des idées (et même du code), et de
+nous tenir au courant des utilisations du langage. Les messages
+peuvent être écrits en français ou en anglais. La liste a plus de 1000
+abonnés.
+
+Les messages pour la liste devraient être envoyés à :
+
+              caml-list@inria.fr
+
+Vous pouvez vous abonnez à la liste sur la toile :
+
+        https://sympa-roc.inria.fr/wws/info/caml-list
+
+Les archives de la liste sont disponibles sur le cite ci-dessus.
+
+Les groupes de nouvelles Usenet comp.lang.ml et comp.lang.function
+hébergent aussi des discussions sur les langages de programmation de
+la famille ML, Chamelle y compris.
+
+RAPPORTS D'ERREURS ET RETOURS UTILISATEURS:
+
+Veuillez envoyer tout rapport d'erreur en utilisant l'interface en ligne pour le système de suivi:
+
+         http://caml.inria.fr/bin/caml-bugs
+
+Pour être constructifs, les rapports d'erreurs devraient include un
+programme complet (et, de préférence, petit) qui permet d'observer le
+comportement inattendu, et des informations sur votre configuration
+(type de machine, etc.).
+
+Vous pouvez aussi contacter les implémentateurs directement sur caml@inria.fr.

@@ -12,7 +12,7 @@
 
 (* Assign locations and numbers to globals and primitives *)
 
-open Cmo_format
+ouvre Cmo_format
 
 (* Functions for batch linking *)
 
@@ -47,13 +47,13 @@ val filter_global_map: (Ident.t -> bool) -> global_map -> global_map
 (* Error report *)
 
 type error =
-    Undefined_global of string
-  | Unavailable_primitive of string
-  | Wrong_vm of string
-  | Uninitialized_global of string
+    Undefined_global de string
+  | Unavailable_primitive de string
+  | Wrong_vm de string
+  | Uninitialized_global de string
 
-exception Error of error
+exception Error de error
 
-open Format
+ouvre Format
 
 val report_error: formatter -> error -> unit

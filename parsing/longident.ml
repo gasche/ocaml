@@ -11,31 +11,31 @@
 (***********************************************************************)
 
 type t =
-    Lident of string
-  | Ldot of t * string
-  | Lapply of t * t
+    Lident de string
+  | Ldot de t * string
+  | Lapply de t * t
 
-let rec flat accu = function
+soit rec flat accu = fonction
     Lident s -> s :: accu
   | Ldot(lid, s) -> flat (s :: accu) lid
   | Lapply(_, _) -> Misc.fatal_error "Longident.flat"
 
-let flatten lid = flat [] lid
+soit flatten lid = flat [] lid
 
-let last = function
+soit last = fonction
     Lident s -> s
   | Ldot(_, s) -> s
   | Lapply(_, _) -> Misc.fatal_error "Longident.last"
 
-let rec split_at_dots s pos =
-  try
-    let dot = String.index_from s pos '.' in
+soit rec split_at_dots s pos =
+  essaie
+    soit dot = String.index_from s pos '.' dans
     String.sub s pos (dot - pos) :: split_at_dots s (dot + 1)
-  with Not_found ->
+  avec Not_found ->
     [String.sub s pos (String.length s - pos)]
 
-let parse s =
-  match split_at_dots s 0 with
+soit parse s =
+  filtre split_at_dots s 0 avec
     [] -> Lident ""  (* should not happen, but don't put assert false
                         so as not to crash the toplevel (see Genprintval) *)
-  | hd :: tl -> List.fold_left (fun p s -> Ldot(p, s)) (Lident hd) tl
+  | hd :: tl -> List.fold_left (fonc p s -> Ldot(p, s)) (Lident hd) tl

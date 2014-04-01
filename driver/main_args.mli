@@ -76,7 +76,7 @@ module type Bytecomp_options =
     val _perfide_albion : unit -> unit
 
     val anonymous : string -> unit
-  end
+  fin
 ;;
 
 module type Bytetop_options = sig
@@ -113,7 +113,7 @@ module type Bytetop_options = sig
   val _dinstr : unit -> unit
 
   val anonymous : string -> unit
-end;;
+fin;;
 
 module type Optcomp_options = sig
   val _a : unit -> unit
@@ -190,7 +190,7 @@ module type Optcomp_options = sig
   val _dstartup :  unit -> unit
 
   val anonymous : string -> unit
-end;;
+fin;;
 
 module type Opttop_options = sig
   val _absname : unit -> unit
@@ -242,11 +242,11 @@ module type Opttop_options = sig
   val _dstartup :  unit -> unit
 
   val anonymous : string -> unit
-end;;
+fin;;
 
 module type Arg_list = sig
     val list : (string * Arg.spec * string) list
-end;;
+fin;;
 
 module Make_bytecomp_options (F : Bytecomp_options) : Arg_list;;
 module Make_bytetop_options (F : Bytetop_options) : Arg_list;;

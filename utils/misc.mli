@@ -133,7 +133,7 @@ module LongString :
     val output : out_channel -> t -> int -> int -> unit
     val unsafe_blit_to_string : t -> int -> string -> int -> int -> unit
     val input_bytes : in_channel -> int -> t
-  end
+  fin
 
 val edit_distance : string -> string -> int -> int option
 (** [edit_distance a b cutoff] computes the edit distance between

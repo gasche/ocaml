@@ -18,8 +18,8 @@
     This module is used to support the implementation of {!Num} and
     should not be called directly. *)
 
-open Nat
-open Big_int
+ouvre Nat
+ouvre Big_int
 
 (* Rationals (type [ratio]) are arbitrary-precision rational numbers,
    plus the special elements [1/0] (infinity) and [0/0] (undefined).

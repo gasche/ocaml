@@ -12,9 +12,9 @@
 
 (* Type inference for the core language *)
 
-open Asttypes
-open Types
-open Format
+ouvre Asttypes
+ouvre Types
+ouvre Format
 
 val is_nonexpansive: Typedtree.expression -> bool
 
@@ -63,54 +63,54 @@ val force_delayed_checks: unit -> unit
 val self_coercion : (Path.t * Location.t list ref) list ref
 
 type error =
-    Polymorphic_label of Longident.t
-  | Constructor_arity_mismatch of Longident.t * int * int
-  | Label_mismatch of Longident.t * (type_expr * type_expr) list
-  | Pattern_type_clash of (type_expr * type_expr) list
-  | Or_pattern_type_clash of Ident.t * (type_expr * type_expr) list
-  | Multiply_bound_variable of string
-  | Orpat_vars of Ident.t
-  | Expr_type_clash of (type_expr * type_expr) list
-  | Apply_non_function of type_expr
-  | Apply_wrong_label of label * type_expr
-  | Label_multiply_defined of string
-  | Label_missing of Ident.t list
-  | Label_not_mutable of Longident.t
-  | Wrong_name of string * type_expr * string * Path.t * Longident.t
-  | Name_type_mismatch of
+    Polymorphic_label de Longident.t
+  | Constructor_arity_mismatch de Longident.t * int * int
+  | Label_mismatch de Longident.t * (type_expr * type_expr) list
+  | Pattern_type_clash de (type_expr * type_expr) list
+  | Or_pattern_type_clash de Ident.t * (type_expr * type_expr) list
+  | Multiply_bound_variable de string
+  | Orpat_vars de Ident.t
+  | Expr_type_clash de (type_expr * type_expr) list
+  | Apply_non_function de type_expr
+  | Apply_wrong_label de label * type_expr
+  | Label_multiply_defined de string
+  | Label_missing de Ident.t list
+  | Label_not_mutable de Longident.t
+  | Wrong_name de string * type_expr * string * Path.t * Longident.t
+  | Name_type_mismatch de
       string * Longident.t * (Path.t * Path.t) * (Path.t * Path.t) list
-  | Incomplete_format of string
-  | Bad_conversion of string * int * char
-  | Undefined_method of type_expr * string
-  | Undefined_inherited_method of string
-  | Virtual_class of Longident.t
-  | Private_type of type_expr
-  | Private_label of Longident.t * type_expr
-  | Unbound_instance_variable of string
-  | Instance_variable_not_mutable of bool * string
-  | Not_subtype of (type_expr * type_expr) list * (type_expr * type_expr) list
+  | Incomplete_format de string
+  | Bad_conversion de string * int * char
+  | Undefined_method de type_expr * string
+  | Undefined_inherited_method de string
+  | Virtual_class de Longident.t
+  | Private_type de type_expr
+  | Private_label de Longident.t * type_expr
+  | Unbound_instance_variable de string
+  | Instance_variable_not_mutable de bool * string
+  | Not_subtype de (type_expr * type_expr) list * (type_expr * type_expr) list
   | Outside_class
-  | Value_multiply_overridden of string
-  | Coercion_failure of
+  | Value_multiply_overridden de string
+  | Coercion_failure de
       type_expr * type_expr * (type_expr * type_expr) list * bool
-  | Too_many_arguments of bool * type_expr
-  | Abstract_wrong_label of label * type_expr
-  | Scoping_let_module of string * type_expr
-  | Masked_instance_variable of Longident.t
-  | Not_a_variant_type of Longident.t
+  | Too_many_arguments de bool * type_expr
+  | Abstract_wrong_label de label * type_expr
+  | Scoping_let_module de string * type_expr
+  | Masked_instance_variable de Longident.t
+  | Not_a_variant_type de Longident.t
   | Incoherent_label_order
-  | Less_general of string * (type_expr * type_expr) list
+  | Less_general de string * (type_expr * type_expr) list
   | Modules_not_allowed
   | Cannot_infer_signature
-  | Not_a_packed_module of type_expr
-  | Recursive_local_constraint of (type_expr * type_expr) list
+  | Not_a_packed_module de type_expr
+  | Recursive_local_constraint de (type_expr * type_expr) list
   | Unexpected_existential
-  | Unqualified_gadt_pattern of Path.t * string
+  | Unqualified_gadt_pattern de Path.t * string
   | Invalid_interval
   | Invalid_for_loop_index
-  | Extension of string
+  | Extension de string
 
-exception Error of Location.t * Env.t * error
+exception Error de Location.t * Env.t * error
 
 val report_error: Env.t -> formatter -> error -> unit
  (* Deprecated.  Use Location.{error_of_exn, report_error}. *)

@@ -12,8 +12,8 @@
 
 (* Typing of type definitions and primitive definitions *)
 
-open Types
-open Format
+ouvre Types
+ouvre Format
 
 val transl_type_decl:
     Env.t -> Parsetree.type_declaration list ->
@@ -57,27 +57,27 @@ val compute_variance_decls:
 
 type error =
     Repeated_parameter
-  | Duplicate_constructor of string
+  | Duplicate_constructor de string
   | Too_many_constructors
-  | Duplicate_label of string
-  | Recursive_abbrev of string
-  | Definition_mismatch of type_expr * Includecore.type_mismatch list
-  | Constraint_failed of type_expr * type_expr
-  | Inconsistent_constraint of Env.t * (type_expr * type_expr) list
-  | Type_clash of Env.t * (type_expr * type_expr) list
-  | Parameters_differ of Path.t * type_expr * type_expr
+  | Duplicate_label de string
+  | Recursive_abbrev de string
+  | Definition_mismatch de type_expr * Includecore.type_mismatch list
+  | Constraint_failed de type_expr * type_expr
+  | Inconsistent_constraint de Env.t * (type_expr * type_expr) list
+  | Type_clash de Env.t * (type_expr * type_expr) list
+  | Parameters_differ de Path.t * type_expr * type_expr
   | Null_arity_external
   | Missing_native_external
-  | Unbound_type_var of type_expr * type_declaration
-  | Unbound_exception of Longident.t
-  | Not_an_exception of Longident.t
-  | Bad_variance of int * (bool*bool*bool) * (bool*bool*bool)
-  | Unavailable_type_constructor of Path.t
-  | Bad_fixed_type of string
-  | Unbound_type_var_exc of type_expr * type_expr
+  | Unbound_type_var de type_expr * type_declaration
+  | Unbound_exception de Longident.t
+  | Not_an_exception de Longident.t
+  | Bad_variance de int * (bool*bool*bool) * (bool*bool*bool)
+  | Unavailable_type_constructor de Path.t
+  | Bad_fixed_type de string
+  | Unbound_type_var_exc de type_expr * type_expr
   | Varying_anonymous
   | Exception_constructor_with_result
 
-exception Error of Location.t * error
+exception Error de Location.t * error
 
 val report_error: formatter -> error -> unit

@@ -14,42 +14,42 @@
 
 type t = (string, Digest.t * string) Hashtbl.t
 
-let create () = Hashtbl.create 13
+soit create () = Hashtbl.create 13
 
-let clear = Hashtbl.clear
+soit clear = Hashtbl.clear
 
-exception Inconsistency of string * string * string
+exception Inconsistency de string * string * string
 
-exception Not_available of string
+exception Not_available de string
 
-let check tbl name crc source =
-  try
-    let (old_crc, old_source) = Hashtbl.find tbl name in
-    if crc <> old_crc then raise(Inconsistency(name, source, old_source))
-  with Not_found ->
+soit check tbl name crc source =
+  essaie
+    soit (old_crc, old_source) = Hashtbl.find tbl name dans
+    si crc <> old_crc alors raise(Inconsistency(name, source, old_source))
+  avec Not_found ->
     Hashtbl.add tbl name (crc, source)
 
-let check_noadd tbl name crc source =
-  try
-    let (old_crc, old_source) = Hashtbl.find tbl name in
-    if crc <> old_crc then raise(Inconsistency(name, source, old_source))
-  with Not_found ->
+soit check_noadd tbl name crc source =
+  essaie
+    soit (old_crc, old_source) = Hashtbl.find tbl name dans
+    si crc <> old_crc alors raise(Inconsistency(name, source, old_source))
+  avec Not_found ->
     raise (Not_available name)
 
-let set tbl name crc source = Hashtbl.add tbl name (crc, source)
+soit set tbl name crc source = Hashtbl.add tbl name (crc, source)
 
-let source tbl name = snd (Hashtbl.find tbl name)
+soit source tbl name = snd (Hashtbl.find tbl name)
 
-let extract tbl =
-  Hashtbl.fold (fun name (crc, auth) accu -> (name, crc) :: accu) tbl []
+soit extract tbl =
+  Hashtbl.fold (fonc name (crc, auth) accu -> (name, crc) :: accu) tbl []
 
-let filter p tbl =
-  let to_remove = ref [] in
+soit filter p tbl =
+  soit to_remove = ref [] dans
   Hashtbl.iter
-    (fun name (crc, auth) ->
-      if not (p name) then to_remove := name :: !to_remove)
+    (fonc name (crc, auth) ->
+      si not (p name) alors to_remove := name :: !to_remove)
     tbl;
   List.iter
-    (fun name ->
-       while Hashtbl.mem tbl name do Hashtbl.remove tbl name done)
+    (fonc name ->
+       pendant_que Hashtbl.mem tbl name faire Hashtbl.remove tbl name fait)
     !to_remove

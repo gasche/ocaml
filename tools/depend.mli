@@ -12,7 +12,7 @@
 
 (** Module dependencies. *)
 
-module StringSet : Set.S with type elt = string
+module StringSet : Set.S avec type elt = string
 
 val free_structure_names : StringSet.t ref
 

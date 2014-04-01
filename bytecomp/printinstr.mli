@@ -12,9 +12,9 @@
 
 (* Pretty-print lists of instructions *)
 
-open Instruct
+ouvre Instruct
 
-open Format
+ouvre Format
 
 val instruction: formatter -> instruction -> unit
 val instrlist: formatter -> instruction list -> unit

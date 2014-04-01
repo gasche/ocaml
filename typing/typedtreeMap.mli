@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Typedtree
+ouvre Typedtree
 
 module type MapArgument = sig
   val enter_structure : structure -> structure
@@ -63,10 +63,10 @@ module type MapArgument = sig
   val leave_class_field : class_field -> class_field
   val leave_structure_item : structure_item -> structure_item
 
-end
+fin
 
 module MakeMap :
-  functor
+  foncteur
     (Iter : MapArgument) ->
 sig
   val map_structure : structure -> structure
@@ -78,6 +78,6 @@ sig
   val map_signature : signature -> signature
   val map_signature_item : signature_item -> signature_item
   val map_module_type : module_type -> module_type
-end
+fin
 
 module DefaultMapArgument : MapArgument

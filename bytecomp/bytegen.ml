@@ -12,35 +12,35 @@
 
 (*  bytegen.ml : translation of lambda terms to lists of instructions. *)
 
-open Misc
-open Asttypes
-open Primitive
-open Types
-open Lambda
-open Switch
-open Instruct
+ouvre Misc
+ouvre Asttypes
+ouvre Primitive
+ouvre Types
+ouvre Lambda
+ouvre Switch
+ouvre Instruct
 
 (**** Label generation ****)
 
-let label_counter = ref 0
+soit label_counter = ref 0
 
-let new_label () =
+soit new_label () =
   incr label_counter; !label_counter
 
 (**** Operations on compilation environments. ****)
 
-let empty_env =
+soit empty_env =
   { ce_stack = Ident.empty; ce_heap = Ident.empty; ce_rec = Ident.empty }
 
 (* Add a stack-allocated variable *)
 
-let add_var id pos env =
+soit add_var id pos env =
   { ce_stack = Ident.add id pos env.ce_stack;
     ce_heap = env.ce_heap;
     ce_rec = env.ce_rec }
 
-let rec add_vars idlist pos env =
-  match idlist with
+soit rec add_vars idlist pos env =
+  filtre idlist avec
     [] -> env
   | id :: rem -> add_vars rem (pos + 1) (add_var id pos env)
 
@@ -50,62 +50,62 @@ let rec add_vars idlist pos env =
    If the sequence starts with a branch, use the target of that branch
    as the label, thus avoiding a jump to a jump. *)
 
-let label_code = function
-    Kbranch lbl :: _ as cont -> (lbl, cont)
-  | Klabel lbl :: _ as cont -> (lbl, cont)
-  | cont -> let lbl = new_label() in (lbl, Klabel lbl :: cont)
+soit label_code = fonction
+    Kbranch lbl :: _ tel cont -> (lbl, cont)
+  | Klabel lbl :: _ tel cont -> (lbl, cont)
+  | cont -> soit lbl = new_label() dans (lbl, Klabel lbl :: cont)
 
 (* Return a branch to the continuation. That is, an instruction that,
    when executed, branches to the continuation or performs what the
    continuation performs. We avoid generating branches to branches and
    branches to returns. *)
 
-let rec make_branch_2 lbl n cont =
-  function
+soit rec make_branch_2 lbl n cont =
+  fonction
     Kreturn m :: _ -> (Kreturn (n + m), cont)
   | Klabel _ :: c  -> make_branch_2 lbl n cont c
   | Kpop m :: c    -> make_branch_2 lbl (n + m) cont c
   | _              ->
-      match lbl with
+      filtre lbl avec
         Some lbl -> (Kbranch lbl, cont)
-      | None     -> let lbl = new_label() in (Kbranch lbl, Klabel lbl :: cont)
+      | None     -> soit lbl = new_label() dans (Kbranch lbl, Klabel lbl :: cont)
 
-let make_branch cont =
-  match cont with
-    (Kbranch _ as branch) :: _ -> (branch, cont)
-  | (Kreturn _ as return) :: _ -> (return, cont)
+soit make_branch cont =
+  filtre cont avec
+    (Kbranch _ tel branch) :: _ -> (branch, cont)
+  | (Kreturn _ tel return) :: _ -> (return, cont)
   | Kraise k :: _ -> (Kraise k, cont)
   | Klabel lbl :: _ -> make_branch_2 (Some lbl) 0 cont cont
   | _ ->  make_branch_2 (None) 0 cont cont
 
 (* Avoid a branch to a label that follows immediately *)
 
-let branch_to label cont = match cont with
-| Klabel label0::_ when label = label0 -> cont
+soit branch_to label cont = filtre cont avec
+| Klabel label0::_ quand label = label0 -> cont
 | _ -> Kbranch label::cont
 
 (* Discard all instructions up to the next label.
    This function is to be applied to the continuation before adding a
    non-terminating instruction (branch, raise, return) in front of it. *)
 
-let rec discard_dead_code = function
+soit rec discard_dead_code = fonction
     [] -> []
-  | (Klabel _ | Krestart | Ksetglobal _) :: _ as cont -> cont
+  | (Klabel _ | Krestart | Ksetglobal _) :: _ tel cont -> cont
   | _ :: cont -> discard_dead_code cont
 
 (* Check if we're in tailcall position *)
 
-let rec is_tailcall = function
-    Kreturn _ :: _ -> true
+soit rec is_tailcall = fonction
+    Kreturn _ :: _ -> vrai
   | Klabel _ :: c -> is_tailcall c
   | Kpop _ :: c -> is_tailcall c
-  | _ -> false
+  | _ -> faux
 
 (* Add a Kpop N instruction in front of a continuation *)
 
-let rec add_pop n cont =
-  if n = 0 then cont else
-    match cont with
+soit rec add_pop n cont =
+  si n = 0 alors cont sinon
+    filtre cont avec
       Kpop m :: cont -> add_pop (n + m) cont
     | Kreturn m :: cont -> Kreturn(n + m) :: cont
     | Kraise _ :: _ -> cont
@@ -113,11 +113,11 @@ let rec add_pop n cont =
 
 (* Add the constant "unit" in front of a continuation *)
 
-let add_const_unit = function
-    (Kacc _ | Kconst _ | Kgetglobal _ | Kpush_retaddr _) :: _ as cont -> cont
+soit add_const_unit = fonction
+    (Kacc _ | Kconst _ | Kgetglobal _ | Kpush_retaddr _) :: _ tel cont -> cont
   | cont -> Kconst const_unit :: cont
 
-let rec push_dummies n k = match n with
+soit rec push_dummies n k = filtre n avec
 | 0 -> k
 | _ -> Kconst const_unit::Kpush::push_dummies (n-1) k
 
@@ -125,35 +125,35 @@ let rec push_dummies n k = match n with
 (**** Auxiliary for compiling "let rec" ****)
 
 type rhs_kind =
-  | RHS_block of int
-  | RHS_floatblock of int
+  | RHS_block de int
+  | RHS_floatblock de int
   | RHS_nonrec
 ;;
 
-let rec check_recordwith_updates id e =
-  match e with
+soit rec check_recordwith_updates id e =
+  filtre e avec
   | Lsequence (Lprim ((Psetfield _ | Psetfloatfield _), [Lvar id2; _]), cont)
       -> id2 = id && check_recordwith_updates id cont
   | Lvar id2 -> id2 = id
-  | _ -> false
+  | _ -> faux
 ;;
 
-let rec size_of_lambda = function
-  | Lfunction(kind, params, body) as funct ->
+soit rec size_of_lambda = fonction
+  | Lfunction(kind, params, body) tel funct ->
       RHS_block (1 + IdentSet.cardinal(free_variables funct))
   | Llet (Strict, id, Lprim (Pduprecord (kind, size), _), body)
-    when check_recordwith_updates id body ->
-      begin match kind with
+    quand check_recordwith_updates id body ->
+      début filtre kind avec
       | Record_regular -> RHS_block size
       | Record_float -> RHS_floatblock size
-      end
+      fin
   | Llet(str, id, arg, body) -> size_of_lambda body
   | Lletrec(bindings, body) -> size_of_lambda body
   | Lprim(Pmakeblock(tag, mut), args) -> RHS_block (List.length args)
   | Lprim (Pmakearray (Paddrarray|Pintarray), args) ->
       RHS_block (List.length args)
   | Lprim (Pmakearray Pfloatarray, args) -> RHS_floatblock (List.length args)
-  | Lprim (Pmakearray Pgenarray, args) -> assert false
+  | Lprim (Pmakearray Pgenarray, args) -> affirme faux
   | Lprim (Pduprecord (Record_regular, size), args) -> RHS_block size
   | Lprim (Pduprecord (Record_float, size), args) -> RHS_floatblock size
   | Levent (lam, _) -> size_of_lambda lam
@@ -162,7 +162,7 @@ let rec size_of_lambda = function
 
 (**** Merging consecutive events ****)
 
-let copy_event ev kind info repr =
+soit copy_event ev kind info repr =
   { ev_pos = 0;                   (* patched in emitcode *)
     ev_module = ev.ev_module;
     ev_loc = ev.ev_loc;
@@ -174,23 +174,23 @@ let copy_event ev kind info repr =
     ev_stacksize = ev.ev_stacksize;
     ev_repr = repr }
 
-let merge_infos ev ev' =
-  match ev.ev_info, ev'.ev_info with
+soit merge_infos ev ev' =
+  filtre ev.ev_info, ev'.ev_info avec
     Event_other, info -> info
   | info, Event_other -> info
   | _                 -> fatal_error "Bytegen.merge_infos"
 
-let merge_repr ev ev' =
-  match ev.ev_repr, ev'.ev_repr with
+soit merge_repr ev ev' =
+  filtre ev.ev_repr, ev'.ev_repr avec
     Event_none, x -> x
   | x, Event_none -> x
-  | Event_parent r, Event_child r' when r == r' && !r = 1 -> Event_none
-  | Event_child r, Event_parent r' when r == r' -> Event_parent r
+  | Event_parent r, Event_child r' quand r == r' && !r = 1 -> Event_none
+  | Event_child r, Event_parent r' quand r == r' -> Event_parent r
   | _, _          -> fatal_error "Bytegen.merge_repr"
 
-let merge_events ev ev' =
-  let (maj, min) =
-    match ev.ev_kind, ev'.ev_kind with
+soit merge_events ev ev' =
+  soit (maj, min) =
+    filtre ev.ev_kind, ev'.ev_kind avec
     (* Discard pseudo-events *)
       Event_pseudo,  _                              -> ev', ev
     | _,             Event_pseudo                   -> ev,  ev'
@@ -198,36 +198,36 @@ let merge_events ev ev' =
     | Event_before,  (Event_after _ | Event_before) -> ev',  ev
     (* Discard following events, supposedly less informative *)
     | Event_after _, (Event_after _ | Event_before) -> ev, ev'
-  in
+  dans
   copy_event maj maj.ev_kind (merge_infos maj min) (merge_repr maj min)
 
-let weaken_event ev cont =
-  match ev.ev_kind with
+soit weaken_event ev cont =
+  filtre ev.ev_kind avec
     Event_after _ ->
-      begin match cont with
-        Kpush :: Kevent ({ev_repr = Event_none} as ev') :: c ->
-          begin match ev.ev_info with
+      début filtre cont avec
+        Kpush :: Kevent ({ev_repr = Event_none} tel ev') :: c ->
+          début filtre ev.ev_info avec
             Event_return _ ->
               (* Weaken event *)
-              let repr = ref 1 in
-              let ev =
+              soit repr = ref 1 dans
+              soit ev =
                 copy_event ev Event_pseudo ev.ev_info (Event_parent repr)
-              and ev' =
+              et ev' =
                 copy_event ev' ev'.ev_kind ev'.ev_info (Event_child repr)
-              in
+              dans
               Kevent ev :: Kpush :: Kevent ev' :: c
           | _ ->
               (* Only keep following event, equivalent *)
               cont
-          end
+          fin
       | _ ->
           Kevent ev :: cont
-      end
+      fin
   | _ ->
       Kevent ev :: cont
 
-let add_event ev =
-  function
+soit add_event ev =
+  fonction
     Kevent ev' :: cont -> weaken_event (merge_events ev ev') cont
   | cont               -> weaken_event ev cont
 
@@ -235,22 +235,22 @@ let add_event ev =
 
 (* association staticraise numbers -> (lbl,size of stack *)
 
-let sz_static_raises = ref []
-let find_raise_label i =
-  try
+soit sz_static_raises = ref []
+soit find_raise_label i =
+  essaie
     List.assoc i !sz_static_raises
-  with
+  avec
   | Not_found ->
       Misc.fatal_error
         ("exit("^string_of_int i^") outside appropriated catch")
 
 (* Will the translation of l lead to a jump to label ? *)
-let code_as_jump l sz = match l with
+soit code_as_jump l sz = filtre l avec
 | Lstaticraise (i,[]) ->
-    let label,size = find_raise_label i in
-    if sz = size then
+    soit label,size = find_raise_label i dans
+    si sz = size alors
       Some label
-    else
+    sinon
       None
 | _ -> None
 
@@ -265,15 +265,15 @@ type function_to_compile =
     rec_vars: Ident.t list;             (* mutually recursive fn names *)
     rec_pos: int }                      (* rank in recursive definition *)
 
-let functions_to_compile  = (Stack.create () : function_to_compile Stack.t)
+soit functions_to_compile  = (Stack.create () : function_to_compile Stack.t)
 
 (* Name of current compilation unit (for debugging events) *)
 
-let compunit_name = ref ""
+soit compunit_name = ref ""
 
 (* Maximal stack size reached during the current function body *)
 
-let max_stack_used = ref 0
+soit max_stack_used = ref 0
 
 
 (* Sequence of string tests *)
@@ -282,15 +282,15 @@ let max_stack_used = ref 0
 (* Translate a primitive to a bytecode instruction (possibly a call to a C
    function) *)
 
-let comp_bint_primitive bi suff args =
-  let pref =
-    match bi with Pnativeint -> "caml_nativeint_"
+soit comp_bint_primitive bi suff args =
+  soit pref =
+    filtre bi avec Pnativeint -> "caml_nativeint_"
                 | Pint32 -> "caml_int32_"
-                | Pint64 -> "caml_int64_" in
+                | Pint64 -> "caml_int64_" dans
   Kccall(pref ^ suff, List.length args)
 
-let comp_primitive p args =
-  match p with
+soit comp_primitive p args =
+  filtre p avec
     Pgetglobal id -> Kgetglobal id
   | Psetglobal id -> Ksetglobal id
   | Pintcomp cmp -> Kintcomp cmp
@@ -354,12 +354,12 @@ let comp_primitive p args =
   | Parraysetu Pfloatarray -> Kccall("caml_array_unsafe_set_float", 3)
   | Parraysetu _ -> Ksetvectitem
   | Pctconst c ->
-     let const_name = match c with
+     soit const_name = filtre c avec
        | Big_endian -> "big_endian"
        | Word_size -> "word_size"
        | Ostype_unix -> "ostype_unix"
        | Ostype_win32 -> "ostype_win32"
-       | Ostype_cygwin -> "ostype_cygwin" in
+       | Ostype_cygwin -> "ostype_cygwin" dans
      Kccall(Printf.sprintf "caml_sys_const_%s" const_name, 1)
   | Pisint -> Kisint
   | Pisout -> Kisout
@@ -403,7 +403,7 @@ let comp_primitive p args =
   | Pbbswap(bi) -> comp_bint_primitive bi "bswap" args
   | _ -> fatal_error "Bytegen.comp_primitive"
 
-let is_immed n = immed_min <= n && n <= immed_max
+soit is_immed n = immed_min <= n && n <= immed_max
 
 
 (* Compile an expression.
@@ -414,107 +414,107 @@ let is_immed n = immed_min <= n && n <= immed_max
    cont = list of instructions to execute afterwards
    Result = list of instructions that evaluate exp, then perform cont. *)
 
-let rec comp_expr env exp sz cont =
-  if sz > !max_stack_used then max_stack_used := sz;
-  match exp with
+soit rec comp_expr env exp sz cont =
+  si sz > !max_stack_used alors max_stack_used := sz;
+  filtre exp avec
     Lvar id ->
-      begin try
-        let pos = Ident.find_same id env.ce_stack in
+      début essaie
+        soit pos = Ident.find_same id env.ce_stack dans
         Kacc(sz - pos) :: cont
-      with Not_found ->
-      try
-        let pos = Ident.find_same id env.ce_heap in
+      avec Not_found ->
+      essaie
+        soit pos = Ident.find_same id env.ce_heap dans
         Kenvacc(pos) :: cont
-      with Not_found ->
-      try
-        let ofs = Ident.find_same id env.ce_rec in
+      avec Not_found ->
+      essaie
+        soit ofs = Ident.find_same id env.ce_rec dans
         Koffsetclosure(ofs) :: cont
-      with Not_found ->
+      avec Not_found ->
         Format.eprintf "%a@." Ident.print id;
         fatal_error ("Bytegen.comp_expr: var " ^ Ident.unique_name id)
-      end
+      fin
   | Lconst cst ->
       Kconst cst :: cont
   | Lapply(func, args, loc) ->
-      let nargs = List.length args in
-      if is_tailcall cont then begin
+      soit nargs = List.length args dans
+      si is_tailcall cont alors début
         comp_args env args sz
           (Kpush :: comp_expr env func (sz + nargs)
             (Kappterm(nargs, sz + nargs) :: discard_dead_code cont))
-      end else begin
-        if nargs < 4 then
+      fin sinon début
+        si nargs < 4 alors
           comp_args env args sz
             (Kpush :: comp_expr env func (sz + nargs) (Kapply nargs :: cont))
-        else begin
-          let (lbl, cont1) = label_code cont in
+        sinon début
+          soit (lbl, cont1) = label_code cont dans
           Kpush_retaddr lbl ::
           comp_args env args (sz + 3)
             (Kpush :: comp_expr env func (sz + 3 + nargs)
                       (Kapply nargs :: cont1))
-        end
-      end
+        fin
+      fin
   | Lsend(kind, met, obj, args, _) ->
-      let args = if kind = Cached then List.tl args else args in
-      let nargs = List.length args + 1 in
-      let getmethod, args' =
-        if kind = Self then (Kgetmethod, met::obj::args) else
-        match met with
+      soit args = si kind = Cached alors List.tl args sinon args dans
+      soit nargs = List.length args + 1 dans
+      soit getmethod, args' =
+        si kind = Self alors (Kgetmethod, met::obj::args) sinon
+        filtre met avec
           Lconst(Const_base(Const_int n)) -> (Kgetpubmet n, obj::args)
         | _ -> (Kgetdynmet, met::obj::args)
-      in
-      if is_tailcall cont then
+      dans
+      si is_tailcall cont alors
         comp_args env args' sz
           (getmethod :: Kappterm(nargs, sz + nargs) :: discard_dead_code cont)
-      else
-        if nargs < 4 then
+      sinon
+        si nargs < 4 alors
           comp_args env args' sz
             (getmethod :: Kapply nargs :: cont)
-        else begin
-          let (lbl, cont1) = label_code cont in
+        sinon début
+          soit (lbl, cont1) = label_code cont dans
           Kpush_retaddr lbl ::
           comp_args env args' (sz + 3)
             (getmethod :: Kapply nargs :: cont1)
-        end
+        fin
   | Lfunction(kind, params, body) -> (* assume kind = Curried *)
-      let lbl = new_label() in
-      let fv = IdentSet.elements(free_variables exp) in
-      let to_compile =
+      soit lbl = new_label() dans
+      soit fv = IdentSet.elements(free_variables exp) dans
+      soit to_compile =
         { params = params; body = body; label = lbl;
-          free_vars = fv; num_defs = 1; rec_vars = []; rec_pos = 0 } in
+          free_vars = fv; num_defs = 1; rec_vars = []; rec_pos = 0 } dans
       Stack.push to_compile functions_to_compile;
-      comp_args env (List.map (fun n -> Lvar n) fv) sz
+      comp_args env (List.map (fonc n -> Lvar n) fv) sz
         (Kclosure(lbl, List.length fv) :: cont)
   | Llet(str, id, arg, body) ->
       comp_expr env arg sz
         (Kpush :: comp_expr (add_var id (sz+1) env) body (sz+1)
           (add_pop 1 cont))
   | Lletrec(decl, body) ->
-      let ndecl = List.length decl in
-      if List.for_all (function (_, Lfunction(_,_,_)) -> true | _ -> false)
-                      decl then begin
+      soit ndecl = List.length decl dans
+      si List.for_all (fonction (_, Lfunction(_,_,_)) -> vrai | _ -> faux)
+                      decl alors début
         (* let rec of functions *)
-        let fv =
-          IdentSet.elements (free_variables (Lletrec(decl, lambda_unit))) in
-        let rec_idents = List.map (fun (id, lam) -> id) decl in
-        let rec comp_fun pos = function
+        soit fv =
+          IdentSet.elements (free_variables (Lletrec(decl, lambda_unit))) dans
+        soit rec_idents = List.map (fonc (id, lam) -> id) decl dans
+        soit rec comp_fun pos = fonction
             [] -> []
           | (id, Lfunction(kind, params, body)) :: rem ->
-              let lbl = new_label() in
-              let to_compile =
+              soit lbl = new_label() dans
+              soit to_compile =
                 { params = params; body = body; label = lbl; free_vars = fv;
-                  num_defs = ndecl; rec_vars = rec_idents; rec_pos = pos} in
+                  num_defs = ndecl; rec_vars = rec_idents; rec_pos = pos} dans
               Stack.push to_compile functions_to_compile;
               lbl :: comp_fun (pos + 1) rem
-          | _ -> assert false in
-        let lbls = comp_fun 0 decl in
-        comp_args env (List.map (fun n -> Lvar n) fv) sz
+          | _ -> affirme faux dans
+        soit lbls = comp_fun 0 decl dans
+        comp_args env (List.map (fonc n -> Lvar n) fv) sz
           (Kclosurerec(lbls, List.length fv) ::
             (comp_expr (add_vars rec_idents (sz+1) env) body (sz + ndecl)
                        (add_pop ndecl cont)))
-      end else begin
-        let decl_size =
-          List.map (fun (id, exp) -> (id, exp, size_of_lambda exp)) decl in
-        let rec comp_init new_env sz = function
+      fin sinon début
+        soit decl_size =
+          List.map (fonc (id, exp) -> (id, exp, size_of_lambda exp)) decl dans
+        soit rec comp_init new_env sz = fonction
           | [] -> comp_nonrec new_env sz ndecl decl_size
           | (id, exp, RHS_floatblock blocksize) :: rem ->
               Kconst(Const_base(Const_int blocksize)) ::
@@ -527,14 +527,14 @@ let rec comp_expr env exp sz cont =
           | (id, exp, RHS_nonrec) :: rem ->
               Kconst(Const_base(Const_int 0)) :: Kpush ::
               comp_init (add_var id (sz+1) new_env) (sz+1) rem
-        and comp_nonrec new_env sz i = function
+        et comp_nonrec new_env sz i = fonction
           | [] -> comp_rec new_env sz ndecl decl_size
           | (id, exp, (RHS_block _ | RHS_floatblock _)) :: rem ->
               comp_nonrec new_env sz (i-1) rem
           | (id, exp, RHS_nonrec) :: rem ->
               comp_expr new_env exp sz
                 (Kassign (i-1) :: comp_nonrec new_env sz (i-1) rem)
-        and comp_rec new_env sz i = function
+        et comp_rec new_env sz i = fonction
           | [] -> comp_expr new_env body sz (add_pop ndecl cont)
           | (id, exp, (RHS_block _ | RHS_floatblock _)) :: rem ->
               comp_expr new_env exp sz
@@ -542,128 +542,128 @@ let rec comp_expr env exp sz cont =
                  comp_rec new_env sz (i-1) rem)
           | (id, exp, RHS_nonrec) :: rem ->
               comp_rec new_env sz (i-1) rem
-        in
+        dans
         comp_init env sz decl_size
-      end
+      fin
   | Lprim(Pidentity, [arg]) ->
       comp_expr env arg sz cont
   | Lprim(Pignore, [arg]) ->
       comp_expr env arg sz (add_const_unit cont)
   | Lprim(Pdirapply loc, [func;arg])
   | Lprim(Prevapply loc, [arg;func]) ->
-      let exp = Lapply(func, [arg], loc) in
+      soit exp = Lapply(func, [arg], loc) dans
       comp_expr env exp sz cont
   | Lprim(Pnot, [arg]) ->
-      let newcont =
-        match cont with
+      soit newcont =
+        filtre cont avec
           Kbranchif lbl :: cont1 -> Kbranchifnot lbl :: cont1
         | Kbranchifnot lbl :: cont1 -> Kbranchif lbl :: cont1
-        | _ -> Kboolnot :: cont in
+        | _ -> Kboolnot :: cont dans
       comp_expr env arg sz newcont
   | Lprim(Psequand, [exp1; exp2]) ->
-      begin match cont with
+      début filtre cont avec
         Kbranchifnot lbl :: _ ->
           comp_expr env exp1 sz (Kbranchifnot lbl ::
             comp_expr env exp2 sz cont)
       | Kbranchif lbl :: cont1 ->
-          let (lbl2, cont2) = label_code cont1 in
+          soit (lbl2, cont2) = label_code cont1 dans
           comp_expr env exp1 sz (Kbranchifnot lbl2 ::
             comp_expr env exp2 sz (Kbranchif lbl :: cont2))
       | _ ->
-          let (lbl, cont1) = label_code cont in
+          soit (lbl, cont1) = label_code cont dans
           comp_expr env exp1 sz (Kstrictbranchifnot lbl ::
             comp_expr env exp2 sz cont1)
-      end
+      fin
   | Lprim(Psequor, [exp1; exp2]) ->
-      begin match cont with
+      début filtre cont avec
         Kbranchif lbl :: _ ->
           comp_expr env exp1 sz (Kbranchif lbl ::
             comp_expr env exp2 sz cont)
       | Kbranchifnot lbl :: cont1 ->
-          let (lbl2, cont2) = label_code cont1 in
+          soit (lbl2, cont2) = label_code cont1 dans
           comp_expr env exp1 sz (Kbranchif lbl2 ::
             comp_expr env exp2 sz (Kbranchifnot lbl :: cont2))
       | _ ->
-          let (lbl, cont1) = label_code cont in
+          soit (lbl, cont1) = label_code cont dans
           comp_expr env exp1 sz (Kstrictbranchif lbl ::
             comp_expr env exp2 sz cont1)
-      end
+      fin
   | Lprim(Praise k, [arg]) ->
       comp_expr env arg sz (Kraise k :: discard_dead_code cont)
   | Lprim(Paddint, [arg; Lconst(Const_base(Const_int n))])
-    when is_immed n ->
+    quand is_immed n ->
       comp_expr env arg sz (Koffsetint n :: cont)
   | Lprim(Psubint, [arg; Lconst(Const_base(Const_int n))])
-    when is_immed (-n) ->
+    quand is_immed (-n) ->
       comp_expr env arg sz (Koffsetint (-n) :: cont)
   | Lprim (Poffsetint n, [arg])
-    when not (is_immed n) ->
+    quand not (is_immed n) ->
       comp_expr env arg sz
         (Kpush::
          Kconst (Const_base (Const_int n))::
          Kaddint::cont)
   | Lprim(Pmakearray kind, args) ->
-      begin match kind with
+      début filtre kind avec
         Pintarray | Paddrarray ->
           comp_args env args sz (Kmakeblock(List.length args, 0) :: cont)
       | Pfloatarray ->
           comp_args env args sz (Kmakefloatblock(List.length args) :: cont)
       | Pgenarray ->
-          if args = []
-          then Kmakeblock(0, 0) :: cont
-          else comp_args env args sz
+          si args = []
+          alors Kmakeblock(0, 0) :: cont
+          sinon comp_args env args sz
                  (Kmakeblock(List.length args, 0) ::
                   Kccall("caml_make_array", 1) :: cont)
-      end
+      fin
 (* Integer first for enabling futher optimization (cf. emitcode.ml)  *)
-  | Lprim (Pintcomp c, [arg ; (Lconst _ as k)]) ->
-      let p = Pintcomp (commute_comparison c)
-      and args = [k ; arg] in
+  | Lprim (Pintcomp c, [arg ; (Lconst _ tel k)]) ->
+      soit p = Pintcomp (commute_comparison c)
+      et args = [k ; arg] dans
       comp_args env args sz (comp_primitive p args :: cont)
   | Lprim(p, args) ->
       comp_args env args sz (comp_primitive p args :: cont)
   | Lstaticcatch (body, (i, vars) , handler) ->
-      let nvars = List.length vars in
-      let branch1, cont1 = make_branch cont in
-      let r =
-        if nvars <> 1 then begin (* general case *)
-          let lbl_handler, cont2 =
+      soit nvars = List.length vars dans
+      soit branch1, cont1 = make_branch cont dans
+      soit r =
+        si nvars <> 1 alors début (* general case *)
+          soit lbl_handler, cont2 =
             label_code
               (comp_expr
                 (add_vars vars (sz+1) env)
-                handler (sz+nvars) (add_pop nvars cont1)) in
+                handler (sz+nvars) (add_pop nvars cont1)) dans
           sz_static_raises :=
             (i, (lbl_handler, sz+nvars)) :: !sz_static_raises ;
           push_dummies nvars
             (comp_expr env body (sz+nvars)
             (add_pop nvars (branch1 :: cont2)))
-        end else begin (* small optimization for nvars = 1 *)
-          let var = match vars with [var] -> var | _ -> assert false in
-          let lbl_handler, cont2 =
+        fin sinon début (* small optimization for nvars = 1 *)
+          soit var = filtre vars avec [var] -> var | _ -> affirme faux dans
+          soit lbl_handler, cont2 =
             label_code
               (Kpush::comp_expr
                 (add_var var (sz+1) env)
-                handler (sz+1) (add_pop 1 cont1)) in
+                handler (sz+1) (add_pop 1 cont1)) dans
           sz_static_raises :=
             (i, (lbl_handler, sz)) :: !sz_static_raises ;
           comp_expr env body sz (branch1 :: cont2)
-        end in
+        fin dans
       sz_static_raises := List.tl !sz_static_raises ;
       r
   | Lstaticraise (i, args) ->
-      let cont = discard_dead_code cont in
-      let label,size = find_raise_label i in
-      begin match args with
+      soit cont = discard_dead_code cont dans
+      soit label,size = find_raise_label i dans
+      début filtre args avec
       | [arg] -> (* optim, argument passed in accumulator *)
           comp_expr env arg sz
             (add_pop (sz-size) (branch_to label cont))
       | _ ->
           comp_exit_args env args sz size
             (add_pop (sz-size) (branch_to label cont))
-      end
+      fin
   | Ltrywith(body, id, handler) ->
-      let (branch1, cont1) = make_branch cont in
-      let lbl_handler = new_label() in
+      soit (branch1, cont1) = make_branch cont dans
+      soit lbl_handler = new_label() dans
       Kpushtrap lbl_handler ::
         comp_expr env body (sz+4) (Kpoptrap :: branch1 ::
           Klabel lbl_handler :: Kpush ::
@@ -673,17 +673,17 @@ let rec comp_expr env exp sz cont =
   | Lsequence(exp1, exp2) ->
       comp_expr env exp1 sz (comp_expr env exp2 sz cont)
   | Lwhile(cond, body) ->
-      let lbl_loop = new_label() in
-      let lbl_test = new_label() in
+      soit lbl_loop = new_label() dans
+      soit lbl_test = new_label() dans
       Kbranch lbl_test :: Klabel lbl_loop :: Kcheck_signals ::
         comp_expr env body sz
           (Klabel lbl_test ::
             comp_expr env cond sz (Kbranchif lbl_loop :: add_const_unit cont))
   | Lfor(param, start, stop, dir, body) ->
-      let lbl_loop = new_label() in
-      let lbl_exit = new_label() in
-      let offset = match dir with Upto -> 1 | Downto -> -1 in
-      let comp = match dir with Upto -> Cgt | Downto -> Clt in
+      soit lbl_loop = new_label() dans
+      soit lbl_exit = new_label() dans
+      soit offset = filtre dir avec Upto -> 1 | Downto -> -1 dans
+      soit comp = filtre dir avec Upto -> Cgt | Downto -> Clt dans
       comp_expr env start sz
         (Kpush :: comp_expr env stop (sz+1)
           (Kpush :: Kpush :: Kacc 2 :: Kintcomp comp :: Kbranchif lbl_exit ::
@@ -693,50 +693,50 @@ let rec comp_expr env exp sz cont =
               Kacc 1 :: Kintcomp Cneq :: Kbranchif lbl_loop ::
               Klabel lbl_exit :: add_const_unit (add_pop 2 cont))))
   | Lswitch(arg, sw) ->
-      let (branch, cont1) = make_branch cont in
-      let c = ref (discard_dead_code cont1) in
+      soit (branch, cont1) = make_branch cont dans
+      soit c = ref (discard_dead_code cont1) dans
 (* Build indirection vectors *)
-      let store = mk_store Lambda.same in
-      let act_consts = Array.create sw.sw_numconsts 0
-      and act_blocks = Array.create sw.sw_numblocks 0 in
-      begin match sw.sw_failaction with (* default is index 0 *)
+      soit store = mk_store Lambda.same dans
+      soit act_consts = Array.create sw.sw_numconsts 0
+      et act_blocks = Array.create sw.sw_numblocks 0 dans
+      début filtre sw.sw_failaction avec (* default is index 0 *)
       | Some fail -> ignore (store.act_store fail)
       | None      -> ()
-      end ;
+      fin ;
       List.iter
-        (fun (n, act) -> act_consts.(n) <- store.act_store act) sw.sw_consts;
+        (fonc (n, act) -> act_consts.(n) <- store.act_store act) sw.sw_consts;
       List.iter
-        (fun (n, act) -> act_blocks.(n) <- store.act_store act) sw.sw_blocks;
+        (fonc (n, act) -> act_blocks.(n) <- store.act_store act) sw.sw_blocks;
 (* Compile and label actions *)
-      let acts = store.act_get () in
-      let lbls = Array.create (Array.length acts) 0 in
-      for i = Array.length acts-1 downto 0 do
-        let lbl,c1 = label_code (comp_expr env acts.(i) sz (branch :: !c)) in
+      soit acts = store.act_get () dans
+      soit lbls = Array.create (Array.length acts) 0 dans
+      pour i = Array.length acts-1 descendant_jusqu'a 0 faire
+        soit lbl,c1 = label_code (comp_expr env acts.(i) sz (branch :: !c)) dans
         lbls.(i) <- lbl ;
         c := discard_dead_code c1
-      done ;
+      fait ;
 
 (* Build label vectors *)
-      let lbl_blocks = Array.create sw.sw_numblocks 0 in
-      for i = sw.sw_numblocks - 1 downto 0 do
+      soit lbl_blocks = Array.create sw.sw_numblocks 0 dans
+      pour i = sw.sw_numblocks - 1 descendant_jusqu'a 0 faire
         lbl_blocks.(i) <- lbls.(act_blocks.(i))
-      done;
-      let lbl_consts = Array.create sw.sw_numconsts 0 in
-      for i = sw.sw_numconsts - 1 downto 0 do
+      fait;
+      soit lbl_consts = Array.create sw.sw_numconsts 0 dans
+      pour i = sw.sw_numconsts - 1 descendant_jusqu'a 0 faire
         lbl_consts.(i) <- lbls.(act_consts.(i))
-      done;
+      fait;
       comp_expr env arg sz (Kswitch(lbl_consts, lbl_blocks) :: !c)
   | Lstringswitch (arg,sw,d) ->
       comp_expr env (Matching.expand_stringswitch arg sw d) sz cont
   | Lassign(id, expr) ->
-      begin try
-        let pos = Ident.find_same id env.ce_stack in
+      début essaie
+        soit pos = Ident.find_same id env.ce_stack dans
         comp_expr env expr sz (Kassign(sz - pos) :: cont)
-      with Not_found ->
+      avec Not_found ->
         fatal_error "Bytegen.comp_expr: assign"
-      end
+      fin
   | Levent(lam, lev) ->
-      let event kind info =
+      soit event kind info =
         { ev_pos = 0;                   (* patched in emitcode *)
           ev_module = !compunit_name;
           ev_loc = lev.lev_loc;
@@ -747,41 +747,41 @@ let rec comp_expr env exp sz cont =
           ev_compenv = env;
           ev_stacksize = sz;
           ev_repr =
-            begin match lev.lev_repr with
+            début filtre lev.lev_repr avec
               None ->
                 Event_none
-            | Some ({contents = 1} as repr) when lev.lev_kind = Lev_function ->
+            | Some ({contents = 1} tel repr) quand lev.lev_kind = Lev_function ->
                 Event_child repr
-            | Some ({contents = 1} as repr) ->
+            | Some ({contents = 1} tel repr) ->
                 Event_parent repr
-            | Some repr when lev.lev_kind = Lev_function ->
+            | Some repr quand lev.lev_kind = Lev_function ->
                 Event_parent repr
             | Some repr ->
                 Event_child repr
-            end }
-      in
-      begin match lev.lev_kind with
+            fin }
+      dans
+      début filtre lev.lev_kind avec
         Lev_before ->
-          let c = comp_expr env lam sz cont in
-          let ev = event Event_before Event_other in
+          soit c = comp_expr env lam sz cont dans
+          soit ev = event Event_before Event_other dans
           add_event ev c
       | Lev_function ->
-          let c = comp_expr env lam sz cont in
-          let ev = event Event_pseudo Event_function in
+          soit c = comp_expr env lam sz cont dans
+          soit ev = event Event_pseudo Event_function dans
           add_event ev c
-      | Lev_after _ when is_tailcall cont -> (* don't destroy tail call opt *)
+      | Lev_after _ quand is_tailcall cont -> (* don't destroy tail call opt *)
           comp_expr env lam sz cont
       | Lev_after ty ->
-          let info =
-            match lam with
+          soit info =
+            filtre lam avec
               Lapply(_, args, _)      -> Event_return (List.length args)
             | Lsend(_, _, _, args, _) -> Event_return (List.length args + 1)
             | _                       -> Event_other
-          in
-          let ev = event (Event_after ty) info in
-          let cont1 = add_event ev cont in
+          dans
+          soit ev = event (Event_after ty) info dans
+          soit cont1 = add_event ev cont dans
           comp_expr env lam sz cont1
-      end
+      fin
   | Lifused (_, exp) ->
       comp_expr env exp sz cont
 
@@ -789,19 +789,19 @@ let rec comp_expr env exp sz cont =
    The values of eN ... e2 are pushed on the stack, e2 at top of stack,
    then e3, then ... The value of e1 is left in the accumulator. *)
 
-and comp_args env argl sz cont =
+et comp_args env argl sz cont =
   comp_expr_list env (List.rev argl) sz cont
 
-and comp_expr_list env exprl sz cont = match exprl with
+et comp_expr_list env exprl sz cont = filtre exprl avec
     [] -> cont
   | [exp] -> comp_expr env exp sz cont
   | exp :: rem ->
       comp_expr env exp sz (Kpush :: comp_expr_list env rem (sz+1) cont)
 
-and comp_exit_args  env argl sz pos cont =
+et comp_exit_args  env argl sz pos cont =
    comp_expr_list_assign env (List.rev argl) sz pos cont
 
-and comp_expr_list_assign env exprl sz pos cont = match exprl with
+et comp_expr_list_assign env exprl sz pos cont = filtre exprl avec
   | [] -> cont
   | exp :: rem ->
       comp_expr env exp sz
@@ -809,93 +809,93 @@ and comp_expr_list_assign env exprl sz pos cont = match exprl with
 
 (* Compile an if-then-else test. *)
 
-and comp_binary_test env cond ifso ifnot sz cont =
-  let cont_cond =
-    if ifnot = Lconst const_unit then begin
-      let (lbl_end, cont1) = label_code cont in
+et comp_binary_test env cond ifso ifnot sz cont =
+  soit cont_cond =
+    si ifnot = Lconst const_unit alors début
+      soit (lbl_end, cont1) = label_code cont dans
       Kstrictbranchifnot lbl_end :: comp_expr env ifso sz cont1
-    end else
-    match code_as_jump ifso sz with
+    fin sinon
+    filtre code_as_jump ifso sz avec
     | Some label ->
-      let cont = comp_expr env ifnot sz cont in
+      soit cont = comp_expr env ifnot sz cont dans
       Kbranchif label :: cont
     | _ ->
-        match code_as_jump ifnot sz with
+        filtre code_as_jump ifnot sz avec
         | Some label ->
-            let cont = comp_expr env ifso sz cont in
+            soit cont = comp_expr env ifso sz cont dans
             Kbranchifnot label :: cont
         | _ ->
-            let (branch_end, cont1) = make_branch cont in
-            let (lbl_not, cont2) = label_code(comp_expr env ifnot sz cont1) in
+            soit (branch_end, cont1) = make_branch cont dans
+            soit (lbl_not, cont2) = label_code(comp_expr env ifnot sz cont1) dans
             Kbranchifnot lbl_not ::
-            comp_expr env ifso sz (branch_end :: cont2) in
+            comp_expr env ifso sz (branch_end :: cont2) dans
 
   comp_expr env cond sz cont_cond
 
 (* Compile string switch *)
 
-and comp_string_switch env arg cases default sz cont = ()
+et comp_string_switch env arg cases default sz cont = ()
 
 (**** Compilation of a code block (with tracking of stack usage) ****)
 
-let comp_block env exp sz cont =
+soit comp_block env exp sz cont =
   max_stack_used := 0;
-  let code = comp_expr env exp sz cont in
+  soit code = comp_expr env exp sz cont dans
   (* +1 because comp_expr may have pushed one more word *)
-  if !max_stack_used + 1 > Config.stack_threshold then
+  si !max_stack_used + 1 > Config.stack_threshold alors
     Kconst(Const_base(Const_int(!max_stack_used + 1))) ::
     Kccall("caml_ensure_stack_capacity", 1) ::
     code
-  else
+  sinon
     code
 
 (**** Compilation of functions ****)
 
-let comp_function tc cont =
-  let arity = List.length tc.params in
-  let rec positions pos delta = function
+soit comp_function tc cont =
+  soit arity = List.length tc.params dans
+  soit rec positions pos delta = fonction
       [] -> Ident.empty
-    | id :: rem -> Ident.add id pos (positions (pos + delta) delta rem) in
-  let env =
+    | id :: rem -> Ident.add id pos (positions (pos + delta) delta rem) dans
+  soit env =
     { ce_stack = positions arity (-1) tc.params;
       ce_heap = positions (2 * (tc.num_defs - tc.rec_pos) - 1) 1 tc.free_vars;
-      ce_rec = positions (-2 * tc.rec_pos) 2 tc.rec_vars } in
-  let cont =
-    comp_block env tc.body arity (Kreturn arity :: cont) in
-  if arity > 1 then
+      ce_rec = positions (-2 * tc.rec_pos) 2 tc.rec_vars } dans
+  soit cont =
+    comp_block env tc.body arity (Kreturn arity :: cont) dans
+  si arity > 1 alors
     Krestart :: Klabel tc.label :: Kgrab(arity - 1) :: cont
-  else
+  sinon
     Klabel tc.label :: cont
 
-let comp_remainder cont =
-  let c = ref cont in
-  begin try
-    while true do
+soit comp_remainder cont =
+  soit c = ref cont dans
+  début essaie
+    pendant_que vrai faire
       c := comp_function (Stack.pop functions_to_compile) !c
-    done
-  with Stack.Empty ->
+    fait
+  avec Stack.Empty ->
     ()
-  end;
+  fin;
   !c
 
 (**** Compilation of a lambda phrase ****)
 
-let compile_implementation modulename expr =
+soit compile_implementation modulename expr =
   Stack.clear functions_to_compile;
   label_counter := 0;
   sz_static_raises := [] ;
   compunit_name := modulename;
-  let init_code = comp_block empty_env expr 0 [] in
-  if Stack.length functions_to_compile > 0 then begin
-    let lbl_init = new_label() in
+  soit init_code = comp_block empty_env expr 0 [] dans
+  si Stack.length functions_to_compile > 0 alors début
+    soit lbl_init = new_label() dans
     Kbranch lbl_init :: comp_remainder (Klabel lbl_init :: init_code)
-  end else
+  fin sinon
     init_code
 
-let compile_phrase expr =
+soit compile_phrase expr =
   Stack.clear functions_to_compile;
   label_counter := 0;
   sz_static_raises := [] ;
-  let init_code = comp_block empty_env expr 1 [Kreturn 1] in
-  let fun_code = comp_remainder [] in
+  soit init_code = comp_block empty_env expr 1 [Kreturn 1] dans
+  soit fun_code = comp_remainder [] dans
   (init_code, fun_code)

@@ -10,8 +10,8 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Parsetree;;
-open Format;;
+ouvre Parsetree;;
+ouvre Format;;
 
 val interface : formatter -> signature_item list -> unit;;
 val implementation : formatter -> structure_item list -> unit;;

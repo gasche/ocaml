@@ -111,22 +111,22 @@ val init : unit -> unit
 (** {6 Error reporting} *)
 
 type linking_error =
-    Undefined_global of string
-  | Unavailable_primitive of string
-  | Uninitialized_global of string
+    Undefined_global de string
+  | Unavailable_primitive de string
+  | Uninitialized_global de string
 
 type error =
-    Not_a_bytecode_file of string
-  | Inconsistent_import of string
-  | Unavailable_unit of string
+    Not_a_bytecode_file de string
+  | Inconsistent_import de string
+  | Unavailable_unit de string
   | Unsafe_file
-  | Linking_error of string * linking_error
-  | Corrupted_interface of string
-  | File_not_found of string
-  | Cannot_open_dll of string
-  | Inconsistent_implementation of string
+  | Linking_error de string * linking_error
+  | Corrupted_interface de string
+  | File_not_found de string
+  | Cannot_open_dll de string
+  | Inconsistent_implementation de string
 
-exception Error of error
+exception Error de error
 (** Errors in dynamic linking are reported by raising the [Error]
     exception with a description of the error. *)
 

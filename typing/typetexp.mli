@@ -12,7 +12,7 @@
 
 (* Typechecking of type expressions for the core language *)
 
-open Types
+ouvre Types
 
 val transl_simple_type:
         Env.t -> bool -> Parsetree.core_type -> Typedtree.core_type
@@ -32,39 +32,39 @@ type variable_context
 val narrow: unit -> variable_context
 val widen: variable_context -> unit
 
-exception Already_bound of Location.t
+exception Already_bound de Location.t
 
 type error =
-    Unbound_type_variable of string
-  | Unbound_type_constructor of Longident.t
-  | Unbound_type_constructor_2 of Path.t
-  | Type_arity_mismatch of Longident.t * int * int
-  | Bound_type_variable of string
+    Unbound_type_variable de string
+  | Unbound_type_constructor de Longident.t
+  | Unbound_type_constructor_2 de Path.t
+  | Type_arity_mismatch de Longident.t * int * int
+  | Bound_type_variable de string
   | Recursive_type
-  | Unbound_row_variable of Longident.t
-  | Type_mismatch of (type_expr * type_expr) list
-  | Alias_type_mismatch of (type_expr * type_expr) list
-  | Present_has_conjunction of string
-  | Present_has_no_type of string
-  | Constructor_mismatch of type_expr * type_expr
-  | Not_a_variant of type_expr
-  | Variant_tags of string * string
-  | Invalid_variable_name of string
-  | Cannot_quantify of string * type_expr
-  | Multiple_constraints_on_type of Longident.t
-  | Repeated_method_label of string
-  | Unbound_value of Longident.t
-  | Unbound_constructor of Longident.t
-  | Unbound_label of Longident.t
-  | Unbound_module of Longident.t
-  | Unbound_class of Longident.t
-  | Unbound_modtype of Longident.t
-  | Unbound_cltype of Longident.t
-  | Ill_typed_functor_application of Longident.t
+  | Unbound_row_variable de Longident.t
+  | Type_mismatch de (type_expr * type_expr) list
+  | Alias_type_mismatch de (type_expr * type_expr) list
+  | Present_has_conjunction de string
+  | Present_has_no_type de string
+  | Constructor_mismatch de type_expr * type_expr
+  | Not_a_variant de type_expr
+  | Variant_tags de string * string
+  | Invalid_variable_name de string
+  | Cannot_quantify de string * type_expr
+  | Multiple_constraints_on_type de Longident.t
+  | Repeated_method_label de string
+  | Unbound_value de Longident.t
+  | Unbound_constructor de Longident.t
+  | Unbound_label de Longident.t
+  | Unbound_module de Longident.t
+  | Unbound_class de Longident.t
+  | Unbound_modtype de Longident.t
+  | Unbound_cltype de Longident.t
+  | Ill_typed_functor_application de Longident.t
   | Illegal_reference_to_recursive_module
-  | Extension of string
+  | Extension de string
 
-exception Error of Location.t * Env.t * error
+exception Error de Location.t * Env.t * error
 
 val report_error: Env.t -> Format.formatter -> error -> unit
 

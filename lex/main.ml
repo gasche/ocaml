@@ -12,29 +12,29 @@
 
 (* The lexer generator. Command-line parsing. *)
 
-open Syntax
+ouvre Syntax
 
-let ml_automata = ref false
-let source_name = ref None
-let output_name = ref None
+soit ml_automata = ref faux
+soit source_name = ref None
+soit output_name = ref None
 
-let usage = "usage: ocamllex [options] sourcefile"
+soit usage = "usage: ocamllex [options] sourcefile"
 
-let print_version_string () =
+soit print_version_string () =
   print_string "The OCaml lexer generator, version ";
   print_string Sys.ocaml_version ; print_newline();
   exit 0
 
-let print_version_num () =
+soit print_version_num () =
   print_endline Sys.ocaml_version;
   exit 0;
 ;;
 
-let specs =
+soit specs =
   ["-ml", Arg.Set ml_automata,
     " Output code that does not use the Lexing module built-in automata \
      interpreter";
-   "-o", Arg.String (fun x -> output_name := Some x),
+   "-o", Arg.String (fonc x -> output_name := Some x),
     " <file>  Set output file name to <file>";
    "-q", Arg.Set Common.quiet_mode, " Do not display informational messages";
    "-v",  Arg.Unit print_version_string, " Print version and exit";
@@ -42,62 +42,62 @@ let specs =
    "-vnum",  Arg.Unit print_version_num, " Print version number and exit";
   ]
 
-let _ =
+soit _ =
   Arg.parse
     specs
-    (fun name -> source_name := Some name)
+    (fonc name -> source_name := Some name)
     usage
 
 
-let main () =
+soit main () =
 
-  let source_name = match !source_name with
+  soit source_name = filtre !source_name avec
   | None -> Arg.usage specs usage ; exit 2
-  | Some name -> name in
-  let dest_name = match !output_name with
+  | Some name -> name dans
+  soit dest_name = filtre !output_name avec
   | Some name -> name
   | None ->
-      if Filename.check_suffix source_name ".mll" then
+      si Filename.check_suffix source_name ".mll" alors
         Filename.chop_suffix source_name ".mll" ^ ".ml"
-      else
-        source_name ^ ".ml" in
+      sinon
+        source_name ^ ".ml" dans
 
-  let ic = open_in_bin source_name in
-  let oc = open_out dest_name in
-  let tr = Common.open_tracker dest_name oc in
-  let lexbuf = Lexing.from_channel ic in
+  soit ic = open_in_bin source_name dans
+  soit oc = open_out dest_name dans
+  soit tr = Common.open_tracker dest_name oc dans
+  soit lexbuf = Lexing.from_channel ic dans
   lexbuf.Lexing.lex_curr_p <-
     {Lexing.pos_fname = source_name; Lexing.pos_lnum = 1;
      Lexing.pos_bol = 0; Lexing.pos_cnum = 0};
-  try
-    let def = Parser.lexer_definition Lexer.main lexbuf in
-    let (entries, transitions) = Lexgen.make_dfa def.entrypoints in
-    if !ml_automata then begin
+  essaie
+    soit def = Parser.lexer_definition Lexer.main lexbuf dans
+    soit (entries, transitions) = Lexgen.make_dfa def.entrypoints dans
+    si !ml_automata alors début
       Outputbis.output_lexdef
         source_name ic oc tr
         def.header def.refill_handler entries transitions def.trailer
-    end else begin
-       let tables = Compact.compact_tables transitions in
+    fin sinon début
+       soit tables = Compact.compact_tables transitions dans
        Output.output_lexdef source_name ic oc tr
          def.header def.refill_handler tables entries def.trailer
-    end;
+    fin;
     close_in ic;
     close_out oc;
     Common.close_tracker tr;
-  with exn ->
+  avec exn ->
     close_in ic;
     close_out oc;
     Common.close_tracker tr;
     Sys.remove dest_name;
-    begin match exn with
+    début filtre exn avec
     | Cset.Bad ->
-        let p = Lexing.lexeme_start_p lexbuf in
+        soit p = Lexing.lexeme_start_p lexbuf dans
         Printf.fprintf stderr
           "File \"%s\", line %d, character %d: character set expected.\n"
           p.Lexing.pos_fname p.Lexing.pos_lnum
           (p.Lexing.pos_cnum - p.Lexing.pos_bol)
     | Parsing.Parse_error ->
-        let p = Lexing.lexeme_start_p lexbuf in
+        soit p = Lexing.lexeme_start_p lexbuf dans
         Printf.fprintf stderr
           "File \"%s\", line %d, character %d: syntax error.\n"
           p.Lexing.pos_fname p.Lexing.pos_lnum
@@ -116,7 +116,7 @@ let main () =
           source_name
     | _ ->
         raise exn
-    end;
+    fin;
     exit 3
 
-let _ = (* Printexc.catch *) main (); exit 0
+soit _ = (* Printexc.catch *) main (); exit 0

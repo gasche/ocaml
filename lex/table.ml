@@ -10,23 +10,23 @@
 (*                                                                     *)
 (***********************************************************************)
 
-type 'a t = {mutable next : int ; mutable data : 'a array}
+type 'a t = {modifiable next : int ; modifiable data : 'a array}
 
-let default_size = 32
+soit default_size = 32
 ;;
 
-let create x = {next = 0 ; data = Array.create default_size x}
-and reset t = t.next <- 0
+soit create x = {next = 0 ; data = Array.create default_size x}
+et reset t = t.next <- 0
 ;;
 
-let incr_table table new_size =
-  let t = Array.create new_size table.data.(0) in
+soit incr_table table new_size =
+  soit t = Array.create new_size table.data.(0) dans
   Array.blit table.data 0 t 0 (Array.length table.data) ;
   table.data <- t
 
-let emit table i =
- let size = Array.length table.data in
- if table.next >= size then
+soit emit table i =
+ soit size = Array.length table.data dans
+ si table.next >= size alors
     incr_table table (2*size);
  table.data.(table.next) <- i ;
  table.next <- table.next + 1
@@ -35,22 +35,22 @@ let emit table i =
 
 exception Error
 
-let get t i =
-  if 0 <= i && i < t.next then
+soit get t i =
+  si 0 <= i && i < t.next alors
     t.data.(i)
-  else
+  sinon
     raise Error
 
-let trim t =
-  let r = Array.sub t.data 0 t.next in
+soit trim t =
+  soit r = Array.sub t.data 0 t.next dans
   reset t ;
   r
 
-let iter t f =
-  let size = t.next
-  and data = t.data in
-  for i = 0 to size-1 do
+soit iter t f =
+  soit size = t.next
+  et data = t.data dans
+  pour i = 0 à size-1 faire
     f data.(i)
-  done
+  fait
 
-let size t = t.next
+soit size t = t.next

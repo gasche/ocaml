@@ -12,8 +12,8 @@
 
 (* Generation of bytecode for .cmo files *)
 
-open Cmo_format
-open Instruct
+ouvre Cmo_format
+ouvre Instruct
 
 val to_file: out_channel -> string -> instruction list -> unit
         (* Arguments:

@@ -12,9 +12,9 @@
 
 (* Printing functions *)
 
-open Format
-open Types
-open Outcometree
+ouvre Format
+ouvre Types
+ouvre Outcometree
 
 val longident: formatter -> Longident.t -> unit
 val ident: formatter -> Ident.t -> unit

@@ -12,93 +12,93 @@
 
 (* Auxiliaries for type-based optimizations, e.g. array kinds *)
 
-open Path
-open Types
-open Typedtree
-open Lambda
+ouvre Path
+ouvre Types
+ouvre Typedtree
+ouvre Lambda
 
-let scrape env ty =
+soit scrape env ty =
   (Ctype.repr (Ctype.expand_head_opt env (Ctype.correct_levels ty))).desc
 
-let has_base_type exp base_ty_path =
-  match scrape exp.exp_env exp.exp_type with
+soit has_base_type exp base_ty_path =
+  filtre scrape exp.exp_env exp.exp_type avec
   | Tconstr(p, _, _) -> Path.same p base_ty_path
-  | _ -> false
+  | _ -> faux
 
-let maybe_pointer exp =
-  match scrape exp.exp_env exp.exp_type with
+soit maybe_pointer exp =
+  filtre scrape exp.exp_env exp.exp_type avec
   | Tconstr(p, args, abbrev) ->
       not (Path.same p Predef.path_int) &&
       not (Path.same p Predef.path_char) &&
-      begin try
-        match Env.find_type p exp.exp_env with
-        | {type_kind = Type_variant []} -> true (* type exn *)
+      début essaie
+        filtre Env.find_type p exp.exp_env avec
+        | {type_kind = Type_variant []} -> vrai (* type exn *)
         | {type_kind = Type_variant cstrs} ->
-            List.exists (fun c -> c.Types.cd_args <> []) cstrs
-        | _ -> true
-      with Not_found -> true
+            List.exists (fonc c -> c.Types.cd_args <> []) cstrs
+        | _ -> vrai
+      avec Not_found -> vrai
         (* This can happen due to e.g. missing -I options,
            causing some .cmi files to be unavailable.
            Maybe we should emit a warning. *)
-      end
-  | _ -> true
+      fin
+  | _ -> vrai
 
-let array_element_kind env ty =
-  match scrape env ty with
+soit array_element_kind env ty =
+  filtre scrape env ty avec
   | Tvar _ | Tunivar _ ->
       Pgenarray
   | Tconstr(p, args, abbrev) ->
-      if Path.same p Predef.path_int || Path.same p Predef.path_char then
+      si Path.same p Predef.path_int || Path.same p Predef.path_char alors
         Pintarray
-      else if Path.same p Predef.path_float then
+      sinon si Path.same p Predef.path_float alors
         Pfloatarray
-      else if Path.same p Predef.path_string
+      sinon si Path.same p Predef.path_string
            || Path.same p Predef.path_array
            || Path.same p Predef.path_nativeint
            || Path.same p Predef.path_int32
-           || Path.same p Predef.path_int64 then
+           || Path.same p Predef.path_int64 alors
         Paddrarray
-      else begin
-        try
-          match Env.find_type p env with
+      sinon début
+        essaie
+          filtre Env.find_type p env avec
             {type_kind = Type_abstract} ->
               Pgenarray
           | {type_kind = Type_variant cstrs}
-            when List.for_all (fun c -> c.Types.cd_args = []) cstrs ->
+            quand List.for_all (fonc c -> c.Types.cd_args = []) cstrs ->
               Pintarray
           | {type_kind = _} ->
               Paddrarray
-        with Not_found ->
+        avec Not_found ->
           (* This can happen due to e.g. missing -I options,
              causing some .cmi files to be unavailable.
              Maybe we should emit a warning. *)
           Pgenarray
-      end
+      fin
   | _ ->
       Paddrarray
 
-let array_kind_gen ty env =
-  match scrape env ty with
+soit array_kind_gen ty env =
+  filtre scrape env ty avec
   | Tconstr(p, [elt_ty], _) | Tpoly({desc = Tconstr(p, [elt_ty], _)}, _)
-    when Path.same p Predef.path_array ->
+    quand Path.same p Predef.path_array ->
       array_element_kind env elt_ty
   | _ ->
       (* This can happen with e.g. Obj.field *)
       Pgenarray
 
-let array_kind exp = array_kind_gen exp.exp_type exp.exp_env
+soit array_kind exp = array_kind_gen exp.exp_type exp.exp_env
 
-let array_pattern_kind pat = array_kind_gen pat.pat_type pat.pat_env
+soit array_pattern_kind pat = array_kind_gen pat.pat_type pat.pat_env
 
-let bigarray_decode_type env ty tbl dfl =
-  match scrape env ty with
+soit bigarray_decode_type env ty tbl dfl =
+  filtre scrape env ty avec
   | Tconstr(Pdot(Pident mod_id, type_name, _), [], _)
-    when Ident.name mod_id = "Bigarray" ->
-      begin try List.assoc type_name tbl with Not_found -> dfl end
+    quand Ident.name mod_id = "Bigarray" ->
+      début essaie List.assoc type_name tbl avec Not_found -> dfl fin
   | _ ->
       dfl
 
-let kind_table =
+soit kind_table =
   ["float32_elt", Pbigarray_float32;
    "float64_elt", Pbigarray_float64;
    "int8_signed_elt", Pbigarray_sint8;
@@ -112,12 +112,12 @@ let kind_table =
    "complex32_elt", Pbigarray_complex32;
    "complex64_elt", Pbigarray_complex64]
 
-let layout_table =
+soit layout_table =
   ["c_layout", Pbigarray_c_layout;
    "fortran_layout", Pbigarray_fortran_layout]
 
-let bigarray_kind_and_layout exp =
-  match scrape exp.exp_env exp.exp_type with
+soit bigarray_kind_and_layout exp =
+  filtre scrape exp.exp_env exp.exp_type avec
   | Tconstr(p, [caml_type; elt_type; layout_type], abbrev) ->
       (bigarray_decode_type exp.exp_env elt_type kind_table Pbigarray_unknown,
        bigarray_decode_type exp.exp_env layout_type layout_table

@@ -12,9 +12,9 @@
 
 (* Inclusion checks for the class language *)
 
-open Types
-open Ctype
-open Format
+ouvre Types
+ouvre Ctype
+ouvre Format
 
 val class_types:
         Env.t -> class_type -> class_type -> class_match_failure list

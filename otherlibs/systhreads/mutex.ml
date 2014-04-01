@@ -12,7 +12,7 @@
 (***********************************************************************)
 
 type t
-external create: unit -> t = "caml_mutex_new"
-external lock: t -> unit = "caml_mutex_lock"
-external try_lock: t -> bool = "caml_mutex_try_lock"
-external unlock: t -> unit = "caml_mutex_unlock"
+dehors create: unit -> t = "caml_mutex_new"
+dehors lock: t -> unit = "caml_mutex_lock"
+dehors try_lock: t -> bool = "caml_mutex_try_lock"
+dehors unlock: t -> unit = "caml_mutex_unlock"

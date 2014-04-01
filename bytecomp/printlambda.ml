@@ -10,14 +10,14 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Format
-open Asttypes
-open Primitive
-open Types
-open Lambda
+ouvre Format
+ouvre Asttypes
+ouvre Primitive
+ouvre Types
+ouvre Lambda
 
 
-let rec struct_const ppf = function
+soit rec struct_const ppf = fonction
   | Const_base(Const_int n) -> fprintf ppf "%i" n
   | Const_base(Const_char c) -> fprintf ppf "%C" c
   | Const_base(Const_string (s, _)) -> fprintf ppf "%S" s
@@ -30,39 +30,39 @@ let rec struct_const ppf = function
   | Const_block(tag, []) ->
       fprintf ppf "[%i]" tag
   | Const_block(tag, sc1::scl) ->
-      let sconsts ppf scl =
-        List.iter (fun sc -> fprintf ppf "@ %a" struct_const sc) scl in
+      soit sconsts ppf scl =
+        List.iter (fonc sc -> fprintf ppf "@ %a" struct_const sc) scl dans
       fprintf ppf "@[<1>[%i:@ @[%a%a@]]@]" tag struct_const sc1 sconsts scl
   | Const_float_array [] ->
       fprintf ppf "[| |]"
   | Const_float_array (f1 :: fl) ->
-      let floats ppf fl =
-        List.iter (fun f -> fprintf ppf "@ %s" f) fl in
+      soit floats ppf fl =
+        List.iter (fonc f -> fprintf ppf "@ %s" f) fl dans
       fprintf ppf "@[<1>[|@[%s%a@]|]@]" f1 floats fl
 
-let boxed_integer_name = function
+soit boxed_integer_name = fonction
   | Pnativeint -> "nativeint"
   | Pint32 -> "int32"
   | Pint64 -> "int64"
 
-let print_boxed_integer name ppf bi =
+soit print_boxed_integer name ppf bi =
   fprintf ppf "%s_%s" (boxed_integer_name bi) name
 
-let print_boxed_integer_conversion ppf bi1 bi2 =
+soit print_boxed_integer_conversion ppf bi1 bi2 =
   fprintf ppf "%s_of_%s" (boxed_integer_name bi2) (boxed_integer_name bi1)
 
-let boxed_integer_mark name = function
+soit boxed_integer_mark name = fonction
   | Pnativeint -> Printf.sprintf "Nativeint.%s" name
   | Pint32 -> Printf.sprintf "Int32.%s" name
   | Pint64 -> Printf.sprintf "Int64.%s" name
 
-let print_boxed_integer name ppf bi =
+soit print_boxed_integer name ppf bi =
   fprintf ppf "%s" (boxed_integer_mark name bi);;
 
-let print_bigarray name unsafe kind ppf layout =
+soit print_bigarray name unsafe kind ppf layout =
   fprintf ppf "Bigarray.%s[%s,%s]"
-    (if unsafe then "unsafe_"^ name else name)
-    (match kind with
+    (si unsafe alors "unsafe_"^ name sinon name)
+    (filtre kind avec
      | Pbigarray_unknown -> "generic"
      | Pbigarray_float32 -> "float32"
      | Pbigarray_float64 -> "float64"
@@ -76,18 +76,18 @@ let print_bigarray name unsafe kind ppf layout =
      | Pbigarray_native_int -> "nativeint"
      | Pbigarray_complex32 -> "complex32"
      | Pbigarray_complex64 -> "complex64")
-    (match layout with
+    (filtre layout avec
     |  Pbigarray_unknown_layout -> "unknown"
      | Pbigarray_c_layout -> "C"
      | Pbigarray_fortran_layout -> "Fortran")
 
-let record_rep ppf r =
-  match r with
+soit record_rep ppf r =
+  filtre r avec
   | Record_regular -> fprintf ppf "regular"
   | Record_float -> fprintf ppf "float"
 ;;
 
-let primitive ppf = function
+soit primitive ppf = fonction
   | Pidentity -> fprintf ppf "id"
   | Pignore -> fprintf ppf "ignore"
   | Prevapply _ -> fprintf ppf "revapply"
@@ -98,7 +98,7 @@ let primitive ppf = function
   | Pmakeblock(tag, Mutable) -> fprintf ppf "makemutable %i" tag
   | Pfield n -> fprintf ppf "field %i" n
   | Psetfield(n, ptr) ->
-      let instr = if ptr then "setfield_ptr " else "setfield_imm " in
+      soit instr = si ptr alors "setfield_ptr " sinon "setfield_imm " dans
       fprintf ppf "%s%i" instr n
   | Pfloatfield n -> fprintf ppf "floatfield %i" n
   | Psetfloatfield n -> fprintf ppf "setfloatfield %i" n
@@ -155,12 +155,12 @@ let primitive ppf = function
   | Parrayrefs _ -> fprintf ppf "array.get"
   | Parraysets _ -> fprintf ppf "array.set"
   | Pctconst c ->
-     let const_name = match c with
+     soit const_name = filtre c avec
        | Big_endian -> "big_endian"
        | Word_size -> "word_size"
        | Ostype_unix -> "ostype_unix"
        | Ostype_win32 -> "ostype_win32"
-       | Ostype_cygwin -> "ostype_cygwin" in
+       | Ostype_cygwin -> "ostype_cygwin" dans
      fprintf ppf "sys.constant_%s" const_name
   | Pisint -> fprintf ppf "isint"
   | Pisout -> fprintf ppf "isout"
@@ -192,141 +192,141 @@ let primitive ppf = function
       print_bigarray "set" unsafe kind ppf layout
   | Pbigarraydim(n) -> fprintf ppf "Bigarray.dim_%i" n
   | Pstring_load_16(unsafe) ->
-     if unsafe then fprintf ppf "string.unsafe_get16"
-     else fprintf ppf "string.get16"
+     si unsafe alors fprintf ppf "string.unsafe_get16"
+     sinon fprintf ppf "string.get16"
   | Pstring_load_32(unsafe) ->
-     if unsafe then fprintf ppf "string.unsafe_get32"
-     else fprintf ppf "string.get32"
+     si unsafe alors fprintf ppf "string.unsafe_get32"
+     sinon fprintf ppf "string.get32"
   | Pstring_load_64(unsafe) ->
-     if unsafe then fprintf ppf "string.unsafe_get64"
-     else fprintf ppf "string.get64"
+     si unsafe alors fprintf ppf "string.unsafe_get64"
+     sinon fprintf ppf "string.get64"
   | Pstring_set_16(unsafe) ->
-     if unsafe then fprintf ppf "string.unsafe_set16"
-     else fprintf ppf "string.set16"
+     si unsafe alors fprintf ppf "string.unsafe_set16"
+     sinon fprintf ppf "string.set16"
   | Pstring_set_32(unsafe) ->
-     if unsafe then fprintf ppf "string.unsafe_set32"
-     else fprintf ppf "string.set32"
+     si unsafe alors fprintf ppf "string.unsafe_set32"
+     sinon fprintf ppf "string.set32"
   | Pstring_set_64(unsafe) ->
-     if unsafe then fprintf ppf "string.unsafe_set64"
-     else fprintf ppf "string.set64"
+     si unsafe alors fprintf ppf "string.unsafe_set64"
+     sinon fprintf ppf "string.set64"
   | Pbigstring_load_16(unsafe) ->
-     if unsafe then fprintf ppf "bigarray.array1.unsafe_get16"
-     else fprintf ppf "bigarray.array1.get16"
+     si unsafe alors fprintf ppf "bigarray.array1.unsafe_get16"
+     sinon fprintf ppf "bigarray.array1.get16"
   | Pbigstring_load_32(unsafe) ->
-     if unsafe then fprintf ppf "bigarray.array1.unsafe_get32"
-     else fprintf ppf "bigarray.array1.get32"
+     si unsafe alors fprintf ppf "bigarray.array1.unsafe_get32"
+     sinon fprintf ppf "bigarray.array1.get32"
   | Pbigstring_load_64(unsafe) ->
-     if unsafe then fprintf ppf "bigarray.array1.unsafe_get64"
-     else fprintf ppf "bigarray.array1.get64"
+     si unsafe alors fprintf ppf "bigarray.array1.unsafe_get64"
+     sinon fprintf ppf "bigarray.array1.get64"
   | Pbigstring_set_16(unsafe) ->
-     if unsafe then fprintf ppf "bigarray.array1.unsafe_set16"
-     else fprintf ppf "bigarray.array1.set16"
+     si unsafe alors fprintf ppf "bigarray.array1.unsafe_set16"
+     sinon fprintf ppf "bigarray.array1.set16"
   | Pbigstring_set_32(unsafe) ->
-     if unsafe then fprintf ppf "bigarray.array1.unsafe_set32"
-     else fprintf ppf "bigarray.array1.set32"
+     si unsafe alors fprintf ppf "bigarray.array1.unsafe_set32"
+     sinon fprintf ppf "bigarray.array1.set32"
   | Pbigstring_set_64(unsafe) ->
-     if unsafe then fprintf ppf "bigarray.array1.unsafe_set64"
-     else fprintf ppf "bigarray.array1.set64"
+     si unsafe alors fprintf ppf "bigarray.array1.unsafe_set64"
+     sinon fprintf ppf "bigarray.array1.set64"
   | Pbswap16 -> fprintf ppf "bswap16"
   | Pbbswap(bi) -> print_boxed_integer "bswap" ppf bi
 
-let rec lam ppf = function
+soit rec lam ppf = fonction
   | Lvar id ->
       Ident.print ppf id
   | Lconst cst ->
       struct_const ppf cst
   | Lapply(lfun, largs, _) ->
-      let lams ppf largs =
-        List.iter (fun l -> fprintf ppf "@ %a" lam l) largs in
+      soit lams ppf largs =
+        List.iter (fonc l -> fprintf ppf "@ %a" lam l) largs dans
       fprintf ppf "@[<2>(apply@ %a%a)@]" lam lfun lams largs
   | Lfunction(kind, params, body) ->
-      let pr_params ppf params =
-        match kind with
+      soit pr_params ppf params =
+        filtre kind avec
         | Curried ->
-            List.iter (fun param -> fprintf ppf "@ %a" Ident.print param) params
+            List.iter (fonc param -> fprintf ppf "@ %a" Ident.print param) params
         | Tupled ->
             fprintf ppf " (";
-            let first = ref true in
+            soit first = ref vrai dans
             List.iter
-              (fun param ->
-                if !first then first := false else fprintf ppf ",@ ";
+              (fonc param ->
+                si !first alors first := faux sinon fprintf ppf ",@ ";
                 Ident.print ppf param)
               params;
-            fprintf ppf ")" in
+            fprintf ppf ")" dans
       fprintf ppf "@[<2>(function%a@ %a)@]" pr_params params lam body
   | Llet(str, id, arg, body) ->
-      let kind = function
-        Alias -> "a" | Strict -> "" | StrictOpt -> "o" | Variable -> "v" in
-      let rec letbody = function
+      soit kind = fonction
+        Alias -> "a" | Strict -> "" | StrictOpt -> "o" | Variable -> "v" dans
+      soit rec letbody = fonction
         | Llet(str, id, arg, body) ->
             fprintf ppf "@ @[<2>%a =%s@ %a@]" Ident.print id (kind str) lam arg;
             letbody body
-        | expr -> expr in
+        | expr -> expr dans
       fprintf ppf "@[<2>(let@ @[<hv 1>(@[<2>%a =%s@ %a@]"
         Ident.print id (kind str) lam arg;
-      let expr = letbody body in
+      soit expr = letbody body dans
       fprintf ppf ")@]@ %a)@]" lam expr
   | Lletrec(id_arg_list, body) ->
-      let bindings ppf id_arg_list =
-        let spc = ref false in
+      soit bindings ppf id_arg_list =
+        soit spc = ref faux dans
         List.iter
-          (fun (id, l) ->
-            if !spc then fprintf ppf "@ " else spc := true;
+          (fonc (id, l) ->
+            si !spc alors fprintf ppf "@ " sinon spc := vrai;
             fprintf ppf "@[<2>%a@ %a@]" Ident.print id lam l)
-          id_arg_list in
+          id_arg_list dans
       fprintf ppf
         "@[<2>(letrec@ (@[<hv 1>%a@])@ %a)@]" bindings id_arg_list lam body
   | Lprim(prim, largs) ->
-      let lams ppf largs =
-        List.iter (fun l -> fprintf ppf "@ %a" lam l) largs in
+      soit lams ppf largs =
+        List.iter (fonc l -> fprintf ppf "@ %a" lam l) largs dans
       fprintf ppf "@[<2>(%a%a)@]" primitive prim lams largs
   | Lswitch(larg, sw) ->
-      let switch ppf sw =
-        let spc = ref false in
+      soit switch ppf sw =
+        soit spc = ref faux dans
         List.iter
-         (fun (n, l) ->
-           if !spc then fprintf ppf "@ " else spc := true;
+         (fonc (n, l) ->
+           si !spc alors fprintf ppf "@ " sinon spc := vrai;
            fprintf ppf "@[<hv 1>case int %i:@ %a@]" n lam l)
          sw.sw_consts;
         List.iter
-          (fun (n, l) ->
-            if !spc then fprintf ppf "@ " else spc := true;
+          (fonc (n, l) ->
+            si !spc alors fprintf ppf "@ " sinon spc := vrai;
             fprintf ppf "@[<hv 1>case tag %i:@ %a@]" n lam l)
           sw.sw_blocks ;
-        begin match sw.sw_failaction with
+        début filtre sw.sw_failaction avec
         | None  -> ()
         | Some l ->
-            if !spc then fprintf ppf "@ " else spc := true;
+            si !spc alors fprintf ppf "@ " sinon spc := vrai;
             fprintf ppf "@[<hv 1>default:@ %a@]" lam l
-        end in
+        fin dans
       fprintf ppf
        "@[<1>(%s %a@ @[<v 0>%a@])@]"
-       (match sw.sw_failaction with None -> "switch*" | _ -> "switch")
+       (filtre sw.sw_failaction avec None -> "switch*" | _ -> "switch")
        lam larg switch sw
   | Lstringswitch(arg, cases, default) ->
-      let switch ppf cases =
-        let spc = ref false in
+      soit switch ppf cases =
+        soit spc = ref faux dans
         List.iter
-         (fun (s, l) ->
-           if !spc then fprintf ppf "@ " else spc := true;
+         (fonc (s, l) ->
+           si !spc alors fprintf ppf "@ " sinon spc := vrai;
            fprintf ppf "@[<hv 1>case \"%s\":@ %a@]" (String.escaped s) lam l)
           cases;
-        if !spc then fprintf ppf "@ " else spc := true;
-        fprintf ppf "@[<hv 1>default:@ %a@]" lam default in
+        si !spc alors fprintf ppf "@ " sinon spc := vrai;
+        fprintf ppf "@[<hv 1>default:@ %a@]" lam default dans
       fprintf ppf
        "@[<1>(stringswitch %a@ @[<v 0>%a@])@]" lam arg switch cases
   | Lstaticraise (i, ls)  ->
-      let lams ppf largs =
-        List.iter (fun l -> fprintf ppf "@ %a" lam l) largs in
+      soit lams ppf largs =
+        List.iter (fonc l -> fprintf ppf "@ %a" lam l) largs dans
       fprintf ppf "@[<2>(exit@ %d%a)@]" i lams ls;
   | Lstaticcatch(lbody, (i, vars), lhandler) ->
       fprintf ppf "@[<2>(catch@ %a@;<1 -1>with (%d%a)@ %a)@]"
         lam lbody i
-        (fun ppf vars -> match vars with
+        (fonc ppf vars -> filtre vars avec
           | [] -> ()
           | _ ->
               List.iter
-                (fun x -> fprintf ppf " %a" Ident.print x)
+                (fonc x -> fprintf ppf " %a" Ident.print x)
                 vars)
         vars
         lam lhandler
@@ -342,38 +342,38 @@ let rec lam ppf = function
   | Lfor(param, lo, hi, dir, body) ->
       fprintf ppf "@[<2>(for %a@ %a@ %s@ %a@ %a)@]"
        Ident.print param lam lo
-       (match dir with Upto -> "to" | Downto -> "downto")
+       (filtre dir avec Upto -> "to" | Downto -> "downto")
        lam hi lam body
   | Lassign(id, expr) ->
       fprintf ppf "@[<2>(assign@ %a@ %a)@]" Ident.print id lam expr
   | Lsend (k, met, obj, largs, _) ->
-      let args ppf largs =
-        List.iter (fun l -> fprintf ppf "@ %a" lam l) largs in
-      let kind =
-        if k = Self then "self" else if k = Cached then "cache" else "" in
+      soit args ppf largs =
+        List.iter (fonc l -> fprintf ppf "@ %a" lam l) largs dans
+      soit kind =
+        si k = Self alors "self" sinon si k = Cached alors "cache" sinon "" dans
       fprintf ppf "@[<2>(send%s@ %a@ %a%a)@]" kind lam obj lam met args largs
   | Levent(expr, ev) ->
-      let kind =
-       match ev.lev_kind with
+      soit kind =
+       filtre ev.lev_kind avec
        | Lev_before -> "before"
        | Lev_after _  -> "after"
-       | Lev_function -> "funct-body" in
+       | Lev_function -> "funct-body" dans
       fprintf ppf "@[<2>(%s %s(%i)%s:%i-%i@ %a)@]" kind
               ev.lev_loc.Location.loc_start.Lexing.pos_fname
               ev.lev_loc.Location.loc_start.Lexing.pos_lnum
-              (if ev.lev_loc.Location.loc_ghost then "<ghost>" else "")
+              (si ev.lev_loc.Location.loc_ghost alors "<ghost>" sinon "")
               ev.lev_loc.Location.loc_start.Lexing.pos_cnum
               ev.lev_loc.Location.loc_end.Lexing.pos_cnum
               lam expr
   | Lifused(id, expr) ->
       fprintf ppf "@[<2>(ifused@ %a@ %a)@]" Ident.print id lam expr
 
-and sequence ppf = function
+et sequence ppf = fonction
   | Lsequence(l1, l2) ->
       fprintf ppf "%a@ %a" sequence l1 sequence l2
   | l ->
       lam ppf l
 
-let structured_constant = struct_const
+soit structured_constant = struct_const
 
-let lambda = lam
+soit lambda = lam

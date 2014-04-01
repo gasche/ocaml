@@ -14,49 +14,49 @@
 
 (* Skip tokens to the end of the phrase *)
 
-let rec skip_phrase lexbuf =
-  try
-    match Lexer.token lexbuf with
+soit rec skip_phrase lexbuf =
+  essaie
+    filtre Lexer.token lexbuf avec
       Parser.SEMISEMI | Parser.EOF -> ()
     | _ -> skip_phrase lexbuf
-  with
+  avec
     | Lexer.Error (Lexer.Unterminated_comment _, _)
     | Lexer.Error (Lexer.Unterminated_string, _)
     | Lexer.Error (Lexer.Unterminated_string_in_comment _, _)
     | Lexer.Error (Lexer.Illegal_character _, _) -> skip_phrase lexbuf
 ;;
 
-let maybe_skip_phrase lexbuf =
-  if Parsing.is_current_lookahead Parser.SEMISEMI
+soit maybe_skip_phrase lexbuf =
+  si Parsing.is_current_lookahead Parser.SEMISEMI
   || Parsing.is_current_lookahead Parser.EOF
-  then ()
-  else skip_phrase lexbuf
+  alors ()
+  sinon skip_phrase lexbuf
 
-let wrap parsing_fun lexbuf =
-  try
+soit wrap parsing_fun lexbuf =
+  essaie
     Lexer.init ();
-    let ast = parsing_fun Lexer.token lexbuf in
+    soit ast = parsing_fun Lexer.token lexbuf dans
     Parsing.clear_parser();
     ast
-  with
-  | Lexer.Error(Lexer.Illegal_character _, _) as err
-    when !Location.input_name = "//toplevel//"->
+  avec
+  | Lexer.Error(Lexer.Illegal_character _, _) tel err
+    quand !Location.input_name = "//toplevel//"->
       skip_phrase lexbuf;
       raise err
-  | Syntaxerr.Error _ as err
-    when !Location.input_name = "//toplevel//" ->
+  | Syntaxerr.Error _ tel err
+    quand !Location.input_name = "//toplevel//" ->
       maybe_skip_phrase lexbuf;
       raise err
   | Parsing.Parse_error | Syntaxerr.Escape_error ->
-      let loc = Location.curr lexbuf in
-      if !Location.input_name = "//toplevel//"
-      then maybe_skip_phrase lexbuf;
+      soit loc = Location.curr lexbuf dans
+      si !Location.input_name = "//toplevel//"
+      alors maybe_skip_phrase lexbuf;
       raise(Syntaxerr.Error(Syntaxerr.Other loc))
 
-let implementation = wrap Parser.implementation
-and interface = wrap Parser.interface
-and toplevel_phrase = wrap Parser.toplevel_phrase
-and use_file = wrap Parser.use_file
-and core_type = wrap Parser.parse_core_type
-and expression = wrap Parser.parse_expression
-and pattern = wrap Parser.parse_pattern
+soit implementation = wrap Parser.implementation
+et interface = wrap Parser.interface
+et toplevel_phrase = wrap Parser.toplevel_phrase
+et use_file = wrap Parser.use_file
+et core_type = wrap Parser.parse_core_type
+et expression = wrap Parser.parse_expression
+et pattern = wrap Parser.parse_pattern

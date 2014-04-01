@@ -12,18 +12,18 @@
 
 (* Inclusion checks for the class language *)
 
-open Types
+ouvre Types
 
-let class_types env cty1 cty2 =
+soit class_types env cty1 cty2 =
   Ctype.match_class_types env cty1 cty2
 
-let class_type_declarations env cty1 cty2 =
+soit class_type_declarations env cty1 cty2 =
   Ctype.match_class_declarations env
     cty1.clty_params cty1.clty_type
     cty2.clty_params cty2.clty_type
 
-let class_declarations env cty1 cty2 =
-  match cty1.cty_new, cty2.cty_new with
+soit class_declarations env cty1 cty2 =
+  filtre cty1.cty_new, cty2.cty_new avec
     None, Some _ ->
       [Ctype.CM_Virtual_class]
   | _ ->
@@ -31,8 +31,8 @@ let class_declarations env cty1 cty2 =
         cty1.cty_params cty1.cty_type
         cty2.cty_params cty2.cty_type
 
-open Format
-open Ctype
+ouvre Format
+ouvre Ctype
 
 (*
 let rec hide_params = function
@@ -40,43 +40,43 @@ let rec hide_params = function
   | cty -> cty
 *)
 
-let include_err ppf =
-  function
+soit include_err ppf =
+  fonction
   | CM_Virtual_class ->
       fprintf ppf "Une classe ne peut pas être transformée de virtuelle à concrète"
   | CM_Parameter_arity_mismatch (ls, lp) ->
       fprintf ppf
         "Les classes n'ont pas le même nombre de paramètres"
   | CM_Type_parameter_mismatch (env, trace) ->
-      Printtyp.report_unification_error ppf env ~unif:false trace
-        (function ppf ->
+      Printtyp.report_unification_error ppf env ~unif:faux trace
+        (fonction ppf ->
           fprintf ppf "Un paramètre de type a le type")
-        (function ppf ->
+        (fonction ppf ->
           fprintf ppf "mais son type attendu est")
   | CM_Class_type_mismatch (env, cty1, cty2) ->
-      Printtyp.wrap_printing_env env (fun () ->
+      Printtyp.wrap_printing_env env (fonc () ->
         fprintf ppf
           "@[Le type de classe@;<1 2>%a@ %s@;<1 2>%a@]"
           Printtyp.class_type cty1
           "ne correspond pas au type de classe"
           Printtyp.class_type cty2)
   | CM_Parameter_mismatch (env, trace) ->
-      Printtyp.report_unification_error ppf env ~unif:false trace
-        (function ppf ->
+      Printtyp.report_unification_error ppf env ~unif:faux trace
+        (fonction ppf ->
           fprintf ppf "Un paramètre a le type")
-        (function ppf ->
+        (fonction ppf ->
           fprintf ppf "mais son type attendu est")
   | CM_Val_type_mismatch (lab, env, trace) ->
-      Printtyp.report_unification_error ppf env ~unif:false trace
-        (function ppf ->
+      Printtyp.report_unification_error ppf env ~unif:faux trace
+        (fonction ppf ->
           fprintf ppf "La variable d'instance %s@ a le type" lab)
-        (function ppf ->
+        (fonction ppf ->
           fprintf ppf "mais son type attendu est")
   | CM_Meth_type_mismatch (lab, env, trace) ->
-      Printtyp.report_unification_error ppf env ~unif:false trace
-        (function ppf ->
+      Printtyp.report_unification_error ppf env ~unif:faux trace
+        (fonction ppf ->
           fprintf ppf "La méthodde %s@ a le type" lab)
-        (function ppf ->
+        (fonction ppf ->
           fprintf ppf "mais son type attendu est")
   | CM_Non_mutable_value lab ->
       fprintf ppf
@@ -99,9 +99,9 @@ let include_err ppf =
   | CM_Private_method lab ->
       fprintf ppf "La méthode privée %s ne peut pas devenir publique" lab
 
-let report_error ppf = function
+soit report_error ppf = fonction
   |  [] -> ()
   | err :: errs ->
-      let print_errs ppf errs =
-         List.iter (fun err -> fprintf ppf "@ %a" include_err err) errs in
+      soit print_errs ppf errs =
+         List.iter (fonc err -> fprintf ppf "@ %a" include_err err) errs dans
       fprintf ppf "@[<v>%a%a@]" include_err err print_errs errs

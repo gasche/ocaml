@@ -31,12 +31,12 @@ val read_cmi : string -> cmi_infos
 (* Error report *)
 
 type error =
-    Not_an_interface of string
-  | Wrong_version_interface of string * string
-  | Corrupted_interface of string
+    Not_an_interface de string
+  | Wrong_version_interface de string * string
+  | Corrupted_interface de string
 
-exception Error of error
+exception Error de error
 
-open Format
+ouvre Format
 
 val report_error: formatter -> error -> unit

@@ -48,11 +48,11 @@ val filter: (string -> bool) -> t -> unit
       (* [filter pred tbl] removes from [tbl] table all (name, CRC) pairs
          such that [pred name] is [false]. *)
 
-exception Inconsistency of string * string * string
+exception Inconsistency de string * string * string
       (* Raised by [check] when a CRC mismatch is detected.
          First string is the name of the compilation unit.
          Second string is the source that caused the inconsistency.
          Third string is the source that set the CRC. *)
 
-exception Not_available of string
+exception Not_available de string
       (* Raised by [check_noadd] when a name doesn't have an associated CRC. *)

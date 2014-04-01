@@ -10,90 +10,90 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Format
+ouvre Format
 
-type t = { stamp: int; name: string; mutable flags: int }
+type t = { stamp: int; name: string; modifiable flags: int }
 
-let global_flag = 1
-let predef_exn_flag = 2
+soit global_flag = 1
+soit predef_exn_flag = 2
 
 (* A stamp of 0 denotes a persistent identifier *)
 
-let currentstamp = ref 0
+soit currentstamp = ref 0
 
-let create s =
+soit create s =
   incr currentstamp;
   { name = s; stamp = !currentstamp; flags = 0 }
 
-let create_predef_exn s =
+soit create_predef_exn s =
   incr currentstamp;
   { name = s; stamp = !currentstamp; flags = predef_exn_flag }
 
-let create_persistent s =
+soit create_persistent s =
   { name = s; stamp = 0; flags = global_flag }
 
-let rename i =
+soit rename i =
   incr currentstamp;
-  { i with stamp = !currentstamp }
+  { i avec stamp = !currentstamp }
 
-let name i = i.name
+soit name i = i.name
 
-let stamp i = i.stamp
+soit stamp i = i.stamp
 
-let unique_name i = i.name ^ "_" ^ string_of_int i.stamp
+soit unique_name i = i.name ^ "_" ^ string_of_int i.stamp
 
-let unique_toplevel_name i = i.name ^ "/" ^ string_of_int i.stamp
+soit unique_toplevel_name i = i.name ^ "/" ^ string_of_int i.stamp
 
-let persistent i = (i.stamp = 0)
+soit persistent i = (i.stamp = 0)
 
-let equal i1 i2 = i1.name = i2.name
+soit equal i1 i2 = i1.name = i2.name
 
-let same i1 i2 = i1 = i2
+soit same i1 i2 = i1 = i2
   (* Possibly more efficient version (with a real compiler, at least):
        if i1.stamp <> 0
        then i1.stamp = i2.stamp
        else i2.stamp = 0 && i1.name = i2.name *)
 
-let binding_time i = i.stamp
+soit binding_time i = i.stamp
 
-let current_time() = !currentstamp
-let set_current_time t = currentstamp := max !currentstamp t
+soit current_time() = !currentstamp
+soit set_current_time t = currentstamp := max !currentstamp t
 
-let reinit_level = ref (-1)
+soit reinit_level = ref (-1)
 
-let reinit () =
-  if !reinit_level < 0
-  then reinit_level := !currentstamp
-  else currentstamp := !reinit_level
+soit reinit () =
+  si !reinit_level < 0
+  alors reinit_level := !currentstamp
+  sinon currentstamp := !reinit_level
 
-let hide i =
-  { i with stamp = -1 }
+soit hide i =
+  { i avec stamp = -1 }
 
-let make_global i =
-  i.flags <- i.flags lor global_flag
+soit make_global i =
+  i.flags <- i.flags oul global_flag
 
-let global i =
-  (i.flags land global_flag) <> 0
+soit global i =
+  (i.flags etl global_flag) <> 0
 
-let is_predef_exn i =
-  (i.flags land predef_exn_flag) <> 0
+soit is_predef_exn i =
+  (i.flags etl predef_exn_flag) <> 0
 
-let print ppf i =
-  match i.stamp with
+soit print ppf i =
+  filtre i.stamp avec
   | 0 -> fprintf ppf "%s!" i.name
   | -1 -> fprintf ppf "%s#" i.name
-  | n -> fprintf ppf "%s/%i%s" i.name n (if global i then "g" else "")
+  | n -> fprintf ppf "%s/%i%s" i.name n (si global i alors "g" sinon "")
 
 type 'a tbl =
     Empty
-  | Node of 'a tbl * 'a data * 'a tbl * int
+  | Node de 'a tbl * 'a data * 'a tbl * int
 
-and 'a data =
+et 'a data =
   { ident: t;
     data: 'a;
     previous: 'a data option }
 
-let empty = Empty
+soit empty = Empty
 
 (* Inline expansion of height for better speed
  * let height = function
@@ -101,111 +101,111 @@ let empty = Empty
  *   | Node(_,_,_,h) -> h
  *)
 
-let mknode l d r =
-  let hl = match l with Empty -> 0 | Node(_,_,_,h) -> h
-  and hr = match r with Empty -> 0 | Node(_,_,_,h) -> h in
-  Node(l, d, r, (if hl >= hr then hl + 1 else hr + 1))
+soit mknode l d r =
+  soit hl = filtre l avec Empty -> 0 | Node(_,_,_,h) -> h
+  et hr = filtre r avec Empty -> 0 | Node(_,_,_,h) -> h dans
+  Node(l, d, r, (si hl >= hr alors hl + 1 sinon hr + 1))
 
-let balance l d r =
-  let hl = match l with Empty -> 0 | Node(_,_,_,h) -> h
-  and hr = match r with Empty -> 0 | Node(_,_,_,h) -> h in
-  if hl > hr + 1 then
-    match l with
+soit balance l d r =
+  soit hl = filtre l avec Empty -> 0 | Node(_,_,_,h) -> h
+  et hr = filtre r avec Empty -> 0 | Node(_,_,_,h) -> h dans
+  si hl > hr + 1 alors
+    filtre l avec
     | Node (ll, ld, lr, _)
-      when (match ll with Empty -> 0 | Node(_,_,_,h) -> h) >=
-           (match lr with Empty -> 0 | Node(_,_,_,h) -> h) ->
+      quand (filtre ll avec Empty -> 0 | Node(_,_,_,h) -> h) >=
+           (filtre lr avec Empty -> 0 | Node(_,_,_,h) -> h) ->
         mknode ll ld (mknode lr d r)
     | Node (ll, ld, Node(lrl, lrd, lrr, _), _) ->
         mknode (mknode ll ld lrl) lrd (mknode lrr d r)
-    | _ -> assert false
-  else if hr > hl + 1 then
-    match r with
+    | _ -> affirme faux
+  sinon si hr > hl + 1 alors
+    filtre r avec
     | Node (rl, rd, rr, _)
-      when (match rr with Empty -> 0 | Node(_,_,_,h) -> h) >=
-           (match rl with Empty -> 0 | Node(_,_,_,h) -> h) ->
+      quand (filtre rr avec Empty -> 0 | Node(_,_,_,h) -> h) >=
+           (filtre rl avec Empty -> 0 | Node(_,_,_,h) -> h) ->
         mknode (mknode l d rl) rd rr
     | Node (Node (rll, rld, rlr, _), rd, rr, _) ->
         mknode (mknode l d rll) rld (mknode rlr rd rr)
-    | _ -> assert false
-  else
+    | _ -> affirme faux
+  sinon
     mknode l d r
 
-let rec add id data = function
+soit rec add id data = fonction
     Empty ->
       Node(Empty, {ident = id; data = data; previous = None}, Empty, 1)
   | Node(l, k, r, h) ->
-      let c = compare id.name k.ident.name in
-      if c = 0 then
+      soit c = compare id.name k.ident.name dans
+      si c = 0 alors
         Node(l, {ident = id; data = data; previous = Some k}, r, h)
-      else if c < 0 then
+      sinon si c < 0 alors
         balance (add id data l) k r
-      else
+      sinon
         balance l k (add id data r)
 
-let rec find_stamp s = function
+soit rec find_stamp s = fonction
     None ->
       raise Not_found
   | Some k ->
-      if k.ident.stamp = s then k.data else find_stamp s k.previous
+      si k.ident.stamp = s alors k.data sinon find_stamp s k.previous
 
-let rec find_same id = function
+soit rec find_same id = fonction
     Empty ->
       raise Not_found
   | Node(l, k, r, _) ->
-      let c = compare id.name k.ident.name in
-      if c = 0 then
-        if id.stamp = k.ident.stamp
-        then k.data
-        else find_stamp id.stamp k.previous
-      else
-        find_same id (if c < 0 then l else r)
+      soit c = compare id.name k.ident.name dans
+      si c = 0 alors
+        si id.stamp = k.ident.stamp
+        alors k.data
+        sinon find_stamp id.stamp k.previous
+      sinon
+        find_same id (si c < 0 alors l sinon r)
 
-let rec find_name name = function
+soit rec find_name name = fonction
     Empty ->
       raise Not_found
   | Node(l, k, r, _) ->
-      let c = compare name k.ident.name in
-      if c = 0 then
+      soit c = compare name k.ident.name dans
+      si c = 0 alors
         k.data
-      else
-        find_name name (if c < 0 then l else r)
+      sinon
+        find_name name (si c < 0 alors l sinon r)
 
-let rec get_all = function
+soit rec get_all = fonction
   | None -> []
   | Some k -> k.data :: get_all k.previous
 
-let rec find_all name = function
+soit rec find_all name = fonction
     Empty ->
       []
   | Node(l, k, r, _) ->
-      let c = compare name k.ident.name in
-      if c = 0 then
+      soit c = compare name k.ident.name dans
+      si c = 0 alors
         k.data :: get_all k.previous
-      else
-        find_all name (if c < 0 then l else r)
+      sinon
+        find_all name (si c < 0 alors l sinon r)
 
-let rec fold_aux f stack accu = function
+soit rec fold_aux f stack accu = fonction
     Empty ->
-      begin match stack with
+      début filtre stack avec
         [] -> accu
       | a :: l -> fold_aux f l accu a
-      end
+      fin
   | Node(l, k, r, _) ->
       fold_aux f (l :: stack) (f k accu) r
 
-let fold_name f tbl accu = fold_aux (fun k -> f k.ident k.data) [] accu tbl
+soit fold_name f tbl accu = fold_aux (fonc k -> f k.ident k.data) [] accu tbl
 
-let rec fold_data f d accu =
-  match d with
+soit rec fold_data f d accu =
+  filtre d avec
     None -> accu
   | Some k -> f k.ident k.data (fold_data f k.previous accu)
 
-let fold_all f tbl accu =
-  fold_aux (fun k -> fold_data f (Some k)) [] accu tbl
+soit fold_all f tbl accu =
+  fold_aux (fonc k -> fold_data f (Some k)) [] accu tbl
 
 (* let keys tbl = fold_name (fun k _ accu -> k::accu) tbl [] *)
 
-let rec iter f = function
+soit rec iter f = fonction
     Empty -> ()
   | Node(l, k, r, _) ->
       iter f l; f k.ident k.data; iter f r

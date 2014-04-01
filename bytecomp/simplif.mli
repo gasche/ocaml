@@ -15,7 +15,7 @@
    Simplification over staticraise/staticcatch constructs.
    Generation of tail-call annotations if -annot is set. *)
 
-open Lambda
+ouvre Lambda
 
 val simplify_lambda: lambda -> lambda
 

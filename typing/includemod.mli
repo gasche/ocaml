@@ -12,9 +12,9 @@
 
 (* Inclusion checks for the module language *)
 
-open Typedtree
-open Types
-open Format
+ouvre Typedtree
+ouvre Types
+ouvre Format
 
 val modtypes: Env.t -> module_type -> module_type -> module_coercion
 val signatures: Env.t -> signature -> signature -> module_coercion
@@ -23,30 +23,30 @@ val type_declarations:
       Env.t -> Ident.t -> type_declaration -> type_declaration -> unit
 
 type symptom =
-    Missing_field of Ident.t * Location.t * string (* kind *)
-  | Value_descriptions of Ident.t * value_description * value_description
-  | Type_declarations of Ident.t * type_declaration
+    Missing_field de Ident.t * Location.t * string (* kind *)
+  | Value_descriptions de Ident.t * value_description * value_description
+  | Type_declarations de Ident.t * type_declaration
         * type_declaration * Includecore.type_mismatch list
-  | Exception_declarations of
+  | Exception_declarations de
       Ident.t * exception_declaration * exception_declaration
-  | Module_types of module_type * module_type
-  | Modtype_infos of Ident.t * modtype_declaration * modtype_declaration
+  | Module_types de module_type * module_type
+  | Modtype_infos de Ident.t * modtype_declaration * modtype_declaration
   | Modtype_permutation
-  | Interface_mismatch of string * string
-  | Class_type_declarations of
+  | Interface_mismatch de string * string
+  | Class_type_declarations de
       Ident.t * class_type_declaration * class_type_declaration *
       Ctype.class_match_failure list
-  | Class_declarations of
+  | Class_declarations de
       Ident.t * class_declaration * class_declaration *
       Ctype.class_match_failure list
-  | Unbound_modtype_path of Path.t
-  | Unbound_module_path of Path.t
+  | Unbound_modtype_path de Path.t
+  | Unbound_module_path de Path.t
 
 type pos =
-    Module of Ident.t | Modtype of Ident.t | Arg of Ident.t | Body of Ident.t
+    Module de Ident.t | Modtype de Ident.t | Arg de Ident.t | Body de Ident.t
 type error = pos list * Env.t * symptom
 
-exception Error of error list
+exception Error de error list
 
 val report_error: formatter -> error list -> unit
 val expand_module_alias: Env.t -> pos list -> Path.t -> Types.module_type

@@ -12,31 +12,31 @@
 
 (* Representation of types and declarations *)
 
-open Asttypes
+ouvre Asttypes
 
 (* Type expressions for the core language *)
 
 type type_expr =
-  { mutable desc: type_desc;
-    mutable level: int;
-    mutable id: int }
+  { modifiable desc: type_desc;
+    modifiable level: int;
+    modifiable id: int }
 
-and type_desc =
-    Tvar of string option
-  | Tarrow of label * type_expr * type_expr * commutable
-  | Ttuple of type_expr list
-  | Tconstr of Path.t * type_expr list * abbrev_memo ref
-  | Tobject of type_expr * (Path.t * type_expr list) option ref
-  | Tfield of string * field_kind * type_expr * type_expr
+et type_desc =
+    Tvar de string option
+  | Tarrow de label * type_expr * type_expr * commutable
+  | Ttuple de type_expr list
+  | Tconstr de Path.t * type_expr list * abbrev_memo ref
+  | Tobject de type_expr * (Path.t * type_expr list) option ref
+  | Tfield de string * field_kind * type_expr * type_expr
   | Tnil
-  | Tlink of type_expr
-  | Tsubst of type_expr         (* for copying *)
-  | Tvariant of row_desc
-  | Tunivar of string option
-  | Tpoly of type_expr * type_expr list
-  | Tpackage of Path.t * Longident.t list * type_expr list
+  | Tlink de type_expr
+  | Tsubst de type_expr         (* for copying *)
+  | Tvariant de row_desc
+  | Tunivar de string option
+  | Tpoly de type_expr * type_expr list
+  | Tpackage de Path.t * Longident.t list * type_expr list
 
-and row_desc =
+et row_desc =
     { row_fields: (label * row_field) list;
       row_more: type_expr;
       row_bound: unit;
@@ -44,40 +44,40 @@ and row_desc =
       row_fixed: bool;
       row_name: (Path.t * type_expr list) option }
 
-and row_field =
-    Rpresent of type_expr option
-  | Reither of bool * type_expr list * bool * row_field option ref
+et row_field =
+    Rpresent de type_expr option
+  | Reither de bool * type_expr list * bool * row_field option ref
         (* 1st true denotes a constant constructor *)
         (* 2nd true denotes a tag in a pattern matching, and
            is erased later *)
   | Rabsent
 
-and abbrev_memo =
+et abbrev_memo =
     Mnil
-  | Mcons of private_flag * Path.t * type_expr * type_expr * abbrev_memo
-  | Mlink of abbrev_memo ref
+  | Mcons de private_flag * Path.t * type_expr * type_expr * abbrev_memo
+  | Mlink de abbrev_memo ref
 
-and field_kind =
-    Fvar of field_kind option ref
+et field_kind =
+    Fvar de field_kind option ref
   | Fpresent
   | Fabsent
 
-and commutable =
+et commutable =
     Cok
   | Cunknown
-  | Clink of commutable ref
+  | Clink de commutable ref
 
 module TypeOps = struct
   type t = type_expr
-  let compare t1 t2 = t1.id - t2.id
-  let hash t = t.id
-  let equal t1 t2 = t1 == t2
-end
+  soit compare t1 t2 = t1.id - t2.id
+  soit hash t = t.id
+  soit equal t1 t2 = t1 == t2
+fin
 
 (* Maps of methods and instance variables *)
 
 module OrderedString =
-  struct type t = string let compare (x:t) y = compare x y end
+  struct type t = string soit compare (x:t) y = compare x y fin
 module Meths = Map.Make(OrderedString)
 module Vars = Meths
 
@@ -90,16 +90,16 @@ type value_description =
     val_attributes: Parsetree.attributes;
  }
 
-and value_kind =
+et value_kind =
     Val_reg                             (* Regular value *)
-  | Val_prim of Primitive.description   (* Primitive *)
-  | Val_ivar of mutable_flag * string   (* Instance variable (mutable ?) *)
-  | Val_self of (Ident.t * type_expr) Meths.t ref *
+  | Val_prim de Primitive.description   (* Primitive *)
+  | Val_ivar de mutable_flag * string   (* Instance variable (mutable ?) *)
+  | Val_self de (Ident.t * type_expr) Meths.t ref *
                 (Ident.t * Asttypes.mutable_flag *
                  Asttypes.virtual_flag * type_expr) Vars.t ref *
                 string * type_expr
                                         (* Self *)
-  | Val_anc of (string * Ident.t) list * string
+  | Val_anc de (string * Ident.t) list * string
                                         (* Ancestor *)
   | Val_unbound                         (* Unbound variable *)
 
@@ -121,10 +121,10 @@ type constructor_description =
     cstr_attributes: Parsetree.attributes;
    }
 
-and constructor_tag =
-    Cstr_constant of int                (* Constant constructor (an int) *)
-  | Cstr_block of int                   (* Regular constructor (a block) *)
-  | Cstr_exception of Path.t * Location.t (* Exception constructor *)
+et constructor_tag =
+    Cstr_constant de int                (* Constant constructor (an int) *)
+  | Cstr_block de int                   (* Regular constructor (a block) *)
+  | Cstr_exception de Path.t * Location.t (* Exception constructor *)
 
 (* Record label descriptions *)
 
@@ -141,7 +141,7 @@ type label_description =
     lbl_attributes: Parsetree.attributes;
    }
 
-and record_representation =
+et record_representation =
     Record_regular                      (* All fields are boxed / tagged *)
   | Record_float                        (* All fields are floats *)
 
@@ -150,7 +150,7 @@ and record_representation =
 module Variance = struct
   type t = int
   type f = May_pos | May_neg | May_weak | Inj | Pos | Neg | Inv
-  let single = function
+  soit single = fonction
     | May_pos -> 1
     | May_neg -> 2
     | May_weak -> 4
@@ -158,22 +158,22 @@ module Variance = struct
     | Pos -> 16
     | Neg -> 32
     | Inv -> 64
-  let union v1 v2 = v1 lor v2
-  let inter v1 v2 = v1 land v2
-  let subset v1 v2 = (v1 land v2 = v1)
-  let set x b v =
-    if b then v lor single x else  v land (lnot (single x))
-  let mem x = subset (single x)
-  let null = 0
-  let may_inv = 7
-  let full = 127
-  let covariant = single May_pos lor single Pos lor single Inj
-  let swap f1 f2 v =
-    let v' = set f1 (mem f2 v) v in set f2 (mem f1 v) v'
-  let conjugate v = swap May_pos May_neg (swap Pos Neg v)
-  let get_upper v = (mem May_pos v, mem May_neg v)
-  let get_lower v = (mem Pos v, mem Neg v, mem Inv v, mem Inj v)
-end
+  soit union v1 v2 = v1 oul v2
+  soit inter v1 v2 = v1 etl v2
+  soit subset v1 v2 = (v1 etl v2 = v1)
+  soit set x b v =
+    si b alors v oul single x sinon  v etl (lnot (single x))
+  soit mem x = subset (single x)
+  soit null = 0
+  soit may_inv = 7
+  soit full = 127
+  soit covariant = single May_pos oul single Pos oul single Inj
+  soit swap f1 f2 v =
+    soit v' = set f1 (mem f2 v) v dans set f2 (mem f1 v) v'
+  soit conjugate v = swap May_pos May_neg (swap Pos Neg v)
+  soit get_upper v = (mem May_pos v, mem May_neg v)
+  soit get_lower v = (mem Pos v, mem Neg v, mem Inv v, mem Inj v)
+fin
 
 (* Type definitions *)
 
@@ -189,12 +189,12 @@ type type_declaration =
     type_attributes: Parsetree.attributes;
  }
 
-and type_kind =
+et type_kind =
     Type_abstract
-  | Type_record of label_declaration list  * record_representation
-  | Type_variant of constructor_declaration list
+  | Type_record de label_declaration list  * record_representation
+  | Type_variant de constructor_declaration list
 
-and label_declaration =
+et label_declaration =
   {
     ld_id: Ident.t;
     ld_mutable: mutable_flag;
@@ -203,7 +203,7 @@ and label_declaration =
     ld_attributes: Parsetree.attributes;
   }
 
-and constructor_declaration =
+et constructor_declaration =
   {
     cd_id: Ident.t;
     cd_args: type_expr list;
@@ -213,7 +213,7 @@ and constructor_declaration =
   }
 
 
-and type_transparence =
+et type_transparence =
     Type_public      (* unrestricted expansion *)
   | Type_new         (* "new" type *)
   | Type_private     (* private type *)
@@ -229,11 +229,11 @@ type exception_declaration =
 module Concr = Set.Make(OrderedString)
 
 type class_type =
-    Cty_constr of Path.t * type_expr list * class_type
-  | Cty_signature of class_signature
-  | Cty_arrow of label * type_expr * class_type
+    Cty_constr de Path.t * type_expr list * class_type
+  | Cty_signature de class_signature
+  | Cty_arrow de label * type_expr * class_type
 
-and class_signature =
+et class_signature =
   { csig_self: type_expr;
     csig_vars:
       (Asttypes.mutable_flag * Asttypes.virtual_flag * type_expr) Vars.t;
@@ -242,7 +242,7 @@ and class_signature =
 
 type class_declaration =
   { cty_params: type_expr list;
-    mutable cty_type: class_type;
+    modifiable cty_type: class_type;
     cty_path: Path.t;
     cty_new: type_expr option;
     cty_variance: Variance.t list;
@@ -262,37 +262,37 @@ type class_type_declaration =
 (* Type expressions for the module language *)
 
 type module_type =
-    Mty_ident of Path.t
-  | Mty_signature of signature
-  | Mty_functor of Ident.t * module_type option * module_type
-  | Mty_alias of Path.t
+    Mty_ident de Path.t
+  | Mty_signature de signature
+  | Mty_functor de Ident.t * module_type option * module_type
+  | Mty_alias de Path.t
 
-and signature = signature_item list
+et signature = signature_item list
 
-and signature_item =
-    Sig_value of Ident.t * value_description
-  | Sig_type of Ident.t * type_declaration * rec_status
-  | Sig_exception of Ident.t * exception_declaration
-  | Sig_module of Ident.t * module_declaration * rec_status
-  | Sig_modtype of Ident.t * modtype_declaration
-  | Sig_class of Ident.t * class_declaration * rec_status
-  | Sig_class_type of Ident.t * class_type_declaration * rec_status
+et signature_item =
+    Sig_value de Ident.t * value_description
+  | Sig_type de Ident.t * type_declaration * rec_status
+  | Sig_exception de Ident.t * exception_declaration
+  | Sig_module de Ident.t * module_declaration * rec_status
+  | Sig_modtype de Ident.t * modtype_declaration
+  | Sig_class de Ident.t * class_declaration * rec_status
+  | Sig_class_type de Ident.t * class_type_declaration * rec_status
 
-and module_declaration =
+et module_declaration =
   {
     md_type: module_type;
     md_attributes: Parsetree.attributes;
     md_loc: Location.t;
   }
 
-and modtype_declaration =
+et modtype_declaration =
   {
     mtd_type: module_type option;  (* Nonte: abstract *)
     mtd_attributes: Parsetree.attributes;
     mtd_loc: Location.t;
   }
 
-and rec_status =
+et rec_status =
     Trec_not                            (* not recursive *)
   | Trec_first                          (* first in a recursive group *)
   | Trec_next                           (* not first in a recursive group *)

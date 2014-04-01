@@ -11,26 +11,26 @@
 (*                                                                     *)
 (***********************************************************************)
 
-type t = { mutable locked: bool; mutable waiting: Thread.t list }
+type t = { modifiable locked: bool; modifiable waiting: Thread.t list }
 
-let create () = { locked = false; waiting = [] }
+soit create () = { locked = faux; waiting = [] }
 
-let rec lock m =
-  if m.locked then begin                (* test and set atomic *)
-    Thread.critical_section := true;
+soit rec lock m =
+  si m.locked alors début                (* test and set atomic *)
+    Thread.critical_section := vrai;
     m.waiting <- Thread.self() :: m.waiting;
     Thread.sleep();
     lock m
-  end else begin
-    m.locked <- true                    (* test and set atomic *)
-  end
+  fin sinon début
+    m.locked <- vrai                    (* test and set atomic *)
+  fin
 
-let try_lock m =                        (* test and set atomic *)
-  if m.locked then false else begin m.locked <- true; true end
+soit try_lock m =                        (* test and set atomic *)
+  si m.locked alors faux sinon début m.locked <- vrai; vrai fin
 
-let unlock m =
+soit unlock m =
   (* Don't play with Thread.critical_section here because of Condition.wait *)
-  let w = m.waiting in                  (* atomic *)
+  soit w = m.waiting dans                  (* atomic *)
   m.waiting <- [];                      (* atomic *)
-  m.locked <- false;                    (* atomic *)
+  m.locked <- faux;                    (* atomic *)
   List.iter Thread.wakeup w

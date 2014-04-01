@@ -12,7 +12,7 @@
 
 (* Substitutions *)
 
-open Types
+ouvre Types
 
 type t
 

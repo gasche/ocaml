@@ -12,8 +12,8 @@
 
 (* Abstract syntax tree after typing *)
 
-open Asttypes
-open Types
+ouvre Asttypes
+ouvre Types
 
 (* Value expressions for the core language *)
 
@@ -28,32 +28,32 @@ type pattern =
     pat_loc: Location.t;
     pat_extra : (pat_extra * Location.t * attributes) list;
     pat_type: type_expr;
-    mutable pat_env: Env.t;
+    modifiable pat_env: Env.t;
     pat_attributes: attributes;
    }
 
-and pat_extra =
-  | Tpat_constraint of core_type
-  | Tpat_type of Path.t * Longident.t loc
+et pat_extra =
+  | Tpat_constraint de core_type
+  | Tpat_type de Path.t * Longident.t loc
   | Tpat_unpack
 
-and pattern_desc =
+et pattern_desc =
     Tpat_any
-  | Tpat_var of Ident.t * string loc
-  | Tpat_alias of pattern * Ident.t * string loc
-  | Tpat_constant of constant
-  | Tpat_tuple of pattern list
-  | Tpat_construct of
+  | Tpat_var de Ident.t * string loc
+  | Tpat_alias de pattern * Ident.t * string loc
+  | Tpat_constant de constant
+  | Tpat_tuple de pattern list
+  | Tpat_construct de
       Longident.t loc * constructor_description * pattern list
-  | Tpat_variant of label * pattern option * row_desc ref
-  | Tpat_record of
+  | Tpat_variant de label * pattern option * row_desc ref
+  | Tpat_record de
       (Longident.t loc * label_description * pattern) list *
         closed_flag
-  | Tpat_array of pattern list
-  | Tpat_or of pattern * pattern * row_desc option
-  | Tpat_lazy of pattern
+  | Tpat_array de pattern list
+  | Tpat_or de pattern * pattern * row_desc option
+  | Tpat_lazy de pattern
 
-and expression =
+et expression =
   { exp_desc: expression_desc;
     exp_loc: Location.t;
     exp_extra: (exp_extra * Location.t * attributes) list;
@@ -62,54 +62,54 @@ and expression =
     exp_attributes: attributes;
    }
 
-and exp_extra =
-  | Texp_constraint of core_type
-  | Texp_coerce of core_type option * core_type
-  | Texp_open of override_flag * Path.t * Longident.t loc * Env.t
-  | Texp_poly of core_type option
-  | Texp_newtype of string
+et exp_extra =
+  | Texp_constraint de core_type
+  | Texp_coerce de core_type option * core_type
+  | Texp_open de override_flag * Path.t * Longident.t loc * Env.t
+  | Texp_poly de core_type option
+  | Texp_newtype de string
 
-and expression_desc =
-    Texp_ident of Path.t * Longident.t loc * Types.value_description
-  | Texp_constant of constant
-  | Texp_let of rec_flag * value_binding list * expression
-  | Texp_function of label * case list * partial
-  | Texp_apply of expression * (label * expression option * optional) list
-  | Texp_match of expression * case list * partial
-  | Texp_try of expression * case list
-  | Texp_tuple of expression list
-  | Texp_construct of
+et expression_desc =
+    Texp_ident de Path.t * Longident.t loc * Types.value_description
+  | Texp_constant de constant
+  | Texp_let de rec_flag * value_binding list * expression
+  | Texp_function de label * case list * partial
+  | Texp_apply de expression * (label * expression option * optional) list
+  | Texp_match de expression * case list * partial
+  | Texp_try de expression * case list
+  | Texp_tuple de expression list
+  | Texp_construct de
       Longident.t loc * constructor_description * expression list
-  | Texp_variant of label * expression option
-  | Texp_record of
+  | Texp_variant de label * expression option
+  | Texp_record de
       (Longident.t loc * label_description * expression) list *
         expression option
-  | Texp_field of expression * Longident.t loc * label_description
-  | Texp_setfield of
+  | Texp_field de expression * Longident.t loc * label_description
+  | Texp_setfield de
       expression * Longident.t loc * label_description * expression
-  | Texp_array of expression list
-  | Texp_ifthenelse of expression * expression * expression option
-  | Texp_sequence of expression * expression
-  | Texp_while of expression * expression
-  | Texp_for of
+  | Texp_array de expression list
+  | Texp_ifthenelse de expression * expression * expression option
+  | Texp_sequence de expression * expression
+  | Texp_while de expression * expression
+  | Texp_for de
       Ident.t * Parsetree.pattern * expression * expression * direction_flag *
         expression
-  | Texp_send of expression * meth * expression option
-  | Texp_new of Path.t * Longident.t loc * Types.class_declaration
-  | Texp_instvar of Path.t * Path.t * string loc
-  | Texp_setinstvar of Path.t * Path.t * string loc * expression
-  | Texp_override of Path.t * (Path.t * string loc * expression) list
-  | Texp_letmodule of Ident.t * string loc * module_expr * expression
-  | Texp_assert of expression
-  | Texp_lazy of expression
-  | Texp_object of class_structure * string list
-  | Texp_pack of module_expr
+  | Texp_send de expression * meth * expression option
+  | Texp_new de Path.t * Longident.t loc * Types.class_declaration
+  | Texp_instvar de Path.t * Path.t * string loc
+  | Texp_setinstvar de Path.t * Path.t * string loc * expression
+  | Texp_override de Path.t * (Path.t * string loc * expression) list
+  | Texp_letmodule de Ident.t * string loc * module_expr * expression
+  | Texp_assert de expression
+  | Texp_lazy de expression
+  | Texp_object de class_structure * string list
+  | Texp_pack de module_expr
 
-and meth =
-    Tmeth_name of string
-  | Tmeth_val of Ident.t
+et meth =
+    Tmeth_name de string
+  | Tmeth_val de Ident.t
 
-and case =
+et case =
     {
      c_lhs: pattern;
      c_guard: expression option;
@@ -118,7 +118,7 @@ and case =
 
 (* Value expressions for the class language *)
 
-and class_expr =
+et class_expr =
     {
      cl_desc: class_expr_desc;
      cl_loc: Location.t;
@@ -127,20 +127,20 @@ and class_expr =
      cl_attributes: attributes;
     }
 
-and class_expr_desc =
-    Tcl_ident of Path.t * Longident.t loc * core_type list
-  | Tcl_structure of class_structure
-  | Tcl_fun of
+et class_expr_desc =
+    Tcl_ident de Path.t * Longident.t loc * core_type list
+  | Tcl_structure de class_structure
+  | Tcl_fun de
       label * pattern * (Ident.t * string loc * expression) list * class_expr *
         partial
-  | Tcl_apply of class_expr * (label * expression option * optional) list
-  | Tcl_let of rec_flag * value_binding list *
+  | Tcl_apply de class_expr * (label * expression option * optional) list
+  | Tcl_let de rec_flag * value_binding list *
                   (Ident.t * string loc * expression) list * class_expr
-  | Tcl_constraint of
+  | Tcl_constraint de
       class_expr * class_type option * string list * string list * Concr.t
     (* Visible instance variables, methods and concretes methods *)
 
-and class_structure =
+et class_structure =
   {
    cstr_self: pattern;
    cstr_fields: class_field list;
@@ -148,30 +148,30 @@ and class_structure =
    cstr_meths: Ident.t Meths.t;
   }
 
-and class_field =
+et class_field =
    {
     cf_desc: class_field_desc;
     cf_loc: Location.t;
     cf_attributes: attributes;
   }
 
-and class_field_kind =
-  | Tcfk_virtual of core_type
-  | Tcfk_concrete of override_flag * expression
+et class_field_kind =
+  | Tcfk_virtual de core_type
+  | Tcfk_concrete de override_flag * expression
 
-and class_field_desc =
-    Tcf_inherit of
+et class_field_desc =
+    Tcf_inherit de
       override_flag * class_expr * string option * (string * Ident.t) list *
         (string * Ident.t) list
     (* Inherited instance variables and concrete methods *)
-  | Tcf_val of string loc * mutable_flag * Ident.t * class_field_kind * bool
-  | Tcf_method of string loc * private_flag * class_field_kind
-  | Tcf_constraint of core_type * core_type
-  | Tcf_initializer of expression
+  | Tcf_val de string loc * mutable_flag * Ident.t * class_field_kind * bool
+  | Tcf_method de string loc * private_flag * class_field_kind
+  | Tcf_constraint de core_type * core_type
+  | Tcf_initializer de expression
 
 (* Value expressions for the module language *)
 
-and module_expr =
+et module_expr =
   { mod_desc: module_expr_desc;
     mod_loc: Location.t;
     mod_type: Types.module_type;
@@ -179,48 +179,48 @@ and module_expr =
     mod_attributes: attributes;
    }
 
-and module_type_constraint =
+et module_type_constraint =
   Tmodtype_implicit
-| Tmodtype_explicit of module_type
+| Tmodtype_explicit de module_type
 
-and module_expr_desc =
-    Tmod_ident of Path.t * Longident.t loc
-  | Tmod_structure of structure
-  | Tmod_functor of Ident.t * string loc * module_type option * module_expr
-  | Tmod_apply of module_expr * module_expr * module_coercion
-  | Tmod_constraint of
+et module_expr_desc =
+    Tmod_ident de Path.t * Longident.t loc
+  | Tmod_structure de structure
+  | Tmod_functor de Ident.t * string loc * module_type option * module_expr
+  | Tmod_apply de module_expr * module_expr * module_coercion
+  | Tmod_constraint de
       module_expr * Types.module_type * module_type_constraint * module_coercion
-  | Tmod_unpack of expression * Types.module_type
+  | Tmod_unpack de expression * Types.module_type
 
-and structure = {
+et structure = {
   str_items : structure_item list;
   str_type : Types.signature;
   str_final_env : Env.t;
 }
 
-and structure_item =
+et structure_item =
   { str_desc : structure_item_desc;
     str_loc : Location.t;
     str_env : Env.t
   }
 
-and structure_item_desc =
-    Tstr_eval of expression * attributes
-  | Tstr_value of rec_flag * value_binding list
-  | Tstr_primitive of value_description
-  | Tstr_type of type_declaration list
-  | Tstr_exception of constructor_declaration
-  | Tstr_exn_rebind of Ident.t * string loc * Path.t * Longident.t loc * attributes
-  | Tstr_module of module_binding
-  | Tstr_recmodule of module_binding list
-  | Tstr_modtype of module_type_declaration
-  | Tstr_open of override_flag * Path.t * Longident.t loc * attributes
-  | Tstr_class of (class_declaration * string list * virtual_flag) list
-  | Tstr_class_type of (Ident.t * string loc * class_type_declaration) list
-  | Tstr_include of module_expr * Types.signature * attributes
-  | Tstr_attribute of attribute
+et structure_item_desc =
+    Tstr_eval de expression * attributes
+  | Tstr_value de rec_flag * value_binding list
+  | Tstr_primitive de value_description
+  | Tstr_type de type_declaration list
+  | Tstr_exception de constructor_declaration
+  | Tstr_exn_rebind de Ident.t * string loc * Path.t * Longident.t loc * attributes
+  | Tstr_module de module_binding
+  | Tstr_recmodule de module_binding list
+  | Tstr_modtype de module_type_declaration
+  | Tstr_open de override_flag * Path.t * Longident.t loc * attributes
+  | Tstr_class de (class_declaration * string list * virtual_flag) list
+  | Tstr_class_type de (Ident.t * string loc * class_type_declaration) list
+  | Tstr_include de module_expr * Types.signature * attributes
+  | Tstr_attribute de attribute
 
-and module_binding =
+et module_binding =
     {
      mb_id: Ident.t;
      mb_name: string loc;
@@ -229,22 +229,22 @@ and module_binding =
      mb_loc: Location.t;
     }
 
-and value_binding =
+et value_binding =
   {
     vb_pat: pattern;
     vb_expr: expression;
     vb_attributes: attributes;
   }
 
-and module_coercion =
+et module_coercion =
     Tcoerce_none
-  | Tcoerce_structure of (int * module_coercion) list *
+  | Tcoerce_structure de (int * module_coercion) list *
                          (Ident.t * int * module_coercion) list
-  | Tcoerce_functor of module_coercion * module_coercion
-  | Tcoerce_primitive of Primitive.description
-  | Tcoerce_alias of Path.t * module_coercion
+  | Tcoerce_functor de module_coercion * module_coercion
+  | Tcoerce_primitive de Primitive.description
+  | Tcoerce_alias de Path.t * module_coercion
 
-and module_type =
+et module_type =
   { mty_desc: module_type_desc;
     mty_type : Types.module_type;
     mty_env : Env.t;
@@ -252,39 +252,39 @@ and module_type =
     mty_attributes: attributes;
    }
 
-and module_type_desc =
-    Tmty_ident of Path.t * Longident.t loc
-  | Tmty_signature of signature
-  | Tmty_functor of Ident.t * string loc * module_type option * module_type
-  | Tmty_with of module_type * (Path.t * Longident.t loc * with_constraint) list
-  | Tmty_typeof of module_expr
-  | Tmty_alias of Path.t * Longident.t loc
+et module_type_desc =
+    Tmty_ident de Path.t * Longident.t loc
+  | Tmty_signature de signature
+  | Tmty_functor de Ident.t * string loc * module_type option * module_type
+  | Tmty_with de module_type * (Path.t * Longident.t loc * with_constraint) list
+  | Tmty_typeof de module_expr
+  | Tmty_alias de Path.t * Longident.t loc
 
-and signature = {
+et signature = {
   sig_items : signature_item list;
   sig_type : Types.signature;
   sig_final_env : Env.t;
 }
 
-and signature_item =
+et signature_item =
   { sig_desc: signature_item_desc;
     sig_env : Env.t; (* BINANNOT ADDED *)
     sig_loc: Location.t }
 
-and signature_item_desc =
-    Tsig_value of value_description
-  | Tsig_type of type_declaration list
-  | Tsig_exception of constructor_declaration
-  | Tsig_module of module_declaration
-  | Tsig_recmodule of module_declaration list
-  | Tsig_modtype of module_type_declaration
-  | Tsig_open of override_flag * Path.t * Longident.t loc * attributes
-  | Tsig_include of module_type * Types.signature * attributes
-  | Tsig_class of class_description list
-  | Tsig_class_type of class_type_declaration list
-  | Tsig_attribute of attribute
+et signature_item_desc =
+    Tsig_value de value_description
+  | Tsig_type de type_declaration list
+  | Tsig_exception de constructor_declaration
+  | Tsig_module de module_declaration
+  | Tsig_recmodule de module_declaration list
+  | Tsig_modtype de module_type_declaration
+  | Tsig_open de override_flag * Path.t * Longident.t loc * attributes
+  | Tsig_include de module_type * Types.signature * attributes
+  | Tsig_class de class_description list
+  | Tsig_class_type de class_type_declaration list
+  | Tsig_attribute de attribute
 
-and module_declaration =
+et module_declaration =
     {
      md_id: Ident.t;
      md_name: string loc;
@@ -293,7 +293,7 @@ and module_declaration =
      md_loc: Location.t;
     }
 
-and module_type_declaration =
+et module_type_declaration =
     {
      mtd_id: Ident.t;
      mtd_name: string loc;
@@ -302,46 +302,46 @@ and module_type_declaration =
      mtd_loc: Location.t;
     }
 
-and with_constraint =
-    Twith_type of type_declaration
-  | Twith_module of Path.t * Longident.t loc
-  | Twith_typesubst of type_declaration
-  | Twith_modsubst of Path.t * Longident.t loc
+et with_constraint =
+    Twith_type de type_declaration
+  | Twith_module de Path.t * Longident.t loc
+  | Twith_typesubst de type_declaration
+  | Twith_modsubst de Path.t * Longident.t loc
 
-and core_type =
+et core_type =
 (* mutable because of [Typeclass.declare_method] *)
-  { mutable ctyp_desc : core_type_desc;
-    mutable ctyp_type : type_expr;
+  { modifiable ctyp_desc : core_type_desc;
+    modifiable ctyp_type : type_expr;
     ctyp_env : Env.t; (* BINANNOT ADDED *)
     ctyp_loc : Location.t;
     ctyp_attributes: attributes;
    }
 
-and core_type_desc =
+et core_type_desc =
     Ttyp_any
-  | Ttyp_var of string
-  | Ttyp_arrow of label * core_type * core_type
-  | Ttyp_tuple of core_type list
-  | Ttyp_constr of Path.t * Longident.t loc * core_type list
-  | Ttyp_object of (string * core_type) list * closed_flag
-  | Ttyp_class of Path.t * Longident.t loc * core_type list
-  | Ttyp_alias of core_type * string
-  | Ttyp_variant of row_field list * closed_flag * label list option
-  | Ttyp_poly of string list * core_type
-  | Ttyp_package of package_type
+  | Ttyp_var de string
+  | Ttyp_arrow de label * core_type * core_type
+  | Ttyp_tuple de core_type list
+  | Ttyp_constr de Path.t * Longident.t loc * core_type list
+  | Ttyp_object de (string * core_type) list * closed_flag
+  | Ttyp_class de Path.t * Longident.t loc * core_type list
+  | Ttyp_alias de core_type * string
+  | Ttyp_variant de row_field list * closed_flag * label list option
+  | Ttyp_poly de string list * core_type
+  | Ttyp_package de package_type
 
-and package_type = {
+et package_type = {
   pack_name : Path.t;
   pack_fields : (Longident.t loc * core_type) list;
   pack_type : Types.module_type;
   pack_txt : Longident.t loc;
 }
 
-and row_field =
-    Ttag of label * bool * core_type list
-  | Tinherit of core_type
+et row_field =
+    Ttag de label * bool * core_type list
+  | Tinherit de core_type
 
-and value_description =
+et value_description =
   { val_id: Ident.t;
     val_name: string loc;
     val_desc: core_type;
@@ -351,7 +351,7 @@ and value_description =
     val_attributes: attributes;
     }
 
-and type_declaration =
+et type_declaration =
   {
     typ_id: Ident.t;
     typ_name: string loc;
@@ -365,12 +365,12 @@ and type_declaration =
     typ_attributes: attributes;
    }
 
-and type_kind =
+et type_kind =
     Ttype_abstract
-  | Ttype_variant of constructor_declaration list
-  | Ttype_record of label_declaration list
+  | Ttype_variant de constructor_declaration list
+  | Ttype_record de label_declaration list
 
-and label_declaration =
+et label_declaration =
     {
      ld_id: Ident.t;
      ld_name: string loc;
@@ -380,7 +380,7 @@ and label_declaration =
      ld_attributes: attributes;
     }
 
-and constructor_declaration =
+et constructor_declaration =
     {
      cd_id: Ident.t;
      cd_name: string loc;
@@ -390,7 +390,7 @@ and constructor_declaration =
      cd_attributes: attributes;
     }
 
-and class_type =
+et class_type =
     {
      cltyp_desc: class_type_desc;
      cltyp_type: Types.class_type;
@@ -399,39 +399,39 @@ and class_type =
      cltyp_attributes: attributes;
     }
 
-and class_type_desc =
-    Tcty_constr of Path.t * Longident.t loc * core_type list
-  | Tcty_signature of class_signature
-  | Tcty_arrow of label * core_type * class_type
+et class_type_desc =
+    Tcty_constr de Path.t * Longident.t loc * core_type list
+  | Tcty_signature de class_signature
+  | Tcty_arrow de label * core_type * class_type
 
-and class_signature = {
+et class_signature = {
     csig_self : core_type;
     csig_fields : class_type_field list;
     csig_type : Types.class_signature;
   }
 
-and class_type_field = {
+et class_type_field = {
     ctf_desc: class_type_field_desc;
     ctf_loc: Location.t;
     ctf_attributes: attributes;
   }
 
-and class_type_field_desc =
-  | Tctf_inherit of class_type
-  | Tctf_val of (string * mutable_flag * virtual_flag * core_type)
-  | Tctf_method of (string * private_flag * virtual_flag * core_type)
-  | Tctf_constraint of (core_type * core_type)
+et class_type_field_desc =
+  | Tctf_inherit de class_type
+  | Tctf_val de (string * mutable_flag * virtual_flag * core_type)
+  | Tctf_method de (string * private_flag * virtual_flag * core_type)
+  | Tctf_constraint de (core_type * core_type)
 
-and class_declaration =
+et class_declaration =
   class_expr class_infos
 
-and class_description =
+et class_description =
   class_type class_infos
 
-and class_type_declaration =
+et class_type_declaration =
   class_type class_infos
 
-and 'a class_infos =
+et 'a class_infos =
   { ci_virt: virtual_flag;
     ci_params: (string loc * variance) list;
     ci_id_name : string loc;

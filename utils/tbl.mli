@@ -24,7 +24,7 @@ val iter: ('a -> 'b -> unit) -> ('a, 'b) t -> unit
 val map: ('a -> 'b -> 'c) -> ('a, 'b) t -> ('a, 'c) t
 val fold: ('a -> 'b -> 'c -> 'c) -> ('a, 'b) t -> 'c -> 'c
 
-open Format
+ouvre Format
 
 val print: (formatter -> 'a -> unit) -> (formatter -> 'b -> unit) ->
            formatter -> ('a, 'b) t -> unit

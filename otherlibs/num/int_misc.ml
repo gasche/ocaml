@@ -15,22 +15,22 @@
 
 (* Some extra operations on integers *)
 
-let rec gcd_int i1 i2 =
-  if i2 = 0 then abs i1 else gcd_int i2 (i1 mod i2)
+soit rec gcd_int i1 i2 =
+  si i2 = 0 alors abs i1 sinon gcd_int i2 (i1 mod i2)
 ;;
 
-let rec num_bits_int_aux n =
-  if n = 0 then 0 else succ(num_bits_int_aux (n lsr 1));;
+soit rec num_bits_int_aux n =
+  si n = 0 alors 0 sinon succ(num_bits_int_aux (n ddl 1));;
 
-let num_bits_int n = num_bits_int_aux (abs n);;
+soit num_bits_int n = num_bits_int_aux (abs n);;
 
-let sign_int i = if i = 0 then 0 else if i > 0 then 1 else -1;;
+soit sign_int i = si i = 0 alors 0 sinon si i > 0 alors 1 sinon -1;;
 
-let length_of_int = Sys.word_size - 2;;
+soit length_of_int = Sys.word_size - 2;;
 
-let monster_int = 1 lsl length_of_int;;
-let biggest_int = monster_int - 1;;
-let least_int = - biggest_int;;
+soit monster_int = 1 dgl length_of_int;;
+soit biggest_int = monster_int - 1;;
+soit least_int = - biggest_int;;
 
-let compare_int n1 n2 =
-  if n1 == n2 then 0 else if n1 > n2 then 1 else -1;;
+soit compare_int n1 n2 =
+  si n1 == n2 alors 0 sinon si n1 > n2 alors 1 sinon -1;;

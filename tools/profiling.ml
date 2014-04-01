@@ -16,39 +16,39 @@
 
 type profiling_counters = (string * (string * int array)) list
 
-let counters = ref ([] : profiling_counters);;
-let incr a i = a.(i) <- a.(i) + 1;;
+soit counters = ref ([] : profiling_counters);;
+soit incr a i = a.(i) <- a.(i) + 1;;
 
 exception Bad_profile
 
-let dump_counters () =
-  let dumpfile =
-    try Sys.getenv "OCAMLPROF_DUMP" with Not_found -> "ocamlprof.dump"
-  in
-  begin try
-    let ic = open_in_bin dumpfile in
-    let prevl = (input_value ic : profiling_counters) in
+soit dump_counters () =
+  soit dumpfile =
+    essaie Sys.getenv "OCAMLPROF_DUMP" avec Not_found -> "ocamlprof.dump"
+  dans
+  début essaie
+    soit ic = open_in_bin dumpfile dans
+    soit prevl = (input_value ic : profiling_counters) dans
     close_in ic;
     List.iter2
-      (fun (curname, (curmodes,curcount)) (prevname, (prevmodes,prevcount)) ->
-        if curname <> prevname
+      (fonc (curname, (curmodes,curcount)) (prevname, (prevmodes,prevcount)) ->
+        si curname <> prevname
         || curmodes <> prevmodes
         || Array.length curcount <> Array.length prevcount
-        then raise Bad_profile)
+        alors raise Bad_profile)
       !counters prevl;
     List.iter2
-      (fun (curname, (_,curcount)) (prevname, (_,prevcount)) ->
-        for i = 0 to Array.length curcount - 1 do
+      (fonc (curname, (_,curcount)) (prevname, (_,prevcount)) ->
+        pour i = 0 à Array.length curcount - 1 faire
           curcount.(i) <- curcount.(i) + prevcount.(i)
-        done)
+        fait)
       !counters prevl
-  with _ -> ()
-  end;
-  begin try
-    let oc = open_out_bin dumpfile in
+  avec _ -> ()
+  fin;
+  début essaie
+    soit oc = open_out_bin dumpfile dans
     output_value oc !counters;
     close_out oc
-  with _ -> ()
-  end
+  avec _ -> ()
+  fin
 
-let _ = at_exit dump_counters
+soit _ = at_exit dump_counters

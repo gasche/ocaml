@@ -14,323 +14,323 @@
 
 exception Fatal_error
 
-let fatal_error msg =
+soit fatal_error msg =
   prerr_string ">> Fatal error: "; prerr_endline msg; raise Fatal_error
 
 (* Exceptions *)
 
-let try_finally work cleanup =
-  let result = (try work () with e -> cleanup (); raise e) in
+soit try_finally work cleanup =
+  soit result = (essaie work () avec e -> cleanup (); raise e) dans
   cleanup ();
   result
 ;;
 
 (* List functions *)
 
-let rec map_end f l1 l2 =
-  match l1 with
+soit rec map_end f l1 l2 =
+  filtre l1 avec
     [] -> l2
   | hd::tl -> f hd :: map_end f tl l2
 
-let rec map_left_right f = function
+soit rec map_left_right f = fonction
     [] -> []
-  | hd::tl -> let res = f hd in res :: map_left_right f tl
+  | hd::tl -> soit res = f hd dans res :: map_left_right f tl
 
-let rec for_all2 pred l1 l2 =
-  match (l1, l2) with
-    ([], []) -> true
+soit rec for_all2 pred l1 l2 =
+  filtre (l1, l2) avec
+    ([], []) -> vrai
   | (hd1::tl1, hd2::tl2) -> pred hd1 hd2 && for_all2 pred tl1 tl2
-  | (_, _) -> false
+  | (_, _) -> faux
 
-let rec replicate_list elem n =
-  if n <= 0 then [] else elem :: replicate_list elem (n-1)
+soit rec replicate_list elem n =
+  si n <= 0 alors [] sinon elem :: replicate_list elem (n-1)
 
-let rec list_remove x = function
+soit rec list_remove x = fonction
     [] -> []
   | hd :: tl ->
-      if hd = x then tl else hd :: list_remove x tl
+      si hd = x alors tl sinon hd :: list_remove x tl
 
-let rec split_last = function
-    [] -> assert false
+soit rec split_last = fonction
+    [] -> affirme faux
   | [x] -> ([], x)
   | hd :: tl ->
-      let (lst, last) = split_last tl in
+      soit (lst, last) = split_last tl dans
       (hd :: lst, last)
 
-let rec samelist pred l1 l2 =
-  match (l1, l2) with
-  | ([], []) -> true
+soit rec samelist pred l1 l2 =
+  filtre (l1, l2) avec
+  | ([], []) -> vrai
   | (hd1 :: tl1, hd2 :: tl2) -> pred hd1 hd2 && samelist pred tl1 tl2
-  | (_, _) -> false
+  | (_, _) -> faux
 
 (* Options *)
 
-let may f = function
+soit may f = fonction
     Some x -> f x
   | None -> ()
 
-let may_map f = function
+soit may_map f = fonction
     Some x -> Some (f x)
   | None -> None
 
 (* File functions *)
 
-let find_in_path path name =
-  if not (Filename.is_implicit name) then
-    if Sys.file_exists name then name else raise Not_found
-  else begin
-    let rec try_dir = function
+soit find_in_path path name =
+  si not (Filename.is_implicit name) alors
+    si Sys.file_exists name alors name sinon raise Not_found
+  sinon début
+    soit rec try_dir = fonction
       [] -> raise Not_found
     | dir::rem ->
-        let fullname = Filename.concat dir name in
-        if Sys.file_exists fullname then fullname else try_dir rem
-    in try_dir path
-  end
+        soit fullname = Filename.concat dir name dans
+        si Sys.file_exists fullname alors fullname sinon try_dir rem
+    dans try_dir path
+  fin
 
-let find_in_path_uncap path name =
-  let uname = String.uncapitalize name in
-  let rec try_dir = function
+soit find_in_path_uncap path name =
+  soit uname = String.uncapitalize name dans
+  soit rec try_dir = fonction
     [] -> raise Not_found
   | dir::rem ->
-      let fullname = Filename.concat dir name
-      and ufullname = Filename.concat dir uname in
-      if Sys.file_exists ufullname then ufullname
-      else if Sys.file_exists fullname then fullname
-      else try_dir rem
-  in try_dir path
+      soit fullname = Filename.concat dir name
+      et ufullname = Filename.concat dir uname dans
+      si Sys.file_exists ufullname alors ufullname
+      sinon si Sys.file_exists fullname alors fullname
+      sinon try_dir rem
+  dans try_dir path
 
-let remove_file filename =
-  try
+soit remove_file filename =
+  essaie
     Sys.remove filename
-  with Sys_error msg ->
+  avec Sys_error msg ->
     ()
 
 (* Expand a -I option: if it starts with +, make it relative to the standard
    library directory *)
 
-let expand_directory alt s =
-  if String.length s > 0 && s.[0] = '+'
-  then Filename.concat alt
+soit expand_directory alt s =
+  si String.length s > 0 && s.[0] = '+'
+  alors Filename.concat alt
                        (String.sub s 1 (String.length s - 1))
-  else s
+  sinon s
 
 (* Hashtable functions *)
 
-let create_hashtable size init =
-  let tbl = Hashtbl.create size in
-  List.iter (fun (key, data) -> Hashtbl.add tbl key data) init;
+soit create_hashtable size init =
+  soit tbl = Hashtbl.create size dans
+  List.iter (fonc (key, data) -> Hashtbl.add tbl key data) init;
   tbl
 
 (* File copy *)
 
-let copy_file ic oc =
-  let buff = String.create 0x1000 in
-  let rec copy () =
-    let n = input ic buff 0 0x1000 in
-    if n = 0 then () else (output oc buff 0 n; copy())
-  in copy()
+soit copy_file ic oc =
+  soit buff = String.create 0x1000 dans
+  soit rec copy () =
+    soit n = input ic buff 0 0x1000 dans
+    si n = 0 alors () sinon (output oc buff 0 n; copy())
+  dans copy()
 
-let copy_file_chunk ic oc len =
-  let buff = String.create 0x1000 in
-  let rec copy n =
-    if n <= 0 then () else begin
-      let r = input ic buff 0 (min n 0x1000) in
-      if r = 0 then raise End_of_file else (output oc buff 0 r; copy(n-r))
-    end
-  in copy len
+soit copy_file_chunk ic oc len =
+  soit buff = String.create 0x1000 dans
+  soit rec copy n =
+    si n <= 0 alors () sinon début
+      soit r = input ic buff 0 (min n 0x1000) dans
+      si r = 0 alors raise End_of_file sinon (output oc buff 0 r; copy(n-r))
+    fin
+  dans copy len
 
-let string_of_file ic =
-  let b = Buffer.create 0x10000 in
-  let buff = String.create 0x1000 in
-  let rec copy () =
-    let n = input ic buff 0 0x1000 in
-    if n = 0 then Buffer.contents b else
+soit string_of_file ic =
+  soit b = Buffer.create 0x10000 dans
+  soit buff = String.create 0x1000 dans
+  soit rec copy () =
+    soit n = input ic buff 0 0x1000 dans
+    si n = 0 alors Buffer.contents b sinon
       (Buffer.add_substring b buff 0 n; copy())
-  in copy()
+  dans copy()
 
 
 
 (* Reading from a channel *)
 
-let input_bytes ic n =
-  let result = String.create n in
+soit input_bytes ic n =
+  soit result = String.create n dans
   really_input ic result 0 n;
   result
 ;;
 
 (* Integer operations *)
 
-let rec log2 n =
-  if n <= 1 then 0 else 1 + log2(n asr 1)
+soit rec log2 n =
+  si n <= 1 alors 0 sinon 1 + log2(n dda 1)
 
-let align n a =
-  if n >= 0 then (n + a - 1) land (-a) else n land (-a)
+soit align n a =
+  si n >= 0 alors (n + a - 1) etl (-a) sinon n etl (-a)
 
-let no_overflow_add a b = (a lxor b) lor (a lxor (lnot (a+b))) < 0
+soit no_overflow_add a b = (a ouxl b) oul (a ouxl (lnot (a+b))) < 0
 
-let no_overflow_sub a b = (a lxor (lnot b)) lor (b lxor (a-b)) < 0
+soit no_overflow_sub a b = (a ouxl (lnot b)) oul (b ouxl (a-b)) < 0
 
-let no_overflow_lsl a = min_int asr 1 <= a && a <= max_int asr 1
+soit no_overflow_lsl a = min_int dda 1 <= a && a <= max_int dda 1
 
 (* String operations *)
 
-let chop_extension_if_any fname =
-  try Filename.chop_extension fname with Invalid_argument _ -> fname
+soit chop_extension_if_any fname =
+  essaie Filename.chop_extension fname avec Invalid_argument _ -> fname
 
-let chop_extensions file =
-  let dirname = Filename.dirname file and basename = Filename.basename file in
-  try
-    let pos = String.index basename '.' in
-    let basename = String.sub basename 0 pos in
-    if Filename.is_implicit file && dirname = Filename.current_dir_name then
+soit chop_extensions file =
+  soit dirname = Filename.dirname file et basename = Filename.basename file dans
+  essaie
+    soit pos = String.index basename '.' dans
+    soit basename = String.sub basename 0 pos dans
+    si Filename.is_implicit file && dirname = Filename.current_dir_name alors
       basename
-    else
+    sinon
       Filename.concat dirname basename
-  with Not_found -> file
+  avec Not_found -> file
 
-let search_substring pat str start =
-  let rec search i j =
-    if j >= String.length pat then i
-    else if i + j >= String.length str then raise Not_found
-    else if str.[i + j] = pat.[j] then search i (j+1)
-    else search (i+1) 0
-  in search start 0
+soit search_substring pat str start =
+  soit rec search i j =
+    si j >= String.length pat alors i
+    sinon si i + j >= String.length str alors raise Not_found
+    sinon si str.[i + j] = pat.[j] alors search i (j+1)
+    sinon search (i+1) 0
+  dans search start 0
 
-let rev_split_words s =
-  let rec split1 res i =
-    if i >= String.length s then res else begin
-      match s.[i] with
+soit rev_split_words s =
+  soit rec split1 res i =
+    si i >= String.length s alors res sinon début
+      filtre s.[i] avec
         ' ' | '\t' | '\r' | '\n' -> split1 res (i+1)
       | _ -> split2 res i (i+1)
-    end
-  and split2 res i j =
-    if j >= String.length s then String.sub s i (j-i) :: res else begin
-      match s.[j] with
+    fin
+  et split2 res i j =
+    si j >= String.length s alors String.sub s i (j-i) :: res sinon début
+      filtre s.[j] avec
         ' ' | '\t' | '\r' | '\n' -> split1 (String.sub s i (j-i) :: res) (j+1)
       | _ -> split2 res i (j+1)
-    end
-  in split1 [] 0
+    fin
+  dans split1 [] 0
 
-let get_ref r =
-  let v = !r in
+soit get_ref r =
+  soit v = !r dans
   r := []; v
 
-let fst3 (x, _, _) = x
-let snd3 (_,x,_) = x
-let thd3 (_,_,x) = x
+soit fst3 (x, _, _) = x
+soit snd3 (_,x,_) = x
+soit thd3 (_,_,x) = x
 
-let fst4 (x, _, _, _) = x
-let snd4 (_,x,_, _) = x
-let thd4 (_,_,x,_) = x
-let for4 (_,_,_,x) = x
+soit fst4 (x, _, _, _) = x
+soit snd4 (_,x,_, _) = x
+soit thd4 (_,_,x,_) = x
+soit for4 (_,_,_,x) = x
 
 
 module LongString = struct
   type t = string array
 
-  let create str_size =
-    let tbl_size = str_size / Sys.max_string_length + 1 in
-    let tbl = Array.make tbl_size "" in
-    for i = 0 to tbl_size - 2 do
+  soit create str_size =
+    soit tbl_size = str_size / Sys.max_string_length + 1 dans
+    soit tbl = Array.make tbl_size "" dans
+    pour i = 0 à tbl_size - 2 faire
       tbl.(i) <- String.create Sys.max_string_length;
-    done;
+    fait;
     tbl.(tbl_size - 1) <- String.create (str_size mod Sys.max_string_length);
     tbl
 
-  let length tbl =
-    let tbl_size = Array.length tbl in
+  soit length tbl =
+    soit tbl_size = Array.length tbl dans
     Sys.max_string_length * (tbl_size - 1) + String.length tbl.(tbl_size - 1)
 
-  let get tbl ind =
+  soit get tbl ind =
     tbl.(ind / Sys.max_string_length).[ind mod Sys.max_string_length]
 
-  let set tbl ind c =
+  soit set tbl ind c =
     tbl.(ind / Sys.max_string_length).[ind mod Sys.max_string_length] <- c
 
-  let blit src srcoff dst dstoff len =
-    for i = 0 to len - 1 do
+  soit blit src srcoff dst dstoff len =
+    pour i = 0 à len - 1 faire
       set dst (dstoff + i) (get src (srcoff + i))
-    done
+    fait
 
-  let output oc tbl pos len =
-    for i = pos to pos + len - 1 do
+  soit output oc tbl pos len =
+    pour i = pos à pos + len - 1 faire
       output_char oc (get tbl i)
-    done
+    fait
 
-  let unsafe_blit_to_string src srcoff dst dstoff len =
-    for i = 0 to len - 1 do
+  soit unsafe_blit_to_string src srcoff dst dstoff len =
+    pour i = 0 à len - 1 faire
       String.unsafe_set dst (dstoff + i) (get src (srcoff + i))
-    done
+    fait
 
-  let input_bytes ic len =
-    let tbl = create len in
-    Array.iter (fun str -> really_input ic str 0 (String.length str)) tbl;
+  soit input_bytes ic len =
+    soit tbl = create len dans
+    Array.iter (fonc str -> really_input ic str 0 (String.length str)) tbl;
     tbl
-end
+fin
 
 
-let edit_distance a b cutoff =
-  let la, lb = String.length a, String.length b in
-  let cutoff =
+soit edit_distance a b cutoff =
+  soit la, lb = String.length a, String.length b dans
+  soit cutoff =
     (* using max_int for cutoff would cause overflows in (i + cutoff + 1);
        we bring it back to the (max la lb) worstcase *)
-    min (max la lb) cutoff in
-  if abs (la - lb) > cutoff then None
-  else begin
+    min (max la lb) cutoff dans
+  si abs (la - lb) > cutoff alors None
+  sinon début
     (* initialize with 'cutoff + 1' so that not-yet-written-to cases have
        the worst possible cost; this is useful when computing the cost of
        a case just at the boundary of the cutoff diagonal. *)
-    let m = Array.make_matrix (la + 1) (lb + 1) (cutoff + 1) in
+    soit m = Array.make_matrix (la + 1) (lb + 1) (cutoff + 1) dans
     m.(0).(0) <- 0;
-    for i = 1 to la do
+    pour i = 1 à la faire
       m.(i).(0) <- i;
-    done;
-    for j = 1 to lb do
+    fait;
+    pour j = 1 à lb faire
       m.(0).(j) <- j;
-    done;
-    for i = 1 to la do
-      for j = max 1 (i - cutoff - 1) to min lb (i + cutoff + 1) do
-        let cost = if a.[i-1] = b.[j-1] then 0 else 1 in
-        let best =
+    fait;
+    pour i = 1 à la faire
+      pour j = max 1 (i - cutoff - 1) à min lb (i + cutoff + 1) faire
+        soit cost = si a.[i-1] = b.[j-1] alors 0 sinon 1 dans
+        soit best =
           (* insert, delete or substitute *)
           min (1 + min m.(i-1).(j) m.(i).(j-1)) (m.(i-1).(j-1) + cost)
-        in
-        let best =
+        dans
+        soit best =
           (* swap two adjacent letters; we use "cost" again in case of
              a swap between two identical letters; this is slightly
              redundant as this is a double-substitution case, but it
              was done this way in most online implementations and
              imitation has its virtues *)
-          if not (i > 1 && j > 1 && a.[i-1] = b.[j-2] && a.[i-2] = b.[j-1])
-          then best
-          else min best (m.(i-2).(j-2) + cost)
-        in
+          si not (i > 1 && j > 1 && a.[i-1] = b.[j-2] && a.[i-2] = b.[j-1])
+          alors best
+          sinon min best (m.(i-2).(j-2) + cost)
+        dans
         m.(i).(j) <- best
-      done;
-    done;
-    let result = m.(la).(lb) in
-    if result > cutoff
-    then None
-    else Some result
-  end
+      fait;
+    fait;
+    soit result = m.(la).(lb) dans
+    si result > cutoff
+    alors None
+    sinon Some result
+  fin
 
 
 (* split a string [s] at every char [c], and return the list of sub-strings *)
-let split s c =
-  let len = String.length s in
-  let rec iter pos to_rev =
-    if pos = len then List.rev ("" :: to_rev) else
-      match try
+soit split s c =
+  soit len = String.length s dans
+  soit rec iter pos to_rev =
+    si pos = len alors List.rev ("" :: to_rev) sinon
+      filtre essaie
               Some ( String.index_from s pos c )
-        with Not_found -> None
-      with
+        avec Not_found -> None
+      avec
           Some pos2 ->
-            if pos2 = pos then iter (pos+1) ("" :: to_rev) else
+            si pos2 = pos alors iter (pos+1) ("" :: to_rev) sinon
               iter (pos2+1) ((String.sub s pos (pos2-pos)) :: to_rev)
         | None -> List.rev ( String.sub s pos (len-pos) :: to_rev )
-  in
+  dans
   iter 0 []
 
-let cut_at s c =
-  let pos = String.index s c in
+soit cut_at s c =
+  soit pos = String.index s c dans
   String.sub s 0 pos, String.sub s (pos+1) (String.length s - pos - 1)

@@ -13,39 +13,39 @@
 
 (* Print the digests of unit interfaces *)
 
-let load_path = ref []
-let first = ref true
+soit load_path = ref []
+soit first = ref vrai
 
-let print_crc unit =
-  try
-    let crc = Dynlink.digest_interface unit (!load_path @ ["."]) in
-    if !first then first := false else print_string ";\n";
+soit print_crc unit =
+  essaie
+    soit crc = Dynlink.digest_interface unit (!load_path @ ["."]) dans
+    si !first alors first := faux sinon print_string ";\n";
     print_string "  \""; print_string (String.capitalize unit);
     print_string "\",\n    \"";
-    for i = 0 to String.length crc - 1 do
+    pour i = 0 à String.length crc - 1 faire
       Printf.printf "\\%03d" (Char.code crc.[i])
-    done;
+    fait;
     print_string "\""
-  with exn ->
+  avec exn ->
     prerr_string "Error while reading the interface for ";
     prerr_endline unit;
-    begin match exn with
+    début filtre exn avec
       Sys_error msg -> prerr_endline msg
     | Dynlink.Error(Dynlink.File_not_found name) ->
         prerr_string "Cannot find file "; prerr_endline name
     | Dynlink.Error _ -> prerr_endline "Ill-formed .cmi file"
     | _ -> raise exn
-    end;
+    fin;
     exit 2
 
-let usage = "Usage: extract_crc [-I <dir>] <files>"
+soit usage = "Usage: extract_crc [-I <dir>] <files>"
 
-let main () =
+soit main () =
   print_string "let crc_unit_list = [\n";
   Arg.parse
-    ["-I", Arg.String(fun dir -> load_path := !load_path @ [dir]),
+    ["-I", Arg.String(fonc dir -> load_path := !load_path @ [dir]),
            "<dir>  Add <dir> to the list of include directories"]
     print_crc usage;
   print_string "\n]\n"
 
-let _ = main(); exit 0
+soit _ = main(); exit 0

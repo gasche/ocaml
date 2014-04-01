@@ -11,74 +11,74 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Printf
+ouvre Printf
 
-open Location
-open Parsetree
+ouvre Location
+ouvre Parsetree
 
 (* User programs must not use identifiers that start with these prefixes. *)
-let idprefix = "__ocaml_prof_";;
-let modprefix = "OCAML__prof_";;
+soit idprefix = "__ocaml_prof_";;
+soit modprefix = "OCAML__prof_";;
 
 (* Errors specific to the profiler *)
-exception Profiler of string
+exception Profiler de string
 
 (* Modes *)
-let instr_fun    = ref false
-and instr_match  = ref false
-and instr_if     = ref false
-and instr_loops  = ref false
-and instr_try    = ref false
+soit instr_fun    = ref faux
+et instr_match  = ref faux
+et instr_if     = ref faux
+et instr_loops  = ref faux
+et instr_try    = ref faux
 
-let cur_point = ref 0
-and inchan = ref stdin
-and outchan = ref stdout
+soit cur_point = ref 0
+et inchan = ref stdin
+et outchan = ref stdout
 
 (* To copy source fragments *)
-let copy_buffer = String.create 256
+soit copy_buffer = String.create 256
 
-let copy_chars_unix nchars =
-  let n = ref nchars in
-  while !n > 0 do
-    let m = input !inchan copy_buffer 0 (min !n 256) in
-    if m = 0 then raise End_of_file;
+soit copy_chars_unix nchars =
+  soit n = ref nchars dans
+  pendant_que !n > 0 faire
+    soit m = input !inchan copy_buffer 0 (min !n 256) dans
+    si m = 0 alors raise End_of_file;
     output !outchan copy_buffer 0 m;
     n := !n - m
-  done
+  fait
 
-let copy_chars_win32 nchars =
-  for _i = 1 to nchars do
-    let c = input_char !inchan in
-    if c <> '\r' then output_char !outchan c
-  done
+soit copy_chars_win32 nchars =
+  pour _i = 1 à nchars faire
+    soit c = input_char !inchan dans
+    si c <> '\r' alors output_char !outchan c
+  fait
 
-let copy_chars =
-  match Sys.os_type with
+soit copy_chars =
+  filtre Sys.os_type avec
     "Win32" | "Cygwin" -> copy_chars_win32
   | _       -> copy_chars_unix
 
-let copy next =
-  assert (next >= !cur_point);
+soit copy next =
+  affirme (next >= !cur_point);
   seek_in !inchan !cur_point;
   copy_chars (next - !cur_point);
   cur_point := next;
 ;;
 
-let prof_counter = ref 0;;
+soit prof_counter = ref 0;;
 
-let instr_mode = ref false
+soit instr_mode = ref faux
 
 type insert = Open | Close;;
-let to_insert = ref ([] : (insert * int) list);;
+soit to_insert = ref ([] : (insert * int) list);;
 
-let insert_action st en =
+soit insert_action st en =
   to_insert := (Open, st) :: (Close, en) :: !to_insert
 ;;
 
 (* Producing instrumented code *)
-let add_incr_counter modul (kind,pos) =
+soit add_incr_counter modul (kind,pos) =
    copy pos;
-   match kind with
+   filtre kind avec
    | Open ->
          fprintf !outchan "(%sProfiling.incr %s%s_cnt %d; "
                  modprefix idprefix modul !prof_counter;
@@ -86,41 +86,41 @@ let add_incr_counter modul (kind,pos) =
    | Close -> fprintf !outchan ")";
 ;;
 
-let counters = ref (Array.create 0 0)
+soit counters = ref (Array.create 0 0)
 
 (* User defined marker *)
-let special_id = ref ""
+soit special_id = ref ""
 
 (* Producing results of profile run *)
-let add_val_counter (kind,pos) =
-  if kind = Open then begin
+soit add_val_counter (kind,pos) =
+  si kind = Open alors début
     copy pos;
     fprintf !outchan "(* %s%d *) " !special_id !counters.(!prof_counter);
     incr prof_counter;
-  end
+  fin
 ;;
 
 (* ************* rewrite ************* *)
 
-let insert_profile rw_exp ex =
-  let st = ex.pexp_loc.loc_start.Lexing.pos_cnum
-  and en = ex.pexp_loc.loc_end.Lexing.pos_cnum
-  and gh = ex.pexp_loc.loc_ghost
-  in
-  if gh || st = en then
-    rw_exp true ex
-  else begin
+soit insert_profile rw_exp ex =
+  soit st = ex.pexp_loc.loc_start.Lexing.pos_cnum
+  et en = ex.pexp_loc.loc_end.Lexing.pos_cnum
+  et gh = ex.pexp_loc.loc_ghost
+  dans
+  si gh || st = en alors
+    rw_exp vrai ex
+  sinon début
     insert_action st en;
-    rw_exp false ex;
-  end
+    rw_exp faux ex;
+  fin
 ;;
 
 
-let pos_len = ref 0
+soit pos_len = ref 0
 
-let init_rewrite modes mod_name =
+soit init_rewrite modes mod_name =
   cur_point := 0;
-  if !instr_mode then begin
+  si !instr_mode alors début
     fprintf !outchan "module %sProfiling = Profiling;; " modprefix;
     fprintf !outchan "let %s%s_cnt = Array.create 000000000" idprefix mod_name;
     pos_len := pos_out !outchan;
@@ -128,51 +128,51 @@ let init_rewrite modes mod_name =
             " 0;; Profiling.counters := \
               (\"%s\", (\"%s\", %s%s_cnt)) :: !Profiling.counters;; "
             mod_name modes idprefix mod_name;
-  end
+  fin
 
-let final_rewrite add_function =
-  to_insert := Sort.list (fun x y -> snd x < snd y) !to_insert;
+soit final_rewrite add_function =
+  to_insert := Sort.list (fonc x y -> snd x < snd y) !to_insert;
   prof_counter := 0;
   List.iter add_function !to_insert;
   copy (in_channel_length !inchan);
-  if !instr_mode then begin
-    let len = string_of_int !prof_counter in
-    if String.length len > 9 then raise (Profiler "too many counters");
+  si !instr_mode alors début
+    soit len = string_of_int !prof_counter dans
+    si String.length len > 9 alors raise (Profiler "too many counters");
     seek_out !outchan (!pos_len - String.length len);
     output_string !outchan len
-  end;
+  fin;
   (* Cannot close because outchan is stdout and Format doesn't like
      a closed stdout.
     close_out !outchan;
   *)
 ;;
 
-let rec rewrite_patexp_list iflag l =
-  rewrite_exp_list iflag (List.map (fun x -> x.pvb_expr) l)
+soit rec rewrite_patexp_list iflag l =
+  rewrite_exp_list iflag (List.map (fonc x -> x.pvb_expr) l)
 
-and rewrite_cases iflag l =
+et rewrite_cases iflag l =
   List.iter
-    (fun pc ->
-      begin match pc.pc_guard with
+    (fonc pc ->
+      début filtre pc.pc_guard avec
       | None -> ()
       | Some g -> rewrite_exp iflag g
-      end;
+      fin;
       rewrite_exp iflag pc.pc_rhs
     )
     l
 
-and rewrite_labelexp_list iflag l =
+et rewrite_labelexp_list iflag l =
   rewrite_exp_list iflag (List.map snd l)
 
-and rewrite_exp_list iflag l =
+et rewrite_exp_list iflag l =
   List.iter (rewrite_exp iflag) l
 
-and rewrite_exp iflag sexp =
-  if iflag then insert_profile rw_exp sexp
-           else rw_exp false sexp
+et rewrite_exp iflag sexp =
+  si iflag alors insert_profile rw_exp sexp
+           sinon rw_exp faux sexp
 
-and rw_exp iflag sexp =
-  match sexp.pexp_desc with
+et rw_exp iflag sexp =
+  filtre sexp.pexp_desc avec
     Pexp_ident lid -> ()
   | Pexp_constant cst -> ()
 
@@ -181,30 +181,30 @@ and rw_exp iflag sexp =
     rewrite_exp iflag sbody
 
   | Pexp_function caselist ->
-    if !instr_fun then
+    si !instr_fun alors
       rewrite_function iflag caselist
-    else
+    sinon
       rewrite_cases iflag caselist
 
   | Pexp_fun (_, _, p, e) ->
-      let l = [{pc_lhs=p; pc_guard=None; pc_rhs=e}] in
-      if !instr_fun then
+      soit l = [{pc_lhs=p; pc_guard=None; pc_rhs=e}] dans
+      si !instr_fun alors
         rewrite_function iflag l
-      else
+      sinon
         rewrite_cases iflag l
 
   | Pexp_match(sarg, caselist) ->
     rewrite_exp iflag sarg;
-    if !instr_match && not sexp.pexp_loc.loc_ghost then
+    si !instr_match && not sexp.pexp_loc.loc_ghost alors
       rewrite_funmatching caselist
-    else
+    sinon
       rewrite_cases iflag caselist
 
   | Pexp_try(sbody, caselist) ->
     rewrite_exp iflag sbody;
-    if !instr_try && not sexp.pexp_loc.loc_ghost then
+    si !instr_try && not sexp.pexp_loc.loc_ghost alors
       rewrite_trymatching caselist
-    else
+    sinon
       rewrite_cases iflag caselist
 
   | Pexp_apply(sfunct, sargs) ->
@@ -252,16 +252,16 @@ and rw_exp iflag sexp =
 
   | Pexp_while(scond, sbody) ->
     rewrite_exp iflag scond;
-    if !instr_loops && not sexp.pexp_loc.loc_ghost
-    then insert_profile rw_exp sbody
-    else rewrite_exp iflag sbody
+    si !instr_loops && not sexp.pexp_loc.loc_ghost
+    alors insert_profile rw_exp sbody
+    sinon rewrite_exp iflag sbody
 
   | Pexp_for(_, slow, shigh, _, sbody) ->
     rewrite_exp iflag slow;
     rewrite_exp iflag shigh;
-    if !instr_loops && not sexp.pexp_loc.loc_ghost
-    then insert_profile rw_exp sbody
-    else rewrite_exp iflag sbody
+    si !instr_loops && not sexp.pexp_loc.loc_ghost
+    alors insert_profile rw_exp sbody
+    sinon rewrite_exp iflag sbody
 
   | Pexp_constraint(sarg, _) | Pexp_coerce(sarg, _, _) ->
     rewrite_exp iflag sarg
@@ -275,7 +275,7 @@ and rw_exp iflag sexp =
     rewrite_exp iflag sarg
 
   | Pexp_override l ->
-      List.iter (fun (_, sexp) -> rewrite_exp iflag sexp) l
+      List.iter (fonc (_, sexp) -> rewrite_exp iflag sexp) l
 
   | Pexp_letmodule (_, smod, sexp) ->
       rewrite_mod iflag smod;
@@ -295,16 +295,16 @@ and rw_exp iflag sexp =
   | Pexp_pack (smod) -> rewrite_mod iflag smod
   | Pexp_extension _ -> ()
 
-and rewrite_ifbody iflag ghost sifbody =
-  if !instr_if && not ghost then
+et rewrite_ifbody iflag ghost sifbody =
+  si !instr_if && not ghost alors
     insert_profile rw_exp sifbody
-  else
+  sinon
     rewrite_exp iflag sifbody
 
 (* called only when !instr_fun *)
-and rewrite_annotate_exp_list l =
+et rewrite_annotate_exp_list l =
   List.iter
-    (function
+    (fonction
      | {pc_guard=Some scond; pc_rhs=sbody} ->
          insert_profile rw_exp scond;
          insert_profile rw_exp sbody;
@@ -313,32 +313,32 @@ and rewrite_annotate_exp_list l =
      | {pc_rhs=sexp} -> insert_profile rw_exp sexp)
     l
 
-and rewrite_function iflag = function
+et rewrite_function iflag = fonction
   | [{pc_lhs=spat; pc_guard=None;
-      pc_rhs={pexp_desc = (Pexp_function _|Pexp_fun _)} as sexp}] ->
+      pc_rhs={pexp_desc = (Pexp_function _|Pexp_fun _)} tel sexp}] ->
         rewrite_exp iflag sexp
   | l -> rewrite_funmatching l
 
-and rewrite_funmatching l =
+et rewrite_funmatching l =
   rewrite_annotate_exp_list l
 
-and rewrite_trymatching l =
+et rewrite_trymatching l =
   rewrite_annotate_exp_list l
 
 (* Rewrite a class definition *)
 
-and rewrite_class_field iflag cf =
-  match cf.pcf_desc with
+et rewrite_class_field iflag cf =
+  filtre cf.pcf_desc avec
     Pcf_inherit (_, cexpr, _)     -> rewrite_class_expr iflag cexpr
   | Pcf_val (_, _, Cfk_concrete (_, sexp))  -> rewrite_exp iflag sexp
   | Pcf_method (_, _,
                 Cfk_concrete (_, ({pexp_desc = (Pexp_function _|Pexp_fun _)}
-                                    as sexp))) ->
+                                    tel sexp))) ->
       rewrite_exp iflag sexp
   | Pcf_method (_, _, Cfk_concrete(_, sexp)) ->
-      let loc = cf.pcf_loc in
-      if !instr_fun && not loc.loc_ghost then insert_profile rw_exp sexp
-      else rewrite_exp iflag sexp
+      soit loc = cf.pcf_loc dans
+      si !instr_fun && not loc.loc_ghost alors insert_profile rw_exp sexp
+      sinon rewrite_exp iflag sexp
   | Pcf_initializer sexp ->
       rewrite_exp iflag sexp
   | Pcf_method (_, _, Cfk_virtual _)
@@ -346,8 +346,8 @@ and rewrite_class_field iflag cf =
   | Pcf_constraint _  -> ()
   | Pcf_extension _ -> ()
 
-and rewrite_class_expr iflag cexpr =
-  match cexpr.pcl_desc with
+et rewrite_class_expr iflag cexpr =
+  filtre cexpr.pcl_desc avec
     Pcl_constr _ -> ()
   | Pcl_structure st ->
       List.iter (rewrite_class_field iflag) st.pcstr_fields
@@ -363,13 +363,13 @@ and rewrite_class_expr iflag cexpr =
       rewrite_class_expr iflag cexpr
   | Pcl_extension _ -> ()
 
-and rewrite_class_declaration iflag cl =
+et rewrite_class_declaration iflag cl =
   rewrite_class_expr iflag cl.pci_expr
 
 (* Rewrite a module expression or structure expression *)
 
-and rewrite_mod iflag smod =
-  match smod.pmod_desc with
+et rewrite_mod iflag smod =
+  filtre smod.pmod_desc avec
     Pmod_ident lid -> ()
   | Pmod_structure sstr -> List.iter (rewrite_str_item iflag) sstr
   | Pmod_functor(param, smty, sbody) -> rewrite_mod iflag sbody
@@ -378,132 +378,132 @@ and rewrite_mod iflag smod =
   | Pmod_unpack(sexp) -> rewrite_exp iflag sexp
   | Pmod_extension _ -> ()
 
-and rewrite_str_item iflag item =
-  match item.pstr_desc with
+et rewrite_str_item iflag item =
+  filtre item.pstr_desc avec
     Pstr_eval (exp, _attrs) -> rewrite_exp iflag exp
   | Pstr_value(_, exps)
-     -> List.iter (fun x -> rewrite_exp iflag x.pvb_expr) exps
+     -> List.iter (fonc x -> rewrite_exp iflag x.pvb_expr) exps
   | Pstr_module x -> rewrite_mod iflag x.pmb_expr
         (* todo: Pstr_recmodule?? *)
   | Pstr_class classes -> List.iter (rewrite_class_declaration iflag) classes
   | _ -> ()
 
 (* Rewrite a .ml file *)
-let rewrite_file srcfile add_function =
+soit rewrite_file srcfile add_function =
   inchan := open_in_bin srcfile;
-  let lb = Lexing.from_channel !inchan in
+  soit lb = Lexing.from_channel !inchan dans
   Location.input_name := srcfile;
   Location.init lb srcfile;
-  List.iter (rewrite_str_item false) (Parse.implementation lb);
+  List.iter (rewrite_str_item faux) (Parse.implementation lb);
   final_rewrite add_function;
   close_in !inchan
 
 (* Copy a non-.ml file without change *)
-let null_rewrite srcfile =
+soit null_rewrite srcfile =
   inchan := open_in_bin srcfile;
   copy (in_channel_length !inchan);
   close_in !inchan
 ;;
 
 (* Setting flags from saved config *)
-let set_flags s =
-  for i = 0 to String.length s - 1 do
-    match String.get s i with
-      'f' -> instr_fun := true
-    | 'm' -> instr_match := true
-    | 'i' -> instr_if := true
-    | 'l' -> instr_loops := true
-    | 't' -> instr_try := true
-    | 'a' -> instr_fun := true; instr_match := true;
-             instr_if := true; instr_loops := true;
-             instr_try := true
+soit set_flags s =
+  pour i = 0 à String.length s - 1 faire
+    filtre String.get s i avec
+      'f' -> instr_fun := vrai
+    | 'm' -> instr_match := vrai
+    | 'i' -> instr_if := vrai
+    | 'l' -> instr_loops := vrai
+    | 't' -> instr_try := vrai
+    | 'a' -> instr_fun := vrai; instr_match := vrai;
+             instr_if := vrai; instr_loops := vrai;
+             instr_try := vrai
     | _ -> ()
-    done
+    fait
 
 (* Command-line options *)
 
-let modes = ref "fm"
-let dumpfile = ref "ocamlprof.dump"
+soit modes = ref "fm"
+soit dumpfile = ref "ocamlprof.dump"
 
 (* Process a file *)
 
-let process_intf_file filename = null_rewrite filename;;
+soit process_intf_file filename = null_rewrite filename;;
 
-let process_impl_file filename =
-   let modname = Filename.basename(Filename.chop_extension filename) in
+soit process_impl_file filename =
+   soit modname = Filename.basename(Filename.chop_extension filename) dans
        (* FIXME should let modname = String.capitalize modname *)
-   if !instr_mode then begin
+   si !instr_mode alors début
      (* Instrumentation mode *)
      set_flags !modes;
      init_rewrite !modes modname;
      rewrite_file filename (add_incr_counter modname);
-   end else begin
+   fin sinon début
      (* Results mode *)
-     let ic = open_in_bin !dumpfile in
-     let allcounters =
-       (input_value ic : (string * (string * int array)) list) in
+     soit ic = open_in_bin !dumpfile dans
+     soit allcounters =
+       (input_value ic : (string * (string * int array)) list) dans
      close_in ic;
-     let (modes, cv) =
-       try
+     soit (modes, cv) =
+       essaie
          List.assoc modname allcounters
-       with Not_found ->
+       avec Not_found ->
          raise(Profiler("Module " ^ modname ^ " not used in this profile."))
-     in
+     dans
      counters := cv;
      set_flags modes;
      init_rewrite modes modname;
      rewrite_file filename add_val_counter;
-   end
+   fin
 ;;
 
-let process_anon_file filename =
-  if Filename.check_suffix filename ".ml" then
+soit process_anon_file filename =
+  si Filename.check_suffix filename ".ml" alors
     process_impl_file filename
-  else
+  sinon
     process_intf_file filename
 ;;
 
 (* Main function *)
 
-open Format
+ouvre Format
 
-let usage = "Usage: ocamlprof <options> <files>\noptions are:"
+soit usage = "Usage: ocamlprof <options> <files>\noptions are:"
 
-let print_version () =
+soit print_version () =
   printf "ocamlprof, version %s@." Sys.ocaml_version;
   exit 0;
 ;;
 
-let print_version_num () =
+soit print_version_num () =
   printf "%s@." Sys.ocaml_version;
   exit 0;
 ;;
 
-let main () =
-  try
-    Warnings.parse_options false "a";
+soit main () =
+  essaie
+    Warnings.parse_options faux "a";
     Arg.parse [
-       "-f", Arg.String (fun s -> dumpfile := s),
+       "-f", Arg.String (fonc s -> dumpfile := s),
              "<file>     Use <file> as dump file (default ocamlprof.dump)";
-       "-F", Arg.String (fun s -> special_id := s),
+       "-F", Arg.String (fonc s -> special_id := s),
              "<s>        Insert string <s> with the counts";
        "-impl", Arg.String process_impl_file,
                 "<file>  Process <file> as a .ml file";
        "-instrument", Arg.Set instr_mode, "  (undocumented)";
        "-intf", Arg.String process_intf_file,
                 "<file>  Process <file> as a .mli file";
-       "-m", Arg.String (fun s -> modes := s), "<flags>    (undocumented)";
+       "-m", Arg.String (fonc s -> modes := s), "<flags>    (undocumented)";
        "-version", Arg.Unit print_version,
                    "     Print version and exit";
        "-vnum", Arg.Unit print_version_num,
                 "        Print version number and exit";
       ] process_anon_file usage;
     exit 0
-  with
+  avec
   | Profiler msg ->
       fprintf Format.err_formatter "@[%s@]@." msg;
       exit 2
   | exn ->
       Location.report_exception Format.err_formatter exn
 
-let _ = main ()
+soit _ = main ()

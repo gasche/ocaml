@@ -20,52 +20,52 @@
 type t =
   | Comment_start                           (*  1 *)
   | Comment_not_end                         (*  2 *)
-  | Deprecated of string                    (*  3 *)
-  | Fragile_match of string                 (*  4 *)
+  | Deprecated de string                    (*  3 *)
+  | Fragile_match de string                 (*  4 *)
   | Partial_application                     (*  5 *)
   | Labels_omitted                          (*  6 *)
-  | Method_override of string list          (*  7 *)
-  | Partial_match of string                 (*  8 *)
-  | Non_closed_record_pattern of string     (*  9 *)
+  | Method_override de string list          (*  7 *)
+  | Partial_match de string                 (*  8 *)
+  | Non_closed_record_pattern de string     (*  9 *)
   | Statement_type                          (* 10 *)
   | Unused_match                            (* 11 *)
   | Unused_pat                              (* 12 *)
-  | Instance_variable_override of string list (* 13 *)
+  | Instance_variable_override de string list (* 13 *)
   | Illegal_backslash                       (* 14 *)
-  | Implicit_public_methods of string list  (* 15 *)
+  | Implicit_public_methods de string list  (* 15 *)
   | Unerasable_optional_argument            (* 16 *)
-  | Undeclared_virtual_method of string     (* 17 *)
-  | Not_principal of string                 (* 18 *)
-  | Without_principality of string          (* 19 *)
+  | Undeclared_virtual_method de string     (* 17 *)
+  | Not_principal de string                 (* 18 *)
+  | Without_principality de string          (* 19 *)
   | Unused_argument                         (* 20 *)
   | Nonreturning_statement                  (* 21 *)
-  | Camlp4 of string                        (* 22 *)
+  | Camlp4 de string                        (* 22 *)
   | Useless_record_with                     (* 23 *)
-  | Bad_module_name of string               (* 24 *)
+  | Bad_module_name de string               (* 24 *)
   | All_clauses_guarded                     (* 25 *)
-  | Unused_var of string                    (* 26 *)
-  | Unused_var_strict of string             (* 27 *)
+  | Unused_var de string                    (* 26 *)
+  | Unused_var_strict de string             (* 27 *)
   | Wildcard_arg_to_constant_constr         (* 28 *)
   | Eol_in_string                           (* 29 *)
-  | Duplicate_definitions of string * string * string * string (*30 *)
-  | Multiple_definition of string * string * string (* 31 *)
-  | Unused_value_declaration of string      (* 32 *)
-  | Unused_open of string                   (* 33 *)
-  | Unused_type_declaration of string       (* 34 *)
-  | Unused_for_index of string              (* 35 *)
-  | Unused_ancestor of string               (* 36 *)
-  | Unused_constructor of string * bool * bool  (* 37 *)
-  | Unused_exception of string * bool       (* 38 *)
+  | Duplicate_definitions de string * string * string * string (*30 *)
+  | Multiple_definition de string * string * string (* 31 *)
+  | Unused_value_declaration de string      (* 32 *)
+  | Unused_open de string                   (* 33 *)
+  | Unused_type_declaration de string       (* 34 *)
+  | Unused_for_index de string              (* 35 *)
+  | Unused_ancestor de string               (* 36 *)
+  | Unused_constructor de string * bool * bool  (* 37 *)
+  | Unused_exception de string * bool       (* 38 *)
   | Unused_rec_flag                         (* 39 *)
-  | Name_out_of_scope of string * string list * bool (* 40 *)
-  | Ambiguous_name of string list * string list *  bool    (* 41 *)
-  | Disambiguated_name of string            (* 42 *)
-  | Nonoptional_label of string             (* 43 *)
-  | Open_shadow_identifier of string * string (* 44 *)
-  | Open_shadow_label_constructor of string * string (* 45 *)
-  | Bad_env_variable of string * string     (* 46 *)
-  | Attribute_payload of string * string    (* 47 *)
-  | Eliminated_optional_arguments of string list (* 48 *)
+  | Name_out_of_scope de string * string list * bool (* 40 *)
+  | Ambiguous_name de string list * string list *  bool    (* 41 *)
+  | Disambiguated_name de string            (* 42 *)
+  | Nonoptional_label de string             (* 43 *)
+  | Open_shadow_identifier de string * string (* 44 *)
+  | Open_shadow_label_constructor de string * string (* 45 *)
+  | Bad_env_variable de string * string     (* 46 *)
+  | Attribute_payload de string * string    (* 47 *)
+  | Eliminated_optional_arguments de string list (* 48 *)
 ;;
 
 (* If you remove a warning, leave a hole in the numbering.  NEVER change
@@ -74,7 +74,7 @@ type t =
    do NOT reuse one of the holes.
 *)
 
-let number = function
+soit number = fonction
   | Comment_start -> 1
   | Comment_not_end -> 2
   | Deprecated _ -> 3
@@ -125,12 +125,12 @@ let number = function
   | Eliminated_optional_arguments _ -> 48
 ;;
 
-let last_warning_number = 48
+soit last_warning_number = 48
 (* Must be the max number returned by the [number] function. *)
 
-let letter = function
+soit letter = fonction
   | 'a' ->
-     let rec loop i = if i = 0 then [] else i :: loop (i - 1) in
+     soit rec loop i = si i = 0 alors [] sinon i :: loop (i - 1) dans
      loop last_warning_number
   | 'b' -> []
   | 'c' -> [1; 2]
@@ -157,46 +157,46 @@ let letter = function
   | 'x' -> [14; 15; 16; 17; 18; 19; 20; 21; 22; 23; 24; 25; 30]
   | 'y' -> [26]
   | 'z' -> [27]
-  | _ -> assert false
+  | _ -> affirme faux
 ;;
 
-let active = Array.create (last_warning_number + 1) true;;
-let error = Array.create (last_warning_number + 1) false;;
+soit active = Array.create (last_warning_number + 1) vrai;;
+soit error = Array.create (last_warning_number + 1) faux;;
 
 type state = bool array * bool array
-let backup () = (Array.copy active, Array.copy error)
-let restore (a, e) =
-  assert(Array.length a = Array.length active);
-  assert(Array.length e = Array.length error);
+soit backup () = (Array.copy active, Array.copy error)
+soit restore (a, e) =
+  affirme(Array.length a = Array.length active);
+  affirme(Array.length e = Array.length error);
   Array.blit a 0 active 0 (Array.length active);
   Array.blit e 0 error 0 (Array.length error)
 
-let is_active x = active.(number x);;
-let is_error x = error.(number x);;
+soit is_active x = active.(number x);;
+soit is_error x = error.(number x);;
 
-let parse_opt flags s =
-  let set i = flags.(i) <- true in
-  let clear i = flags.(i) <- false in
-  let set_all i = active.(i) <- true; error.(i) <- true in
-  let error () = raise (Arg.Bad "Ill-formed list of warnings") in
-  let rec get_num n i =
-    if i >= String.length s then i, n
-    else match s.[i] with
+soit parse_opt flags s =
+  soit set i = flags.(i) <- vrai dans
+  soit clear i = flags.(i) <- faux dans
+  soit set_all i = active.(i) <- vrai; error.(i) <- vrai dans
+  soit error () = raise (Arg.Bad "Ill-formed list of warnings") dans
+  soit rec get_num n i =
+    si i >= String.length s alors i, n
+    sinon filtre s.[i] avec
     | '0'..'9' -> get_num (10 * n + Char.code s.[i] - Char.code '0') (i + 1)
     | _ -> i, n
-  in
-  let get_range i =
-    let i, n1 = get_num 0 i in
-    if i + 2 < String.length s && s.[i] = '.' && s.[i + 1] = '.' then
-      let i, n2 = get_num 0 (i + 2) in
-      if n2 < n1 then error ();
+  dans
+  soit get_range i =
+    soit i, n1 = get_num 0 i dans
+    si i + 2 < String.length s && s.[i] = '.' && s.[i + 1] = '.' alors
+      soit i, n2 = get_num 0 (i + 2) dans
+      si n2 < n1 alors error ();
       i, n1, n2
-    else
+    sinon
       i, n1, n1
-  in
-  let rec loop i =
-    if i >= String.length s then () else
-    match s.[i] with
+  dans
+  soit rec loop i =
+    si i >= String.length s alors () sinon
+    filtre s.[i] avec
     | 'A' .. 'Z' ->
        List.iter set (letter (Char.lowercase s.[i]));
        loop (i+1)
@@ -207,12 +207,12 @@ let parse_opt flags s =
     | '-' -> loop_letter_num clear (i+1)
     | '@' -> loop_letter_num set_all (i+1)
     | c -> error ()
-  and loop_letter_num myset i =
-    if i >= String.length s then error () else
-    match s.[i] with
+  et loop_letter_num myset i =
+    si i >= String.length s alors error () sinon
+    filtre s.[i] avec
     | '0' .. '9' ->
-        let i, n1, n2 = get_range i in
-        for n = n1 to min n2 last_warning_number do myset n done;
+        soit i, n1, n2 = get_range i dans
+        pour n = n1 à min n2 last_warning_number faire myset n fait;
         loop i
     | 'A' .. 'Z' ->
        List.iter myset (letter (Char.lowercase s.[i]));
@@ -221,20 +221,20 @@ let parse_opt flags s =
        List.iter myset (letter s.[i]);
        loop (i+1)
     | _ -> error ()
-  in
+  dans
   loop 0
 ;;
 
-let parse_options errflag s = parse_opt (if errflag then error else active) s;;
+soit parse_options errflag s = parse_opt (si errflag alors error sinon active) s;;
 
 (* If you change these, don't forget to change them in man/ocamlc.m *)
-let defaults_w = "+a-4-6-7-9-27-29-32..39-41..42-44-45-48";;
-let defaults_warn_error = "-a";;
+soit defaults_w = "+a-4-6-7-9-27-29-32..39-41..42-44-45-48";;
+soit defaults_warn_error = "-a";;
 
-let () = parse_options false defaults_w;;
-let () = parse_options true defaults_warn_error;;
+soit () = parse_options faux defaults_w;;
+soit () = parse_options vrai defaults_warn_error;;
 
-let message = function
+soit message = fonction
   | Comment_start -> "ceci est le début d'un commentaire."
   | Comment_not_end -> "ceci n'est pas la fin d'un commentaire."
   | Deprecated s -> "fonctionnalité dépréciée: " ^ s
@@ -254,7 +254,7 @@ let message = function
       String.concat " "
         ("les méthodes suivantes sont redéfinies par la classe"
          :: cname  :: ":\n " :: slist)
-  | Method_override [] -> assert false
+  | Method_override [] -> affirme faux
   | Partial_match "" -> "ce filtrage de motif n'est pas exhaustif."
   | Partial_match s ->
       "ce filtrage de motif n'est pas exhaustif.\n\
@@ -274,7 +274,7 @@ let message = function
         ("les variables d'instance suivantes sont redéfinies par la classe"
          :: cname  :: ":\n " :: slist) ^
       "\nLe comportement a changé dans ocaml 3.10 (le comportement précédant était de cacher.)"
-  | Instance_variable_override [] -> assert false
+  | Instance_variable_override [] -> affirme faux
   | Illegal_backslash -> "échappement par backslash illégal dans la chaîne."
   | Implicit_public_methods l ->
       "les méthodes privées suivantes ont été rendues publiques implicitement :\n "
@@ -311,38 +311,38 @@ let message = function
   | Unused_type_declaration s -> "type inutilisé" ^ s ^ "."
   | Unused_for_index s -> "indice de boucle pour inutilisé " ^ s ^ "."
   | Unused_ancestor s -> "variable d'ancêtre inutilisée " ^ s ^ "."
-  | Unused_constructor (s, false, false) -> "constructeur inutilisé " ^ s ^ "."
-  | Unused_constructor (s, true, _) ->
+  | Unused_constructor (s, faux, faux) -> "constructeur inutilisé " ^ s ^ "."
+  | Unused_constructor (s, vrai, _) ->
       "le constructeur " ^ s ^
       " n'est jamais utilisé pour construire des valeurs.\n\
         (Cependant, ce constructeur apparaît dans des motifs.)"
-  | Unused_constructor (s, false, true) ->
+  | Unused_constructor (s, faux, vrai) ->
       "le constructeur " ^ s ^
       " n'est jamais utilisé pour construire de valeurs.\n\
         Son type est exporté en tant que type privé."
-  | Unused_exception (s, false) ->
+  | Unused_exception (s, faux) ->
       "constructeur d'exception inutilisé " ^ s ^ "."
-  | Unused_exception (s, true) ->
+  | Unused_exception (s, vrai) ->
       "le constructeur d'exception " ^ s ^
       " n'est jamais levé ou utilisé pour construire des valeurs.\n\
         (Cependant, ce constructeur apparaît dans des motifs.)"
   | Unused_rec_flag ->
       "drapeau rec inutile."
-  | Name_out_of_scope (ty, [nm], false) ->
+  | Name_out_of_scope (ty, [nm], faux) ->
       nm ^ " a été selectionné depuis le type " ^ ty ^
       ".\nIl n'est pas visible dans la portée courante, et il ne sera pas \n\
        selectionné si le type devient inconnu."
-  | Name_out_of_scope (_, _, false) -> assert false
-  | Name_out_of_scope (ty, slist, true) ->
+  | Name_out_of_scope (_, _, faux) -> affirme faux
+  | Name_out_of_scope (ty, slist, vrai) ->
       "cet enregistrement de type "^ ty ^" contient des champs qui ne sont \n\
        pas visible dans la portée courante : "
       ^ String.concat " " slist ^ ".\n\
        Ils ne seront plus selectionnés si le type devient inconnu."
-  | Ambiguous_name ([s], tl, false) ->
+  | Ambiguous_name ([s], tl, faux) ->
       s ^ " appartient à plusieurs types : " ^ String.concat " " tl ^
       "\nLe premier a été selectionné. Veuillez désambiguïser si cela est faux."
-  | Ambiguous_name (_, _, false) -> assert false
-  | Ambiguous_name (slist, tl, true) ->
+  | Ambiguous_name (_, _, faux) -> affirme faux
+  | Ambiguous_name (slist, tl, vrai) ->
       "ces labels de champs appartiennent à plusieurs types : " ^
       String.concat " " tl ^
       "\nLe premier a été sélectionné? Veuillez désambiguïser si cela est faux."
@@ -364,42 +364,42 @@ let message = function
       Printf.sprintf "charge utile illégale pour l'attribut '%s'.\n%s" a s
   | Eliminated_optional_arguments sl ->
       Printf.sprintf "élimination implicite d'argument optionnel%s %s"
-        (if List.length sl = 1 then "" else "s")
+        (si List.length sl = 1 alors "" sinon "s")
         (String.concat ", " sl)
 ;;
 
-let nerrors = ref 0;;
+soit nerrors = ref 0;;
 
-let print ppf w =
-  let msg = message w in
-  let num = number w in
-  let newlines = ref 0 in
-  for i = 0 to String.length msg - 1 do
-    if msg.[i] = '\n' then incr newlines;
-  done;
-  let (out, flush, newline, space) =
+soit print ppf w =
+  soit msg = message w dans
+  soit num = number w dans
+  soit newlines = ref 0 dans
+  pour i = 0 à String.length msg - 1 faire
+    si msg.[i] = '\n' alors incr newlines;
+  fait;
+  soit (out, flush, newline, space) =
     Format.pp_get_all_formatter_output_functions ppf ()
-  in
-  let countnewline x = incr newlines; newline x in
+  dans
+  soit countnewline x = incr newlines; newline x dans
   Format.pp_set_all_formatter_output_functions ppf out flush countnewline space;
   Format.fprintf ppf "%d: %s" num msg;
   Format.pp_print_flush ppf ();
   Format.pp_set_all_formatter_output_functions ppf out flush newline space;
-  if error.(num) then incr nerrors;
+  si error.(num) alors incr nerrors;
   !newlines
 ;;
 
-exception Errors of int;;
+exception Errors de int;;
 
-let check_fatal () =
-  if !nerrors > 0 then begin
-    let e = Errors !nerrors in
+soit check_fatal () =
+  si !nerrors > 0 alors début
+    soit e = Errors !nerrors dans
     nerrors := 0;
     raise e;
-  end;
+  fin;
 ;;
 
-let descriptions =
+soit descriptions =
   [
     1, "Marque de début de commentaire suspecte.";
     2, "Marque de fin de commentaire suspecte.";
@@ -462,12 +462,12 @@ let descriptions =
   ]
 ;;
 
-let help_warnings () =
-  List.iter (fun (i, s) -> Printf.printf "%3i %s\n" i s) descriptions;
+soit help_warnings () =
+  List.iter (fonc (i, s) -> Printf.printf "%3i %s\n" i s) descriptions;
   print_endline "  A Tous les avertissements.";
-  for i = Char.code 'b' to Char.code 'z' do
-    let c = Char.chr i in
-    match letter c with
+  pour i = Char.code 'b' à Char.code 'z' faire
+    soit c = Char.chr i dans
+    filtre letter c avec
     | [] -> ()
     | [n] ->
         Printf.printf "  %c Synonyme pour l'avertissement %i.\n" (Char.uppercase c) n
@@ -475,6 +475,6 @@ let help_warnings () =
         Printf.printf "  %c Ensemble d'avertissements %s.\n"
           (Char.uppercase c)
           (String.concat ", " (List.map string_of_int l))
-  done;
+  fait;
   exit 0
 ;;

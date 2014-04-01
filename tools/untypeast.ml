@@ -10,10 +10,10 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Asttypes
-open Typedtree
-open Parsetree
-open Ast_helper
+ouvre Asttypes
+ouvre Typedtree
+ouvre Parsetree
+ouvre Ast_helper
 
 (*
 Some notes:
@@ -31,21 +31,21 @@ Some notes:
 *)
 
 
-let option f = function None -> None | Some e -> Some (f e)
+soit option f = fonction None -> None | Some e -> Some (f e)
 
-let rec lident_of_path path =
-  match path with
+soit rec lident_of_path path =
+  filtre path avec
       Path.Pident id -> Longident.Lident (Ident.name id)
     | Path.Pdot (p, s, _) -> Longident.Ldot (lident_of_path p, s)
     | Path.Papply (p1, p2) ->
         Longident.Lapply (lident_of_path p1, lident_of_path p2)
 
-let rec untype_structure str =
+soit rec untype_structure str =
   List.map untype_structure_item str.str_items
 
-and untype_structure_item item =
-  let desc =
-    match item.str_desc with
+et untype_structure_item item =
+  soit desc =
+    filtre item.str_desc avec
       Tstr_eval (exp, attrs) -> Pstr_eval (untype_expression exp, attrs)
     | Tstr_value (rec_flag, list) ->
         Pstr_value (rec_flag, List.map untype_binding list)
@@ -66,7 +66,7 @@ and untype_structure_item item =
                       pmtd_loc=mtd.mtd_loc;pmtd_attributes=mtd.mtd_attributes;}
     | Tstr_open (ovf, _path, lid, attrs) -> Pstr_open (ovf, lid, attrs)
     | Tstr_class list ->
-        Pstr_class (List.map (fun (ci, _, _) ->
+        Pstr_class (List.map (fonc (ci, _, _) ->
               { pci_virt = ci.ci_virt;
                 pci_params = ci.ci_params;
                 pci_name = ci.ci_id_name;
@@ -76,7 +76,7 @@ and untype_structure_item item =
               }
           ) list)
     | Tstr_class_type list ->
-        Pstr_class_type (List.map (fun (_id, _name, ct) ->
+        Pstr_class_type (List.map (fonc (_id, _name, ct) ->
               {
                 pci_virt = ct.ci_virt;
                 pci_params = ct.ci_params;
@@ -90,10 +90,10 @@ and untype_structure_item item =
         Pstr_include (untype_module_expr mexpr, attrs)
     | Tstr_attribute x ->
         Pstr_attribute x
-  in
+  dans
   { pstr_desc = desc; pstr_loc = item.str_loc; }
 
-and untype_value_description v =
+et untype_value_description v =
   {
    pval_name = v.val_name;
    pval_prim = v.val_prim;
@@ -102,7 +102,7 @@ and untype_value_description v =
    pval_attributes = v.val_attributes;
   }
 
-and untype_module_binding mb =
+et untype_module_binding mb =
   {
    pmb_name = mb.mb_name;
    pmb_expr = untype_module_expr mb.mb_expr;
@@ -110,20 +110,20 @@ and untype_module_binding mb =
    pmb_loc = mb.mb_loc;
   }
 
-and untype_type_declaration decl =
+et untype_type_declaration decl =
   {
     ptype_name = decl.typ_name;
     ptype_params = decl.typ_params;
-    ptype_cstrs = List.map (fun (ct1, ct2, loc) ->
+    ptype_cstrs = List.map (fonc (ct1, ct2, loc) ->
         (untype_core_type ct1,
           untype_core_type ct2, loc)
     ) decl.typ_cstrs;
-    ptype_kind = (match decl.typ_kind with
+    ptype_kind = (filtre decl.typ_kind avec
         Ttype_abstract -> Ptype_abstract
       | Ttype_variant list ->
           Ptype_variant (List.map untype_constructor_declaration list)
       | Ttype_record list ->
-          Ptype_record (List.map (fun ld ->
+          Ptype_record (List.map (fonc ld ->
                 {pld_name=ld.ld_name;
                  pld_mutable=ld.ld_mutable;
                  pld_type=untype_core_type ld.ld_type;
@@ -137,7 +137,7 @@ and untype_type_declaration decl =
     ptype_loc = decl.typ_loc;
   }
 
-and untype_constructor_declaration cd =
+et untype_constructor_declaration cd =
   {
    pcd_name = cd.cd_name;
    pcd_args = List.map untype_core_type cd.cd_args;
@@ -146,26 +146,26 @@ and untype_constructor_declaration cd =
    pcd_attributes = cd.cd_attributes;
   }
 
-and untype_pattern pat =
-  let desc =
-  match pat with
+et untype_pattern pat =
+  soit desc =
+  filtre pat avec
       { pat_extra=[Tpat_unpack, _, _attrs]; pat_desc = Tpat_var (_,name); _ } ->
         Ppat_unpack name
     | { pat_extra=[Tpat_type (_path, lid), _, _attrs]; _ } -> Ppat_type lid
     | { pat_extra= (Tpat_constraint ct, _, _attrs) :: rem; _ } ->
-        Ppat_constraint (untype_pattern { pat with pat_extra=rem },
+        Ppat_constraint (untype_pattern { pat avec pat_extra=rem },
                          untype_core_type ct)
     | _ ->
-    match pat.pat_desc with
+    filtre pat.pat_desc avec
       Tpat_any -> Ppat_any
     | Tpat_var (id, name) ->
-        begin
-          match (Ident.name id).[0] with
+        début
+          filtre (Ident.name id).[0] avec
             'A'..'Z' ->
               Ppat_unpack name
           | _ ->
               Ppat_var name
-        end
+        fin
     | Tpat_alias (pat, _id, name) ->
         Ppat_alias (untype_pattern pat, name)
     | Tpat_constant cst -> Ppat_constant cst
@@ -173,7 +173,7 @@ and untype_pattern pat =
         Ppat_tuple (List.map untype_pattern list)
     | Tpat_construct (lid, _, args) ->
         Ppat_construct (lid,
-          (match args with
+          (filtre args avec
               [] -> None
             | [arg] -> Some (untype_pattern arg)
             | args ->
@@ -185,17 +185,17 @@ and untype_pattern pat =
     | Tpat_variant (label, pato, _) ->
         Ppat_variant (label, option untype_pattern pato)
     | Tpat_record (list, closed) ->
-        Ppat_record (List.map (fun (lid, _, pat) ->
+        Ppat_record (List.map (fonc (lid, _, pat) ->
               lid, untype_pattern pat) list, closed)
     | Tpat_array list -> Ppat_array (List.map untype_pattern list)
     | Tpat_or (p1, p2, _) -> Ppat_or (untype_pattern p1, untype_pattern p2)
     | Tpat_lazy p -> Ppat_lazy (untype_pattern p)
-  in
+  dans
   Pat.mk ~loc:pat.pat_loc ~attrs:pat.pat_attributes desc (* todo: fix attributes on extras *)
 
-and untype_extra (extra, loc, attrs) sexp =
-  let desc =
-    match extra with
+et untype_extra (extra, loc, attrs) sexp =
+  soit desc =
+    filtre extra avec
       Texp_coerce (cty1, cty2) ->
         Pexp_coerce (sexp,
                      option untype_core_type cty1,
@@ -205,28 +205,28 @@ and untype_extra (extra, loc, attrs) sexp =
     | Texp_open (ovf, _path, lid, _) -> Pexp_open (ovf, lid, sexp)
     | Texp_poly cto -> Pexp_poly (sexp, option untype_core_type cto)
     | Texp_newtype s -> Pexp_newtype (s, sexp)
-  in
+  dans
   Exp.mk ~loc ~attrs desc
 
-and untype_cases l = List.map untype_case l
+et untype_cases l = List.map untype_case l
 
-and untype_case {c_lhs; c_guard; c_rhs} =
+et untype_case {c_lhs; c_guard; c_rhs} =
   {
    pc_lhs = untype_pattern c_lhs;
    pc_guard = option untype_expression c_guard;
    pc_rhs = untype_expression c_rhs;
   }
 
-and untype_binding {vb_pat; vb_expr; vb_attributes} =
+et untype_binding {vb_pat; vb_expr; vb_attributes} =
   {
     pvb_pat = untype_pattern vb_pat;
     pvb_expr = untype_expression vb_expr;
     pvb_attributes = vb_attributes;
   }
 
-and untype_expression exp =
-  let desc =
-    match exp.exp_desc with
+et untype_expression exp =
+  soit desc =
+    filtre exp.exp_desc avec
       Texp_ident (_path, lid, _) -> Pexp_ident (lid)
     | Texp_constant cst -> Pexp_constant cst
     | Texp_let (rec_flag, list, exp) ->
@@ -238,11 +238,11 @@ and untype_expression exp =
     | Texp_function ("", cases, _) ->
         Pexp_function (untype_cases cases)
     | Texp_function _ ->
-        assert false
+        affirme faux
     | Texp_apply (exp, list) ->
         Pexp_apply (untype_expression exp,
-          List.fold_right (fun (label, expo, _) list ->
-              match expo with
+          List.fold_right (fonc (label, expo, _) list ->
+              filtre expo avec
                 None -> list
               | Some exp -> (label, untype_expression exp) :: list
           ) list [])
@@ -254,7 +254,7 @@ and untype_expression exp =
         Pexp_tuple (List.map untype_expression list)
     | Texp_construct (lid, _, args) ->
         Pexp_construct (lid,
-          (match args with
+          (filtre args avec
               [] -> None
           | [ arg ] -> Some (untype_expression arg)
           | args ->
@@ -264,7 +264,7 @@ and untype_expression exp =
     | Texp_variant (label, expo) ->
         Pexp_variant (label, option untype_expression expo)
     | Texp_record (list, expo) ->
-        Pexp_record (List.map (fun (lid, _, exp) ->
+        Pexp_record (List.map (fonc (lid, _, exp) ->
               lid, untype_expression exp
           ) list,
           option untype_expression expo)
@@ -288,16 +288,16 @@ and untype_expression exp =
           untype_expression exp1, untype_expression exp2,
           dir, untype_expression exp3)
     | Texp_send (exp, meth, _) ->
-        Pexp_send (untype_expression exp, match meth with
+        Pexp_send (untype_expression exp, filtre meth avec
             Tmeth_name name -> name
           | Tmeth_val id -> Ident.name id)
     | Texp_new (_path, lid, _) -> Pexp_new (lid)
     | Texp_instvar (_, path, name) ->
-      Pexp_ident ({name with txt = lident_of_path path})
+      Pexp_ident ({name avec txt = lident_of_path path})
     | Texp_setinstvar (_, _path, lid, exp) ->
         Pexp_setinstvar (lid, untype_expression exp)
     | Texp_override (_, list) ->
-        Pexp_override (List.map (fun (_path, lid, exp) ->
+        Pexp_override (List.map (fonc (_path, lid, exp) ->
               lid, untype_expression exp
           ) list)
     | Texp_letmodule (_id, name, mexpr, exp) ->
@@ -309,21 +309,21 @@ and untype_expression exp =
         Pexp_object (untype_class_structure cl)
     | Texp_pack (mexpr) ->
         Pexp_pack (untype_module_expr mexpr)
-  in
+  dans
   List.fold_right untype_extra exp.exp_extra
     (Exp.mk ~loc:exp.exp_loc ~attrs:exp.exp_attributes desc)
 
-and untype_package_type pack =
+et untype_package_type pack =
   (pack.pack_txt,
-    List.map (fun (s, ct) ->
+    List.map (fonc (s, ct) ->
         (s, untype_core_type ct)) pack.pack_fields)
 
-and untype_signature sg =
+et untype_signature sg =
   List.map untype_signature_item sg.sig_items
 
-and untype_signature_item item =
-  let desc =
-    match item.sig_desc with
+et untype_signature_item item =
+  soit desc =
+    filtre item.sig_desc avec
       Tsig_value v ->
         Psig_value (untype_value_description v)
     | Tsig_type list ->
@@ -335,7 +335,7 @@ and untype_signature_item item =
                      pmd_attributes = md.md_attributes; pmd_loc = md.md_loc;
                     }
     | Tsig_recmodule list ->
-        Psig_recmodule (List.map (fun md ->
+        Psig_recmodule (List.map (fonc md ->
               {pmd_name = md.md_name; pmd_type = untype_module_type md.md_type;
                pmd_attributes = md.md_attributes; pmd_loc = md.md_loc}) list)
     | Tsig_modtype mtd ->
@@ -349,12 +349,12 @@ and untype_signature_item item =
         Psig_class_type (List.map untype_class_type_declaration list)
     | Tsig_attribute x ->
         Psig_attribute x
-  in
+  dans
   { psig_desc = desc;
     psig_loc = item.sig_loc;
   }
 
-and untype_class_description cd =
+et untype_class_description cd =
   {
     pci_virt = cd.ci_virt;
     pci_params = cd.ci_params;
@@ -364,7 +364,7 @@ and untype_class_description cd =
     pci_attributes = cd.ci_attributes;
   }
 
-and untype_class_type_declaration cd =
+et untype_class_type_declaration cd =
   {
     pci_virt = cd.ci_virt;
     pci_params = cd.ci_params;
@@ -374,8 +374,8 @@ and untype_class_type_declaration cd =
     pci_attributes = cd.ci_attributes;
   }
 
-and untype_module_type mty =
-  let desc = match mty.mty_desc with
+et untype_module_type mty =
+  soit desc = filtre mty.mty_desc avec
       Tmty_ident (_path, lid) -> Pmty_ident (lid)
     | Tmty_alias (_path, lid) -> Pmty_alias (lid)
     | Tmty_signature sg -> Pmty_signature (untype_signature sg)
@@ -384,28 +384,28 @@ and untype_module_type mty =
           untype_module_type mtype2)
     | Tmty_with (mtype, list) ->
         Pmty_with (untype_module_type mtype,
-          List.map (fun (_path, lid, withc) ->
+          List.map (fonc (_path, lid, withc) ->
               untype_with_constraint lid withc
           ) list)
     | Tmty_typeof mexpr ->
         Pmty_typeof (untype_module_expr mexpr)
-  in
+  dans
   Mty.mk ~loc:mty.mty_loc desc
 
-and untype_with_constraint lid cstr =
-  match cstr with
+et untype_with_constraint lid cstr =
+  filtre cstr avec
     Twith_type decl -> Pwith_type (lid, untype_type_declaration decl)
   | Twith_module (_path, lid2) -> Pwith_module (lid, lid2)
   | Twith_typesubst decl -> Pwith_typesubst (untype_type_declaration decl)
   | Twith_modsubst (_path, lid2) ->
       Pwith_modsubst ({loc = lid.loc; txt=Longident.last lid.txt}, lid2)
 
-and untype_module_expr mexpr =
-  match mexpr.mod_desc with
+et untype_module_expr mexpr =
+  filtre mexpr.mod_desc avec
     Tmod_constraint (m, _, Tmodtype_implicit, _ ) ->
       untype_module_expr m
   | _ ->
-      let desc = match mexpr.mod_desc with
+      soit desc = filtre mexpr.mod_desc avec
           Tmod_ident (_p, lid) -> Pmod_ident (lid)
         | Tmod_structure st -> Pmod_structure (untype_structure st)
         | Tmod_functor (_id, name, mtype, mexpr) ->
@@ -417,16 +417,16 @@ and untype_module_expr mexpr =
             Pmod_constraint (untype_module_expr mexpr,
               untype_module_type mtype)
         | Tmod_constraint (_mexpr, _, Tmodtype_implicit, _) ->
-            assert false
+            affirme faux
         | Tmod_unpack (exp, _pack) ->
         Pmod_unpack (untype_expression exp)
         (* TODO , untype_package_type pack) *)
 
-  in
+  dans
   Mod.mk ~loc:mexpr.mod_loc desc
 
-and untype_class_expr cexpr =
-  let desc = match cexpr.cl_desc with
+et untype_class_expr cexpr =
+  soit desc = filtre cexpr.cl_desc avec
     | Tcl_constraint ( { cl_desc = Tcl_ident (_path, lid, tyl); _ },
                        None, _, _, _ ) ->
         Pcl_constr (lid,
@@ -438,8 +438,8 @@ and untype_class_expr cexpr =
 
     | Tcl_apply (cl, args) ->
         Pcl_apply (untype_class_expr cl,
-          List.fold_right (fun (label, expo, _) list ->
-              match expo with
+          List.fold_right (fonc (label, expo, _) list ->
+              filtre expo avec
                 None -> list
               | Some exp -> (label, untype_expression exp) :: list
           ) args [])
@@ -452,35 +452,35 @@ and untype_class_expr cexpr =
     | Tcl_constraint (cl, Some clty, _vals, _meths, _concrs) ->
         Pcl_constraint (untype_class_expr cl,  untype_class_type clty)
 
-    | Tcl_ident _ -> assert false
-    | Tcl_constraint (_, None, _, _, _) -> assert false
-  in
+    | Tcl_ident _ -> affirme faux
+    | Tcl_constraint (_, None, _, _, _) -> affirme faux
+  dans
   { pcl_desc = desc;
     pcl_loc = cexpr.cl_loc;
     pcl_attributes = cexpr.cl_attributes;
   }
 
-and untype_class_type ct =
-  let desc = match ct.cltyp_desc with
+et untype_class_type ct =
+  soit desc = filtre ct.cltyp_desc avec
       Tcty_signature csg -> Pcty_signature (untype_class_signature csg)
     | Tcty_constr (_path, lid, list) ->
         Pcty_constr (lid, List.map untype_core_type list)
     | Tcty_arrow (label, ct, cl) ->
         Pcty_arrow (label, untype_core_type ct, untype_class_type cl)
-  in
+  dans
   { pcty_desc = desc;
     pcty_loc = ct.cltyp_loc;
     pcty_attributes = ct.cltyp_attributes;
    }
 
-and untype_class_signature cs =
+et untype_class_signature cs =
   {
     pcsig_self = untype_core_type cs.csig_self;
     pcsig_fields = List.map untype_class_type_field cs.csig_fields;
   }
 
-and untype_class_type_field ctf =
-  let desc = match ctf.ctf_desc with
+et untype_class_type_field ctf =
+  soit desc = filtre ctf.ctf_desc avec
       Tctf_inherit ct -> Pctf_inherit (untype_class_type ct)
     | Tctf_val (s, mut, virt, ct) ->
         Pctf_val (s, mut, virt, untype_core_type ct)
@@ -488,15 +488,15 @@ and untype_class_type_field ctf =
         Pctf_method  (s, priv, virt, untype_core_type ct)
     | Tctf_constraint  (ct1, ct2) ->
         Pctf_constraint (untype_core_type ct1, untype_core_type ct2)
-  in
+  dans
   {
     pctf_desc = desc;
     pctf_loc = ctf.ctf_loc;
     pctf_attributes = ctf.ctf_attributes;
   }
 
-and untype_core_type ct =
-  let desc = match ct.ctyp_desc with
+et untype_core_type ct =
+  soit desc = filtre ct.ctyp_desc avec
       Ttyp_any -> Ptyp_any
     | Ttyp_var s -> Ptyp_var s
     | Ttyp_arrow (label, ct1, ct2) ->
@@ -506,7 +506,7 @@ and untype_core_type ct =
         Ptyp_constr (lid,
           List.map untype_core_type list)
     | Ttyp_object (list, o) ->
-        Ptyp_object (List.map (fun (s, t) -> (s, untype_core_type t)) list, o)
+        Ptyp_object (List.map (fonc (s, t) -> (s, untype_core_type t)) list, o)
     | Ttyp_class (_path, lid, list) ->
         Ptyp_class (lid, List.map untype_core_type list)
     | Ttyp_alias (ct, s) ->
@@ -515,22 +515,22 @@ and untype_core_type ct =
         Ptyp_variant (List.map untype_row_field list, bool, labels)
     | Ttyp_poly (list, ct) -> Ptyp_poly (list, untype_core_type ct)
     | Ttyp_package pack -> Ptyp_package (untype_package_type pack)
-  in
+  dans
   Typ.mk ~loc:ct.ctyp_loc desc
 
-and untype_class_structure cs =
+et untype_class_structure cs =
   { pcstr_self = untype_pattern cs.cstr_self;
     pcstr_fields = List.map untype_class_field cs.cstr_fields;
   }
 
-and untype_row_field rf =
-  match rf with
+et untype_row_field rf =
+  filtre rf avec
     Ttag (label, bool, list) ->
       Rtag (label, bool, List.map untype_core_type list)
   | Tinherit ct -> Rinherit (untype_core_type ct)
 
-and untype_class_field cf =
-  let desc = match cf.cf_desc with
+et untype_class_field cf =
+  soit desc = filtre cf.cf_desc avec
       Tcf_inherit (ovf, cl, super, _vals, _meths) ->
         Pcf_inherit (ovf, untype_class_expr cl, super)
     | Tcf_constraint (cty, cty') ->
@@ -544,5 +544,5 @@ and untype_class_field cf =
     | Tcf_method (lab, priv, Tcfk_concrete (o, exp)) ->
         Pcf_method (lab, priv, Cfk_concrete (o, untype_expression exp))
     | Tcf_initializer exp -> Pcf_initializer (untype_expression exp)
-  in
+  dans
   { pcf_desc = desc; pcf_loc = cf.cf_loc; pcf_attributes = cf.cf_attributes }

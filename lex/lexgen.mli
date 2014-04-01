@@ -18,28 +18,28 @@ exception Memory_overflow
 
 
 type automata =
-    Perform of int * tag_action list
-  | Shift of automata_trans * (automata_move * memory_action list) array
-and automata_trans =
+    Perform de int * tag_action list
+  | Shift de automata_trans * (automata_move * memory_action list) array
+et automata_trans =
     No_remember
-  | Remember of int * tag_action list
-and automata_move =
+  | Remember de int * tag_action list
+et automata_move =
     Backtrack
-  | Goto of int
-and memory_action =
-  | Copy of int * int
-  | Set of int
+  | Goto de int
+et memory_action =
+  | Copy de int * int
+  | Set de int
 
-and tag_action = SetTag of int * int | EraseTag of int
+et tag_action = SetTag de int * int | EraseTag de int
 
 type ident = string *  Syntax.location
 
 (* Representation of entry points *)
-type tag_base = Start | End | Mem of int
-type tag_addr = Sum of (tag_base * int)
+type tag_base = Start | End | Mem de int
+type tag_addr = Sum de (tag_base * int)
 type ident_info =
-  | Ident_string of bool * tag_addr * tag_addr
-  | Ident_char of bool * tag_addr
+  | Ident_string de bool * tag_addr * tag_addr
+  | Ident_char de bool * tag_addr
 
 type t_env = (ident * ident_info) list
 

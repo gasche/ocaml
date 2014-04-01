@@ -16,79 +16,79 @@ exception Bad
 type t = (int * int) list
 
 
-let empty = []
-let is_empty = function
-  | [] -> true
-  | _  -> false
+soit empty = []
+soit is_empty = fonction
+  | [] -> vrai
+  | _  -> faux
 
-let singleton c = [c,c]
+soit singleton c = [c,c]
 
-let interval c1 c2 =
-  if c1 <= c2 then [c1,c2]
-  else [c2,c1]
+soit interval c1 c2 =
+  si c1 <= c2 alors [c1,c2]
+  sinon [c2,c1]
 
 
-let rec union s1 s2 = match s1,s2 with
+soit rec union s1 s2 = filtre s1,s2 avec
 | [],_ -> s2
 | _,[] -> s1
-| (c1,d1) as p1::r1, (c2,d2)::r2 ->
-    if c1 > c2 then
+| (c1,d1) tel p1::r1, (c2,d2)::r2 ->
+    si c1 > c2 alors
       union s2 s1
-    else begin (* c1 <= c2 *)
-      if d1+1 < c2 then
+    sinon début (* c1 <= c2 *)
+      si d1+1 < c2 alors
         p1::union r1 s2
-      else if d1 < d2 then
+      sinon si d1 < d2 alors
         union ((c1,d2)::r2) r1
-      else
+      sinon
         union s1 r2
-    end
+    fin
 
-let rec inter l l' =  match l, l' with
+soit rec inter l l' =  filtre l, l' avec
     _, [] -> []
   | [], _ -> []
   | (c1, c2)::r, (c1', c2')::r' ->
-      if c2 < c1' then
+      si c2 < c1' alors
         inter r l'
-      else if c2' < c1 then
+      sinon si c2' < c1 alors
         inter l r'
-      else if c2 < c2' then
+      sinon si c2 < c2' alors
         (max c1 c1', c2)::inter r l'
-      else
+      sinon
         (max c1 c1', c2')::inter l r'
 
-let rec diff l l' =  match l, l' with
+soit rec diff l l' =  filtre l, l' avec
     _, [] -> l
   | [], _ -> []
   | (c1, c2)::r, (c1', c2')::r' ->
-      if c2 < c1' then
+      si c2 < c1' alors
         (c1, c2)::diff r l'
-      else if c2' < c1 then
+      sinon si c2' < c1 alors
         diff l r'
-      else
-        let r'' = if c2' < c2 then (c2' + 1, c2) :: r else r in
-        if c1 < c1' then
+      sinon
+        soit r'' = si c2' < c2 alors (c2' + 1, c2) :: r sinon r dans
+        si c1 < c1' alors
           (c1, c1' - 1)::diff r'' r'
-        else
+        sinon
           diff r'' r'
 
 
-let eof = singleton 256
-and all_chars = interval 0 255
-and all_chars_eof = interval 0 256
+soit eof = singleton 256
+et all_chars = interval 0 255
+et all_chars_eof = interval 0 256
 
-let complement s = diff all_chars s
+soit complement s = diff all_chars s
 
-let env_to_array env = match env with
-| []         -> assert false
+soit env_to_array env = filtre env avec
+| []         -> affirme faux
 | (_,x)::rem ->
-    let res = Array.create 257 x in
+    soit res = Array.create 257 x dans
     List.iter
-      (fun (c,y) ->
+      (fonc (c,y) ->
         List.iter
-          (fun (i,j) ->
-            for k=i to j do
+          (fonc (i,j) ->
+            pour k=i à j faire
               res.(k) <- y
-            done)
+            fait)
           c)
       rem ;
     res

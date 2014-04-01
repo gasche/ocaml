@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Compenv
+ouvre Compenv
 
 (* Initialize the search path.
    The current directory is always searched first,
@@ -18,18 +18,18 @@ open Compenv
    then the standard library directory (unless the -nostdlib option is given).
  *)
 
-let init_path native =
-  let dirs =
-    if !Clflags.use_threads then "+threads" :: !Clflags.include_dirs
-    else if !Clflags.use_vmthreads && not native then
+soit init_path native =
+  soit dirs =
+    si !Clflags.use_threads alors "+threads" :: !Clflags.include_dirs
+    sinon si !Clflags.use_vmthreads && not native alors
       "+vmthreads" :: !Clflags.include_dirs
-    else
+    sinon
       !last_include_dirs @
       !Clflags.include_dirs @
       !first_include_dirs
-  in
-  let exp_dirs =
-    List.map (Misc.expand_directory Config.standard_library) dirs in
+  dans
+  soit exp_dirs =
+    List.map (Misc.expand_directory Config.standard_library) dirs dans
   Config.load_path := "" ::
       List.rev_append exp_dirs (Clflags.std_include_dir ());
   Env.reset_cache ()
@@ -39,20 +39,20 @@ let init_path native =
 (* Note: do not do init_path() in initial_env, this breaks
    toplevel initialization (PR#1775) *)
 
-let open_implicit_module m env =
-  try
+soit open_implicit_module m env =
+  essaie
     Env.open_pers_signature m env
-  with Not_found ->
+  avec Not_found ->
     Misc.fatal_error (Printf.sprintf "impossible d'ouvrir le module implicite %S" m)
 
-let initial_env () =
+soit initial_env () =
   Ident.reinit();
-  let env =
-    if !Clflags.nopervasives
-    then Env.initial
-    else
+  soit env =
+    si !Clflags.nopervasives
+    alors Env.initial
+    sinon
       open_implicit_module "Pervasives" Env.initial
-  in
-  List.fold_left (fun env m ->
+  dans
+  List.fold_left (fonc env m ->
     open_implicit_module m env
   ) env !implicit_modules

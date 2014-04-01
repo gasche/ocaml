@@ -13,9 +13,9 @@
 (* Long identifiers, used in parsetree. *)
 
 type t =
-    Lident of string
-  | Ldot of t * string
-  | Lapply of t * t
+    Lident de string
+  | Ldot de t * string
+  | Lapply de t * t
 
 val flatten: t -> string list
 val last: t -> string

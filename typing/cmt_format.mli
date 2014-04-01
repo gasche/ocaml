@@ -26,24 +26,24 @@
     files which returns an option for each of the three parts: cmi
     info, cmt info, source info. *)
 
-open Typedtree
+ouvre Typedtree
 
 type binary_annots =
-  | Packed of Types.signature * string list
-  | Implementation of structure
-  | Interface of signature
-  | Partial_implementation of binary_part array
-  | Partial_interface of binary_part array
+  | Packed de Types.signature * string list
+  | Implementation de structure
+  | Interface de signature
+  | Partial_implementation de binary_part array
+  | Partial_interface de binary_part array
 
-and binary_part =
-  | Partial_structure of structure
-  | Partial_structure_item of structure_item
-  | Partial_expression of expression
-  | Partial_pattern of pattern
-  | Partial_class_expr of class_expr
-  | Partial_signature of signature
-  | Partial_signature_item of signature_item
-  | Partial_module_type of module_type
+et binary_part =
+  | Partial_structure de structure
+  | Partial_structure_item de structure_item
+  | Partial_expression de expression
+  | Partial_pattern de pattern
+  | Partial_class_expr de class_expr
+  | Partial_signature de signature
+  | Partial_signature_item de signature_item
+  | Partial_module_type de module_type
 
 type cmt_infos = {
   cmt_modname : string;
@@ -63,9 +63,9 @@ type cmt_infos = {
 }
 
 type error =
-    Not_a_typedtree of string
+    Not_a_typedtree de string
 
-exception Error of error
+exception Error de error
 
 (** [read filename] opens filename, and extract both the cmi_infos, if
     it exists, and the cmt_infos, if it exists. Thus, it can be used

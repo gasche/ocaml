@@ -236,7 +236,7 @@ module Genarray :
      in Fortran layout; reads and writes in this array use the
      OCaml type [float]. *)
 
-  external create: ('a, 'b) kind -> 'c layout -> int array -> ('a, 'b, 'c) t
+  dehors create: ('a, 'b) kind -> 'c layout -> int array -> ('a, 'b, 'c) t
     = "caml_ba_create"
   (** [Genarray.create kind layout dimensions] returns a new big array
      whose element kind is determined by the parameter [kind] (one of
@@ -259,14 +259,14 @@ module Genarray :
      is not in the range 1 to 16 inclusive, or if one of the dimensions
      is negative. *)
 
-  external num_dims: ('a, 'b, 'c) t -> int = "caml_ba_num_dims"
+  dehors num_dims: ('a, 'b, 'c) t -> int = "caml_ba_num_dims"
   (** Return the number of dimensions of the given big array. *)
 
   val dims : ('a, 'b, 'c) t -> int array
   (** [Genarray.dims a] returns all dimensions of the big array [a],
      as an array of integers of length [Genarray.num_dims a]. *)
 
-  external nth_dim: ('a, 'b, 'c) t -> int -> int = "caml_ba_dim"
+  dehors nth_dim: ('a, 'b, 'c) t -> int -> int = "caml_ba_dim"
   (** [Genarray.nth_dim a n] returns the [n]-th dimension of the
      big array [a].  The first dimension corresponds to [n = 0];
      the second dimension corresponds to [n = 1]; the last dimension,
@@ -274,13 +274,13 @@ module Genarray :
      Raise [Invalid_argument] if [n] is less than 0 or greater or equal than
      [Genarray.num_dims a]. *)
 
-  external kind: ('a, 'b, 'c) t -> ('a, 'b) kind = "caml_ba_kind"
+  dehors kind: ('a, 'b, 'c) t -> ('a, 'b) kind = "caml_ba_kind"
   (** Return the kind of the given big array. *)
 
-  external layout: ('a, 'b, 'c) t -> 'c layout = "caml_ba_layout"
+  dehors layout: ('a, 'b, 'c) t -> 'c layout = "caml_ba_layout"
   (** Return the layout of the given big array. *)
 
-  external get: ('a, 'b, 'c) t -> int array -> 'a = "caml_ba_get_generic"
+  dehors get: ('a, 'b, 'c) t -> int array -> 'a = "caml_ba_get_generic"
   (** Read an element of a generic big array.
      [Genarray.get a [|i1; ...; iN|]] returns the element of [a]
      whose coordinates are [i1] in the first dimension, [i2] in
@@ -299,7 +299,7 @@ module Genarray :
      reserved for accessing one-, two- and three-dimensional arrays
      as described below.) *)
 
-  external set: ('a, 'b, 'c) t -> int array -> 'a -> unit
+  dehors set: ('a, 'b, 'c) t -> int array -> 'a -> unit
     = "caml_ba_set_generic"
   (** Assign an element of a generic big array.
      [Genarray.set a [|i1; ...; iN|] v] stores the value [v] in the
@@ -317,7 +317,7 @@ module Genarray :
      reserved for updating one-, two- and three-dimensional arrays
      as described below.) *)
 
-  external sub_left: ('a, 'b, c_layout) t -> int -> int -> ('a, 'b, c_layout) t
+  dehors sub_left: ('a, 'b, c_layout) t -> int -> int -> ('a, 'b, c_layout) t
     = "caml_ba_sub"
   (** Extract a sub-array of the given big array by restricting the
      first (left-most) dimension.  [Genarray.sub_left a ofs len]
@@ -336,7 +336,7 @@ module Genarray :
      a valid sub-array of [a], that is, if [ofs < 0], or [len < 0],
      or [ofs + len > Genarray.nth_dim a 0]. *)
 
-  external sub_right:
+  dehors sub_right:
     ('a, 'b, fortran_layout) t -> int -> int -> ('a, 'b, fortran_layout) t
     = "caml_ba_sub"
   (** Extract a sub-array of the given big array by restricting the
@@ -356,7 +356,7 @@ module Genarray :
      a valid sub-array of [a], that is, if [ofs < 1], or [len < 0],
      or [ofs + len > Genarray.nth_dim a (Genarray.num_dims a - 1)]. *)
 
-  external slice_left:
+  dehors slice_left:
     ('a, 'b, c_layout) t -> int array -> ('a, 'b, c_layout) t
     = "caml_ba_slice"
   (** Extract a sub-array of lower dimension from the given big array
@@ -374,7 +374,7 @@ module Genarray :
      Raise [Invalid_argument] if [M >= N], or if [[|i1; ... ; iM|]]
      is outside the bounds of [a]. *)
 
-  external slice_right:
+  dehors slice_right:
     ('a, 'b, fortran_layout) t -> int array -> ('a, 'b, fortran_layout) t
     = "caml_ba_slice"
   (** Extract a sub-array of lower dimension from the given big array
@@ -392,7 +392,7 @@ module Genarray :
      Raise [Invalid_argument] if [M >= N], or if [[|i1; ... ; iM|]]
      is outside the bounds of [a]. *)
 
-  external blit: ('a, 'b, 'c) t -> ('a, 'b, 'c) t -> unit
+  dehors blit: ('a, 'b, 'c) t -> ('a, 'b, 'c) t -> unit
       = "caml_ba_blit"
   (** Copy all elements of a big array in another big array.
      [Genarray.blit src dst] copies all elements of [src] into
@@ -401,7 +401,7 @@ module Genarray :
      to a sub-array of [dst] can be achieved by applying [Genarray.blit]
      to sub-array or slices of [src] and [dst]. *)
 
-  external fill: ('a, 'b, 'c) t -> 'a -> unit = "caml_ba_fill"
+  dehors fill: ('a, 'b, 'c) t -> 'a -> unit = "caml_ba_fill"
   (** Set all elements of a big array to a given value.
      [Genarray.fill a v] stores the value [v] in all elements of
      the big array [a].  Setting only some elements of [a] to [v]
@@ -454,7 +454,7 @@ module Genarray :
      or a SIGBUS signal may be raised. This happens, for instance, if the
      file is shrinked. *)
 
-  end
+  fin
 
 (** {6 One-dimensional arrays} *)
 
@@ -476,17 +476,17 @@ module Array1 : sig
      determine the array element kind and the array layout
      as described for [Genarray.create]. *)
 
-  external dim: ('a, 'b, 'c) t -> int = "%caml_ba_dim_1"
+  dehors dim: ('a, 'b, 'c) t -> int = "%caml_ba_dim_1"
   (** Return the size (dimension) of the given one-dimensional
      big array. *)
 
-  external kind: ('a, 'b, 'c) t -> ('a, 'b) kind = "caml_ba_kind"
+  dehors kind: ('a, 'b, 'c) t -> ('a, 'b) kind = "caml_ba_kind"
   (** Return the kind of the given big array. *)
 
-  external layout: ('a, 'b, 'c) t -> 'c layout = "caml_ba_layout"
+  dehors layout: ('a, 'b, 'c) t -> 'c layout = "caml_ba_layout"
   (** Return the layout of the given big array. *)
 
-  external get: ('a, 'b, 'c) t -> int -> 'a = "%caml_ba_ref_1"
+  dehors get: ('a, 'b, 'c) t -> int -> 'a = "%caml_ba_ref_1"
   (** [Array1.get a x], or alternatively [a.{x}],
      returns the element of [a] at index [x].
      [x] must be greater or equal than [0] and strictly less than
@@ -494,24 +494,24 @@ module Array1 : sig
      [x] must be greater or equal than [1] and less or equal than
      [Array1.dim a].  Otherwise, [Invalid_argument] is raised. *)
 
-  external set: ('a, 'b, 'c) t -> int -> 'a -> unit = "%caml_ba_set_1"
+  dehors set: ('a, 'b, 'c) t -> int -> 'a -> unit = "%caml_ba_set_1"
   (** [Array1.set a x v], also written [a.{x} <- v],
      stores the value [v] at index [x] in [a].
      [x] must be inside the bounds of [a] as described in
      {!Bigarray.Array1.get};
      otherwise, [Invalid_argument] is raised. *)
 
-  external sub: ('a, 'b, 'c) t -> int -> int -> ('a, 'b, 'c) t
+  dehors sub: ('a, 'b, 'c) t -> int -> int -> ('a, 'b, 'c) t
       = "caml_ba_sub"
   (** Extract a sub-array of the given one-dimensional big array.
      See [Genarray.sub_left] for more details. *)
 
-  external blit: ('a, 'b, 'c) t -> ('a, 'b, 'c) t -> unit
+  dehors blit: ('a, 'b, 'c) t -> ('a, 'b, 'c) t -> unit
       = "caml_ba_blit"
   (** Copy the first big array to the second big array.
      See [Genarray.blit] for more details. *)
 
-  external fill: ('a, 'b, 'c) t -> 'a -> unit = "caml_ba_fill"
+  dehors fill: ('a, 'b, 'c) t -> 'a -> unit = "caml_ba_fill"
   (** Fill the given big array with the given value.
      See [Genarray.fill] for more details. *)
 
@@ -524,18 +524,18 @@ module Array1 : sig
   (** Memory mapping of a file as a one-dimensional big array.
      See {!Bigarray.Genarray.map_file} for more details. *)
 
-  external unsafe_get: ('a, 'b, 'c) t -> int -> 'a = "%caml_ba_unsafe_ref_1"
+  dehors unsafe_get: ('a, 'b, 'c) t -> int -> 'a = "%caml_ba_unsafe_ref_1"
   (** Like {!Bigarray.Array1.get}, but bounds checking is not always performed.
       Use with caution and only when the program logic guarantees that
       the access is within bounds. *)
 
-  external unsafe_set: ('a, 'b, 'c) t -> int -> 'a -> unit
+  dehors unsafe_set: ('a, 'b, 'c) t -> int -> 'a -> unit
                      = "%caml_ba_unsafe_set_1"
   (** Like {!Bigarray.Array1.set}, but bounds checking is not always performed.
       Use with caution and only when the program logic guarantees that
       the access is within bounds. *)
 
-end
+fin
 
 
 (** {6 Two-dimensional arrays} *)
@@ -556,40 +556,40 @@ module Array2 :
      determine the array element kind and the array layout
      as described for {!Bigarray.Genarray.create}. *)
 
-  external dim1: ('a, 'b, 'c) t -> int = "%caml_ba_dim_1"
+  dehors dim1: ('a, 'b, 'c) t -> int = "%caml_ba_dim_1"
   (** Return the first dimension of the given two-dimensional big array. *)
 
-  external dim2: ('a, 'b, 'c) t -> int = "%caml_ba_dim_2"
+  dehors dim2: ('a, 'b, 'c) t -> int = "%caml_ba_dim_2"
   (** Return the second dimension of the given two-dimensional big array. *)
 
-  external kind: ('a, 'b, 'c) t -> ('a, 'b) kind = "caml_ba_kind"
+  dehors kind: ('a, 'b, 'c) t -> ('a, 'b) kind = "caml_ba_kind"
   (** Return the kind of the given big array. *)
 
-  external layout: ('a, 'b, 'c) t -> 'c layout = "caml_ba_layout"
+  dehors layout: ('a, 'b, 'c) t -> 'c layout = "caml_ba_layout"
   (** Return the layout of the given big array. *)
 
-  external get: ('a, 'b, 'c) t -> int -> int -> 'a = "%caml_ba_ref_2"
+  dehors get: ('a, 'b, 'c) t -> int -> int -> 'a = "%caml_ba_ref_2"
   (** [Array2.get a x y], also written [a.{x,y}],
      returns the element of [a] at coordinates ([x], [y]).
      [x] and [y] must be within the bounds
      of [a], as described for {!Bigarray.Genarray.get};
      otherwise, [Invalid_argument] is raised. *)
 
-  external set: ('a, 'b, 'c) t -> int -> int -> 'a -> unit = "%caml_ba_set_2"
+  dehors set: ('a, 'b, 'c) t -> int -> int -> 'a -> unit = "%caml_ba_set_2"
   (** [Array2.set a x y v], or alternatively [a.{x,y} <- v],
      stores the value [v] at coordinates ([x], [y]) in [a].
      [x] and [y] must be within the bounds of [a],
      as described for {!Bigarray.Genarray.set};
      otherwise, [Invalid_argument] is raised. *)
 
-  external sub_left: ('a, 'b, c_layout) t -> int -> int -> ('a, 'b, c_layout) t
+  dehors sub_left: ('a, 'b, c_layout) t -> int -> int -> ('a, 'b, c_layout) t
     = "caml_ba_sub"
   (** Extract a two-dimensional sub-array of the given two-dimensional
      big array by restricting the first dimension.
      See {!Bigarray.Genarray.sub_left} for more details.
      [Array2.sub_left] applies only to arrays with C layout. *)
 
-  external sub_right:
+  dehors sub_right:
     ('a, 'b, fortran_layout) t -> int -> int -> ('a, 'b, fortran_layout) t
     = "caml_ba_sub"
   (** Extract a two-dimensional sub-array of the given two-dimensional
@@ -611,12 +611,12 @@ module Array2 :
      for more details.  [Array2.slice_right] applies only to arrays
      with Fortran layout. *)
 
-  external blit: ('a, 'b, 'c) t -> ('a, 'b, 'c) t -> unit
+  dehors blit: ('a, 'b, 'c) t -> ('a, 'b, 'c) t -> unit
     = "caml_ba_blit"
   (** Copy the first big array to the second big array.
      See {!Bigarray.Genarray.blit} for more details. *)
 
-  external fill: ('a, 'b, 'c) t -> 'a -> unit = "caml_ba_fill"
+  dehors fill: ('a, 'b, 'c) t -> 'a -> unit = "caml_ba_fill"
   (** Fill the given big array with the given value.
      See {!Bigarray.Genarray.fill} for more details. *)
 
@@ -629,17 +629,17 @@ module Array2 :
   (** Memory mapping of a file as a two-dimensional big array.
      See {!Bigarray.Genarray.map_file} for more details. *)
 
-  external unsafe_get: ('a, 'b, 'c) t -> int -> int -> 'a
+  dehors unsafe_get: ('a, 'b, 'c) t -> int -> int -> 'a
                      = "%caml_ba_unsafe_ref_2"
   (** Like {!Bigarray.Array2.get}, but bounds checking is not always
       performed. *)
 
-  external unsafe_set: ('a, 'b, 'c) t -> int -> int -> 'a -> unit
+  dehors unsafe_set: ('a, 'b, 'c) t -> int -> int -> 'a -> unit
                      = "%caml_ba_unsafe_set_2"
   (** Like {!Bigarray.Array2.set}, but bounds checking is not always
       performed. *)
 
-end
+fin
 
 (** {6 Three-dimensional arrays} *)
 
@@ -659,29 +659,29 @@ module Array3 :
      [kind] and [layout] determine the array element kind and
      the array layout as described for {!Bigarray.Genarray.create}. *)
 
-  external dim1: ('a, 'b, 'c) t -> int = "%caml_ba_dim_1"
+  dehors dim1: ('a, 'b, 'c) t -> int = "%caml_ba_dim_1"
   (** Return the first dimension of the given three-dimensional big array. *)
 
-  external dim2: ('a, 'b, 'c) t -> int = "%caml_ba_dim_2"
+  dehors dim2: ('a, 'b, 'c) t -> int = "%caml_ba_dim_2"
   (** Return the second dimension of the given three-dimensional big array. *)
 
-  external dim3: ('a, 'b, 'c) t -> int = "%caml_ba_dim_3"
+  dehors dim3: ('a, 'b, 'c) t -> int = "%caml_ba_dim_3"
   (** Return the third dimension of the given three-dimensional big array. *)
 
-  external kind: ('a, 'b, 'c) t -> ('a, 'b) kind = "caml_ba_kind"
+  dehors kind: ('a, 'b, 'c) t -> ('a, 'b) kind = "caml_ba_kind"
   (** Return the kind of the given big array. *)
 
-  external layout: ('a, 'b, 'c) t -> 'c layout = "caml_ba_layout"
+  dehors layout: ('a, 'b, 'c) t -> 'c layout = "caml_ba_layout"
   (** Return the layout of the given big array. *)
 
-  external get: ('a, 'b, 'c) t -> int -> int -> int -> 'a = "%caml_ba_ref_3"
+  dehors get: ('a, 'b, 'c) t -> int -> int -> int -> 'a = "%caml_ba_ref_3"
   (** [Array3.get a x y z], also written [a.{x,y,z}],
      returns the element of [a] at coordinates ([x], [y], [z]).
      [x], [y] and [z] must be within the bounds of [a],
      as described for {!Bigarray.Genarray.get};
      otherwise, [Invalid_argument] is raised. *)
 
-  external set: ('a, 'b, 'c) t -> int -> int -> int -> 'a -> unit
+  dehors set: ('a, 'b, 'c) t -> int -> int -> int -> 'a -> unit
     = "%caml_ba_set_3"
   (** [Array3.set a x y v], or alternatively [a.{x,y,z} <- v],
      stores the value [v] at coordinates ([x], [y], [z]) in [a].
@@ -689,14 +689,14 @@ module Array3 :
      as described for {!Bigarray.Genarray.set};
      otherwise, [Invalid_argument] is raised. *)
 
-  external sub_left: ('a, 'b, c_layout) t -> int -> int -> ('a, 'b, c_layout) t
+  dehors sub_left: ('a, 'b, c_layout) t -> int -> int -> ('a, 'b, c_layout) t
     = "caml_ba_sub"
   (** Extract a three-dimensional sub-array of the given
      three-dimensional big array by restricting the first dimension.
      See {!Bigarray.Genarray.sub_left} for more details.  [Array3.sub_left]
      applies only to arrays with C layout. *)
 
-  external sub_right:
+  dehors sub_right:
     ('a, 'b, fortran_layout) t -> int -> int -> ('a, 'b, fortran_layout) t
     = "caml_ba_sub"
   (** Extract a three-dimensional sub-array of the given
@@ -738,12 +738,12 @@ module Array3 :
      [Array3.slice_right_2] applies only to arrays with Fortran
      layout. *)
 
-  external blit: ('a, 'b, 'c) t -> ('a, 'b, 'c) t -> unit
+  dehors blit: ('a, 'b, 'c) t -> ('a, 'b, 'c) t -> unit
     = "caml_ba_blit"
   (** Copy the first big array to the second big array.
      See {!Bigarray.Genarray.blit} for more details. *)
 
-  external fill: ('a, 'b, 'c) t -> 'a -> unit = "caml_ba_fill"
+  dehors fill: ('a, 'b, 'c) t -> 'a -> unit = "caml_ba_fill"
   (** Fill the given big array with the given value.
      See {!Bigarray.Genarray.fill} for more details. *)
 
@@ -757,31 +757,31 @@ module Array3 :
   (** Memory mapping of a file as a three-dimensional big array.
      See {!Bigarray.Genarray.map_file} for more details. *)
 
-  external unsafe_get: ('a, 'b, 'c) t -> int -> int -> int -> 'a
+  dehors unsafe_get: ('a, 'b, 'c) t -> int -> int -> int -> 'a
                      = "%caml_ba_unsafe_ref_3"
   (** Like {!Bigarray.Array3.get}, but bounds checking is not always
       performed. *)
 
-  external unsafe_set: ('a, 'b, 'c) t -> int -> int -> int -> 'a -> unit
+  dehors unsafe_set: ('a, 'b, 'c) t -> int -> int -> int -> 'a -> unit
                      = "%caml_ba_unsafe_set_3"
   (** Like {!Bigarray.Array3.set}, but bounds checking is not always
       performed. *)
 
-end
+fin
 
 (** {6 Coercions between generic big arrays and fixed-dimension big arrays} *)
 
-external genarray_of_array1 :
+dehors genarray_of_array1 :
   ('a, 'b, 'c) Array1.t -> ('a, 'b, 'c) Genarray.t = "%identity"
 (** Return the generic big array corresponding to the given one-dimensional
    big array. *)
 
-external genarray_of_array2 :
+dehors genarray_of_array2 :
   ('a, 'b, 'c) Array2.t -> ('a, 'b, 'c) Genarray.t = "%identity"
 (** Return the generic big array corresponding to the given two-dimensional
    big array. *)
 
-external genarray_of_array3 :
+dehors genarray_of_array3 :
   ('a, 'b, 'c) Array3.t -> ('a, 'b, 'c) Genarray.t = "%identity"
 (** Return the generic big array corresponding to the given three-dimensional
    big array. *)

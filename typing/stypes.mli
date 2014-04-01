@@ -14,15 +14,15 @@
 
 (* Clflags.save_types must be true *)
 
-open Typedtree;;
+ouvre Typedtree;;
 
 type annotation =
-  | Ti_pat   of pattern
-  | Ti_expr  of expression
-  | Ti_class of class_expr
-  | Ti_mod   of module_expr
-  | An_call of Location.t * Annot.call
-  | An_ident of Location.t * string * Annot.ident
+  | Ti_pat   de pattern
+  | Ti_expr  de expression
+  | Ti_class de class_expr
+  | Ti_mod   de module_expr
+  | An_call de Location.t * Annot.call
+  | An_ident de Location.t * string * Annot.ident
 ;;
 
 val record : annotation -> unit;;

@@ -13,9 +13,9 @@
 (* Access paths *)
 
 type t =
-    Pident of Ident.t
-  | Pdot of t * string * int
-  | Papply of t * t
+    Pident de Ident.t
+  | Pdot de t * string * int
+  | Papply de t * t
 
 val same: t -> t -> bool
 val isfree: Ident.t -> t -> bool

@@ -11,6 +11,6 @@
 (***********************************************************************)
 
 (* Error report *)
-open Format
+ouvre Format
 
 val report_error: formatter -> exn -> unit

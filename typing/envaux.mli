@@ -11,7 +11,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Format
+ouvre Format
 
 (* Convert environment summaries to environments *)
 
@@ -26,8 +26,8 @@ val env_of_only_summary : Env.t -> Env.t
 (* Error report *)
 
 type error =
-    Module_not_found of Path.t
+    Module_not_found de Path.t
 
-exception Error of error
+exception Error de error
 
 val report_error: formatter -> error -> unit

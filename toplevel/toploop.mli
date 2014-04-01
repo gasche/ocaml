@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Format
+ouvre Format
 
 (* Accessors for the table of toplevel value bindings.  These functions
    must appear as first and second exported functions in this module.
@@ -34,11 +34,11 @@ val run_script : formatter -> string -> string array -> bool
 (* Interface with toplevel directives *)
 
 type directive_fun =
-   | Directive_none of (unit -> unit)
-   | Directive_string of (string -> unit)
-   | Directive_int of (int -> unit)
-   | Directive_ident of (Longident.t -> unit)
-   | Directive_bool of (bool -> unit)
+   | Directive_none de (unit -> unit)
+   | Directive_string de (string -> unit)
+   | Directive_int de (int -> unit)
+   | Directive_ident de (Longident.t -> unit)
+   | Directive_bool de (bool -> unit)
 
 val directive_table : (string, directive_fun) Hashtbl.t
         (* Table of known directives, with their execution function *)

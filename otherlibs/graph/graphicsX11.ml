@@ -16,25 +16,25 @@
 
 type window_id = string
 
-external window_id : unit -> window_id = "caml_gr_window_id"
+dehors window_id : unit -> window_id = "caml_gr_window_id"
 
-let subwindows = Hashtbl.create 13
+soit subwindows = Hashtbl.create 13
 
-external open_subwindow : int -> int -> int -> int -> window_id
+dehors open_subwindow : int -> int -> int -> int -> window_id
     = "caml_gr_open_subwindow"
-external close_subwindow : window_id -> unit
+dehors close_subwindow : window_id -> unit
     = "caml_gr_close_subwindow"
 
-let open_subwindow ~x ~y ~width ~height =
-  let wid = open_subwindow x y width height in
+soit open_subwindow ~x ~y ~width ~height =
+  soit wid = open_subwindow x y width height dans
   Hashtbl.add subwindows wid ();
   wid
 ;;
 
-let close_subwindow wid =
-  if Hashtbl.mem subwindows wid then begin
+soit close_subwindow wid =
+  si Hashtbl.mem subwindows wid alors début
     close_subwindow wid;
     Hashtbl.remove subwindows wid
-  end else
+  fin sinon
     raise (Graphics.Graphic_failure("close_subwindow: no such subwindow: "^wid))
 ;;

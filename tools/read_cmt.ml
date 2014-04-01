@@ -10,13 +10,13 @@
 (*                                                                     *)
 (***********************************************************************)
 
-let gen_annot = ref false
-let gen_ml = ref false
-let print_info_arg = ref false
-let target_filename = ref None
+soit gen_annot = ref faux
+soit gen_ml = ref faux
+soit print_info_arg = ref faux
+soit target_filename = ref None
 
-let arg_list = [
-  "-o", Arg.String (fun s ->
+soit arg_list = [
+  "-o", Arg.String (fonc s ->
     target_filename := Some s
   ), " FILE (or -) : dump to file FILE (or stdout)";
   "-annot", Arg.Set gen_annot, " : generate the corresponding .annot file";
@@ -24,57 +24,57 @@ let arg_list = [
   "-info", Arg.Set print_info_arg, " : print information on the file";
   ]
 
-let arg_usage = "read_cmt [OPTIONS] FILE.cmt : read FILE.cmt and print related information"
+soit arg_usage = "read_cmt [OPTIONS] FILE.cmt : read FILE.cmt and print related information"
 
-let print_info cmt =
-  let open Cmt_format in
+soit print_info cmt =
+  soit ouvre Cmt_format dans
       Printf.printf "module name: %s\n" cmt.cmt_modname;
-      begin match cmt.cmt_annots with
+      début filtre cmt.cmt_annots avec
           Packed (_, list) -> Printf.printf "pack: %s\n" (String.concat " " list)
         | Implementation _ -> Printf.printf "kind: implementation\n"
         | Interface _ -> Printf.printf "kind: interface\n"
         | Partial_implementation _ -> Printf.printf "kind: implementation with errors\n"
         | Partial_interface _ -> Printf.printf "kind: interface with errors\n"
-      end;
+      fin;
       Printf.printf "command: %s\n" (String.concat " " (Array.to_list cmt.cmt_args));
-      begin match cmt.cmt_sourcefile with
+      début filtre cmt.cmt_sourcefile avec
           None -> ()
         | Some name ->
           Printf.printf "sourcefile: %s\n" name;
-      end;
+      fin;
       Printf.printf "build directory: %s\n" cmt.cmt_builddir;
-      List.iter (fun dir -> Printf.printf "load path: %s\n%!" dir) cmt.cmt_loadpath;
-      begin
-      match cmt.cmt_source_digest with
+      List.iter (fonc dir -> Printf.printf "load path: %s\n%!" dir) cmt.cmt_loadpath;
+      début
+      filtre cmt.cmt_source_digest avec
           None -> ()
         | Some digest -> Printf.printf "source digest: %s\n" (Digest.to_hex digest);
-      end;
-      begin
-      match cmt.cmt_interface_digest with
+      fin;
+      début
+      filtre cmt.cmt_interface_digest avec
           None -> ()
         | Some digest -> Printf.printf "interface digest: %s\n" (Digest.to_hex digest);
-      end;
-      List.iter (fun (name, digest) ->
+      fin;
+      List.iter (fonc (name, digest) ->
         Printf.printf "import: %s %s\n" name (Digest.to_hex digest);
       ) (List.sort compare cmt.cmt_imports);
       Printf.printf "%!";
       ()
 
-let _ =
-  Clflags.annotations := true;
+soit _ =
+  Clflags.annotations := vrai;
 
-  Arg.parse arg_list  (fun filename ->
-    if
+  Arg.parse arg_list  (fonc filename ->
+    si
       Filename.check_suffix filename ".cmt" ||
         Filename.check_suffix filename ".cmti"
-    then begin
+    alors début
       (*      init_path(); *)
-      let cmt = Cmt_format.read_cmt filename in
-      if !gen_annot then Cmt2annot.gen_annot !target_filename filename cmt;
-      if !gen_ml then Cmt2annot.gen_ml !target_filename filename cmt;
-      if !print_info_arg || not (!gen_ml || !gen_annot) then print_info cmt;
-    end else begin
+      soit cmt = Cmt_format.read_cmt filename dans
+      si !gen_annot alors Cmt2annot.gen_annot !target_filename filename cmt;
+      si !gen_ml alors Cmt2annot.gen_ml !target_filename filename cmt;
+      si !print_info_arg || not (!gen_ml || !gen_annot) alors print_info cmt;
+    fin sinon début
       Printf.fprintf stderr "Error: the file must have an extension in .cmt or .cmti.\n%!";
       Arg.usage arg_list arg_usage
-    end
+    fin
   ) arg_usage

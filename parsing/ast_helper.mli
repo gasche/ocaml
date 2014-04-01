@@ -12,8 +12,8 @@
 
 (** Helpers to produce Parsetree fragments *)
 
-open Parsetree
-open Asttypes
+ouvre Parsetree
+ouvre Asttypes
 
 type lid = Longident.t loc
 type str = string loc
@@ -50,7 +50,7 @@ module Typ :
     val extension: ?loc:loc -> ?attrs:attrs -> extension -> core_type
 
     val force_poly: core_type -> core_type
-  end
+  fin
 
 (** Patterns *)
 module Pat:
@@ -74,7 +74,7 @@ module Pat:
     val lazy_: ?loc:loc -> ?attrs:attrs -> pattern -> pattern
     val unpack: ?loc:loc -> ?attrs:attrs -> str -> pattern
     val extension: ?loc:loc -> ?attrs:attrs -> extension -> pattern
-  end
+  fin
 
 (** Expressions *)
 module Exp:
@@ -118,13 +118,13 @@ module Exp:
     val extension: ?loc:loc -> ?attrs:attrs -> extension -> expression
 
     val case: pattern -> ?guard:expression -> expression -> case
-  end
+  fin
 
 (** Value declarations *)
 module Val:
   sig
     val mk: ?loc:loc -> ?attrs:attrs -> ?prim:string list -> str -> core_type -> value_description
-  end
+  fin
 
 (** Type declarations *)
 module Type:
@@ -133,7 +133,7 @@ module Type:
 
     val constructor: ?loc:loc -> ?attrs:attrs -> ?args:core_type list -> ?res:core_type -> str -> constructor_declaration
     val field: ?loc:loc -> ?attrs:attrs -> ?mut:mutable_flag -> str -> core_type -> label_declaration
-  end
+  fin
 
 (** {2 Module language} *)
 
@@ -151,7 +151,7 @@ module Mty:
     val with_: ?loc:loc -> ?attrs:attrs -> module_type -> with_constraint list -> module_type
     val typeof_: ?loc:loc -> ?attrs:attrs -> module_expr -> module_type
     val extension: ?loc:loc -> ?attrs:attrs -> extension -> module_type
-  end
+  fin
 
 (** Module expressions *)
 module Mod:
@@ -167,7 +167,7 @@ module Mod:
     val constraint_: ?loc:loc -> ?attrs:attrs -> module_expr -> module_type -> module_expr
     val unpack: ?loc:loc -> ?attrs:attrs -> expression -> module_expr
     val extension: ?loc:loc -> ?attrs:attrs -> extension -> module_expr
-  end
+  fin
 
 (** Signature items *)
 module Sig:
@@ -186,7 +186,7 @@ module Sig:
     val class_type: ?loc:loc -> class_type_declaration list -> signature_item
     val extension: ?loc:loc -> ?attrs:attrs -> extension -> signature_item
     val attribute: ?loc:loc -> attribute -> signature_item
-  end
+  fin
 
 (** Structure items *)
 module Str:
@@ -208,32 +208,32 @@ module Str:
     val include_: ?loc:loc -> ?attrs:attrs -> module_expr -> structure_item
     val extension: ?loc:loc -> ?attrs:attrs -> extension -> structure_item
     val attribute: ?loc:loc -> attribute -> structure_item
-  end
+  fin
 
 (** Module declarations *)
 module Md:
   sig
     val mk: ?loc:loc -> ?attrs:attrs -> str -> module_type -> module_declaration
-  end
+  fin
 
 (** Module type declarations *)
 module Mtd:
   sig
     val mk: ?loc:loc -> ?attrs:attrs -> ?typ:module_type -> str -> module_type_declaration
-  end
+  fin
 
 (** Module bindings *)
 module Mb:
   sig
     val mk: ?loc:loc -> ?attrs:attrs -> str -> module_expr -> module_binding
-  end
+  fin
 
 (** Value bindings *)
 
 module Vb:
   sig
     val mk: ?attrs:attrs -> pattern -> expression -> value_binding
-  end
+  fin
 
 
 (** {2 Class language} *)
@@ -248,7 +248,7 @@ module Cty:
     val signature: ?loc:loc -> ?attrs:attrs -> class_signature -> class_type
     val arrow: ?loc:loc -> ?attrs:attrs -> label -> core_type -> class_type -> class_type
     val extension: ?loc:loc -> ?attrs:attrs -> extension -> class_type
-  end
+  fin
 
 (** Class type fields *)
 module Ctf:
@@ -261,7 +261,7 @@ module Ctf:
     val method_: ?loc:loc -> ?attrs:attrs -> string -> private_flag -> virtual_flag -> core_type -> class_type_field
     val constraint_: ?loc:loc -> ?attrs:attrs -> core_type -> core_type -> class_type_field
     val extension: ?loc:loc -> ?attrs:attrs -> extension -> class_type_field
-  end
+  fin
 
 (** Class expressions *)
 module Cl:
@@ -276,7 +276,7 @@ module Cl:
     val let_: ?loc:loc -> ?attrs:attrs -> rec_flag -> value_binding list -> class_expr -> class_expr
     val constraint_: ?loc:loc -> ?attrs:attrs -> class_expr -> class_type -> class_expr
     val extension: ?loc:loc -> ?attrs:attrs -> extension -> class_expr
-  end
+  fin
 
 (** Class fields *)
 module Cf:
@@ -293,25 +293,25 @@ module Cf:
 
     val virtual_: core_type -> class_field_kind
     val concrete: override_flag -> expression -> class_field_kind
-  end
+  fin
 
 (** Classes *)
 module Ci:
   sig
     val mk: ?loc:loc -> ?attrs:attrs -> ?virt:virtual_flag -> ?params:(str * variance) list -> str -> 'a -> 'a class_infos
-  end
+  fin
 
 (** Class signatures *)
 module Csig:
   sig
     val mk: core_type -> class_type_field list -> class_signature
-  end
+  fin
 
 (** Class structures *)
 module Cstr:
   sig
     val mk: pattern -> class_field list -> class_structure
-  end
+  fin
 
 
 (** {2 Convenience functions} *)
@@ -379,4 +379,4 @@ module Convenience :
     val has_attr: string -> attributes -> bool
     val find_attr: string -> attributes -> payload option
     val find_attr_expr: string -> attributes -> expression option
-  end
+  fin

@@ -10,8 +10,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Asttypes
-open Typedtree
+ouvre Asttypes
+ouvre Typedtree
 
 
 module type IteratorArgument = sig
@@ -69,10 +69,10 @@ module type IteratorArgument = sig
     val leave_binding : value_binding -> unit
     val leave_bindings : rec_flag -> unit
 
-      end
+      fin
 
 module MakeIterator :
-  functor
+  foncteur
   (Iter : IteratorArgument) ->
            sig
              val iter_structure : structure -> unit
@@ -83,6 +83,6 @@ module MakeIterator :
     val iter_module_type : module_type -> unit
     val iter_pattern : pattern -> unit
     val iter_class_expr : class_expr -> unit
-           end
+           fin
 
 module DefaultIteratorArgument : IteratorArgument

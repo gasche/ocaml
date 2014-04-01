@@ -12,7 +12,7 @@
 
 (* Source code locations (ranges of positions), used in parsetree. *)
 
-open Format
+ouvre Format
 
 type t = {
   loc_start: Lexing.position;

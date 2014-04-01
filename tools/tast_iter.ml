@@ -10,19 +10,19 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Typedtree
+ouvre Typedtree
 
-let opt f = function None -> () | Some x -> f x
+soit opt f = fonction None -> () | Some x -> f x
 
-let structure sub str =
+soit structure sub str =
   List.iter (sub # structure_item) str.str_items
 
-let constructor_decl sub cd =
+soit constructor_decl sub cd =
   List.iter (sub # core_type) cd.cd_args;
   opt (sub # core_type) cd.cd_res
 
-let structure_item sub x =
-  match x.str_desc with
+soit structure_item sub x =
+  filtre x.str_desc avec
   | Tstr_eval (exp, _attrs) -> sub # expression exp
   | Tstr_value (rec_flag, list) -> sub # bindings (rec_flag, list)
   | Tstr_primitive v -> sub # value_description v
@@ -34,50 +34,50 @@ let structure_item sub x =
   | Tstr_modtype mtd -> opt (sub # module_type) mtd.mtd_type
   | Tstr_open _ -> ()
   | Tstr_class list ->
-      List.iter (fun (ci, _, _) -> sub # class_expr ci.ci_expr) list
+      List.iter (fonc (ci, _, _) -> sub # class_expr ci.ci_expr) list
   | Tstr_class_type list ->
-      List.iter (fun (_id, _, ct) -> sub # class_type ct.ci_expr) list
+      List.iter (fonc (_id, _, ct) -> sub # class_type ct.ci_expr) list
   | Tstr_include (mexpr, _, _) -> sub # module_expr mexpr
   | Tstr_attribute _ -> ()
 
-let value_description sub x =
+soit value_description sub x =
   sub # core_type x.val_desc
 
-let type_declaration sub decl =
+soit type_declaration sub decl =
   List.iter
-    (fun (ct1, ct2, _loc) -> sub # core_type ct1; sub # core_type ct2)
+    (fonc (ct1, ct2, _loc) -> sub # core_type ct1; sub # core_type ct2)
     decl.typ_cstrs;
-  begin match decl.typ_kind with
+  début filtre decl.typ_kind avec
   | Ttype_abstract -> ()
   | Ttype_variant list ->
       List.iter (constructor_decl sub) list
   | Ttype_record list ->
-      List.iter (fun ld -> sub # core_type ld.ld_type) list
-  end;
+      List.iter (fonc ld -> sub # core_type ld.ld_type) list
+  fin;
   opt (sub # core_type) decl.typ_manifest
 
-let pattern sub pat =
-  let extra = function
+soit pattern sub pat =
+  soit extra = fonction
     | Tpat_type _
     | Tpat_unpack -> ()
     | Tpat_constraint ct -> sub # core_type ct
-  in
-  List.iter (fun (c, _, _) -> extra c) pat.pat_extra;
-  match pat.pat_desc with
+  dans
+  List.iter (fonc (c, _, _) -> extra c) pat.pat_extra;
+  filtre pat.pat_desc avec
   | Tpat_any
   | Tpat_var _
   | Tpat_constant _ -> ()
   | Tpat_tuple l
   | Tpat_construct (_, _, l) -> List.iter (sub # pattern) l
   | Tpat_variant (_, po, _) -> opt (sub # pattern) po
-  | Tpat_record (l, _) -> List.iter (fun (_, _, pat) -> sub # pattern pat) l
+  | Tpat_record (l, _) -> List.iter (fonc (_, _, pat) -> sub # pattern pat) l
   | Tpat_array l -> List.iter (sub # pattern) l
   | Tpat_or (p1, p2, _) -> sub # pattern p1; sub # pattern p2
   | Tpat_alias (p, _, _)
   | Tpat_lazy p -> sub # pattern p
 
-let expression sub exp =
-  let extra = function
+soit expression sub exp =
+  soit extra = fonction
     | Texp_constraint cty ->
         sub # core_type cty
     | Texp_coerce (cty1, cty2) ->
@@ -85,9 +85,9 @@ let expression sub exp =
     | Texp_open _
     | Texp_newtype _ -> ()
     | Texp_poly cto -> opt (sub # core_type) cto
-  in
-  List.iter (fun (c, _, _) -> extra c) exp.exp_extra;
-  match exp.exp_desc with
+  dans
+  List.iter (fonc (c, _, _) -> extra c) exp.exp_extra;
+  filtre exp.exp_desc avec
   | Texp_ident _
   | Texp_constant _ -> ()
   | Texp_let (rec_flag, list, exp) ->
@@ -97,7 +97,7 @@ let expression sub exp =
       sub # cases cases
   | Texp_apply (exp, list) ->
       sub # expression exp;
-      List.iter (fun (_, expo, _) -> opt (sub # expression) expo) list
+      List.iter (fonc (_, expo, _) -> opt (sub # expression) expo) list
   | Texp_match (exp, cases, _) ->
       sub # expression exp;
       sub # cases cases
@@ -111,7 +111,7 @@ let expression sub exp =
   | Texp_variant (_, expo) ->
       opt (sub # expression) expo
   | Texp_record (list, expo) ->
-      List.iter (fun (_, _, exp) -> sub # expression exp) list;
+      List.iter (fonc (_, _, exp) -> sub # expression exp) list;
       opt (sub # expression) expo
   | Texp_field (exp, _, _label) ->
       sub # expression exp
@@ -142,7 +142,7 @@ let expression sub exp =
   | Texp_setinstvar (_, _, _, exp) ->
       sub # expression exp
   | Texp_override (_, list) ->
-      List.iter (fun (_path, _, exp) -> sub # expression exp) list
+      List.iter (fonc (_path, _, exp) -> sub # expression exp) list
   | Texp_letmodule (_id, _, mexpr, exp) ->
       sub # module_expr mexpr;
       sub # expression exp
@@ -154,14 +154,14 @@ let expression sub exp =
       sub # module_expr mexpr
 
 
-let package_type sub pack =
-  List.iter (fun (_s, ct) -> sub # core_type ct) pack.pack_fields
+soit package_type sub pack =
+  List.iter (fonc (_s, ct) -> sub # core_type ct) pack.pack_fields
 
-let signature sub sg =
+soit signature sub sg =
   List.iter (sub # signature_item) sg.sig_items
 
-let signature_item sub item =
-  match item.sig_desc with
+soit signature_item sub item =
+  filtre item.sig_desc avec
   | Tsig_value v ->
       sub # value_description v
   | Tsig_type list ->
@@ -171,7 +171,7 @@ let signature_item sub item =
   | Tsig_module md ->
       sub # module_type md.md_type
   | Tsig_recmodule list ->
-      List.iter (fun md -> sub # module_type md.md_type) list
+      List.iter (fonc md -> sub # module_type md.md_type) list
   | Tsig_modtype mtd ->
       opt (sub # module_type) mtd.mtd_type
   | Tsig_open _ -> ()
@@ -182,14 +182,14 @@ let signature_item sub item =
       List.iter (sub # class_type_declaration) list
   | Tsig_attribute _ -> ()
 
-let class_description sub cd =
+soit class_description sub cd =
   sub # class_type cd.ci_expr
 
-let class_type_declaration sub cd =
+soit class_type_declaration sub cd =
   sub # class_type cd.ci_expr
 
-let module_type sub mty =
-  match mty.mty_desc with
+soit module_type sub mty =
+  filtre mty.mty_desc avec
   | Tmty_ident (_path, _) -> ()
   | Tmty_alias (_path, _) -> ()
   | Tmty_signature sg -> sub # signature sg
@@ -197,19 +197,19 @@ let module_type sub mty =
       Misc.may (sub # module_type) mtype1; sub # module_type mtype2
   | Tmty_with (mtype, list) ->
       sub # module_type mtype;
-      List.iter (fun (_, _, withc) -> sub # with_constraint withc) list
+      List.iter (fonc (_, _, withc) -> sub # with_constraint withc) list
   | Tmty_typeof mexpr ->
       sub # module_expr mexpr
 
-let with_constraint sub cstr =
-  match cstr with
+soit with_constraint sub cstr =
+  filtre cstr avec
   | Twith_type decl -> sub # type_declaration decl
   | Twith_module _ -> ()
   | Twith_typesubst decl -> sub # type_declaration decl
   | Twith_modsubst _ -> ()
 
-let module_expr sub mexpr =
-  match mexpr.mod_desc with
+soit module_expr sub mexpr =
+  filtre mexpr.mod_desc avec
   | Tmod_ident (_p, _) -> ()
   | Tmod_structure st -> sub # structure st
   | Tmod_functor (_id, _, mtype, mexpr) ->
@@ -227,24 +227,24 @@ let module_expr sub mexpr =
       sub # expression exp
 (*          sub # module_type mty *)
 
-let module_binding sub mb =
+soit module_binding sub mb =
   module_expr sub mb.mb_expr
 
-let class_expr sub cexpr =
-  match cexpr.cl_desc with
+soit class_expr sub cexpr =
+  filtre cexpr.cl_desc avec
   | Tcl_constraint (cl, None, _, _, _ ) ->
       sub # class_expr cl;
   | Tcl_structure clstr -> sub # class_structure clstr
   | Tcl_fun (_label, pat, priv, cl, _partial) ->
       sub # pattern pat;
-      List.iter (fun (_id, _, exp) -> sub # expression exp) priv;
+      List.iter (fonc (_id, _, exp) -> sub # expression exp) priv;
       sub # class_expr cl
   | Tcl_apply (cl, args) ->
       sub # class_expr cl;
-      List.iter (fun (_label, expo, _) -> opt (sub # expression) expo) args
+      List.iter (fonc (_label, expo, _) -> opt (sub # expression) expo) args
   | Tcl_let (rec_flat, bindings, ivars, cl) ->
       sub # bindings (rec_flat, bindings);
-      List.iter (fun (_id, _, exp) -> sub # expression exp) ivars;
+      List.iter (fonc (_id, _, exp) -> sub # expression exp) ivars;
       sub # class_expr cl
   | Tcl_constraint (cl, Some clty, _vals, _meths, _concrs) ->
       sub # class_expr cl;
@@ -252,20 +252,20 @@ let class_expr sub cexpr =
   | Tcl_ident (_, _, tyl) ->
       List.iter (sub # core_type) tyl
 
-let class_type sub ct =
-  match ct.cltyp_desc with
+soit class_type sub ct =
+  filtre ct.cltyp_desc avec
   | Tcty_signature csg -> sub # class_signature csg
   | Tcty_constr (_path, _, list) -> List.iter (sub # core_type) list
   | Tcty_arrow (_label, ct, cl) ->
       sub # core_type ct;
       sub # class_type cl
 
-let class_signature sub cs =
+soit class_signature sub cs =
   sub # core_type cs.csig_self;
   List.iter (sub # class_type_field) cs.csig_fields
 
-let class_type_field sub ctf =
-  match ctf.ctf_desc with
+soit class_type_field sub ctf =
+  filtre ctf.ctf_desc avec
   | Tctf_inherit ct -> sub # class_type ct
   | Tctf_val (_s, _mut, _virt, ct) ->
       sub # core_type ct
@@ -275,8 +275,8 @@ let class_type_field sub ctf =
       sub # core_type ct1;
       sub # core_type ct2
 
-let core_type sub ct =
-  match ct.ctyp_desc with
+soit core_type sub ct =
+  filtre ct.ctyp_desc avec
   | Ttyp_any -> ()
   | Ttyp_var _s -> ()
   | Ttyp_arrow (_label, ct1, ct2) ->
@@ -286,7 +286,7 @@ let core_type sub ct =
   | Ttyp_constr (_path, _, list) ->
       List.iter (sub # core_type) list
   | Ttyp_object (list, _o) ->
-      List.iter (fun (_, t) -> sub # core_type t) list
+      List.iter (fonc (_, t) -> sub # core_type t) list
   | Ttyp_class (_path, _, list) ->
       List.iter (sub # core_type) list
   | Ttyp_alias (ct, _s) ->
@@ -296,17 +296,17 @@ let core_type sub ct =
   | Ttyp_poly (_list, ct) -> sub # core_type ct
   | Ttyp_package pack -> sub # package_type pack
 
-let class_structure sub cs =
+soit class_structure sub cs =
   sub # pattern cs.cstr_self;
   List.iter (sub # class_field) cs.cstr_fields
 
-let row_field sub rf =
-  match rf with
+soit row_field sub rf =
+  filtre rf avec
   | Ttag (_label, _bool, list) -> List.iter (sub # core_type) list
   | Tinherit ct -> sub # core_type ct
 
-let class_field sub cf =
-  match cf.cf_desc with
+soit class_field sub cf =
+  filtre cf.cf_desc avec
   | Tcf_inherit (_ovf, cl, _super, _vals, _meths) ->
       sub # class_expr cl
   | Tcf_constraint (cty, cty') ->
@@ -323,47 +323,47 @@ let class_field sub cf =
   | Tcf_initializer exp ->
       sub # expression exp
 
-let bindings sub (_rec_flag, list) =
+soit bindings sub (_rec_flag, list) =
   List.iter (sub # binding) list
 
-let cases sub l =
+soit cases sub l =
   List.iter (sub # case) l
 
-let case sub {c_lhs; c_guard; c_rhs} =
+soit case sub {c_lhs; c_guard; c_rhs} =
   sub # pattern c_lhs;
   opt (sub # expression) c_guard;
   sub # expression c_rhs
 
-let binding sub vb =
+soit binding sub vb =
   sub # pattern vb.vb_pat;
   sub # expression vb.vb_expr
 
-class iter = object(this)
-  method binding = binding this
-  method bindings = bindings this
-  method case = case this
-  method cases = cases this
-  method class_description = class_description this
-  method class_expr = class_expr this
-  method class_field = class_field this
-  method class_signature = class_signature this
-  method class_structure = class_structure this
-  method class_type = class_type this
-  method class_type_declaration = class_type_declaration this
-  method class_type_field = class_type_field this
-  method core_type = core_type this
-  method expression = expression this
-  method module_binding = module_binding this
-  method module_expr = module_expr this
-  method module_type = module_type this
-  method package_type = package_type this
-  method pattern = pattern this
-  method row_field = row_field this
-  method signature = signature this
-  method signature_item = signature_item this
-  method structure = structure this
-  method structure_item = structure_item this
-  method type_declaration = type_declaration this
-  method value_description = value_description this
-  method with_constraint = with_constraint this
-end
+classe iter = objet(this)
+  méthode binding = binding this
+  méthode bindings = bindings this
+  méthode case = case this
+  méthode cases = cases this
+  méthode class_description = class_description this
+  méthode class_expr = class_expr this
+  méthode class_field = class_field this
+  méthode class_signature = class_signature this
+  méthode class_structure = class_structure this
+  méthode class_type = class_type this
+  méthode class_type_declaration = class_type_declaration this
+  méthode class_type_field = class_type_field this
+  méthode core_type = core_type this
+  méthode expression = expression this
+  méthode module_binding = module_binding this
+  méthode module_expr = module_expr this
+  méthode module_type = module_type this
+  méthode package_type = package_type this
+  méthode pattern = pattern this
+  méthode row_field = row_field this
+  méthode signature = signature this
+  méthode signature_item = signature_item this
+  méthode structure = structure this
+  méthode structure_item = structure_item this
+  méthode type_declaration = type_declaration this
+  méthode value_description = value_description this
+  méthode with_constraint = with_constraint this
+fin

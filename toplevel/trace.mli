@@ -12,7 +12,7 @@
 
 (* The "trace" facility *)
 
-open Format
+ouvre Format
 
 type codeptr
 

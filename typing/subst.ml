@@ -12,10 +12,10 @@
 
 (* Substitutions *)
 
-open Misc
-open Path
-open Types
-open Btype
+ouvre Misc
+ouvre Path
+ouvre Types
+ouvre Btype
 
 type t =
   { types: (Ident.t, Path.t) Tbl.t;
@@ -23,54 +23,54 @@ type t =
     modtypes: (Ident.t, module_type) Tbl.t;
     for_saving: bool }
 
-let identity =
+soit identity =
   { types = Tbl.empty; modules = Tbl.empty; modtypes = Tbl.empty;
-    for_saving = false }
+    for_saving = faux }
 
-let add_type id p s = { s with types = Tbl.add id p s.types }
+soit add_type id p s = { s avec types = Tbl.add id p s.types }
 
-let add_module id p s = { s with modules = Tbl.add id p s.modules }
+soit add_module id p s = { s avec modules = Tbl.add id p s.modules }
 
-let add_modtype id ty s = { s with modtypes = Tbl.add id ty s.modtypes }
+soit add_modtype id ty s = { s avec modtypes = Tbl.add id ty s.modtypes }
 
-let for_saving s = { s with for_saving = true }
+soit for_saving s = { s avec for_saving = vrai }
 
-let loc s x =
-  if s.for_saving && not !Clflags.keep_locs then Location.none else x
+soit loc s x =
+  si s.for_saving && not !Clflags.keep_locs alors Location.none sinon x
 
-let remove_loc =
-  let open Ast_mapper in
-  {default_mapper with location = (fun _this _loc -> Location.none)}
+soit remove_loc =
+  soit ouvre Ast_mapper dans
+  {default_mapper avec location = (fonc _this _loc -> Location.none)}
 
-let attrs s x =
-  if s.for_saving && not !Clflags.keep_locs
-  then remove_loc.Ast_mapper.attributes remove_loc x
-  else x
+soit attrs s x =
+  si s.for_saving && not !Clflags.keep_locs
+  alors remove_loc.Ast_mapper.attributes remove_loc x
+  sinon x
 
 
-let rec module_path s = function
-    Pident id as p ->
-      begin try Tbl.find id s.modules with Not_found -> p end
+soit rec module_path s = fonction
+    Pident id tel p ->
+      début essaie Tbl.find id s.modules avec Not_found -> p fin
   | Pdot(p, n, pos) ->
       Pdot(module_path s p, n, pos)
   | Papply(p1, p2) ->
       Papply(module_path s p1, module_path s p2)
 
-let modtype_path s = function
-    Pident id as p ->
-      begin try
-        match Tbl.find id s.modtypes with
+soit modtype_path s = fonction
+    Pident id tel p ->
+      début essaie
+        filtre Tbl.find id s.modtypes avec
           | Mty_ident p -> p
           | _ -> fatal_error "Subst.modtype_path"
-      with Not_found -> p end
+      avec Not_found -> p fin
   | Pdot(p, n, pos) ->
       Pdot(module_path s p, n, pos)
   | Papply(p1, p2) ->
       fatal_error "Subst.modtype_path"
 
-let type_path s = function
-    Pident id as p ->
-      begin try Tbl.find id s.types with Not_found -> p end
+soit type_path s = fonction
+    Pident id tel p ->
+      début essaie Tbl.find id s.types avec Not_found -> p fin
   | Pdot(p, n, pos) ->
       Pdot(module_path s p, n, pos)
   | Papply(p1, p2) ->
@@ -78,33 +78,33 @@ let type_path s = function
 
 (* Special type ids for saved signatures *)
 
-let new_id = ref (-1)
-let reset_for_saving () = new_id := -1
+soit new_id = ref (-1)
+soit reset_for_saving () = new_id := -1
 
-let newpersty desc =
+soit newpersty desc =
   decr new_id;
   { desc = desc; level = generic_level; id = !new_id }
 
 (* ensure that all occurrences of 'Tvar None' are physically shared *)
-let tvar_none = Tvar None
-let tunivar_none = Tunivar None
-let norm = function
+soit tvar_none = Tvar None
+soit tunivar_none = Tunivar None
+soit norm = fonction
   | Tvar None -> tvar_none
   | Tunivar None -> tunivar_none
   | d -> d
 
 (* Similar to [Ctype.nondep_type_rec]. *)
-let rec typexp s ty =
-  let ty = repr ty in
-  match ty.desc with
-    Tvar _ | Tunivar _ as desc ->
-      if s.for_saving || ty.id < 0 then
-        let ty' =
-          if s.for_saving then newpersty (norm desc)
-          else newty2 ty.level desc
-        in
+soit rec typexp s ty =
+  soit ty = repr ty dans
+  filtre ty.desc avec
+    Tvar _ | Tunivar _ tel desc ->
+      si s.for_saving || ty.id < 0 alors
+        soit ty' =
+          si s.for_saving alors newpersty (norm desc)
+          sinon newty2 ty.level desc
+        dans
         save_desc ty desc; ty.desc <- Tsubst ty'; ty'
-      else ty
+      sinon ty
   | Tsubst ty ->
       ty
 (* cannot do it, since it would omit subsitution
@@ -112,89 +112,89 @@ let rec typexp s ty =
       ty
 *)
   | _ ->
-    let desc = ty.desc in
+    soit desc = ty.desc dans
     save_desc ty desc;
     (* Make a stub *)
-    let ty' = if s.for_saving then newpersty (Tvar None) else newgenvar () in
+    soit ty' = si s.for_saving alors newpersty (Tvar None) sinon newgenvar () dans
     ty.desc <- Tsubst ty';
     ty'.desc <-
-      begin match desc with
+      début filtre desc avec
       | Tconstr(p, tl, abbrev) ->
           Tconstr(type_path s p, List.map (typexp s) tl, ref Mnil)
       | Tpackage(p, n, tl) ->
           Tpackage(modtype_path s p, n, List.map (typexp s) tl)
       | Tobject (t1, name) ->
           Tobject (typexp s t1,
-                 ref (match !name with
+                 ref (filtre !name avec
                         None -> None
                       | Some (p, tl) ->
                           Some (type_path s p, List.map (typexp s) tl)))
       | Tfield (m, k, t1, t2)
-        when s == identity && ty.level < generic_level && m = dummy_method ->
+        quand s == identity && ty.level < generic_level && m = dummy_method ->
           (* not allowed to lower the level of the dummy method *)
           Tfield (m, k, t1, typexp s t2)
       | Tvariant row ->
-          let row = row_repr row in
-          let more = repr row.row_more in
+          soit row = row_repr row dans
+          soit more = repr row.row_more dans
           (* We must substitute in a subtle way *)
           (* Tsubst takes a tuple containing the row var and the variant *)
-          begin match more.desc with
+          début filtre more.desc avec
             Tsubst {desc = Ttuple [_;ty2]} ->
               (* This variant type has been already copied *)
               ty.desc <- Tsubst ty2; (* avoid Tlink in the new type *)
               Tlink ty2
           | _ ->
-              let dup =
+              soit dup =
                 s.for_saving || more.level = generic_level || static_row row ||
-                match more.desc with Tconstr _ -> true | _ -> false in
+                filtre more.desc avec Tconstr _ -> vrai | _ -> faux dans
               (* Various cases for the row variable *)
-              let more' =
-                match more.desc with
+              soit more' =
+                filtre more.desc avec
                   Tsubst ty -> ty
                 | Tconstr _ | Tnil -> typexp s more
                 | Tunivar _ | Tvar _ ->
                     save_desc more more.desc;
-                    if s.for_saving then newpersty (norm more.desc) else
-                    if dup && is_Tvar more then newgenty more.desc else more
-                | _ -> assert false
-              in
+                    si s.for_saving alors newpersty (norm more.desc) sinon
+                    si dup && is_Tvar more alors newgenty more.desc sinon more
+                | _ -> affirme faux
+              dans
               (* Register new type first for recursion *)
               more.desc <- Tsubst(newgenty(Ttuple[more';ty']));
               (* Return a new copy *)
-              let row =
-                copy_row (typexp s) true row (not dup) more' in
-              match row.row_name with
+              soit row =
+                copy_row (typexp s) vrai row (not dup) more' dans
+              filtre row.row_name avec
                 Some (p, tl) ->
-                  Tvariant {row with row_name = Some (type_path s p, tl)}
+                  Tvariant {row avec row_name = Some (type_path s p, tl)}
               | None ->
                   Tvariant row
-          end
-      | Tfield(label, kind, t1, t2) when field_kind_repr kind = Fabsent ->
+          fin
+      | Tfield(label, kind, t1, t2) quand field_kind_repr kind = Fabsent ->
           Tlink (typexp s t2)
       | _ -> copy_type_desc (typexp s) desc
-      end;
+      fin;
     ty'
 
 (*
    Always make a copy of the type. If this is not done, type levels
    might not be correct.
 *)
-let type_expr s ty =
-  let ty' = typexp s ty in
+soit type_expr s ty =
+  soit ty' = typexp s ty dans
   cleanup_types ();
   ty'
 
-let type_declaration s decl =
-  let decl =
+soit type_declaration s decl =
+  soit decl =
     { type_params = List.map (typexp s) decl.type_params;
       type_arity = decl.type_arity;
       type_kind =
-        begin match decl.type_kind with
+        début filtre decl.type_kind avec
           Type_abstract -> Type_abstract
         | Type_variant cstrs ->
             Type_variant
               (List.map
-                 (fun c ->
+                 (fonc c ->
                     {
                       cd_id = c.cd_id;
                       cd_args = List.map (typexp s) c.cd_args;
@@ -206,7 +206,7 @@ let type_declaration s decl =
                  cstrs)
         | Type_record(lbls, rep) ->
             Type_record
-              (List.map (fun l ->
+              (List.map (fonc l ->
                    {
                      ld_id = l.ld_id;
                      ld_mutable = l.ld_mutable;
@@ -217,35 +217,35 @@ let type_declaration s decl =
                  )
                   lbls,
                rep)
-        end;
+        fin;
       type_manifest =
-        begin
-          match decl.type_manifest with
+        début
+          filtre decl.type_manifest avec
             None -> None
           | Some ty -> Some(typexp s ty)
-        end;
+        fin;
       type_private = decl.type_private;
       type_variance = decl.type_variance;
       type_newtype_level = None;
       type_loc = loc s decl.type_loc;
       type_attributes = attrs s decl.type_attributes;
     }
-  in
+  dans
   cleanup_types ();
   decl
 
-let class_signature s sign =
+soit class_signature s sign =
   { csig_self = typexp s sign.csig_self;
     csig_vars =
-      Vars.map (function (m, v, t) -> (m, v, typexp s t)) sign.csig_vars;
+      Vars.map (fonction (m, v, t) -> (m, v, typexp s t)) sign.csig_vars;
     csig_concr = sign.csig_concr;
     csig_inher =
-      List.map (fun (p, tl) -> (type_path s p, List.map (typexp s) tl))
+      List.map (fonc (p, tl) -> (type_path s p, List.map (typexp s) tl))
         sign.csig_inher;
   }
 
-let rec class_type s =
-  function
+soit rec class_type s =
+  fonction
     Cty_constr (p, tyl, cty) ->
       Cty_constr (type_path s p, List.map (typexp s) tyl, class_type s cty)
   | Cty_signature sign ->
@@ -253,27 +253,27 @@ let rec class_type s =
   | Cty_arrow (l, ty, cty) ->
       Cty_arrow (l, typexp s ty, class_type s cty)
 
-let class_declaration s decl =
-  let decl =
+soit class_declaration s decl =
+  soit decl =
     { cty_params = List.map (typexp s) decl.cty_params;
       cty_variance = decl.cty_variance;
       cty_type = class_type s decl.cty_type;
       cty_path = type_path s decl.cty_path;
       cty_new =
-        begin match decl.cty_new with
+        début filtre decl.cty_new avec
           None    -> None
         | Some ty -> Some (typexp s ty)
-        end;
+        fin;
       cty_loc = loc s decl.cty_loc;
       cty_attributes = attrs s decl.cty_attributes;
     }
-  in
+  dans
   (* Do not clean up if saving: next is cltype_declaration *)
-  if not s.for_saving then cleanup_types ();
+  si not s.for_saving alors cleanup_types ();
   decl
 
-let cltype_declaration s decl =
-  let decl =
+soit cltype_declaration s decl =
+  soit decl =
     { clty_params = List.map (typexp s) decl.clty_params;
       clty_variance = decl.clty_variance;
       clty_type = class_type s decl.clty_type;
@@ -281,75 +281,75 @@ let cltype_declaration s decl =
       clty_loc = loc s decl.clty_loc;
       clty_attributes = attrs s decl.clty_attributes;
     }
-  in
+  dans
   (* Do clean up even if saving: type_declaration may be recursive *)
   cleanup_types ();
   decl
 
-let class_type s cty =
-  let cty = class_type s cty in
+soit class_type s cty =
+  soit cty = class_type s cty dans
   cleanup_types ();
   cty
 
-let value_description s descr =
+soit value_description s descr =
   { val_type = type_expr s descr.val_type;
     val_kind = descr.val_kind;
     val_loc = loc s descr.val_loc;
     val_attributes = attrs s descr.val_attributes;
    }
 
-let exception_declaration s descr =
+soit exception_declaration s descr =
   { exn_args = List.map (type_expr s) descr.exn_args;
     exn_loc = loc s descr.exn_loc;
     exn_attributes = attrs s descr.exn_attributes;
    }
 
-let rec rename_bound_idents s idents = function
+soit rec rename_bound_idents s idents = fonction
     [] -> (List.rev idents, s)
   | Sig_type(id, d, _) :: sg ->
-      let id' = Ident.rename id in
+      soit id' = Ident.rename id dans
       rename_bound_idents (add_type id (Pident id') s) (id' :: idents) sg
   | Sig_module(id, mty, _) :: sg ->
-      let id' = Ident.rename id in
+      soit id' = Ident.rename id dans
       rename_bound_idents (add_module id (Pident id') s) (id' :: idents) sg
   | Sig_modtype(id, d) :: sg ->
-      let id' = Ident.rename id in
+      soit id' = Ident.rename id dans
       rename_bound_idents (add_modtype id (Mty_ident(Pident id')) s)
                           (id' :: idents) sg
   | (Sig_value(id, _) | Sig_exception(id, _) |
      Sig_class(id, _, _) | Sig_class_type(id, _, _)) :: sg ->
-      let id' = Ident.rename id in
+      soit id' = Ident.rename id dans
       rename_bound_idents s (id' :: idents) sg
 
-let rec modtype s = function
-    Mty_ident p as mty ->
-      begin match p with
+soit rec modtype s = fonction
+    Mty_ident p tel mty ->
+      début filtre p avec
         Pident id ->
-          begin try Tbl.find id s.modtypes with Not_found -> mty end
+          début essaie Tbl.find id s.modtypes avec Not_found -> mty fin
       | Pdot(p, n, pos) ->
           Mty_ident(Pdot(module_path s p, n, pos))
       | Papply(p1, p2) ->
           fatal_error "Subst.modtype"
-      end
+      fin
   | Mty_signature sg ->
       Mty_signature(signature s sg)
   | Mty_functor(id, arg, res) ->
-      let id' = Ident.rename id in
+      soit id' = Ident.rename id dans
       Mty_functor(id', may_map (modtype s) arg,
                        modtype (add_module id (Pident id') s) res)
   | Mty_alias p ->
       Mty_alias(module_path s p)
 
-and signature s sg =
+et signature s sg =
   (* Components of signature may be mutually recursive (e.g. type declarations
      or class and type declarations), so first build global renaming
      substitution... *)
-  let (new_idents, s') = rename_bound_idents s [] sg in
+  soit (new_idents, s') = rename_bound_idents s [] sg dans
   (* ... then apply it to each signature component in turn *)
   List.map2 (signature_component s') sg new_idents
 
-and signature_component s comp newid =
-  match comp with
+et signature_component s comp newid =
+  filtre comp avec
     Sig_value(id, d) ->
       Sig_value(newid, value_description s d)
   | Sig_type(id, d, rs) ->
@@ -365,14 +365,14 @@ and signature_component s comp newid =
   | Sig_class_type(id, d, rs) ->
       Sig_class_type(newid, cltype_declaration s d, rs)
 
-and module_declaration s decl =
+et module_declaration s decl =
   {
     md_type = modtype s decl.md_type;
     md_attributes = attrs s decl.md_attributes;
     md_loc = loc s decl.md_loc;
   }
 
-and modtype_declaration s decl  =
+et modtype_declaration s decl  =
   {
     mtd_type = may_map (modtype s) decl.mtd_type;
     mtd_attributes = attrs s decl.mtd_attributes;
@@ -382,14 +382,14 @@ and modtype_declaration s decl  =
 (* For every binding k |-> d of m1, add k |-> f d to m2
    and return resulting merged map. *)
 
-let merge_tbls f m1 m2 =
-  Tbl.fold (fun k d accu -> Tbl.add k (f d) accu) m1 m2
+soit merge_tbls f m1 m2 =
+  Tbl.fold (fonc k d accu -> Tbl.add k (f d) accu) m1 m2
 
 (* Composition of substitutions:
      apply (compose s1 s2) x = apply s2 (apply s1 x) *)
 
-let compose s1 s2 =
+soit compose s1 s2 =
   { types = merge_tbls (type_path s2) s1.types s2.types;
     modules = merge_tbls (module_path s2) s1.modules s2.modules;
     modtypes = merge_tbls (modtype s2) s1.modtypes s2.modtypes;
-    for_saving = false }
+    for_saving = faux }

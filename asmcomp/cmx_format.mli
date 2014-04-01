@@ -23,16 +23,16 @@
    of these infos *)
 
 type unit_infos =
-  { mutable ui_name: string;                    (* Name of unit implemented *)
-    mutable ui_symbol: string;            (* Prefix for symbols *)
-    mutable ui_defines: string list;      (* Unit and sub-units implemented *)
-    mutable ui_imports_cmi: (string * Digest.t) list; (* Interfaces imported *)
-    mutable ui_imports_cmx: (string * Digest.t) list; (* Infos imported *)
-    mutable ui_approx: Clambda.value_approximation; (* Approx of the structure*)
-    mutable ui_curry_fun: int list;             (* Currying functions needed *)
-    mutable ui_apply_fun: int list;             (* Apply functions needed *)
-    mutable ui_send_fun: int list;              (* Send functions needed *)
-    mutable ui_force_link: bool }               (* Always linked *)
+  { modifiable ui_name: string;                    (* Name of unit implemented *)
+    modifiable ui_symbol: string;            (* Prefix for symbols *)
+    modifiable ui_defines: string list;      (* Unit and sub-units implemented *)
+    modifiable ui_imports_cmi: (string * Digest.t) list; (* Interfaces imported *)
+    modifiable ui_imports_cmx: (string * Digest.t) list; (* Infos imported *)
+    modifiable ui_approx: Clambda.value_approximation; (* Approx of the structure*)
+    modifiable ui_curry_fun: int list;             (* Currying functions needed *)
+    modifiable ui_apply_fun: int list;             (* Apply functions needed *)
+    modifiable ui_send_fun: int list;              (* Send functions needed *)
+    modifiable ui_force_link: bool }               (* Always linked *)
 
 (* Each .a library has a matching .cmxa file that provides the following
    infos on the library: *)

@@ -13,12 +13,12 @@
 
 (* $Id$ *)
 
-let error_when_null_denominator_flag = ref true;;
+soit error_when_null_denominator_flag = ref vrai;;
 
-let normalize_ratio_flag = ref false;;
+soit normalize_ratio_flag = ref faux;;
 
-let normalize_ratio_when_printing_flag = ref true;;
+soit normalize_ratio_when_printing_flag = ref vrai;;
 
-let floating_precision = ref 12;;
+soit floating_precision = ref 12;;
 
-let approx_printing_flag = ref false;;
+soit approx_printing_flag = ref faux;;

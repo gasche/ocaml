@@ -12,101 +12,101 @@
 
 type ('a, 'b) t =
     Empty
-  | Node of ('a, 'b) t * 'a * 'b * ('a, 'b) t * int
+  | Node de ('a, 'b) t * 'a * 'b * ('a, 'b) t * int
 
-let empty = Empty
+soit empty = Empty
 
-let height = function
+soit height = fonction
     Empty -> 0
   | Node(_,_,_,_,h) -> h
 
-let create l x d r =
-  let hl = height l and hr = height r in
-  Node(l, x, d, r, (if hl >= hr then hl + 1 else hr + 1))
+soit create l x d r =
+  soit hl = height l et hr = height r dans
+  Node(l, x, d, r, (si hl >= hr alors hl + 1 sinon hr + 1))
 
-let bal l x d r =
-  let hl = height l and hr = height r in
-  if hl > hr + 1 then
-    match l with
-    | Node (ll, lv, ld, lr, _) when height ll >= height lr ->
+soit bal l x d r =
+  soit hl = height l et hr = height r dans
+  si hl > hr + 1 alors
+    filtre l avec
+    | Node (ll, lv, ld, lr, _) quand height ll >= height lr ->
         create ll lv ld (create lr x d r)
     | Node (ll, lv, ld, Node (lrl, lrv, lrd, lrr, _), _) ->
         create (create ll lv ld lrl) lrv lrd (create lrr x d r)
-    | _ -> assert false
-  else if hr > hl + 1 then
-    match r with
-    | Node (rl, rv, rd, rr, _) when height rr >= height rl ->
+    | _ -> affirme faux
+  sinon si hr > hl + 1 alors
+    filtre r avec
+    | Node (rl, rv, rd, rr, _) quand height rr >= height rl ->
         create (create l x d rl) rv rd rr
     | Node (Node (rll, rlv, rld, rlr, _), rv, rd, rr, _) ->
         create (create l x d rll) rlv rld (create rlr rv rd rr)
-    | _ -> assert false
-  else
+    | _ -> affirme faux
+  sinon
     create l x d r
 
-let rec add x data = function
+soit rec add x data = fonction
     Empty ->
       Node(Empty, x, data, Empty, 1)
   | Node(l, v, d, r, h) ->
-      let c = compare x v in
-      if c = 0 then
+      soit c = compare x v dans
+      si c = 0 alors
         Node(l, x, data, r, h)
-      else if c < 0 then
+      sinon si c < 0 alors
         bal (add x data l) v d r
-      else
+      sinon
         bal l v d (add x data r)
 
-let rec find x = function
+soit rec find x = fonction
     Empty ->
       raise Not_found
   | Node(l, v, d, r, _) ->
-      let c = compare x v in
-      if c = 0 then d
-      else find x (if c < 0 then l else r)
+      soit c = compare x v dans
+      si c = 0 alors d
+      sinon find x (si c < 0 alors l sinon r)
 
-let rec mem x = function
-    Empty -> false
+soit rec mem x = fonction
+    Empty -> faux
   | Node(l, v, d, r, _) ->
-      let c = compare x v in
-      c = 0 || mem x (if c < 0 then l else r)
+      soit c = compare x v dans
+      c = 0 || mem x (si c < 0 alors l sinon r)
 
-let rec merge t1 t2 =
-  match (t1, t2) with
+soit rec merge t1 t2 =
+  filtre (t1, t2) avec
     (Empty, t) -> t
   | (t, Empty) -> t
   | (Node(l1, v1, d1, r1, h1), Node(l2, v2, d2, r2, h2)) ->
       bal l1 v1 d1 (bal (merge r1 l2) v2 d2 r2)
 
-let rec remove x = function
+soit rec remove x = fonction
     Empty ->
       Empty
   | Node(l, v, d, r, h) ->
-      let c = compare x v in
-      if c = 0 then
+      soit c = compare x v dans
+      si c = 0 alors
         merge l r
-      else if c < 0 then
+      sinon si c < 0 alors
         bal (remove x l) v d r
-      else
+      sinon
         bal l v d (remove x r)
 
-let rec iter f = function
+soit rec iter f = fonction
     Empty -> ()
   | Node(l, v, d, r, _) ->
       iter f l; f v d; iter f r
 
-let rec map f = function
+soit rec map f = fonction
     Empty -> Empty
   | Node(l, v, d, r, h) -> Node(map f l, v, f v d, map f r, h)
 
-let rec fold f m accu =
-  match m with
+soit rec fold f m accu =
+  filtre m avec
   | Empty -> accu
   | Node(l, v, d, r, _) ->
       fold f r (f v d (fold f l accu))
 
-open Format
+ouvre Format
 
-let print print_key print_data ppf tbl =
-  let print_tbl ppf tbl =
-    iter (fun k d -> fprintf ppf "@[<2>%a ->@ %a;@]@ " print_key k print_data d)
-      tbl in
+soit print print_key print_data ppf tbl =
+  soit print_tbl ppf tbl =
+    iter (fonc k d -> fprintf ppf "@[<2>%a ->@ %a;@]@ " print_key k print_data d)
+      tbl dans
   fprintf ppf "@[<hv 2>[[%a]]@]" print_tbl tbl

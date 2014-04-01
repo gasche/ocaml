@@ -10,13 +10,13 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Format
+ouvre Format
 
 type error =
-  | CannotRun of string
-  | WrongMagic of string
+  | CannotRun de string
+  | WrongMagic de string
 
-exception Error of error
+exception Error de error
 
 val preprocess : string -> string
 val remove_preprocessed : string -> unit

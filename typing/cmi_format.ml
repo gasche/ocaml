@@ -13,11 +13,11 @@
 type pers_flags = Rectypes
 
 type error =
-    Not_an_interface of string
-  | Wrong_version_interface of string * string
-  | Corrupted_interface of string
+    Not_an_interface de string
+  | Wrong_version_interface de string * string
+  | Corrupted_interface de string
 
-exception Error of error
+exception Error de error
 
 type cmi_infos = {
     cmi_name : string;
@@ -26,10 +26,10 @@ type cmi_infos = {
     cmi_flags : pers_flags list;
 }
 
-let input_cmi ic =
-  let (name, sign) = input_value ic in
-  let crcs = input_value ic in
-  let flags = input_value ic in
+soit input_cmi ic =
+  soit (name, sign) = input_value ic dans
+  soit crcs = input_value ic dans
+  soit flags = input_value ic dans
   {
       cmi_name = name;
       cmi_sign = sign;
@@ -37,49 +37,49 @@ let input_cmi ic =
       cmi_flags = flags;
     }
 
-let read_cmi filename =
-  let ic = open_in_bin filename in
-  try
-    let buffer = Misc.input_bytes ic (String.length Config.cmi_magic_number) in
-    if buffer <> Config.cmi_magic_number then begin
+soit read_cmi filename =
+  soit ic = open_in_bin filename dans
+  essaie
+    soit buffer = Misc.input_bytes ic (String.length Config.cmi_magic_number) dans
+    si buffer <> Config.cmi_magic_number alors début
       close_in ic;
-      let pre_len = String.length Config.cmi_magic_number - 3 in
-      if String.sub buffer 0 pre_len
-          = String.sub Config.cmi_magic_number 0 pre_len then
-      begin
-        let msg =
-          if buffer < Config.cmi_magic_number then "plus ancienne" else "plus récente" in
+      soit pre_len = String.length Config.cmi_magic_number - 3 dans
+      si String.sub buffer 0 pre_len
+          = String.sub Config.cmi_magic_number 0 pre_len alors
+      début
+        soit msg =
+          si buffer < Config.cmi_magic_number alors "plus ancienne" sinon "plus récente" dans
         raise (Error (Wrong_version_interface (filename, msg)))
-      end else begin
+      fin sinon début
         raise(Error(Not_an_interface filename))
-      end
-    end;
-    let cmi = input_cmi ic in
+      fin
+    fin;
+    soit cmi = input_cmi ic dans
     close_in ic;
     cmi
-  with End_of_file | Failure _ ->
+  avec End_of_file | Failure _ ->
       close_in ic;
       raise(Error(Corrupted_interface(filename)))
     | Error e ->
       close_in ic;
       raise (Error e)
 
-let output_cmi filename oc cmi =
+soit output_cmi filename oc cmi =
 (* beware: the provided signature must have been substituted for saving *)
   output_string oc Config.cmi_magic_number;
   output_value oc (cmi.cmi_name, cmi.cmi_sign);
   flush oc;
-  let crc = Digest.file filename in
-  let crcs = (cmi.cmi_name, crc) :: cmi.cmi_crcs in
+  soit crc = Digest.file filename dans
+  soit crcs = (cmi.cmi_name, crc) :: cmi.cmi_crcs dans
   output_value oc crcs;
   output_value oc cmi.cmi_flags;
   crc
 
 (* Error report *)
 
-open Format
+ouvre Format
 
-let report_error ppf = function
+soit report_error ppf = fonction
   | Not_an_interface filename ->
       fprintf ppf "%a@ n'est pas une interface compilée"
         Location.print_filename filename
@@ -92,9 +92,9 @@ let report_error ppf = function
       fprintf ppf "Interface compilée corrompue@ %a"
         Location.print_filename filename
 
-let () =
+soit () =
   Location.register_error_of_exn
-    (function
+    (fonction
       | Error err -> Some (Location.error_of_printer_file report_error err)
       | _ -> None
     )

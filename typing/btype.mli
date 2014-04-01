@@ -12,14 +12,14 @@
 
 (* Basic operations on core types *)
 
-open Asttypes
-open Types
+ouvre Asttypes
+ouvre Types
 
 (**** Sets, maps and hashtables of types ****)
 
-module TypeSet  : Set.S with type elt = type_expr
-module TypeMap  : Map.S with type key = type_expr
-module TypeHash : Hashtbl.S with type key = type_expr
+module TypeSet  : Set.S avec type elt = type_expr
+module TypeMap  : Map.S avec type key = type_expr
+module TypeHash : Hashtbl.S avec type key = type_expr
 
 (**** Levels ****)
 

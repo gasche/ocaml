@@ -10,97 +10,97 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Clflags
-open Compenv
+ouvre Clflags
+ouvre Compenv
 
-let usage = "Usage: ocaml <options> <object-files> [script-file [arguments]]\n\
+soit usage = "Usage: ocaml <options> <object-files> [script-file [arguments]]\n\
              options are:"
 
-let preload_objects = ref []
+soit preload_objects = ref []
 
-let prepare ppf =
+soit prepare ppf =
   Toploop.set_paths ();
-  try
-    let res =
-      List.for_all (Topdirs.load_file ppf) (List.rev !preload_objects) in
+  essaie
+    soit res =
+      List.for_all (Topdirs.load_file ppf) (List.rev !preload_objects) dans
     !Toploop.toplevel_startup_hook ();
     res
-  with x ->
-    try Location.report_exception ppf x; false
-    with x ->
+  avec x ->
+    essaie Location.report_exception ppf x; faux
+    avec x ->
       Format.fprintf ppf "Uncaught exception: %s\n" (Printexc.to_string x);
-      false
+      faux
 
 (* If [name] is "", then the "file" is stdin treated as a script file. *)
-let file_argument name =
-  let ppf = Format.err_formatter in
-  if Filename.check_suffix name ".cmo" || Filename.check_suffix name ".cma"
-  then preload_objects := name :: !preload_objects
-  else
-    begin
-      let newargs = Array.sub Sys.argv !Arg.current
+soit file_argument name =
+  soit ppf = Format.err_formatter dans
+  si Filename.check_suffix name ".cmo" || Filename.check_suffix name ".cma"
+  alors preload_objects := name :: !preload_objects
+  sinon
+    début
+      soit newargs = Array.sub Sys.argv !Arg.current
                               (Array.length Sys.argv - !Arg.current)
-      in
-      if prepare ppf && Toploop.run_script ppf name newargs
-      then exit 0
-      else exit 2
-    end
+      dans
+      si prepare ppf && Toploop.run_script ppf name newargs
+      alors exit 0
+      sinon exit 2
+    fin
 
-let print_version () =
+soit print_version () =
   Printf.printf "The OCaml toplevel, version %s\n" Sys.ocaml_version;
   exit 0;
 ;;
 
-let print_version_num () =
+soit print_version_num () =
   Printf.printf "%s\n" Sys.ocaml_version;
   exit 0;
 ;;
 
 module Options = Main_args.Make_bytetop_options (struct
-  let set r () = r := true
-  let clear r () = r := false
+  soit set r () = r := vrai
+  soit clear r () = r := faux
 
-  let _absname = set Location.absname
-  let _I dir =
-    let dir = Misc.expand_directory Config.standard_library dir in
+  soit _absname = set Location.absname
+  soit _I dir =
+    soit dir = Misc.expand_directory Config.standard_library dir dans
     include_dirs := dir :: !include_dirs
-  let _init s = init_file := Some s
-  let _noinit = set noinit
-  let _labels = clear classic
-  let _no_app_funct = clear applicative_functors
-  let _noassert = set noassert
-  let _nolabels = set classic
-  let _noprompt = set noprompt
-  let _nopromptcont = set nopromptcont
-  let _nostdlib = set no_std_include
-  let _ppx s = first_ppx := s :: !first_ppx
-  let _principal = set principal
-  let _rectypes = set recursive_types
-  let _short_paths = clear real_paths
-  let _stdin () = file_argument ""
-  let _strict_sequence = set strict_sequence
-  let _trans_mod = set transparent_modules
-  let _unsafe = set fast
-  let _version () = print_version ()
-  let _vnum () = print_version_num ()
-  let _w s = Warnings.parse_options false s
-  let _warn_error s = Warnings.parse_options true s
-  let _warn_help = Warnings.help_warnings
-  let _dparsetree = set dump_parsetree
-  let _dtypedtree = set dump_typedtree
-  let _dsource = set dump_source
-  let _drawlambda = set dump_rawlambda
-  let _dlambda = set dump_lambda
-  let _dinstr = set dump_instr
+  soit _init s = init_file := Some s
+  soit _noinit = set noinit
+  soit _labels = clear classic
+  soit _no_app_funct = clear applicative_functors
+  soit _noassert = set noassert
+  soit _nolabels = set classic
+  soit _noprompt = set noprompt
+  soit _nopromptcont = set nopromptcont
+  soit _nostdlib = set no_std_include
+  soit _ppx s = first_ppx := s :: !first_ppx
+  soit _principal = set principal
+  soit _rectypes = set recursive_types
+  soit _short_paths = clear real_paths
+  soit _stdin () = file_argument ""
+  soit _strict_sequence = set strict_sequence
+  soit _trans_mod = set transparent_modules
+  soit _unsafe = set fast
+  soit _version () = print_version ()
+  soit _vnum () = print_version_num ()
+  soit _w s = Warnings.parse_options faux s
+  soit _warn_error s = Warnings.parse_options vrai s
+  soit _warn_help = Warnings.help_warnings
+  soit _dparsetree = set dump_parsetree
+  soit _dtypedtree = set dump_typedtree
+  soit _dsource = set dump_source
+  soit _drawlambda = set dump_rawlambda
+  soit _dlambda = set dump_lambda
+  soit _dinstr = set dump_instr
 
-  let anonymous s = file_argument s
-end);;
+  soit anonymous s = file_argument s
+fin);;
 
 
-let main () =
-  let ppf = Format.err_formatter in
+soit main () =
+  soit ppf = Format.err_formatter dans
   Compenv.readenv ppf Before_args;
   Arg.parse Options.list file_argument usage;
   Compenv.readenv ppf Before_link;
-  if not (prepare ppf) then exit 2;
+  si not (prepare ppf) alors exit 2;
   Toploop.loop Format.std_formatter

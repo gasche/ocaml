@@ -250,8 +250,8 @@ val bounded_split_delim : regexp -> string -> int -> string list
    recognized and returned as empty strings in the result. *)
 
 type split_result =
-    Text of string
-  | Delim of string
+    Text de string
+  | Delim de string
 
 val full_split : regexp -> string -> split_result list
 (** Same as {!Str.split_delim}, but returns

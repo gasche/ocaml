@@ -13,8 +13,8 @@
 (* Compute constructor and label descriptions from type declarations,
    determining their representation. *)
 
-open Asttypes
-open Types
+ouvre Asttypes
+ouvre Types
 
 val constructor_descrs:
   type_expr -> constructor_declaration list ->

@@ -11,44 +11,44 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Misc
-open Types
-open Env
+ouvre Misc
+ouvre Types
+ouvre Env
 
 type error =
-    Module_not_found of Path.t
+    Module_not_found de Path.t
 
-exception Error of error
+exception Error de error
 
-let env_cache =
+soit env_cache =
   (Hashtbl.create 59 : ((Env.summary * Subst.t), Env.t) Hashtbl.t)
 
-let reset_cache () =
+soit reset_cache () =
   Hashtbl.clear env_cache;
   Env.reset_cache()
 
-let extract_sig env mty =
-  match Mtype.scrape env mty with
+soit extract_sig env mty =
+  filtre Mtype.scrape env mty avec
     Mty_signature sg -> sg
   | _ -> fatal_error "Envaux.extract_sig"
 
-let rec env_from_summary sum subst =
-  try
+soit rec env_from_summary sum subst =
+  essaie
     Hashtbl.find env_cache (sum, subst)
-  with Not_found ->
-    let env =
-      match sum with
+  avec Not_found ->
+    soit env =
+      filtre sum avec
         Env_empty ->
           Env.empty
       | Env_value(s, id, desc) ->
           Env.add_value id (Subst.value_description subst desc)
                         (env_from_summary s subst)
       | Env_type(s, id, desc) ->
-          Env.add_type ~check:false id
+          Env.add_type ~check:faux id
             (Subst.type_declaration subst desc)
             (env_from_summary s subst)
       | Env_exception(s, id, desc) ->
-          Env.add_exception ~check:false id
+          Env.add_exception ~check:faux id
             (Subst.exception_declaration subst desc)
             (env_from_summary s subst)
       | Env_module(s, id, desc) ->
@@ -65,31 +65,31 @@ let rec env_from_summary sum subst =
           Env.add_cltype id (Subst.cltype_declaration subst desc)
                          (env_from_summary s subst)
       | Env_open(s, path) ->
-          let env = env_from_summary s subst in
-          let path' = Subst.module_path subst path in
-          let md =
-            try
+          soit env = env_from_summary s subst dans
+          soit path' = Subst.module_path subst path dans
+          soit md =
+            essaie
               Env.find_module path' env
-            with Not_found ->
+            avec Not_found ->
               raise (Error (Module_not_found path'))
-          in
+          dans
           Env.open_signature Asttypes.Override path'
             (extract_sig env md.md_type) env
-      | Env_functor_arg(Env_module(s, id, desc), id') when Ident.same id id' ->
+      | Env_functor_arg(Env_module(s, id, desc), id') quand Ident.same id id' ->
           Env.add_module_declaration id (Subst.module_declaration subst desc)
-            ~arg:true (env_from_summary s subst)
-      | Env_functor_arg _ -> assert false
-    in
+            ~arg:vrai (env_from_summary s subst)
+      | Env_functor_arg _ -> affirme faux
+    dans
       Hashtbl.add env_cache (sum, subst) env;
       env
 
-let env_of_only_summary env =
+soit env_of_only_summary env =
   Env.env_of_only_summary env_from_summary env
 
 (* Error report *)
 
-open Format
+ouvre Format
 
-let report_error ppf = function
+soit report_error ppf = fonction
   | Module_not_found p ->
       fprintf ppf "@[Impossible de trouver le module %a@].@." Printtyp.path p

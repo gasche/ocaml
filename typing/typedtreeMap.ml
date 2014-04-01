@@ -10,7 +10,7 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Typedtree
+ouvre Typedtree
 
 module type MapArgument = sig
   val enter_structure : structure -> structure
@@ -63,48 +63,48 @@ module type MapArgument = sig
   val leave_class_field : class_field -> class_field
   val leave_structure_item : structure_item -> structure_item
 
-end
+fin
 
 
 module MakeMap(Map : MapArgument) = struct
 
-  let may_map f v =
-    match v with
+  soit may_map f v =
+    filtre v avec
         None -> v
       | Some x -> Some (f x)
 
 
-  open Misc
+  ouvre Misc
 
-  let rec map_structure str =
-    let str = Map.enter_structure str in
-    let str_items = List.map map_structure_item str.str_items in
-    Map.leave_structure { str with str_items = str_items }
+  soit rec map_structure str =
+    soit str = Map.enter_structure str dans
+    soit str_items = List.map map_structure_item str.str_items dans
+    Map.leave_structure { str avec str_items = str_items }
 
-  and map_binding vb =
+  et map_binding vb =
     {
       vb_pat = map_pattern vb.vb_pat;
       vb_expr = map_expression vb.vb_expr;
       vb_attributes = vb.vb_attributes;
     }
 
-  and map_bindings rec_flag list =
+  et map_bindings rec_flag list =
     List.map map_binding list
 
-  and map_case {c_lhs; c_guard; c_rhs} =
+  et map_case {c_lhs; c_guard; c_rhs} =
     {
      c_lhs = map_pattern c_lhs;
      c_guard = may_map map_expression c_guard;
      c_rhs = map_expression c_rhs;
     }
 
-  and map_cases list =
+  et map_cases list =
     List.map map_case list
 
-  and map_structure_item item =
-    let item = Map.enter_structure_item item in
-    let str_desc =
-      match item.str_desc with
+  et map_structure_item item =
+    soit item = Map.enter_structure_item item dans
+    soit str_desc =
+      filtre item.str_desc avec
           Tstr_eval (exp, attrs) -> Tstr_eval (map_expression exp, attrs)
         | Tstr_value (rec_flag, list) ->
           Tstr_value (rec_flag, map_bindings rec_flag list)
@@ -119,95 +119,95 @@ module MakeMap(Map : MapArgument) = struct
         | Tstr_module x ->
           Tstr_module (map_module_binding x)
         | Tstr_recmodule list ->
-          let list = List.map map_module_binding list in
+          soit list = List.map map_module_binding list dans
           Tstr_recmodule list
         | Tstr_modtype mtd ->
           Tstr_modtype (map_module_type_declaration mtd)
         | Tstr_open (ovf, path, lid, attrs) -> Tstr_open (ovf, path, lid, attrs)
         | Tstr_class list ->
-          let list =
-            List.map (fun (ci, string_list, virtual_flag) ->
-              let ci = Map.enter_class_infos ci in
-              let ci_expr = map_class_expr ci.ci_expr in
-              (Map.leave_class_infos { ci with ci_expr = ci_expr},
+          soit list =
+            List.map (fonc (ci, string_list, virtual_flag) ->
+              soit ci = Map.enter_class_infos ci dans
+              soit ci_expr = map_class_expr ci.ci_expr dans
+              (Map.leave_class_infos { ci avec ci_expr = ci_expr},
                string_list, virtual_flag)
             ) list
-          in
+          dans
           Tstr_class list
         | Tstr_class_type list ->
-          let list = List.map (fun (id, name, ct) ->
-            let ct = Map.enter_class_infos ct in
-            let ci_expr = map_class_type ct.ci_expr in
-            (id, name, Map.leave_class_infos { ct with ci_expr = ci_expr})
-          ) list in
+          soit list = List.map (fonc (id, name, ct) ->
+            soit ct = Map.enter_class_infos ct dans
+            soit ci_expr = map_class_type ct.ci_expr dans
+            (id, name, Map.leave_class_infos { ct avec ci_expr = ci_expr})
+          ) list dans
           Tstr_class_type list
         | Tstr_include (mexpr, sg, attrs) ->
           Tstr_include (map_module_expr mexpr, sg, attrs)
         | Tstr_attribute x -> Tstr_attribute x
-    in
-    Map.leave_structure_item { item with str_desc = str_desc}
+    dans
+    Map.leave_structure_item { item avec str_desc = str_desc}
 
-  and map_module_binding x =
-    {x with mb_expr = map_module_expr x.mb_expr}
+  et map_module_binding x =
+    {x avec mb_expr = map_module_expr x.mb_expr}
 
-  and map_value_description v =
-    let v = Map.enter_value_description v in
-    let val_desc = map_core_type v.val_desc in
-    Map.leave_value_description { v with val_desc = val_desc }
+  et map_value_description v =
+    soit v = Map.enter_value_description v dans
+    soit val_desc = map_core_type v.val_desc dans
+    Map.leave_value_description { v avec val_desc = val_desc }
 
-  and map_type_declaration decl =
-    let decl = Map.enter_type_declaration decl in
-    let typ_cstrs = List.map (fun (ct1, ct2, loc) ->
+  et map_type_declaration decl =
+    soit decl = Map.enter_type_declaration decl dans
+    soit typ_cstrs = List.map (fonc (ct1, ct2, loc) ->
       (map_core_type ct1,
        map_core_type ct2,
        loc)
-    ) decl.typ_cstrs in
-    let typ_kind = match decl.typ_kind with
+    ) decl.typ_cstrs dans
+    soit typ_kind = filtre decl.typ_kind avec
         Ttype_abstract -> Ttype_abstract
       | Ttype_variant list ->
-          let list = List.map map_constructor_declaration list in
+          soit list = List.map map_constructor_declaration list dans
           Ttype_variant list
       | Ttype_record list ->
-        let list =
+        soit list =
           List.map
-            (fun ld ->
-              {ld with ld_type = map_core_type ld.ld_type}
+            (fonc ld ->
+              {ld avec ld_type = map_core_type ld.ld_type}
             ) list
-        in
+        dans
         Ttype_record list
-    in
-    let typ_manifest =
-      match decl.typ_manifest with
+    dans
+    soit typ_manifest =
+      filtre decl.typ_manifest avec
           None -> None
         | Some ct -> Some (map_core_type ct)
-    in
-    Map.leave_type_declaration { decl with typ_cstrs = typ_cstrs;
+    dans
+    Map.leave_type_declaration { decl avec typ_cstrs = typ_cstrs;
       typ_kind = typ_kind; typ_manifest = typ_manifest }
 
-  and map_constructor_declaration cd =
-    {cd with cd_args = List.map map_core_type cd.cd_args;
+  et map_constructor_declaration cd =
+    {cd avec cd_args = List.map map_core_type cd.cd_args;
      cd_res = may_map map_core_type cd.cd_res
     }
 
-  and map_pattern pat =
-    let pat = Map.enter_pattern pat in
-    let pat_desc =
-      match pat.pat_desc with
+  et map_pattern pat =
+    soit pat = Map.enter_pattern pat dans
+    soit pat_desc =
+      filtre pat.pat_desc avec
         | Tpat_alias (pat1, p, text) ->
-          let pat1 = map_pattern pat1 in
+          soit pat1 = map_pattern pat1 dans
           Tpat_alias (pat1, p, text)
         | Tpat_tuple list -> Tpat_tuple (List.map map_pattern list)
         | Tpat_construct (lid, cstr_decl, args) ->
           Tpat_construct (lid, cstr_decl,
                           List.map map_pattern args)
         | Tpat_variant (label, pato, rowo) ->
-          let pato = match pato with
+          soit pato = filtre pato avec
               None -> pato
             | Some pat -> Some (map_pattern pat)
-          in
+          dans
           Tpat_variant (label, pato, rowo)
         | Tpat_record (list, closed) ->
-          Tpat_record (List.map (fun (lid, lab_desc, pat) ->
+          Tpat_record (List.map (fonc (lid, lab_desc, pat) ->
             (lid, lab_desc, map_pattern pat) ) list, closed)
         | Tpat_array list -> Tpat_array (List.map map_pattern list)
         | Tpat_or (p1, p2, rowo) ->
@@ -217,19 +217,19 @@ module MakeMap(Map : MapArgument) = struct
         | Tpat_any
         | Tpat_var _ -> pat.pat_desc
 
-    in
-    let pat_extra = List.map map_pat_extra pat.pat_extra in
-    Map.leave_pattern { pat with pat_desc = pat_desc; pat_extra = pat_extra }
+    dans
+    soit pat_extra = List.map map_pat_extra pat.pat_extra dans
+    Map.leave_pattern { pat avec pat_desc = pat_desc; pat_extra = pat_extra }
 
-  and map_pat_extra pat_extra =
-    match pat_extra with
+  et map_pat_extra pat_extra =
+    filtre pat_extra avec
       | Tpat_constraint ct, loc, attrs -> (Tpat_constraint (map_core_type  ct), loc, attrs)
       | (Tpat_type _ | Tpat_unpack), _, _ -> pat_extra
 
-  and map_expression exp =
-    let exp = Map.enter_expression exp in
-    let exp_desc =
-      match exp.exp_desc with
+  et map_expression exp =
+    soit exp = Map.enter_expression exp dans
+    soit exp_desc =
+      filtre exp.exp_desc avec
           Texp_ident (_, _, _)
         | Texp_constant _ -> exp.exp_desc
         | Texp_let (rec_flag, list, exp) ->
@@ -240,12 +240,12 @@ module MakeMap(Map : MapArgument) = struct
           Texp_function (label, map_cases cases, partial)
         | Texp_apply (exp, list) ->
           Texp_apply (map_expression exp,
-                      List.map (fun (label, expo, optional) ->
-                        let expo =
-                          match expo with
+                      List.map (fonc (label, expo, optional) ->
+                        soit expo =
+                          filtre expo avec
                               None -> expo
                             | Some exp -> Some (map_expression exp)
-                        in
+                        dans
                         (label, expo, optional)
                       ) list )
         | Texp_match (exp, list, partial) ->
@@ -265,20 +265,20 @@ module MakeMap(Map : MapArgument) = struct
           Texp_construct (lid, cstr_desc,
                           List.map map_expression args )
         | Texp_variant (label, expo) ->
-          let expo =match expo with
+          soit expo =filtre expo avec
               None -> expo
             | Some exp -> Some (map_expression exp)
-          in
+          dans
           Texp_variant (label, expo)
         | Texp_record (list, expo) ->
-          let list =
-            List.map (fun (lid, lab_desc, exp) ->
+          soit list =
+            List.map (fonc (lid, lab_desc, exp) ->
               (lid, lab_desc, map_expression exp)
-            ) list in
-          let expo = match expo with
+            ) list dans
+          soit expo = filtre expo avec
               None -> expo
             | Some exp -> Some (map_expression exp)
-          in
+          dans
           Texp_record (list, expo)
         | Texp_field (exp, lid, label) ->
           Texp_field (map_expression exp, lid, label)
@@ -294,7 +294,7 @@ module MakeMap(Map : MapArgument) = struct
           Texp_ifthenelse (
             map_expression exp1,
             map_expression exp2,
-            match expo with
+            filtre expo avec
                 None -> expo
               | Some exp -> Some (map_expression exp)
           )
@@ -325,7 +325,7 @@ module MakeMap(Map : MapArgument) = struct
         | Texp_override (path, list) ->
           Texp_override (
             path,
-            List.map (fun (path, lid, exp) ->
+            List.map (fonc (path, lid, exp) ->
               (path, lid, map_expression exp)
             ) list
           )
@@ -341,15 +341,15 @@ module MakeMap(Map : MapArgument) = struct
           Texp_object (map_class_structure cl, string_list)
         | Texp_pack (mexpr) ->
           Texp_pack (map_module_expr mexpr)
-    in
-    let exp_extra = List.map map_exp_extra exp.exp_extra in
+    dans
+    soit exp_extra = List.map map_exp_extra exp.exp_extra dans
     Map.leave_expression {
-      exp with
+      exp avec
         exp_desc = exp_desc;
         exp_extra = exp_extra; }
 
-  and map_exp_extra ((desc, loc, attrs) as exp_extra) =
-    match desc with
+  et map_exp_extra ((desc, loc, attrs) tel exp_extra) =
+    filtre desc avec
       | Texp_constraint ct ->
         Texp_constraint (map_core_type ct), loc, attrs
       | Texp_coerce (None, ct) ->
@@ -364,32 +364,32 @@ module MakeMap(Map : MapArgument) = struct
       | Texp_poly None -> exp_extra
 
 
-  and map_package_type pack =
-    let pack = Map.enter_package_type pack in
-    let pack_fields = List.map (
-      fun (s, ct) -> (s, map_core_type ct) ) pack.pack_fields in
-    Map.leave_package_type { pack with pack_fields = pack_fields }
+  et map_package_type pack =
+    soit pack = Map.enter_package_type pack dans
+    soit pack_fields = List.map (
+      fonc (s, ct) -> (s, map_core_type ct) ) pack.pack_fields dans
+    Map.leave_package_type { pack avec pack_fields = pack_fields }
 
-  and map_signature sg =
-    let sg = Map.enter_signature sg in
-    let sig_items = List.map map_signature_item sg.sig_items in
-    Map.leave_signature { sg with sig_items = sig_items }
+  et map_signature sg =
+    soit sg = Map.enter_signature sg dans
+    soit sig_items = List.map map_signature_item sg.sig_items dans
+    Map.leave_signature { sg avec sig_items = sig_items }
 
-  and map_signature_item item =
-    let item = Map.enter_signature_item item in
-    let sig_desc =
-      match item.sig_desc with
+  et map_signature_item item =
+    soit item = Map.enter_signature_item item dans
+    soit sig_desc =
+      filtre item.sig_desc avec
           Tsig_value vd ->
             Tsig_value (map_value_description vd)
         | Tsig_type list -> Tsig_type (List.map map_type_declaration list)
         | Tsig_exception cd ->
           Tsig_exception (map_constructor_declaration cd)
         | Tsig_module md ->
-          Tsig_module {md with md_type = map_module_type md.md_type}
+          Tsig_module {md avec md_type = map_module_type md.md_type}
         | Tsig_recmodule list ->
           Tsig_recmodule
               (List.map
-                 (fun md -> {md with md_type = map_module_type md.md_type})
+                 (fonc md -> {md avec md_type = map_module_type md.md_type})
                  list
               )
         | Tsig_modtype mtd ->
@@ -399,30 +399,30 @@ module MakeMap(Map : MapArgument) = struct
         | Tsig_class list -> Tsig_class (List.map map_class_description list)
         | Tsig_class_type list ->
           Tsig_class_type (List.map map_class_type_declaration list)
-        | Tsig_attribute _ as x -> x
-    in
-    Map.leave_signature_item { item with sig_desc = sig_desc }
+        | Tsig_attribute _ tel x -> x
+    dans
+    Map.leave_signature_item { item avec sig_desc = sig_desc }
 
-  and map_module_type_declaration mtd =
-    let mtd = Map.enter_module_type_declaration mtd in
-    let mtd = {mtd with mtd_type = may_map map_module_type mtd.mtd_type} in
+  et map_module_type_declaration mtd =
+    soit mtd = Map.enter_module_type_declaration mtd dans
+    soit mtd = {mtd avec mtd_type = may_map map_module_type mtd.mtd_type} dans
     Map.leave_module_type_declaration mtd
 
 
-  and map_class_description cd =
-    let cd = Map.enter_class_description cd in
-    let ci_expr = map_class_type cd.ci_expr in
-    Map.leave_class_description { cd with ci_expr = ci_expr}
+  et map_class_description cd =
+    soit cd = Map.enter_class_description cd dans
+    soit ci_expr = map_class_type cd.ci_expr dans
+    Map.leave_class_description { cd avec ci_expr = ci_expr}
 
-  and map_class_type_declaration cd =
-    let cd = Map.enter_class_type_declaration cd in
-    let ci_expr = map_class_type cd.ci_expr in
-    Map.leave_class_type_declaration { cd with ci_expr = ci_expr }
+  et map_class_type_declaration cd =
+    soit cd = Map.enter_class_type_declaration cd dans
+    soit ci_expr = map_class_type cd.ci_expr dans
+    Map.leave_class_type_declaration { cd avec ci_expr = ci_expr }
 
-  and map_module_type mty =
-    let mty = Map.enter_module_type mty in
-    let mty_desc =
-      match mty.mty_desc with
+  et map_module_type mty =
+    soit mty = Map.enter_module_type mty dans
+    soit mty_desc =
+      filtre mty.mty_desc avec
           Tmty_ident _ -> mty.mty_desc
         | Tmty_alias _ -> mty.mty_desc
         | Tmty_signature sg -> Tmty_signature (map_signature sg)
@@ -431,29 +431,29 @@ module MakeMap(Map : MapArgument) = struct
                         map_module_type mtype2)
         | Tmty_with (mtype, list) ->
           Tmty_with (map_module_type mtype,
-                     List.map (fun (path, lid, withc) ->
+                     List.map (fonc (path, lid, withc) ->
                        (path, lid, map_with_constraint withc)
                      ) list)
         | Tmty_typeof mexpr ->
           Tmty_typeof (map_module_expr mexpr)
-    in
-    Map.leave_module_type { mty with mty_desc = mty_desc}
+    dans
+    Map.leave_module_type { mty avec mty_desc = mty_desc}
 
-  and map_with_constraint cstr =
-    let cstr = Map.enter_with_constraint cstr in
-    let cstr =
-      match cstr with
+  et map_with_constraint cstr =
+    soit cstr = Map.enter_with_constraint cstr dans
+    soit cstr =
+      filtre cstr avec
           Twith_type decl -> Twith_type (map_type_declaration decl)
         | Twith_typesubst decl -> Twith_typesubst (map_type_declaration decl)
         | Twith_module (path, lid) -> cstr
         | Twith_modsubst (path, lid) -> cstr
-    in
+    dans
     Map.leave_with_constraint cstr
 
-  and map_module_expr mexpr =
-    let mexpr = Map.enter_module_expr mexpr in
-    let mod_desc =
-      match mexpr.mod_desc with
+  et map_module_expr mexpr =
+    soit mexpr = Map.enter_module_expr mexpr dans
+    soit mod_desc =
+      filtre mexpr.mod_desc avec
           Tmod_ident (p, lid) -> mexpr.mod_desc
         | Tmod_structure st -> Tmod_structure (map_structure st)
         | Tmod_functor (id, name, mtype, mexpr) ->
@@ -471,32 +471,32 @@ module MakeMap(Map : MapArgument) = struct
                            coercion)
         | Tmod_unpack (exp, mod_type) ->
           Tmod_unpack (map_expression exp, mod_type)
-    in
-    Map.leave_module_expr { mexpr with mod_desc = mod_desc }
+    dans
+    Map.leave_module_expr { mexpr avec mod_desc = mod_desc }
 
-  and map_class_expr cexpr =
-    let cexpr = Map.enter_class_expr cexpr in
-    let cl_desc =
-      match cexpr.cl_desc with
+  et map_class_expr cexpr =
+    soit cexpr = Map.enter_class_expr cexpr dans
+    soit cl_desc =
+      filtre cexpr.cl_desc avec
         | Tcl_constraint (cl, None, string_list1, string_list2, concr ) ->
           Tcl_constraint (map_class_expr cl, None, string_list1,
                           string_list2, concr)
         | Tcl_structure clstr -> Tcl_structure (map_class_structure clstr)
         | Tcl_fun (label, pat, priv, cl, partial) ->
           Tcl_fun (label, map_pattern pat,
-                   List.map (fun (id, name, exp) ->
+                   List.map (fonc (id, name, exp) ->
                      (id, name, map_expression exp)) priv,
                    map_class_expr cl, partial)
 
         | Tcl_apply (cl, args) ->
           Tcl_apply (map_class_expr cl,
-                     List.map (fun (label, expo, optional) ->
+                     List.map (fonc (label, expo, optional) ->
                        (label, may_map map_expression expo,
                         optional)
                      ) args)
         | Tcl_let (rec_flat, bindings, ivars, cl) ->
           Tcl_let (rec_flat, map_bindings rec_flat bindings,
-                   List.map (fun (id, name, exp) ->
+                   List.map (fonc (id, name, exp) ->
                      (id, name, map_expression exp)) ivars,
                    map_class_expr cl)
 
@@ -506,33 +506,33 @@ module MakeMap(Map : MapArgument) = struct
 
         | Tcl_ident (id, name, tyl) ->
           Tcl_ident (id, name, List.map map_core_type tyl)
-    in
-    Map.leave_class_expr { cexpr with cl_desc = cl_desc }
+    dans
+    Map.leave_class_expr { cexpr avec cl_desc = cl_desc }
 
-  and map_class_type ct =
-    let ct = Map.enter_class_type ct in
-    let cltyp_desc =
-      match ct.cltyp_desc with
+  et map_class_type ct =
+    soit ct = Map.enter_class_type ct dans
+    soit cltyp_desc =
+      filtre ct.cltyp_desc avec
           Tcty_signature csg -> Tcty_signature (map_class_signature csg)
         | Tcty_constr (path, lid, list) ->
           Tcty_constr (path, lid, List.map map_core_type list)
         | Tcty_arrow (label, ct, cl) ->
           Tcty_arrow (label, map_core_type ct, map_class_type cl)
-    in
-    Map.leave_class_type { ct with cltyp_desc = cltyp_desc }
+    dans
+    Map.leave_class_type { ct avec cltyp_desc = cltyp_desc }
 
-  and map_class_signature cs =
-    let cs = Map.enter_class_signature cs in
-    let csig_self = map_core_type cs.csig_self in
-    let csig_fields = List.map map_class_type_field cs.csig_fields in
-    Map.leave_class_signature { cs with
+  et map_class_signature cs =
+    soit cs = Map.enter_class_signature cs dans
+    soit csig_self = map_core_type cs.csig_self dans
+    soit csig_fields = List.map map_class_type_field cs.csig_fields dans
+    Map.leave_class_signature { cs avec
       csig_self = csig_self; csig_fields = csig_fields }
 
 
-  and map_class_type_field ctf =
-    let ctf = Map.enter_class_type_field ctf in
-    let ctf_desc =
-      match ctf.ctf_desc with
+  et map_class_type_field ctf =
+    soit ctf = Map.enter_class_type_field ctf dans
+    soit ctf_desc =
+      filtre ctf.ctf_desc avec
           Tctf_inherit ct -> Tctf_inherit (map_class_type ct)
         | Tctf_val (s, mut, virt, ct) ->
           Tctf_val (s, mut, virt, map_core_type ct)
@@ -540,13 +540,13 @@ module MakeMap(Map : MapArgument) = struct
           Tctf_method (s, priv, virt, map_core_type ct)
         | Tctf_constraint (ct1, ct2) ->
           Tctf_constraint (map_core_type ct1, map_core_type ct2)
-    in
-    Map.leave_class_type_field { ctf with ctf_desc = ctf_desc }
+    dans
+    Map.leave_class_type_field { ctf avec ctf_desc = ctf_desc }
 
-  and map_core_type ct =
-    let ct = Map.enter_core_type ct in
-    let ctyp_desc =
-      match ct.ctyp_desc with
+  et map_core_type ct =
+    soit ct = Map.enter_core_type ct dans
+    soit ctyp_desc =
+      filtre ct.ctyp_desc avec
           Ttyp_any
         | Ttyp_var _ -> ct.ctyp_desc
         | Ttyp_arrow (label, ct1, ct2) ->
@@ -555,7 +555,7 @@ module MakeMap(Map : MapArgument) = struct
         | Ttyp_constr (path, lid, list) ->
           Ttyp_constr (path, lid, List.map map_core_type list)
         | Ttyp_object (list, o) ->
-          Ttyp_object (List.map (fun (s, t) -> (s, map_core_type t)) list, o)
+          Ttyp_object (List.map (fonc (s, t) -> (s, map_core_type t)) list, o)
         | Ttyp_class (path, lid, list) ->
           Ttyp_class (path, lid, List.map map_core_type list)
         | Ttyp_alias (ct, s) -> Ttyp_alias (map_core_type ct, s)
@@ -563,25 +563,25 @@ module MakeMap(Map : MapArgument) = struct
           Ttyp_variant (List.map map_row_field list, bool, labels)
         | Ttyp_poly (list, ct) -> Ttyp_poly (list, map_core_type ct)
         | Ttyp_package pack -> Ttyp_package (map_package_type pack)
-    in
-    Map.leave_core_type { ct with ctyp_desc = ctyp_desc }
+    dans
+    Map.leave_core_type { ct avec ctyp_desc = ctyp_desc }
 
-  and map_class_structure cs =
-    let cs = Map.enter_class_structure cs in
-    let cstr_self = map_pattern cs.cstr_self in
-    let cstr_fields = List.map map_class_field cs.cstr_fields in
-    Map.leave_class_structure { cs with cstr_self; cstr_fields }
+  et map_class_structure cs =
+    soit cs = Map.enter_class_structure cs dans
+    soit cstr_self = map_pattern cs.cstr_self dans
+    soit cstr_fields = List.map map_class_field cs.cstr_fields dans
+    Map.leave_class_structure { cs avec cstr_self; cstr_fields }
 
-  and map_row_field rf =
-    match rf with
+  et map_row_field rf =
+    filtre rf avec
         Ttag (label, bool, list) ->
           Ttag (label, bool, List.map map_core_type list)
       | Tinherit ct -> Tinherit (map_core_type ct)
 
-  and map_class_field cf =
-    let cf = Map.enter_class_field cf in
-    let cf_desc =
-      match cf.cf_desc with
+  et map_class_field cf =
+    soit cf = Map.enter_class_field cf dans
+    soit cf_desc =
+      filtre cf.cf_desc avec
           Tcf_inherit (ovf, cl, super, vals, meths) ->
             Tcf_inherit (ovf, map_class_expr cl, super, vals, meths)
         | Tcf_constraint (cty, cty') ->
@@ -595,62 +595,62 @@ module MakeMap(Map : MapArgument) = struct
         | Tcf_method (lab, priv, Tcfk_concrete (o, exp)) ->
           Tcf_method (lab, priv, Tcfk_concrete (o, map_expression exp))
         | Tcf_initializer exp -> Tcf_initializer (map_expression exp)
-    in
-    Map.leave_class_field { cf with cf_desc = cf_desc }
-end
+    dans
+    Map.leave_class_field { cf avec cf_desc = cf_desc }
+fin
 
 
 module DefaultMapArgument = struct
 
-  let enter_structure t = t
-  let enter_value_description t = t
-  let enter_type_declaration t = t
-  let enter_exception_declaration t = t
-  let enter_pattern t = t
-  let enter_expression t = t
-  let enter_package_type t = t
-  let enter_signature t = t
-  let enter_signature_item t = t
-  let enter_module_type_declaration t = t
-  let enter_module_type t = t
-  let enter_module_expr t = t
-  let enter_with_constraint t = t
-  let enter_class_expr t = t
-  let enter_class_signature t = t
-  let enter_class_description t = t
-  let enter_class_type_declaration t = t
-  let enter_class_infos t = t
-  let enter_class_type t = t
-  let enter_class_type_field t = t
-  let enter_core_type t = t
-  let enter_class_structure t = t
-  let enter_class_field t = t
-  let enter_structure_item t = t
+  soit enter_structure t = t
+  soit enter_value_description t = t
+  soit enter_type_declaration t = t
+  soit enter_exception_declaration t = t
+  soit enter_pattern t = t
+  soit enter_expression t = t
+  soit enter_package_type t = t
+  soit enter_signature t = t
+  soit enter_signature_item t = t
+  soit enter_module_type_declaration t = t
+  soit enter_module_type t = t
+  soit enter_module_expr t = t
+  soit enter_with_constraint t = t
+  soit enter_class_expr t = t
+  soit enter_class_signature t = t
+  soit enter_class_description t = t
+  soit enter_class_type_declaration t = t
+  soit enter_class_infos t = t
+  soit enter_class_type t = t
+  soit enter_class_type_field t = t
+  soit enter_core_type t = t
+  soit enter_class_structure t = t
+  soit enter_class_field t = t
+  soit enter_structure_item t = t
 
 
-  let leave_structure t = t
-  let leave_value_description t = t
-  let leave_type_declaration t = t
-  let leave_exception_declaration t = t
-  let leave_pattern t = t
-  let leave_expression t = t
-  let leave_package_type t = t
-  let leave_signature t = t
-  let leave_signature_item t = t
-  let leave_module_type_declaration t = t
-  let leave_module_type t = t
-  let leave_module_expr t = t
-  let leave_with_constraint t = t
-  let leave_class_expr t = t
-  let leave_class_signature t = t
-  let leave_class_description t = t
-  let leave_class_type_declaration t = t
-  let leave_class_infos t = t
-  let leave_class_type t = t
-  let leave_class_type_field t = t
-  let leave_core_type t = t
-  let leave_class_structure t = t
-  let leave_class_field t = t
-  let leave_structure_item t = t
+  soit leave_structure t = t
+  soit leave_value_description t = t
+  soit leave_type_declaration t = t
+  soit leave_exception_declaration t = t
+  soit leave_pattern t = t
+  soit leave_expression t = t
+  soit leave_package_type t = t
+  soit leave_signature t = t
+  soit leave_signature_item t = t
+  soit leave_module_type_declaration t = t
+  soit leave_module_type t = t
+  soit leave_module_expr t = t
+  soit leave_with_constraint t = t
+  soit leave_class_expr t = t
+  soit leave_class_signature t = t
+  soit leave_class_description t = t
+  soit leave_class_type_declaration t = t
+  soit leave_class_infos t = t
+  soit leave_class_type t = t
+  soit leave_class_type_field t = t
+  soit leave_core_type t = t
+  soit leave_class_structure t = t
+  soit leave_class_field t = t
+  soit leave_structure_item t = t
 
-end
+fin

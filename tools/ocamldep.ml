@@ -10,291 +10,291 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Compenv
-open Parsetree
+ouvre Compenv
+ouvre Parsetree
 
-let ppf = Format.err_formatter
+soit ppf = Format.err_formatter
 (* Print the dependencies *)
 
 type file_kind = ML | MLI;;
 
-let include_dirs = ref []
-let load_path = ref ([] : (string * string array) list)
-let ml_synonyms = ref [".ml"]
-let mli_synonyms = ref [".mli"]
-let native_only = ref false
-let error_occurred = ref false
-let raw_dependencies = ref false
-let sort_files = ref false
-let all_dependencies = ref false
-let one_line = ref false
-let files = ref []
+soit include_dirs = ref []
+soit load_path = ref ([] : (string * string array) list)
+soit ml_synonyms = ref [".ml"]
+soit mli_synonyms = ref [".mli"]
+soit native_only = ref faux
+soit error_occurred = ref faux
+soit raw_dependencies = ref faux
+soit sort_files = ref faux
+soit all_dependencies = ref faux
+soit one_line = ref faux
+soit files = ref []
 
 (* Fix path to use '/' as directory separator instead of '\'.
    Only under Windows. *)
 
-let fix_slash s =
-  if Sys.os_type = "Unix" then s else begin
-    let r = String.copy s in
-    for i = 0 to String.length r - 1 do
-      if r.[i] = '\\' then r.[i] <- '/'
-    done;
+soit fix_slash s =
+  si Sys.os_type = "Unix" alors s sinon début
+    soit r = String.copy s dans
+    pour i = 0 à String.length r - 1 faire
+      si r.[i] = '\\' alors r.[i] <- '/'
+    fait;
     r
-  end
+  fin
 
 (* Since we reinitialize load_path after reading OCAMLCOMP,
   we must use a cache instead of calling Sys.readdir too often. *)
 module StringMap = Map.Make(String)
-let dirs = ref StringMap.empty
-let readdir dir =
-  try
+soit dirs = ref StringMap.empty
+soit readdir dir =
+  essaie
     StringMap.find dir !dirs
-  with Not_found ->
-    let contents =
-      try
+  avec Not_found ->
+    soit contents =
+      essaie
         Sys.readdir dir
-      with Sys_error msg ->
+      avec Sys_error msg ->
         Format.fprintf Format.err_formatter "@[Bad -I option: %s@]@." msg;
-        error_occurred := true;
+        error_occurred := vrai;
         [||]
-    in
+    dans
     dirs := StringMap.add dir contents !dirs;
     contents
 
-let add_to_load_path dir =
-  try
-    let dir = Misc.expand_directory Config.standard_library dir in
-    let contents = readdir dir in
+soit add_to_load_path dir =
+  essaie
+    soit dir = Misc.expand_directory Config.standard_library dir dans
+    soit contents = readdir dir dans
     load_path := (dir, contents) :: !load_path
-  with Sys_error msg ->
+  avec Sys_error msg ->
     Format.fprintf Format.err_formatter "@[Bad -I option: %s@]@." msg;
-    error_occurred := true
+    error_occurred := vrai
 
-let add_to_synonym_list synonyms suffix =
-  if (String.length suffix) > 1 && suffix.[0] = '.' then
+soit add_to_synonym_list synonyms suffix =
+  si (String.length suffix) > 1 && suffix.[0] = '.' alors
     synonyms := suffix :: !synonyms
-  else begin
+  sinon début
     Format.fprintf Format.err_formatter "@[Bad suffix: '%s'@]@." suffix;
-    error_occurred := true
-  end
+    error_occurred := vrai
+  fin
 
 (* Find file 'name' (capitalized) in search path *)
-let find_file name =
-  let uname = String.uncapitalize name in
-  let rec find_in_array a pos =
-    if pos >= Array.length a then None else begin
-      let s = a.(pos) in
-      if s = name || s = uname then Some s else find_in_array a (pos + 1)
-    end in
-  let rec find_in_path = function
+soit find_file name =
+  soit uname = String.uncapitalize name dans
+  soit rec find_in_array a pos =
+    si pos >= Array.length a alors None sinon début
+      soit s = a.(pos) dans
+      si s = name || s = uname alors Some s sinon find_in_array a (pos + 1)
+    fin dans
+  soit rec find_in_path = fonction
     [] -> raise Not_found
   | (dir, contents) :: rem ->
-      match find_in_array contents 0 with
+      filtre find_in_array contents 0 avec
         Some truename ->
-          if dir = "." then truename else Filename.concat dir truename
-      | None -> find_in_path rem in
+          si dir = "." alors truename sinon Filename.concat dir truename
+      | None -> find_in_path rem dans
   find_in_path !load_path
 
-let rec find_file_in_list = function
+soit rec find_file_in_list = fonction
   [] -> raise Not_found
-| x :: rem -> try find_file x with Not_found -> find_file_in_list rem
+| x :: rem -> essaie find_file x avec Not_found -> find_file_in_list rem
 
 
-let find_dependency target_kind modname (byt_deps, opt_deps) =
-  try
-    let candidates = List.map ((^) modname) !mli_synonyms in
-    let filename = find_file_in_list candidates in
-    let basename = Filename.chop_extension filename in
-    let cmi_file = basename ^ ".cmi" in
-    let ml_exists =
-      List.exists (fun ext -> Sys.file_exists (basename ^ ext)) !ml_synonyms in
-    let new_opt_dep =
-      if !all_dependencies then
-        match target_kind with
+soit find_dependency target_kind modname (byt_deps, opt_deps) =
+  essaie
+    soit candidates = List.map ((^) modname) !mli_synonyms dans
+    soit filename = find_file_in_list candidates dans
+    soit basename = Filename.chop_extension filename dans
+    soit cmi_file = basename ^ ".cmi" dans
+    soit ml_exists =
+      List.exists (fonc ext -> Sys.file_exists (basename ^ ext)) !ml_synonyms dans
+    soit new_opt_dep =
+      si !all_dependencies alors
+        filtre target_kind avec
         | MLI -> [ cmi_file ]
         | ML  ->
-          cmi_file :: (if ml_exists then [ basename ^ ".cmx"] else [])
-      else
+          cmi_file :: (si ml_exists alors [ basename ^ ".cmx"] sinon [])
+      sinon
         (* this is a make-specific hack that makes .cmx to be a 'proxy'
            target that would force the dependency on .cmi via transitivity *)
-        if ml_exists
-        then [ basename ^ ".cmx" ]
-        else [ cmi_file ]
-    in
+        si ml_exists
+        alors [ basename ^ ".cmx" ]
+        sinon [ cmi_file ]
+    dans
     ( cmi_file :: byt_deps, new_opt_dep @ opt_deps)
-  with Not_found ->
-  try
+  avec Not_found ->
+  essaie
     (* "just .ml" case *)
-    let candidates = List.map ((^) modname) !ml_synonyms in
-    let filename = find_file_in_list candidates in
-    let basename = Filename.chop_extension filename in
-    let bytenames =
-      if !all_dependencies then
-        match target_kind with
+    soit candidates = List.map ((^) modname) !ml_synonyms dans
+    soit filename = find_file_in_list candidates dans
+    soit basename = Filename.chop_extension filename dans
+    soit bytenames =
+      si !all_dependencies alors
+        filtre target_kind avec
         | MLI -> [basename ^ ".cmi"]
         | ML  -> [basename ^ ".cmi";]
-      else
+      sinon
         (* again, make-specific hack *)
-        [basename ^ (if !native_only then ".cmx" else ".cmo")] in
-    let optnames =
-      if !all_dependencies
-      then match target_kind with
+        [basename ^ (si !native_only alors ".cmx" sinon ".cmo")] dans
+    soit optnames =
+      si !all_dependencies
+      alors filtre target_kind avec
         | MLI -> [basename ^ ".cmi"]
         | ML  -> [basename ^ ".cmi"; basename ^ ".cmx"]
-      else [ basename ^ ".cmx" ]
-    in
+      sinon [ basename ^ ".cmx" ]
+    dans
     (bytenames @ byt_deps, optnames @  opt_deps)
-  with Not_found ->
+  avec Not_found ->
     (byt_deps, opt_deps)
 
-let (depends_on, escaped_eol) = (":", " \\\n    ")
+soit (depends_on, escaped_eol) = (":", " \\\n    ")
 
-let print_filename s =
-  let s = if !Clflags.force_slash then fix_slash s else s in
-  if not (String.contains s ' ') then begin
+soit print_filename s =
+  soit s = si !Clflags.force_slash alors fix_slash s sinon s dans
+  si not (String.contains s ' ') alors début
     print_string s;
-  end else begin
-    let rec count n i =
-      if i >= String.length s then n
-      else if s.[i] = ' ' then count (n+1) (i+1)
-      else count n (i+1)
-    in
-    let spaces = count 0 0 in
-    let result = String.create (String.length s + spaces) in
-    let rec loop i j =
-      if i >= String.length s then ()
-      else if s.[i] = ' ' then begin
+  fin sinon début
+    soit rec count n i =
+      si i >= String.length s alors n
+      sinon si s.[i] = ' ' alors count (n+1) (i+1)
+      sinon count n (i+1)
+    dans
+    soit spaces = count 0 0 dans
+    soit result = String.create (String.length s + spaces) dans
+    soit rec loop i j =
+      si i >= String.length s alors ()
+      sinon si s.[i] = ' ' alors début
         result.[j] <- '\\';
         result.[j+1] <- ' ';
         loop (i+1) (j+2);
-      end else begin
+      fin sinon début
         result.[j] <- s.[i];
         loop (i+1) (j+1);
-      end
-    in
+      fin
+    dans
     loop 0 0;
     print_string result;
-  end
+  fin
 ;;
 
-let print_dependencies target_files deps =
-  let rec print_items pos = function
+soit print_dependencies target_files deps =
+  soit rec print_items pos = fonction
     [] -> print_string "\n"
   | dep :: rem ->
-    if !one_line || (pos + 1 + String.length dep <= 77) then begin
-        if pos <> 0 then print_string " "; print_filename dep;
+    si !one_line || (pos + 1 + String.length dep <= 77) alors début
+        si pos <> 0 alors print_string " "; print_filename dep;
         print_items (pos + String.length dep + 1) rem
-      end else begin
+      fin sinon début
         print_string escaped_eol; print_filename dep;
         print_items (String.length dep + 4) rem
-      end in
+      fin dans
   print_items 0 (target_files @ [depends_on] @ deps)
 
-let print_raw_dependencies source_file deps =
+soit print_raw_dependencies source_file deps =
   print_filename source_file; print_string depends_on;
   Depend.StringSet.iter
-    (fun dep ->
-      if (String.length dep > 0)
-          && (match dep.[0] with 'A'..'Z' -> true | _ -> false) then begin
+    (fonc dep ->
+      si (String.length dep > 0)
+          && (filtre dep.[0] avec 'A'..'Z' -> vrai | _ -> faux) alors début
             print_char ' ';
             print_string dep
-          end)
+          fin)
     deps;
   print_char '\n'
 
 
 (* Process one file *)
 
-let report_err source_file exn =
-  error_occurred := true;
-  match exn with
+soit report_err source_file exn =
+  error_occurred := vrai;
+  filtre exn avec
     | Sys_error msg ->
         Format.fprintf Format.err_formatter "@[I/O error:@ %s@]@." msg
     | x ->
-        match Location.error_of_exn x with
+        filtre Location.error_of_exn x avec
         | Some err ->
             Format.fprintf Format.err_formatter "@[%a@]@."
               Location.report_error err
         | None -> raise x
 
-let read_parse_and_extract parse_function extract_function magic source_file =
+soit read_parse_and_extract parse_function extract_function magic source_file =
   Depend.free_structure_names := Depend.StringSet.empty;
-  try
-    let input_file = Pparse.preprocess source_file in
-    begin try
-      let ast =
-        Pparse.file Format.err_formatter input_file parse_function magic in
+  essaie
+    soit input_file = Pparse.preprocess source_file dans
+    début essaie
+      soit ast =
+        Pparse.file Format.err_formatter input_file parse_function magic dans
       extract_function Depend.StringSet.empty ast;
       Pparse.remove_preprocessed input_file;
       !Depend.free_structure_names
-    with x ->
+    avec x ->
       Pparse.remove_preprocessed input_file;
       raise x
-    end
-  with x ->
+    fin
+  avec x ->
     report_err source_file x;
     Depend.StringSet.empty
 
-let ml_file_dependencies source_file =
-  let parse_use_file_as_impl lexbuf =
-    let f x =
-      match x with
+soit ml_file_dependencies source_file =
+  soit parse_use_file_as_impl lexbuf =
+    soit f x =
+      filtre x avec
       | Ptop_def s -> s
       | Ptop_dir _ -> []
-    in
+    dans
     List.flatten (List.map f (Parse.use_file lexbuf))
-  in
-  let extracted_deps =
+  dans
+  soit extracted_deps =
     read_parse_and_extract parse_use_file_as_impl Depend.add_implementation
                            Config.ast_impl_magic_number source_file
-  in
-  if !sort_files then
+  dans
+  si !sort_files alors
     files := (source_file, ML, !Depend.free_structure_names) :: !files
-  else
-    if !raw_dependencies then begin
+  sinon
+    si !raw_dependencies alors début
       print_raw_dependencies source_file extracted_deps
-    end else begin
-      let basename = Filename.chop_extension source_file in
-      let byte_targets = [ basename ^ ".cmo" ] in
-      let native_targets =
-        if !all_dependencies
-        then [ basename ^ ".cmx"; basename ^ ".o" ]
-        else [ basename ^ ".cmx" ] in
-      let init_deps = if !all_dependencies then [source_file] else [] in
-      let cmi_name = basename ^ ".cmi" in
-      let init_deps, extra_targets =
-        if List.exists (fun ext -> Sys.file_exists (basename ^ ext))
+    fin sinon début
+      soit basename = Filename.chop_extension source_file dans
+      soit byte_targets = [ basename ^ ".cmo" ] dans
+      soit native_targets =
+        si !all_dependencies
+        alors [ basename ^ ".cmx"; basename ^ ".o" ]
+        sinon [ basename ^ ".cmx" ] dans
+      soit init_deps = si !all_dependencies alors [source_file] sinon [] dans
+      soit cmi_name = basename ^ ".cmi" dans
+      soit init_deps, extra_targets =
+        si List.exists (fonc ext -> Sys.file_exists (basename ^ ext))
                        !mli_synonyms
-        then (cmi_name :: init_deps, cmi_name :: init_deps), []
-        else (init_deps, init_deps),
-             (if !all_dependencies then [cmi_name] else [])
-      in
-      let (byt_deps, native_deps) =
+        alors (cmi_name :: init_deps, cmi_name :: init_deps), []
+        sinon (init_deps, init_deps),
+             (si !all_dependencies alors [cmi_name] sinon [])
+      dans
+      soit (byt_deps, native_deps) =
         Depend.StringSet.fold (find_dependency ML)
-          extracted_deps init_deps in
+          extracted_deps init_deps dans
       print_dependencies (byte_targets @ extra_targets) byt_deps;
       print_dependencies (native_targets @ extra_targets) native_deps;
-    end
+    fin
 
-let mli_file_dependencies source_file =
-  let extracted_deps =
+soit mli_file_dependencies source_file =
+  soit extracted_deps =
     read_parse_and_extract Parse.interface Depend.add_signature
                            Config.ast_intf_magic_number source_file
-  in
-  if !sort_files then
+  dans
+  si !sort_files alors
     files := (source_file, MLI, extracted_deps) :: !files
-  else
-    if !raw_dependencies then begin
+  sinon
+    si !raw_dependencies alors début
       print_raw_dependencies source_file extracted_deps
-    end else begin
-      let basename = Filename.chop_extension source_file in
-      let (byt_deps, opt_deps) =
+    fin sinon début
+      soit basename = Filename.chop_extension source_file dans
+      soit (byt_deps, opt_deps) =
         Depend.StringSet.fold (find_dependency MLI)
-          extracted_deps ([], []) in
+          extracted_deps ([], []) dans
       print_dependencies [basename ^ ".cmi"] byt_deps
-    end
+    fin
 
-let file_dependencies_as kind source_file =
+soit file_dependencies_as kind source_file =
   Compenv.readenv ppf Before_compile;
   load_path := [];
   List.iter add_to_load_path (
@@ -303,110 +303,110 @@ let file_dependencies_as kind source_file =
        !Compenv.first_include_dirs
       ));
   Location.input_name := source_file;
-  try
-    if Sys.file_exists source_file then begin
-      match kind with
+  essaie
+    si Sys.file_exists source_file alors début
+      filtre kind avec
       | ML -> ml_file_dependencies source_file
       | MLI -> mli_file_dependencies source_file
-    end
-  with x -> report_err source_file x
+    fin
+  avec x -> report_err source_file x
 
-let file_dependencies source_file =
-  if List.exists (Filename.check_suffix source_file) !ml_synonyms then
+soit file_dependencies source_file =
+  si List.exists (Filename.check_suffix source_file) !ml_synonyms alors
     file_dependencies_as ML source_file
-  else if List.exists (Filename.check_suffix source_file) !mli_synonyms then
+  sinon si List.exists (Filename.check_suffix source_file) !mli_synonyms alors
     file_dependencies_as MLI source_file
-  else ()
+  sinon ()
 
-let sort_files_by_dependencies files =
-  let h = Hashtbl.create 31 in
-  let worklist = ref [] in
+soit sort_files_by_dependencies files =
+  soit h = Hashtbl.create 31 dans
+  soit worklist = ref [] dans
 
 (* Init Hashtbl with all defined modules *)
-  let files = List.map (fun (file, file_kind, deps) ->
-    let modname = Filename.chop_extension (Filename.basename file) in
+  soit files = List.map (fonc (file, file_kind, deps) ->
+    soit modname = Filename.chop_extension (Filename.basename file) dans
     modname.[0] <- Char.uppercase modname.[0];
-    let key = (modname, file_kind) in
-    let new_deps = ref [] in
+    soit key = (modname, file_kind) dans
+    soit new_deps = ref [] dans
     Hashtbl.add h key (file, new_deps);
     worklist := key :: !worklist;
     (modname, file_kind, deps, new_deps)
-  ) files in
+  ) files dans
 
 (* Keep only dependencies to defined modules *)
-  List.iter (fun (modname, file_kind, deps, new_deps) ->
-    let add_dep modname kind =
+  List.iter (fonc (modname, file_kind, deps, new_deps) ->
+    soit add_dep modname kind =
       new_deps := (modname, kind) :: !new_deps;
-    in
-    Depend.StringSet.iter (fun modname ->
-      match file_kind with
+    dans
+    Depend.StringSet.iter (fonc modname ->
+      filtre file_kind avec
           ML -> (* ML depends both on ML and MLI *)
-            if Hashtbl.mem h (modname, MLI) then add_dep modname MLI;
-            if Hashtbl.mem h (modname, ML) then add_dep modname ML
+            si Hashtbl.mem h (modname, MLI) alors add_dep modname MLI;
+            si Hashtbl.mem h (modname, ML) alors add_dep modname ML
         | MLI -> (* MLI depends on MLI if exists, or ML otherwise *)
-          if Hashtbl.mem h (modname, MLI) then add_dep modname MLI
-          else if Hashtbl.mem h (modname, ML) then add_dep modname ML
+          si Hashtbl.mem h (modname, MLI) alors add_dep modname MLI
+          sinon si Hashtbl.mem h (modname, ML) alors add_dep modname ML
     ) deps;
-    if file_kind = ML then (* add dep from .ml to .mli *)
-      if Hashtbl.mem h (modname, MLI) then add_dep modname MLI
+    si file_kind = ML alors (* add dep from .ml to .mli *)
+      si Hashtbl.mem h (modname, MLI) alors add_dep modname MLI
   ) files;
 
 (* Print and remove all files with no remaining dependency. Iterate
    until all files have been removed (worklist is empty) or
    no file was removed during a turn (cycle). *)
-  let printed = ref true in
-  while !printed && !worklist <> [] do
-    let files = !worklist in
+  soit printed = ref vrai dans
+  pendant_que !printed && !worklist <> [] faire
+    soit files = !worklist dans
     worklist := [];
-    printed := false;
-    List.iter (fun key ->
-      let (file, deps) = Hashtbl.find h key in
-      let set = !deps in
+    printed := faux;
+    List.iter (fonc key ->
+      soit (file, deps) = Hashtbl.find h key dans
+      soit set = !deps dans
       deps := [];
-      List.iter (fun key ->
-        if Hashtbl.mem h key then deps := key :: !deps
+      List.iter (fonc key ->
+        si Hashtbl.mem h key alors deps := key :: !deps
       ) set;
-      if !deps = [] then begin
-        printed := true;
+      si !deps = [] alors début
+        printed := vrai;
         Printf.printf "%s " file;
         Hashtbl.remove h key;
-      end else
+      fin sinon
         worklist := key :: !worklist
     ) files
-  done;
+  fait;
 
-  if !worklist <> [] then begin
+  si !worklist <> [] alors début
     Format.fprintf Format.err_formatter
       "@[Warning: cycle in dependencies. End of list is not sorted.@]@.";
-    Hashtbl.iter (fun _ (file, deps) ->
+    Hashtbl.iter (fonc _ (file, deps) ->
       Format.fprintf Format.err_formatter "\t@[%s: " file;
-      List.iter (fun (modname, kind) ->
+      List.iter (fonc (modname, kind) ->
         Format.fprintf Format.err_formatter "%s.%s " modname
-          (if kind=ML then "ml" else "mli");
+          (si kind=ML alors "ml" sinon "mli");
       ) !deps;
       Format.fprintf Format.err_formatter "@]@.";
       Printf.printf "%s " file) h;
-  end;
+  fin;
   Printf.printf "\n%!";
   ()
 
 
 (* Entry point *)
 
-let usage = "Usage: ocamldep [options] <source files>\nOptions are:"
+soit usage = "Usage: ocamldep [options] <source files>\nOptions are:"
 
-let print_version () =
+soit print_version () =
   Format.printf "ocamldep, version %s@." Sys.ocaml_version;
   exit 0;
 ;;
 
-let print_version_num () =
+soit print_version_num () =
   Format.printf "%s@." Sys.ocaml_version;
   exit 0;
 ;;
 
-let _ =
-  Clflags.classic := false;
+soit _ =
+  Clflags.classic := faux;
   first_include_dirs := Filename.current_dir_name :: !first_include_dirs;
   Compenv.readenv ppf Before_args;
   Arg.parse [
@@ -414,7 +414,7 @@ let _ =
         " Show absolute filenames in error messages";
      "-all", Arg.Set all_dependencies,
         " Generate dependencies on all files";
-     "-I", Arg.String (fun s -> include_dirs := s :: !include_dirs),
+     "-I", Arg.String (fonc s -> include_dirs := s :: !include_dirs),
         "<dir>  Add <dir> to the list of include directories";
      "-impl", Arg.String (file_dependencies_as ML),
         "<f>  Process <f> as a .ml file";
@@ -430,9 +430,9 @@ let _ =
         " Generate dependencies for native-code only (no .cmo files)";
      "-one-line", Arg.Set one_line,
         " Output one line per file, regardless of the length";
-     "-pp", Arg.String(fun s -> Clflags.preprocessor := Some s),
+     "-pp", Arg.String(fonc s -> Clflags.preprocessor := Some s),
          "<cmd>  Pipe sources through preprocessor <cmd>";
-     "-ppx", Arg.String(fun s -> first_ppx := s :: !first_ppx),
+     "-ppx", Arg.String(fonc s -> first_ppx := s :: !first_ppx),
          "<cmd>  Pipe abstract syntax trees through preprocessor <cmd>";
      "-slash", Arg.Set Clflags.force_slash,
          " (Windows) Use forward slash / instead of backslash \\ in file paths";
@@ -444,5 +444,5 @@ let _ =
          " Print version number and exit";
     ] file_dependencies usage;
   Compenv.readenv ppf Before_link;
-  if !sort_files then sort_files_by_dependencies !files;
-  exit (if !error_occurred then 2 else 0)
+  si !sort_files alors sort_files_by_dependencies !files;
+  exit (si !error_occurred alors 2 sinon 0)

@@ -11,23 +11,23 @@
 (*                                                                     *)
 (***********************************************************************)
 
-type t = { mutable waiting: Thread.t list }
+type t = { modifiable waiting: Thread.t list }
 
-let create () = { waiting = [] }
+soit create () = { waiting = [] }
 
-let wait cond mut =
-  Thread.critical_section := true;
+soit wait cond mut =
+  Thread.critical_section := vrai;
   Mutex.unlock mut;
   cond.waiting <- Thread.self() :: cond.waiting;
   Thread.sleep();
   Mutex.lock mut
 
-let signal cond =
-  match cond.waiting with               (* atomic *)
+soit signal cond =
+  filtre cond.waiting avec               (* atomic *)
     [] -> ()
   | th :: rem -> cond.waiting <- rem (* atomic *); Thread.wakeup th
 
-let broadcast cond =
-  let w = cond.waiting in                  (* atomic *)
+soit broadcast cond =
+  soit w = cond.waiting dans                  (* atomic *)
   cond.waiting <- [];                      (* atomic *)
   List.iter Thread.wakeup w

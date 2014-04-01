@@ -12,17 +12,17 @@
 
 (* Auxiliary type for reporting syntax errors *)
 
-open Format
+ouvre Format
 
 type error =
-    Unclosed of Location.t * string * Location.t * string
-  | Expecting of Location.t * string
-  | Not_expecting of Location.t * string
-  | Applicative_path of Location.t
-  | Variable_in_scope of Location.t * string
-  | Other of Location.t
+    Unclosed de Location.t * string * Location.t * string
+  | Expecting de Location.t * string
+  | Not_expecting de Location.t * string
+  | Applicative_path de Location.t
+  | Variable_in_scope de Location.t * string
+  | Other de Location.t
 
-exception Error of error
+exception Error de error
 exception Escape_error
 
 val report_error: formatter -> error -> unit

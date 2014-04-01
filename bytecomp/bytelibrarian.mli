@@ -22,11 +22,11 @@
 val create_archive: Format.formatter -> string list -> string -> unit
 
 type error =
-    File_not_found of string
-  | Not_an_object_file of string
+    File_not_found de string
+  | Not_an_object_file de string
 
-exception Error of error
+exception Error de error
 
-open Format
+ouvre Format
 
 val report_error: formatter -> error -> unit

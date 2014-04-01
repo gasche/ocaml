@@ -87,7 +87,7 @@ type error =
   | ELOOP               (** Too many levels of symbolic links *)
   | EOVERFLOW           (** File size or position not representable *)
 
-  | EUNKNOWNERR of int  (** Unknown error *)
+  | EUNKNOWNERR de int  (** Unknown error *)
 (** The type of error codes.
    Errors defined in the POSIX standard
    and additional errors from UNIX98 and BSD.
@@ -95,7 +95,7 @@ type error =
 *)
 
 
-exception Unix_error of error * string * string
+exception Unix_error de error * string * string
 (** Raised by the system calls below when an error is encountered.
    The first component is the error code; the second component
    is the function name; the third component is the string parameter
@@ -133,13 +133,13 @@ val putenv : string -> string -> unit
 
 
 type process_status =
-    WEXITED of int
+    WEXITED de int
         (** The process terminated normally by [exit];
            the argument is the return code. *)
-  | WSIGNALED of int
+  | WSIGNALED de int
         (** The process was killed by a signal;
            the argument is the signal number. *)
-  | WSTOPPED of int
+  | WSTOPPED de int
         (** The process was stopped by a signal; the argument is the
            signal number. *)
 (** The termination status of a process.  See module {!Sys} for the
@@ -386,7 +386,7 @@ module LargeFile :
     val stat : string -> stats
     val lstat : string -> stats
     val fstat : file_descr -> stats
-  end
+  fin
 (** File operations on large files.
   This sub-module provides 64-bit variants of the functions
   {!Unix.lseek} (for positioning a file descriptor),
@@ -932,8 +932,8 @@ type socket_type =
    communications. *)
 
 type sockaddr =
-    ADDR_UNIX of string
-  | ADDR_INET of inet_addr * int
+    ADDR_UNIX de string
+  | ADDR_INET de inet_addr * int
 (** The type of socket addresses. [ADDR_UNIX name] is a socket
    address in the Unix domain; [name] is a file name in the file
    system. [ADDR_INET(addr,port)] is a socket address in the Internet
@@ -1176,9 +1176,9 @@ type addr_info =
 (** Address information returned by {!Unix.getaddrinfo}. *)
 
 type getaddrinfo_option =
-    AI_FAMILY of socket_domain          (** Impose the given socket domain *)
-  | AI_SOCKTYPE of socket_type          (** Impose the given socket type *)
-  | AI_PROTOCOL of int                  (** Impose the given protocol  *)
+    AI_FAMILY de socket_domain          (** Impose the given socket domain *)
+  | AI_SOCKTYPE de socket_type          (** Impose the given socket type *)
+  | AI_PROTOCOL de int                  (** Impose the given protocol  *)
   | AI_NUMERICHOST                      (** Do not call name resolver,
                                             expect numeric IP address *)
   | AI_CANONNAME                        (** Fill the [ai_canonname] field
@@ -1238,50 +1238,50 @@ val getnameinfo : sockaddr -> getnameinfo_option list -> name_info
 type terminal_io =
   {
     (* input modes *)
-    mutable c_ignbrk : bool;  (** Ignore the break condition. *)
-    mutable c_brkint : bool;  (** Signal interrupt on break condition. *)
-    mutable c_ignpar : bool;  (** Ignore characters with parity errors. *)
-    mutable c_parmrk : bool;  (** Mark parity errors. *)
-    mutable c_inpck : bool;   (** Enable parity check on input. *)
-    mutable c_istrip : bool;  (** Strip 8th bit on input characters. *)
-    mutable c_inlcr : bool;   (** Map NL to CR on input. *)
-    mutable c_igncr : bool;   (** Ignore CR on input. *)
-    mutable c_icrnl : bool;   (** Map CR to NL on input. *)
-    mutable c_ixon : bool;    (** Recognize XON/XOFF characters on input. *)
-    mutable c_ixoff : bool;   (** Emit XON/XOFF chars to control input flow. *)
+    modifiable c_ignbrk : bool;  (** Ignore the break condition. *)
+    modifiable c_brkint : bool;  (** Signal interrupt on break condition. *)
+    modifiable c_ignpar : bool;  (** Ignore characters with parity errors. *)
+    modifiable c_parmrk : bool;  (** Mark parity errors. *)
+    modifiable c_inpck : bool;   (** Enable parity check on input. *)
+    modifiable c_istrip : bool;  (** Strip 8th bit on input characters. *)
+    modifiable c_inlcr : bool;   (** Map NL to CR on input. *)
+    modifiable c_igncr : bool;   (** Ignore CR on input. *)
+    modifiable c_icrnl : bool;   (** Map CR to NL on input. *)
+    modifiable c_ixon : bool;    (** Recognize XON/XOFF characters on input. *)
+    modifiable c_ixoff : bool;   (** Emit XON/XOFF chars to control input flow. *)
     (* Output modes: *)
-    mutable c_opost : bool;   (** Enable output processing. *)
+    modifiable c_opost : bool;   (** Enable output processing. *)
     (* Control modes: *)
-    mutable c_obaud : int;    (** Output baud rate (0 means close connection).*)
-    mutable c_ibaud : int;    (** Input baud rate. *)
-    mutable c_csize : int;    (** Number of bits per character (5-8). *)
-    mutable c_cstopb : int;   (** Number of stop bits (1-2). *)
-    mutable c_cread : bool;   (** Reception is enabled. *)
-    mutable c_parenb : bool;  (** Enable parity generation and detection. *)
-    mutable c_parodd : bool;  (** Specify odd parity instead of even. *)
-    mutable c_hupcl : bool;   (** Hang up on last close. *)
-    mutable c_clocal : bool;  (** Ignore modem status lines. *)
+    modifiable c_obaud : int;    (** Output baud rate (0 means close connection).*)
+    modifiable c_ibaud : int;    (** Input baud rate. *)
+    modifiable c_csize : int;    (** Number of bits per character (5-8). *)
+    modifiable c_cstopb : int;   (** Number of stop bits (1-2). *)
+    modifiable c_cread : bool;   (** Reception is enabled. *)
+    modifiable c_parenb : bool;  (** Enable parity generation and detection. *)
+    modifiable c_parodd : bool;  (** Specify odd parity instead of even. *)
+    modifiable c_hupcl : bool;   (** Hang up on last close. *)
+    modifiable c_clocal : bool;  (** Ignore modem status lines. *)
     (* Local modes: *)
-    mutable c_isig : bool;    (** Generate signal on INTR, QUIT, SUSP. *)
-    mutable c_icanon : bool;  (** Enable canonical processing
+    modifiable c_isig : bool;    (** Generate signal on INTR, QUIT, SUSP. *)
+    modifiable c_icanon : bool;  (** Enable canonical processing
                                  (line buffering and editing) *)
-    mutable c_noflsh : bool;  (** Disable flush after INTR, QUIT, SUSP. *)
-    mutable c_echo : bool;    (** Echo input characters. *)
-    mutable c_echoe : bool;   (** Echo ERASE (to erase previous character). *)
-    mutable c_echok : bool;   (** Echo KILL (to erase the current line). *)
-    mutable c_echonl : bool;  (** Echo NL even if c_echo is not set. *)
+    modifiable c_noflsh : bool;  (** Disable flush after INTR, QUIT, SUSP. *)
+    modifiable c_echo : bool;    (** Echo input characters. *)
+    modifiable c_echoe : bool;   (** Echo ERASE (to erase previous character). *)
+    modifiable c_echok : bool;   (** Echo KILL (to erase the current line). *)
+    modifiable c_echonl : bool;  (** Echo NL even if c_echo is not set. *)
     (* Control characters: *)
-    mutable c_vintr : char;   (** Interrupt character (usually ctrl-C). *)
-    mutable c_vquit : char;   (** Quit character (usually ctrl-\). *)
-    mutable c_verase : char;  (** Erase character (usually DEL or ctrl-H). *)
-    mutable c_vkill : char;   (** Kill line character (usually ctrl-U). *)
-    mutable c_veof : char;    (** End-of-file character (usually ctrl-D). *)
-    mutable c_veol : char;    (** Alternate end-of-line char. (usually none). *)
-    mutable c_vmin : int;     (** Minimum number of characters to read
+    modifiable c_vintr : char;   (** Interrupt character (usually ctrl-C). *)
+    modifiable c_vquit : char;   (** Quit character (usually ctrl-\). *)
+    modifiable c_verase : char;  (** Erase character (usually DEL or ctrl-H). *)
+    modifiable c_vkill : char;   (** Kill line character (usually ctrl-U). *)
+    modifiable c_veof : char;    (** End-of-file character (usually ctrl-D). *)
+    modifiable c_veol : char;    (** Alternate end-of-line char. (usually none). *)
+    modifiable c_vmin : int;     (** Minimum number of characters to read
                                  before the read request is satisfied. *)
-    mutable c_vtime : int;    (** Maximum read wait (in 0.1s units). *)
-    mutable c_vstart : char;  (** Start character (usually ctrl-Q). *)
-    mutable c_vstop : char;   (** Stop character (usually ctrl-S). *)
+    modifiable c_vtime : int;    (** Maximum read wait (in 0.1s units). *)
+    modifiable c_vstart : char;  (** Start character (usually ctrl-Q). *)
+    modifiable c_vstop : char;   (** Stop character (usually ctrl-S). *)
   }
 
 val tcgetattr : file_descr -> terminal_io

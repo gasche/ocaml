@@ -12,137 +12,137 @@
 
 (* The batch compiler *)
 
-open Misc
-open Format
-open Typedtree
-open Compenv
+ouvre Misc
+ouvre Format
+ouvre Typedtree
+ouvre Compenv
 
 (* Compile a .mli file *)
 
 module Roundtrip = struct
-  let cp src tgt =
-    assert (0 = Sys.command (Printf.sprintf "cp --preserve=all %s %s"
+  soit cp src tgt =
+    affirme (0 = Sys.command (Printf.sprintf "cp --preserve=all %s %s"
                                (Filename.quote src) (Filename.quote tgt)))
 
-  type 'a result = Ok of 'a | Err of exn
+  type 'a result = Ok de 'a | Err de exn
 
-  let save sourcefile k =
-    let cpfile = sourcefile ^ ".cp" in
+  soit save sourcefile k =
+    soit cpfile = sourcefile ^ ".cp" dans
     cp sourcefile cpfile;
     Sys.remove sourcefile;
-    let result = try Ok (k ()) with exn -> Err exn in
+    soit result = essaie Ok (k ()) avec exn -> Err exn dans
     cp cpfile sourcefile;
     Sys.remove cpfile;
-    match result with
+    filtre result avec
     | Ok v -> v
     | Err exn -> raise exn
 
   (* the proper way to do this would be to add configuration options,
      but it's unclear we ever want to upstream this. *)
-  let reparse_conf = (try Sys.getenv "OCAML_PARSE_ROUNDTRIP" <> "" with _ -> false)
-  let relex_conf = not (try Sys.getenv "OCAML_LEX_NO_ROUNDTRIP" <> "" with _ -> false)
+  soit reparse_conf = (essaie Sys.getenv "OCAML_PARSE_ROUNDTRIP" <> "" avec _ -> faux)
+  soit relex_conf = not (essaie Sys.getenv "OCAML_LEX_NO_ROUNDTRIP" <> "" avec _ -> faux)
 
-  let reparse sourcefile print parse ast =
-    if not reparse_conf then ast
-    else save sourcefile begin fun () ->
-      let out = open_out sourcefile in
-      let ppf = formatter_of_out_channel out in
+  soit reparse sourcefile print parse ast =
+    si not reparse_conf alors ast
+    sinon save sourcefile début fonc () ->
+      soit out = open_out sourcefile dans
+      soit ppf = formatter_of_out_channel out dans
       print ppf ast;
       pp_print_flush ppf ();
       close_out out;
-      try parse sourcefile with exn ->
+      essaie parse sourcefile avec exn ->
         cp sourcefile (sourcefile ^ ".dsource");
         raise exn
-    end
+    fin
 
-  let relex parse_fun sourcefile =
-    if relex_conf then begin
-      let inc = open_in sourcefile in
-      let outbuf = Buffer.create 100 in
-      begin
-        try
+  soit relex parse_fun sourcefile =
+    si relex_conf alors début
+      soit inc = open_in sourcefile dans
+      soit outbuf = Buffer.create 100 dans
+      début
+        essaie
           Location.input_name := sourcefile;
-          let lexbuf = Lexing.from_channel inc in
+          soit lexbuf = Lexing.from_channel inc dans
           Location.init lexbuf sourcefile;
-          while
-            let tok = Lexer.token_with_comments_and_whitespace lexbuf in
-            if tok = Parser.EOF then false
-            else begin
+          pendant_que
+            soit tok = Lexer.token_with_comments_and_whitespace lexbuf dans
+            si tok = Parser.EOF alors faux
+            sinon début
               Buffer.add_string outbuf (Lexer.string_of_token tok);
-              true
-            end
-          do () done;
+              vrai
+            fin
+          faire () fait;
           close_in inc;
-        with exn ->
+        avec exn ->
           close_in inc; raise exn
-      end;
-      try
-        let count = ref 1 in
-        let backup () =
+      fin;
+      essaie
+        soit count = ref 1 dans
+        soit backup () =
           sourcefile ^ ".bak"
-          ^ (if !count = 1 then "" else string_of_int !count) in
-        while Sys.file_exists (backup ()) do incr count done;
+          ^ (si !count = 1 alors "" sinon string_of_int !count) dans
+        pendant_que Sys.file_exists (backup ()) faire incr count fait;
         Sys.rename sourcefile (backup ());
-        let outc = open_out sourcefile in
+        soit outc = open_out sourcefile dans
         Buffer.output_buffer outc outbuf;
         close_out outc;
-      with _ ->
+      avec _ ->
         (* if sourcefile is not writable, so be it, we'll ignore
            errors and leave the file unchanged; some people are averse
            to progress *)
         ();
-    end;
+    fin;
     parse_fun sourcefile
-end
+fin
 
 (* Keep in sync with the copy in optcompile.ml *)
 
-let interface ppf sourcefile outputprefix =
-  Compmisc.init_path false;
-  let modulename =
-    String.capitalize(Filename.basename(chop_extension_if_any sourcefile)) in
+soit interface ppf sourcefile outputprefix =
+  Compmisc.init_path faux;
+  soit modulename =
+    String.capitalize(Filename.basename(chop_extension_if_any sourcefile)) dans
   check_unit_name ppf sourcefile modulename;
   Env.set_unit_name modulename;
-  let initial_env = Compmisc.initial_env () in
-  let ast = Roundtrip.relex (Pparse.parse_interface ppf) sourcefile in
-  if !Clflags.dump_parsetree then fprintf ppf "%a@." Printast.interface ast;
-  if !Clflags.dump_source then fprintf ppf "%a@." Pprintast.signature ast;
-  let ast =
+  soit initial_env = Compmisc.initial_env () dans
+  soit ast = Roundtrip.relex (Pparse.parse_interface ppf) sourcefile dans
+  si !Clflags.dump_parsetree alors fprintf ppf "%a@." Printast.interface ast;
+  si !Clflags.dump_source alors fprintf ppf "%a@." Pprintast.signature ast;
+  soit ast =
     Roundtrip.reparse sourcefile
-      Pprintast.signature (Pparse.parse_interface ppf) ast in
-  let tsg = Typemod.transl_signature initial_env ast in
-  if !Clflags.dump_typedtree then fprintf ppf "%a@." Printtyped.interface tsg;
-  let sg = tsg.sig_type in
-  if !Clflags.print_types then
-    Printtyp.wrap_printing_env initial_env (fun () ->
+      Pprintast.signature (Pparse.parse_interface ppf) ast dans
+  soit tsg = Typemod.transl_signature initial_env ast dans
+  si !Clflags.dump_typedtree alors fprintf ppf "%a@." Printtyped.interface tsg;
+  soit sg = tsg.sig_type dans
+  si !Clflags.print_types alors
+    Printtyp.wrap_printing_env initial_env (fonc () ->
         fprintf std_formatter "%a@."
           Printtyp.signature (Typemod.simplify_signature sg));
   ignore (Includemod.signatures initial_env sg sg);
   Typecore.force_delayed_checks ();
   Warnings.check_fatal ();
-  if not !Clflags.print_types then begin
-    let sg = Env.save_signature sg modulename (outputprefix ^ ".cmi") in
+  si not !Clflags.print_types alors début
+    soit sg = Env.save_signature sg modulename (outputprefix ^ ".cmi") dans
     Typemod.save_signature modulename tsg outputprefix sourcefile
       initial_env sg ;
-  end
+  fin
 
 (* Compile a .ml file *)
 
-let print_if ppf flag printer arg =
-  if !flag then fprintf ppf "%a@." printer arg;
+soit print_if ppf flag printer arg =
+  si !flag alors fprintf ppf "%a@." printer arg;
   arg
 
-let (++) x f = f x
+soit (++) x f = f x
 
-let implementation ppf sourcefile outputprefix =
-  Compmisc.init_path false;
-  let modulename =
-    String.capitalize(Filename.basename(chop_extension_if_any sourcefile)) in
+soit implementation ppf sourcefile outputprefix =
+  Compmisc.init_path faux;
+  soit modulename =
+    String.capitalize(Filename.basename(chop_extension_if_any sourcefile)) dans
   check_unit_name ppf sourcefile modulename;
   Env.set_unit_name modulename;
-  let env = Compmisc.initial_env() in
-  if !Clflags.print_types then begin
-    let comp ast =
+  soit env = Compmisc.initial_env() dans
+  si !Clflags.print_types alors début
+    soit comp ast =
       ast
       ++ print_if ppf Clflags.dump_parsetree Printast.implementation
       ++ print_if ppf Clflags.dump_source Pprintast.structure
@@ -151,18 +151,18 @@ let implementation ppf sourcefile outputprefix =
       ++ Typemod.type_implementation sourcefile outputprefix modulename env
       ++ print_if ppf Clflags.dump_typedtree
           Printtyped.implementation_with_coercion
-      ++ (fun _ -> ());
+      ++ (fonc _ -> ());
       Warnings.check_fatal ();
       Stypes.dump (Some (outputprefix ^ ".annot"))
-    in
-    try comp (Roundtrip.relex (Pparse.parse_implementation ppf) sourcefile)
-    with x ->
+    dans
+    essaie comp (Roundtrip.relex (Pparse.parse_implementation ppf) sourcefile)
+    avec x ->
       Stypes.dump (Some (outputprefix ^ ".annot"));
       raise x
-  end else begin
-    let objfile = outputprefix ^ ".cmo" in
-    let oc = open_out_bin objfile in
-    let comp ast =
+  fin sinon début
+    soit objfile = outputprefix ^ ".cmo" dans
+    soit oc = open_out_bin objfile dans
+    soit comp ast =
       ast
       ++ print_if ppf Clflags.dump_parsetree Printast.implementation
       ++ print_if ppf Clflags.dump_source Pprintast.structure
@@ -181,15 +181,15 @@ let implementation ppf sourcefile outputprefix =
       Warnings.check_fatal ();
       close_out oc;
       Stypes.dump (Some (outputprefix ^ ".annot"))
-    in
-    try comp (Roundtrip.relex (Pparse.parse_implementation ppf) sourcefile)
-    with x ->
+    dans
+    essaie comp (Roundtrip.relex (Pparse.parse_implementation ppf) sourcefile)
+    avec x ->
       close_out oc;
       remove_file objfile;
       Stypes.dump (Some (outputprefix ^ ".annot"));
       raise x
-  end
+  fin
 
-let c_file name =
+soit c_file name =
   Location.input_name := name;
-  if Ccomp.compile_file name <> 0 then exit 2
+  si Ccomp.compile_file name <> 0 alors exit 2

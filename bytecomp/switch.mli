@@ -49,7 +49,7 @@ module type S =
       NB:  cases is in the value form *)
     val make_switch :
         act -> int array -> act array -> act
-  end
+  fin
 
 
 (*
@@ -64,7 +64,7 @@ module type S =
   returns an action that performs the switch,
 *)
 module Make :
-  functor (Arg : S) ->
+  foncteur (Arg : S) ->
     sig
       val zyva :
           (int * int) ->
@@ -79,4 +79,4 @@ module Make :
            (int * int * int) array ->
            Arg.act array ->
            Arg.act
-    end
+    fin

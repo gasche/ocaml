@@ -13,4 +13,4 @@
 (* This module should be removed.  We keep it for now, to avoid
    breaking external tools depending on it. *)
 
-let report_error = Location.report_exception
+soit report_error = Location.report_exception

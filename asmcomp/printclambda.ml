@@ -11,120 +11,120 @@
 (***********************************************************************)
 
 
-open Format
-open Asttypes
-open Clambda
+ouvre Format
+ouvre Asttypes
+ouvre Clambda
 
-let rec structured_constant ppf = function
+soit rec structured_constant ppf = fonction
   | Uconst_float x -> fprintf ppf "%s" x
   | Uconst_int32 x -> fprintf ppf "%ld" x
   | Uconst_int64 x -> fprintf ppf "%Ld" x
   | Uconst_nativeint x -> fprintf ppf "%nd" x
   | Uconst_block (tag, l) ->
       fprintf ppf "block(%i" tag;
-      List.iter (fun u -> fprintf ppf ",%a" uconstant u) l;
+      List.iter (fonc u -> fprintf ppf ",%a" uconstant u) l;
       fprintf ppf ")"
   | Uconst_float_array sl ->
       fprintf ppf "floatarray(%s)"
         (String.concat "," sl)
   | Uconst_string s -> fprintf ppf "%S" s
 
-and uconstant ppf = function
+et uconstant ppf = fonction
   | Uconst_ref (s, c) ->
       fprintf ppf "%S=%a" s structured_constant c
   | Uconst_int i -> fprintf ppf "%i" i
   | Uconst_ptr i -> fprintf ppf "%ia" i
 
-let rec lam ppf = function
+soit rec lam ppf = fonction
   | Uvar id ->
       Ident.print ppf id
   | Uconst c -> uconstant ppf c
   | Udirect_apply(f, largs, _) ->
-      let lams ppf largs =
-        List.iter (fun l -> fprintf ppf "@ %a" lam l) largs in
+      soit lams ppf largs =
+        List.iter (fonc l -> fprintf ppf "@ %a" lam l) largs dans
       fprintf ppf "@[<2>(apply*@ %s %a)@]" f lams largs
   | Ugeneric_apply(lfun, largs, _) ->
-      let lams ppf largs =
-        List.iter (fun l -> fprintf ppf "@ %a" lam l) largs in
+      soit lams ppf largs =
+        List.iter (fonc l -> fprintf ppf "@ %a" lam l) largs dans
       fprintf ppf "@[<2>(apply@ %a%a)@]" lam lfun lams largs
   | Uclosure(clos, fv) ->
-      let idents ppf =
-        List.iter (fprintf ppf "@ %a" Ident.print)in
-      let one_fun ppf f =
+      soit idents ppf =
+        List.iter (fprintf ppf "@ %a" Ident.print)dans
+      soit one_fun ppf f =
         fprintf ppf "(fun@ %s@ %d @[<2>%a@] @[<2>%a@])"
-          f.label f.arity idents f.params lam f.body in
-      let funs ppf =
-        List.iter (fprintf ppf "@ %a" one_fun) in
-      let lams ppf =
-        List.iter (fprintf ppf "@ %a" lam) in
+          f.label f.arity idents f.params lam f.body dans
+      soit funs ppf =
+        List.iter (fprintf ppf "@ %a" one_fun) dans
+      soit lams ppf =
+        List.iter (fprintf ppf "@ %a" lam) dans
       fprintf ppf "@[<2>(closure@ %a %a)@]" funs clos lams fv
   | Uoffset(l,i) -> fprintf ppf "@[<2>(offset %a %d)@]" lam l i
   | Ulet(id, arg, body) ->
-      let rec letbody ul = match ul with
+      soit rec letbody ul = filtre ul avec
         | Ulet(id, arg, body) ->
             fprintf ppf "@ @[<2>%a@ %a@]" Ident.print id lam arg;
             letbody body
-        | _ -> ul in
+        | _ -> ul dans
       fprintf ppf "@[<2>(let@ @[<hv 1>(@[<2>%a@ %a@]" Ident.print id lam arg;
-      let expr = letbody body in
+      soit expr = letbody body dans
       fprintf ppf ")@]@ %a)@]" lam expr
   | Uletrec(id_arg_list, body) ->
-      let bindings ppf id_arg_list =
-        let spc = ref false in
+      soit bindings ppf id_arg_list =
+        soit spc = ref faux dans
         List.iter
-          (fun (id, l) ->
-            if !spc then fprintf ppf "@ " else spc := true;
+          (fonc (id, l) ->
+            si !spc alors fprintf ppf "@ " sinon spc := vrai;
             fprintf ppf "@[<2>%a@ %a@]" Ident.print id lam l)
-          id_arg_list in
+          id_arg_list dans
       fprintf ppf
         "@[<2>(letrec@ (@[<hv 1>%a@])@ %a)@]" bindings id_arg_list lam body
   | Uprim(prim, largs, _) ->
-      let lams ppf largs =
-        List.iter (fun l -> fprintf ppf "@ %a" lam l) largs in
+      soit lams ppf largs =
+        List.iter (fonc l -> fprintf ppf "@ %a" lam l) largs dans
       fprintf ppf "@[<2>(%a%a)@]" Printlambda.primitive prim lams largs
   | Uswitch(larg, sw) ->
-      let switch ppf sw =
-        let spc = ref false in
-        for i = 0 to Array.length sw.us_index_consts - 1 do
-          let n = sw.us_index_consts.(i) in
-          let l = sw.us_actions_consts.(n) in
-          if !spc then fprintf ppf "@ " else spc := true;
+      soit switch ppf sw =
+        soit spc = ref faux dans
+        pour i = 0 à Array.length sw.us_index_consts - 1 faire
+          soit n = sw.us_index_consts.(i) dans
+          soit l = sw.us_actions_consts.(n) dans
+          si !spc alors fprintf ppf "@ " sinon spc := vrai;
           fprintf ppf "@[<hv 1>case int %i:@ %a@]" i lam l;
-        done;
-        for i = 0 to Array.length sw.us_index_blocks - 1 do
-          let n = sw.us_index_blocks.(i) in
-          let l = sw.us_actions_blocks.(n) in
-          if !spc then fprintf ppf "@ " else spc := true;
+        fait;
+        pour i = 0 à Array.length sw.us_index_blocks - 1 faire
+          soit n = sw.us_index_blocks.(i) dans
+          soit l = sw.us_actions_blocks.(n) dans
+          si !spc alors fprintf ppf "@ " sinon spc := vrai;
           fprintf ppf "@[<hv 1>case tag %i:@ %a@]" i lam l;
-        done in
+        fait dans
       fprintf ppf
        "@[<1>(switch %a@ @[<v 0>%a@])@]"
         lam larg switch sw
   | Ustringswitch(larg,sw,d) ->
-      let switch ppf sw =
-        let spc = ref false in
+      soit switch ppf sw =
+        soit spc = ref faux dans
         List.iter
-          (fun (s,l) ->
-            if !spc then fprintf ppf "@ " else spc := true;
+          (fonc (s,l) ->
+            si !spc alors fprintf ppf "@ " sinon spc := vrai;
             fprintf ppf "@[<hv 1>case \"%s\":@ %a@]"
               (String.escaped s) lam l)
           sw ;
-        if !spc then fprintf ppf "@ " else spc := true;
-        fprintf ppf "@[<hv 1>default:@ %a@]" lam d in
+        si !spc alors fprintf ppf "@ " sinon spc := vrai;
+        fprintf ppf "@[<hv 1>default:@ %a@]" lam d dans
       fprintf ppf
         "@[<1>(switch %a@ @[<v 0>%a@])@]" lam larg switch sw
   | Ustaticfail (i, ls)  ->
-      let lams ppf largs =
-        List.iter (fun l -> fprintf ppf "@ %a" lam l) largs in
+      soit lams ppf largs =
+        List.iter (fonc l -> fprintf ppf "@ %a" lam l) largs dans
       fprintf ppf "@[<2>(exit@ %d%a)@]" i lams ls;
   | Ucatch(i, vars, lbody, lhandler) ->
       fprintf ppf "@[<2>(catch@ %a@;<1 -1>with (%d%a)@ %a)@]"
         lam lbody i
-        (fun ppf vars -> match vars with
+        (fonc ppf vars -> filtre vars avec
           | [] -> ()
           | _ ->
               List.iter
-                (fun x -> fprintf ppf " %a" Ident.print x)
+                (fonc x -> fprintf ppf " %a" Ident.print x)
                 vars)
         vars
         lam lhandler
@@ -140,45 +140,45 @@ let rec lam ppf = function
   | Ufor(param, lo, hi, dir, body) ->
       fprintf ppf "@[<2>(for %a@ %a@ %s@ %a@ %a)@]"
        Ident.print param lam lo
-       (match dir with Upto -> "to" | Downto -> "downto")
+       (filtre dir avec Upto -> "to" | Downto -> "downto")
        lam hi lam body
   | Uassign(id, expr) ->
       fprintf ppf "@[<2>(assign@ %a@ %a)@]" Ident.print id lam expr
   | Usend (k, met, obj, largs, _) ->
-      let args ppf largs =
-        List.iter (fun l -> fprintf ppf "@ %a" lam l) largs in
-      let kind =
-        if k = Lambda.Self then "self"
-        else if k = Lambda.Cached then "cache"
-        else "" in
+      soit args ppf largs =
+        List.iter (fonc l -> fprintf ppf "@ %a" lam l) largs dans
+      soit kind =
+        si k = Lambda.Self alors "self"
+        sinon si k = Lambda.Cached alors "cache"
+        sinon "" dans
       fprintf ppf "@[<2>(send%s@ %a@ %a%a)@]" kind lam obj lam met args largs
 
-and sequence ppf ulam = match ulam with
+et sequence ppf ulam = filtre ulam avec
   | Usequence(l1, l2) ->
       fprintf ppf "%a@ %a" sequence l1 sequence l2
   | _ -> lam ppf ulam
 
-let clambda ppf ulam =
+soit clambda ppf ulam =
   fprintf ppf "%a@." lam ulam
 
 
-let rec approx ppf = function
+soit rec approx ppf = fonction
     Value_closure(fundesc, a) ->
       Format.fprintf ppf "@[<2>function %s@ arity %i"
         fundesc.fun_label fundesc.fun_arity;
-      if fundesc.fun_closed then begin
+      si fundesc.fun_closed alors début
         Format.fprintf ppf "@ (closed)"
-      end;
-      if fundesc.fun_inline <> None then begin
+      fin;
+      si fundesc.fun_inline <> None alors début
         Format.fprintf ppf "@ (inline)"
-      end;
+      fin;
       Format.fprintf ppf "@ -> @ %a@]" approx a
   | Value_tuple a ->
-      let tuple ppf a =
-        for i = 0 to Array.length a - 1 do
-          if i > 0 then Format.fprintf ppf ";@ ";
+      soit tuple ppf a =
+        pour i = 0 à Array.length a - 1 faire
+          si i > 0 alors Format.fprintf ppf ";@ ";
           Format.fprintf ppf "%i: %a" i approx a.(i)
-        done in
+        fait dans
       Format.fprintf ppf "@[<hov 1>(%a)@]" tuple a
   | Value_unknown ->
       Format.fprintf ppf "_"

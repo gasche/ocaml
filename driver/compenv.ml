@@ -10,70 +10,70 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Clflags
+ouvre Clflags
 
-let output_prefix name =
-  let oname =
-    match !output_name with
+soit output_prefix name =
+  soit oname =
+    filtre !output_name avec
     | None -> name
-    | Some n -> if !compile_only then (output_name := None; n) else name in
+    | Some n -> si !compile_only alors (output_name := None; n) sinon name dans
   Misc.chop_extension_if_any oname
 
-let print_version_and_library compiler =
+soit print_version_and_library compiler =
   Printf.printf "The Chamelle %s, version " compiler;
   print_string Config.version; print_newline();
   print_string "Dossier de la bibliothèque standard : ";
   print_string Config.standard_library; print_newline();
   exit 0
 
-let print_version_string () =
+soit print_version_string () =
   print_string Config.version; print_newline(); exit 0
 
-let print_standard_library () =
+soit print_standard_library () =
   print_string Config.standard_library; print_newline(); exit 0
 
-let fatal err =
+soit fatal err =
   prerr_endline err;
   exit 2
 
-let extract_output = function
+soit extract_output = fonction
   | Some s -> s
   | None ->
       fatal "Veuillez spécifier le nom du fichier de sortie, en utilisant l'option -o"
 
-let default_output = function
+soit default_output = fonction
   | Some s -> s
   | None -> Config.default_executable_name
 
-let implicit_modules = ref []
-let first_include_dirs = ref []
-let last_include_dirs = ref []
-let first_ccopts = ref []
-let last_ccopts = ref []
-let first_ppx = ref []
-let last_ppx = ref []
-let first_objfiles = ref []
-let last_objfiles = ref []
+soit implicit_modules = ref []
+soit first_include_dirs = ref []
+soit last_include_dirs = ref []
+soit first_ccopts = ref []
+soit last_ccopts = ref []
+soit first_ppx = ref []
+soit last_ppx = ref []
+soit first_objfiles = ref []
+soit last_objfiles = ref []
 
 (* Note: this function is duplicated in optcompile.ml *)
-let check_unit_name ppf filename name =
-  try
-    begin match name.[0] with
+soit check_unit_name ppf filename name =
+  essaie
+    début filtre name.[0] avec
     | 'A'..'Z' -> ()
     | _ ->
        Location.print_warning (Location.in_file filename) ppf
         (Warnings.Bad_module_name name);
        raise Exit;
-    end;
-    for i = 1 to String.length name - 1 do
-      match name.[i] with
+    fin;
+    pour i = 1 à String.length name - 1 faire
+      filtre name.[i] avec
       | 'A'..'Z' | 'a'..'z' | '0'..'9' | '_' | '\'' -> ()
       | _ ->
          Location.print_warning (Location.in_file filename) ppf
            (Warnings.Bad_module_name name);
          raise Exit;
-    done;
-  with Exit -> ()
+    fait;
+  avec Exit -> ()
 ;;
 
 
@@ -87,61 +87,61 @@ type readenv_position =
 
 (* Syntax of OCAMLPARAM: (name=VALUE,)* _ (,name=VALUE)*
    where VALUE should not contain ',' *)
-exception SyntaxError of string
+exception SyntaxError de string
 
-let parse_args s =
-  let args = Misc.split s ',' in
-  let rec iter is_after args before after =
-    match args with
+soit parse_args s =
+  soit args = Misc.split s ',' dans
+  soit rec iter is_after args before after =
+    filtre args avec
       [] ->
-      if not is_after then
+      si not is_after alors
         raise (SyntaxError "no '_' separator found")
-      else
+      sinon
       (List.rev before, List.rev after)
-    | "_" :: _ when is_after -> raise (SyntaxError "too many '_' separators")
-    | "_" :: tail -> iter true tail before after
+    | "_" :: _ quand is_after -> raise (SyntaxError "too many '_' separators")
+    | "_" :: tail -> iter vrai tail before after
     | arg :: tail ->
-      let binding = try
+      soit binding = essaie
         Misc.cut_at arg '='
-      with Not_found ->
+      avec Not_found ->
         raise (SyntaxError ("missing '=' in " ^ arg))
-      in
-      if is_after then
+      dans
+      si is_after alors
         iter is_after tail before (binding :: after)
-      else
+      sinon
         iter is_after tail (binding :: before) after
-  in
-  iter false args [] []
+  dans
+  iter faux args [] []
 
-let setter ppf f name options s =
-  try
-    let bool = match s with
-      | "0" -> false
-      | "1" -> true
+soit setter ppf f name options s =
+  essaie
+    soit bool = filtre s avec
+      | "0" -> faux
+      | "1" -> vrai
       | _ -> raise Not_found
-    in
-    List.iter (fun b -> b := f bool) options
-  with Not_found ->
+    dans
+    List.iter (fonc b -> b := f bool) options
+  avec Not_found ->
     Location.print_warning Location.none ppf
       (Warnings.Bad_env_variable ("OCAMLPARAM",
                                   Printf.sprintf "bad value for %s" name))
 
-let read_OCAMLPARAM ppf position =
-  try
-    let s = Sys.getenv "OCAMLPARAM" in
-    let (before, after) =
-      try
+soit read_OCAMLPARAM ppf position =
+  essaie
+    soit s = Sys.getenv "OCAMLPARAM" dans
+    soit (before, after) =
+      essaie
         parse_args s
-      with SyntaxError s ->
+      avec SyntaxError s ->
          Location.print_warning Location.none ppf
            (Warnings.Bad_env_variable ("OCAMLPARAM", s));
          [],[]
-    in
+    dans
 
-    let set name options s =  setter ppf (fun b -> b) name options s in
-    let clear name options s = setter ppf (fun b -> not b) name options s in
-    List.iter (fun (name, v) ->
-      match name with
+    soit set name options s =  setter ppf (fonc b -> b) name options s dans
+    soit clear name options s = setter ppf (fonc b -> not b) name options s dans
+    List.iter (fonc (name, v) ->
+      filtre name avec
       | "g" -> set "g" [ Clflags.debug ] v
       | "p" -> set "p" [ Clflags.gprofile ] v
       | "bin-annot" -> set "bin-annot" [ Clflags.binary_annotations ] v
@@ -180,87 +180,87 @@ let read_OCAMLPARAM ppf position =
       |  "dstartup" -> set "dstartup" [ Clflags.keep_startup_file ] v
 
       (* warn-errors *)
-      | "we" | "warn-error" -> Warnings.parse_options true v
+      | "we" | "warn-error" -> Warnings.parse_options vrai v
       (* warnings *)
-      |  "w"  ->               Warnings.parse_options false v
+      |  "w"  ->               Warnings.parse_options faux v
       (* warn-errors *)
-      | "wwe" ->               Warnings.parse_options false v
+      | "wwe" ->               Warnings.parse_options faux v
 
       (* inlining *)
-      | "inline" -> begin try
+      | "inline" -> début essaie
           inline_threshold := 8 * int_of_string v
-        with _ ->
+        avec _ ->
           Location.print_warning Location.none ppf
             (Warnings.Bad_env_variable ("OCAMLPARAM",
                                         "non-integer parameter for \"inline\""))
-        end
+        fin
 
       | "intf-suffix" -> Config.interface_suffix := v
 
-      | "I" -> begin
-          match position with
+      | "I" -> début
+          filtre position avec
           | Before_args -> first_include_dirs := v :: !first_include_dirs
           | Before_link | Before_compile ->
             last_include_dirs := v :: !last_include_dirs
-        end
+        fin
 
       | "cclib" ->
-        begin
-          match position with
+        début
+          filtre position avec
           | Before_compile -> ()
           | Before_link | Before_args ->
             ccobjs := Misc.rev_split_words v @ !ccobjs
-        end
+        fin
 
       | "ccopts" ->
-        begin
-          match position with
+        début
+          filtre position avec
           | Before_link | Before_compile ->
             last_ccopts := v :: !last_ccopts
           | Before_args ->
             first_ccopts := v :: !first_ccopts
-        end
+        fin
 
       | "ppx" ->
-        begin
-          match position with
+        début
+          filtre position avec
           | Before_link | Before_compile ->
             last_ppx := v :: !last_ppx
           | Before_args ->
             first_ppx := v :: !first_ppx
-        end
+        fin
 
 
       | "cmo" | "cma" ->
-        if not !native_code then
-        begin
-          match position with
+        si not !native_code alors
+        début
+          filtre position avec
           | Before_link | Before_compile ->
             last_objfiles := v ::! last_objfiles
           | Before_args ->
             first_objfiles := v :: !first_objfiles
-        end
+        fin
 
       | "cmx" | "cmxa" ->
-        if !native_code then
-        begin
-          match position with
+        si !native_code alors
+        début
+          filtre position avec
           | Before_link | Before_compile ->
             last_objfiles := v ::! last_objfiles
           | Before_args ->
             first_objfiles := v :: !first_objfiles
-        end
+        fin
 
       | _ ->
         Printf.eprintf
             "Warning: discarding value of variable %S in OCAMLPARAM\n%!"
             name
-    ) (match position with
+    ) (filtre position avec
         Before_args -> before
       | Before_compile | Before_link -> after)
-  with Not_found -> ()
+  avec Not_found -> ()
 
-let readenv ppf position =
+soit readenv ppf position =
   last_include_dirs := [];
   last_ccopts := [];
   last_ppx := [];
@@ -269,5 +269,5 @@ let readenv ppf position =
   all_ccopts := !last_ccopts @ !first_ccopts;
   all_ppx := !last_ppx @ !first_ppx
 
-let get_objfiles () =
+soit get_objfiles () =
   List.rev (!last_objfiles @ !objfiles @ !first_objfiles)

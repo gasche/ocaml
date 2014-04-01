@@ -12,8 +12,8 @@
 
 (* Compilation of pattern-matching *)
 
-open Typedtree
-open Lambda
+ouvre Typedtree
+ouvre Lambda
 
 
 (* Entry points to match compiler *)

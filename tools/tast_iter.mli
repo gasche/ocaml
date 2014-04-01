@@ -10,38 +10,38 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Asttypes
-open Typedtree
+ouvre Asttypes
+ouvre Typedtree
 
-class iter: object
-  method binding: value_binding -> unit
-  method bindings: (rec_flag * value_binding list) -> unit
-  method case: case -> unit
-  method cases: case list -> unit
-  method class_description: class_description -> unit
-  method class_expr: class_expr -> unit
-  method class_field: class_field -> unit
-  method class_signature: class_signature -> unit
-  method class_structure: class_structure -> unit
-  method class_type: class_type -> unit
-  method class_type_declaration: class_type_declaration -> unit
-  method class_type_field: class_type_field -> unit
-  method core_type: core_type -> unit
-  method expression: expression -> unit
-  method module_binding: module_binding -> unit
-  method module_expr: module_expr -> unit
-  method module_type: module_type -> unit
-  method package_type: package_type -> unit
-  method pattern: pattern -> unit
-  method row_field: row_field -> unit
-  method signature: signature -> unit
-  method signature_item: signature_item -> unit
-  method structure: structure -> unit
-  method structure_item: structure_item -> unit
-  method type_declaration: type_declaration -> unit
-  method value_description: value_description -> unit
-  method with_constraint: with_constraint -> unit
-end
+classe iter: objet
+  méthode binding: value_binding -> unit
+  méthode bindings: (rec_flag * value_binding list) -> unit
+  méthode case: case -> unit
+  méthode cases: case list -> unit
+  méthode class_description: class_description -> unit
+  méthode class_expr: class_expr -> unit
+  méthode class_field: class_field -> unit
+  méthode class_signature: class_signature -> unit
+  méthode class_structure: class_structure -> unit
+  méthode class_type: class_type -> unit
+  méthode class_type_declaration: class_type_declaration -> unit
+  méthode class_type_field: class_type_field -> unit
+  méthode core_type: core_type -> unit
+  méthode expression: expression -> unit
+  méthode module_binding: module_binding -> unit
+  méthode module_expr: module_expr -> unit
+  méthode module_type: module_type -> unit
+  méthode package_type: package_type -> unit
+  méthode pattern: pattern -> unit
+  méthode row_field: row_field -> unit
+  méthode signature: signature -> unit
+  méthode signature_item: signature_item -> unit
+  méthode structure: structure -> unit
+  méthode structure_item: structure_item -> unit
+  méthode type_declaration: type_declaration -> unit
+  méthode value_description: value_description -> unit
+  méthode with_constraint: with_constraint -> unit
+fin
 (** Recursive iterator class. By inheriting from it and
     overriding selected methods, it is possible to implement
     custom behavior for specific kinds of nodes. *)

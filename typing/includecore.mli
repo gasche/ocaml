@@ -12,8 +12,8 @@
 
 (* Inclusion checks for the core language *)
 
-open Typedtree
-open Types
+ouvre Typedtree
+ouvre Types
 
 exception Dont_match
 
@@ -24,12 +24,12 @@ type type_mismatch =
   | Constraint
   | Manifest
   | Variance
-  | Field_type of Ident.t
-  | Field_mutable of Ident.t
-  | Field_arity of Ident.t
-  | Field_names of int * Ident.t * Ident.t
-  | Field_missing of bool * Ident.t
-  | Record_representation of bool
+  | Field_type de Ident.t
+  | Field_mutable de Ident.t
+  | Field_arity de Ident.t
+  | Field_names de int * Ident.t * Ident.t
+  | Field_missing de bool * Ident.t
+  | Record_representation de bool
 
 val value_descriptions:
     Env.t -> value_description -> value_description -> module_coercion

@@ -20,18 +20,18 @@ val check_consistency:
 val extract_crc_interfaces: unit -> (string * Digest.t) list
 
 type error =
-    File_not_found of string
-  | Not_an_object_file of string
-  | Wrong_object_name of string
-  | Symbol_error of string * Symtable.error
-  | Inconsistent_import of string * string * string
+    File_not_found de string
+  | Not_an_object_file de string
+  | Wrong_object_name de string
+  | Symbol_error de string * Symtable.error
+  | Inconsistent_import de string * string * string
   | Custom_runtime
-  | File_exists of string
-  | Cannot_open_dll of string
+  | File_exists de string
+  | Cannot_open_dll de string
   | Not_compatible_32
 
-exception Error of error
+exception Error de error
 
-open Format
+ouvre Format
 
 val report_error: formatter -> error -> unit

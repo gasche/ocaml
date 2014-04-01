@@ -13,13 +13,13 @@
 (* Auxiliary a.s.t. types used by parsetree and typedtree. *)
 
 type constant =
-    Const_int of int
-  | Const_char of char
-  | Const_string of string * string option
-  | Const_float of string
-  | Const_int32 of int32
-  | Const_int64 of int64
-  | Const_nativeint of nativeint
+    Const_int de int
+  | Const_char de char
+  | Const_string de string * string option
+  | Const_float de string
+  | Const_int32 de int32
+  | Const_int64 de int64
+  | Const_nativeint de nativeint
 
 type rec_flag = Nonrecursive | Recursive
 

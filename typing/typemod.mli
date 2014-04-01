@@ -12,8 +12,8 @@
 
 (* Type-checking of the module language *)
 
-open Types
-open Format
+ouvre Types
+ouvre Format
 
 val type_module:
         Env.t -> Parsetree.module_expr -> Typedtree.module_expr
@@ -40,28 +40,28 @@ val package_units:
         string list -> string -> string -> Typedtree.module_coercion
 
 type error =
-    Cannot_apply of module_type
-  | Not_included of Includemod.error list
-  | Cannot_eliminate_dependency of module_type
+    Cannot_apply de module_type
+  | Not_included de Includemod.error list
+  | Cannot_eliminate_dependency de module_type
   | Signature_expected
-  | Structure_expected of module_type
-  | With_no_component of Longident.t
-  | With_mismatch of Longident.t * Includemod.error list
-  | Repeated_name of string * string
-  | Non_generalizable of type_expr
-  | Non_generalizable_class of Ident.t * class_declaration
-  | Non_generalizable_module of module_type
-  | Implementation_is_required of string
-  | Interface_not_compiled of string
+  | Structure_expected de module_type
+  | With_no_component de Longident.t
+  | With_mismatch de Longident.t * Includemod.error list
+  | Repeated_name de string * string
+  | Non_generalizable de type_expr
+  | Non_generalizable_class de Ident.t * class_declaration
+  | Non_generalizable_module de module_type
+  | Implementation_is_required de string
+  | Interface_not_compiled de string
   | Not_allowed_in_functor_body
   | With_need_typeconstr
-  | Not_a_packed_module of type_expr
-  | Incomplete_packed_module of type_expr
-  | Scoping_pack of Longident.t * type_expr
-  | Extension of string
+  | Not_a_packed_module de type_expr
+  | Incomplete_packed_module de type_expr
+  | Scoping_pack de Longident.t * type_expr
+  | Extension de string
   | Recursive_module_require_explicit_type
   | Apply_generative
 
-exception Error of Location.t * Env.t * error
+exception Error de Location.t * Env.t * error
 
 val report_error: Env.t -> formatter -> error -> unit

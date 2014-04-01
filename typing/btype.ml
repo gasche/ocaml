@@ -12,8 +12,8 @@
 
 (* Basic operations on core types *)
 
-open Misc
-open Types
+ouvre Misc
+ouvre Types
 
 (**** Sets, maps and hashtables of types ****)
 
@@ -23,26 +23,26 @@ module TypeHash = Hashtbl.Make(TypeOps)
 
 (**** Forward declarations ****)
 
-let print_raw =
-  ref (fun _ -> assert false : Format.formatter -> type_expr -> unit)
+soit print_raw =
+  ref (fonc _ -> affirme faux : Format.formatter -> type_expr -> unit)
 
 (**** Type level management ****)
 
-let generic_level = 100000000
+soit generic_level = 100000000
 
 (* Used to mark a type during a traversal. *)
-let lowest_level = 0
-let pivot_level = 2 * lowest_level - 1
+soit lowest_level = 0
+soit pivot_level = 2 * lowest_level - 1
     (* pivot_level - lowest_level < lowest_level *)
 
 (**** Some type creators ****)
 
-let new_id = ref (-1)
+soit new_id = ref (-1)
 
-let newty2 level desc  =
+soit newty2 level desc  =
   incr new_id; { desc; level; id = !new_id }
-let newgenty desc      = newty2 generic_level desc
-let newgenvar ?name () = newgenty (Tvar name)
+soit newgenty desc      = newty2 generic_level desc
+soit newgenvar ?name () = newgenty (Tvar name)
 (*
 let newmarkedvar level =
   incr new_id; { desc = Tvar; level = pivot_level - level; id = !new_id }
@@ -53,23 +53,23 @@ let newmarkedgenvar () =
 
 (**** Check some types ****)
 
-let is_Tvar = function {desc=Tvar _} -> true | _ -> false
-let is_Tunivar = function {desc=Tunivar _} -> true | _ -> false
+soit is_Tvar = fonction {desc=Tvar _} -> vrai | _ -> faux
+soit is_Tunivar = fonction {desc=Tunivar _} -> vrai | _ -> faux
 
-let dummy_method = "*dummy method*"
-let default_mty = function
+soit dummy_method = "*dummy method*"
+soit default_mty = fonction
     Some mty -> mty
   | None -> Mty_signature []
 
 (**** Representative of a type ****)
 
-let rec field_kind_repr =
-  function
+soit rec field_kind_repr =
+  fonction
     Fvar {contents = Some kind} -> field_kind_repr kind
   | kind                        -> kind
 
-let rec repr =
-  function
+soit rec repr =
+  fonction
     {desc = Tlink t'} ->
       (*
          We do no path compression. Path compression does not seem to
@@ -78,143 +78,143 @@ let rec repr =
          unification).
       *)
       repr t'
-  | {desc = Tfield (_, k, _, t')} when field_kind_repr k = Fabsent ->
+  | {desc = Tfield (_, k, _, t')} quand field_kind_repr k = Fabsent ->
       repr t'
   | t -> t
 
-let rec commu_repr = function
-    Clink r when !r <> Cunknown -> commu_repr !r
+soit rec commu_repr = fonction
+    Clink r quand !r <> Cunknown -> commu_repr !r
   | c -> c
 
-let rec row_field_repr_aux tl = function
+soit rec row_field_repr_aux tl = fonction
     Reither(_, tl', _, {contents = Some fi}) ->
       row_field_repr_aux (tl@tl') fi
   | Reither(c, tl', m, r) ->
       Reither(c, tl@tl', m, r)
-  | Rpresent (Some _) when tl <> [] ->
+  | Rpresent (Some _) quand tl <> [] ->
       Rpresent (Some (List.hd tl))
   | fi -> fi
 
-let row_field_repr fi = row_field_repr_aux [] fi
+soit row_field_repr fi = row_field_repr_aux [] fi
 
-let rec rev_concat l ll =
-  match ll with
+soit rec rev_concat l ll =
+  filtre ll avec
     [] -> l
   | l'::ll -> rev_concat (l'@l) ll
 
-let rec row_repr_aux ll row =
-  match (repr row.row_more).desc with
+soit rec row_repr_aux ll row =
+  filtre (repr row.row_more).desc avec
   | Tvariant row' ->
-      let f = row.row_fields in
-      row_repr_aux (if f = [] then ll else f::ll) row'
+      soit f = row.row_fields dans
+      row_repr_aux (si f = [] alors ll sinon f::ll) row'
   | _ ->
-      if ll = [] then row else
-      {row with row_fields = rev_concat row.row_fields ll}
+      si ll = [] alors row sinon
+      {row avec row_fields = rev_concat row.row_fields ll}
 
-let row_repr row = row_repr_aux [] row
+soit row_repr row = row_repr_aux [] row
 
-let rec row_field tag row =
-  let rec find = function
+soit rec row_field tag row =
+  soit rec find = fonction
     | (tag',f) :: fields ->
-        if tag = tag' then row_field_repr f else find fields
+        si tag = tag' alors row_field_repr f sinon find fields
     | [] ->
-        match repr row.row_more with
+        filtre repr row.row_more avec
         | {desc=Tvariant row'} -> row_field tag row'
         | _ -> Rabsent
-  in find row.row_fields
+  dans find row.row_fields
 
-let rec row_more row =
-  match repr row.row_more with
+soit rec row_more row =
+  filtre repr row.row_more avec
   | {desc=Tvariant row'} -> row_more row'
   | ty -> ty
 
-let row_fixed row =
-  let row = row_repr row in
+soit row_fixed row =
+  soit row = row_repr row dans
   row.row_fixed ||
-  match (repr row.row_more).desc with
-    Tvar _ | Tnil -> false
-  | Tunivar _ | Tconstr _ -> true
-  | _ -> assert false
+  filtre (repr row.row_more).desc avec
+    Tvar _ | Tnil -> faux
+  | Tunivar _ | Tconstr _ -> vrai
+  | _ -> affirme faux
 
-let static_row row =
-  let row = row_repr row in
+soit static_row row =
+  soit row = row_repr row dans
   row.row_closed &&
   List.for_all
-    (fun (_,f) -> match row_field_repr f with Reither _ -> false | _ -> true)
+    (fonc (_,f) -> filtre row_field_repr f avec Reither _ -> faux | _ -> vrai)
     row.row_fields
 
-let hash_variant s =
-  let accu = ref 0 in
-  for i = 0 to String.length s - 1 do
+soit hash_variant s =
+  soit accu = ref 0 dans
+  pour i = 0 à String.length s - 1 faire
     accu := 223 * !accu + Char.code s.[i]
-  done;
+  fait;
   (* reduce to 31 bits *)
-  accu := !accu land (1 lsl 31 - 1);
+  accu := !accu etl (1 dgl 31 - 1);
   (* make it signed for 64 bits architectures *)
-  if !accu > 0x3FFFFFFF then !accu - (1 lsl 31) else !accu
+  si !accu > 0x3FFFFFFF alors !accu - (1 dgl 31) sinon !accu
 
-let proxy ty =
-  let ty0 = repr ty in
-  match ty0.desc with
-  | Tvariant row when not (static_row row) ->
+soit proxy ty =
+  soit ty0 = repr ty dans
+  filtre ty0.desc avec
+  | Tvariant row quand not (static_row row) ->
       row_more row
   | Tobject (ty, _) ->
-      let rec proxy_obj ty =
-        match ty.desc with
+      soit rec proxy_obj ty =
+        filtre ty.desc avec
           Tfield (_, _, _, ty) | Tlink ty -> proxy_obj ty
         | Tvar _ | Tunivar _ | Tconstr _ -> ty
         | Tnil -> ty0
-        | _ -> assert false
-      in proxy_obj ty
+        | _ -> affirme faux
+      dans proxy_obj ty
   | _ -> ty0
 
 (**** Utilities for fixed row private types ****)
 
-let has_constr_row t =
-  match (repr t).desc with
+soit has_constr_row t =
+  filtre (repr t).desc avec
     Tobject(t,_) ->
-      let rec check_row t =
-        match (repr t).desc with
+      soit rec check_row t =
+        filtre (repr t).desc avec
           Tfield(_,_,_,t) -> check_row t
-        | Tconstr _ -> true
-        | _ -> false
-      in check_row t
+        | Tconstr _ -> vrai
+        | _ -> faux
+      dans check_row t
   | Tvariant row ->
-      (match row_more row with {desc=Tconstr _} -> true | _ -> false)
+      (filtre row_more row avec {desc=Tconstr _} -> vrai | _ -> faux)
   | _ ->
-      false
+      faux
 
-let is_row_name s =
-  let l = String.length s in
-  if l < 4 then false else String.sub s (l-4) 4 = "#row"
+soit is_row_name s =
+  soit l = String.length s dans
+  si l < 4 alors faux sinon String.sub s (l-4) 4 = "#row"
 
-let is_constr_row t =
-  match t.desc with
+soit is_constr_row t =
+  filtre t.desc avec
     Tconstr (Path.Pident id, _, _) -> is_row_name (Ident.name id)
   | Tconstr (Path.Pdot (_, s, _), _, _) -> is_row_name s
-  | _ -> false
+  | _ -> faux
 
 
                   (**********************************)
                   (*  Utilities for type traversal  *)
                   (**********************************)
 
-let rec iter_row f row =
+soit rec iter_row f row =
   List.iter
-    (fun (_, fi) ->
-      match row_field_repr fi with
+    (fonc (_, fi) ->
+      filtre row_field_repr fi avec
       | Rpresent(Some ty) -> f ty
       | Reither(_, tl, _, _) -> List.iter f tl
       | _ -> ())
     row.row_fields;
-  match (repr row.row_more).desc with
+  filtre (repr row.row_more).desc avec
     Tvariant row -> iter_row f row
   | Tvar _ | Tunivar _ | Tsubst _ | Tconstr _ | Tnil ->
-      Misc.may (fun (_,l) -> List.iter f l) row.row_name
-  | _ -> assert false
+      Misc.may (fonc (_,l) -> List.iter f l) row.row_name
+  | _ -> affirme faux
 
-let iter_type_expr f ty =
-  match ty.desc with
+soit iter_type_expr f ty =
+  filtre ty.desc avec
     Tvar _              -> ()
   | Tarrow (_, ty1, ty2, _) -> f ty1; f ty2
   | Ttuple l            -> List.iter f l
@@ -231,7 +231,7 @@ let iter_type_expr f ty =
   | Tpoly (ty, tyl)     -> f ty; List.iter f tyl
   | Tpackage (_, _, l)  -> List.iter f l
 
-let rec iter_abbrev f = function
+soit rec iter_abbrev f = fonction
     Mnil                   -> ()
   | Mcons(_, _, ty, ty', rem) -> f ty; f ty'; iter_abbrev f rem
   | Mlink rem              -> iter_abbrev f !rem
@@ -252,10 +252,10 @@ type type_iterators =
     it_type_expr: type_iterators -> type_expr -> unit;
     it_path: Path.t -> unit; }
 
-let type_iterators =
-  let it_signature it =
+soit type_iterators =
+  soit it_signature it =
     List.iter (it.it_signature_item it)
-  and it_signature_item it = function
+  et it_signature_item it = fonction
       Sig_value (_, vd)     -> it.it_value_description it vd
     | Sig_type (_, td, _)   -> it.it_type_declaration it td
     | Sig_exception (_, ed) -> it.it_exception_declaration it ed
@@ -263,205 +263,205 @@ let type_iterators =
     | Sig_modtype (_, mtd)  -> it.it_modtype_declaration it mtd
     | Sig_class (_, cd, _)  -> it.it_class_declaration it cd
     | Sig_class_type (_, ctd, _) -> it.it_class_type_declaration it ctd
-  and it_value_description it vd =
+  et it_value_description it vd =
     it.it_type_expr it vd.val_type
-  and it_type_declaration it td =
+  et it_type_declaration it td =
     List.iter (it.it_type_expr it) td.type_params;
     may (it.it_type_expr it) td.type_manifest;
     it.it_type_kind it td.type_kind
-  and it_exception_declaration it ed =
+  et it_exception_declaration it ed =
     List.iter (it.it_type_expr it) ed.exn_args
-  and it_module_declaration it md =
+  et it_module_declaration it md =
     it.it_module_type it md.md_type
-  and it_modtype_declaration it mtd =
+  et it_modtype_declaration it mtd =
     may (it.it_module_type it) mtd.mtd_type
-  and it_class_declaration it cd =
+  et it_class_declaration it cd =
     List.iter (it.it_type_expr it) cd.cty_params;
     it.it_class_type it cd.cty_type;
     may (it.it_type_expr it) cd.cty_new;
     it.it_path cd.cty_path
-  and it_class_type_declaration it ctd =
+  et it_class_type_declaration it ctd =
     List.iter (it.it_type_expr it) ctd.clty_params;
     it.it_class_type it ctd.clty_type;
     it.it_path ctd.clty_path
-  and it_module_type it = function
+  et it_module_type it = fonction
       Mty_ident p
     | Mty_alias p -> it.it_path p
     | Mty_signature sg -> it.it_signature it sg
     | Mty_functor (_, mto, mt) ->
         may (it.it_module_type it) mto;
         it.it_module_type it mt
-  and it_class_type it = function
+  et it_class_type it = fonction
       Cty_constr (p, tyl, cty) ->
         it.it_path p;
         List.iter (it.it_type_expr it) tyl;
         it.it_class_type it cty
     | Cty_signature cs ->
         it.it_type_expr it cs.csig_self;
-        Vars.iter (fun _ (_,_,ty) -> it.it_type_expr it ty) cs.csig_vars;
+        Vars.iter (fonc _ (_,_,ty) -> it.it_type_expr it ty) cs.csig_vars;
         List.iter
-          (fun (p, tl) -> it.it_path p; List.iter (it.it_type_expr it) tl)
+          (fonc (p, tl) -> it.it_path p; List.iter (it.it_type_expr it) tl)
           cs.csig_inher
     | Cty_arrow  (_, ty, cty) ->
         it.it_type_expr it ty;
         it.it_class_type it cty
-  and it_type_kind it = function
+  et it_type_kind it = fonction
       Type_abstract -> ()
     | Type_record (ll, _) ->
-        List.iter (fun ld -> it.it_type_expr it ld.ld_type) ll
+        List.iter (fonc ld -> it.it_type_expr it ld.ld_type) ll
     | Type_variant cl ->
-        List.iter (fun cd ->
+        List.iter (fonc cd ->
           List.iter (it.it_type_expr it) cd.cd_args;
           may (it.it_type_expr it) cd.cd_res)
           cl
-  and it_type_expr it ty =
+  et it_type_expr it ty =
     iter_type_expr (it.it_type_expr it) ty;
-    match ty.desc with
+    filtre ty.desc avec
       Tconstr (p, _, _)
     | Tobject (_, {contents=Some (p, _)})
     | Tpackage (p, _, _) ->
         it.it_path p
     | Tvariant row ->
-        may (fun (p,_) -> it.it_path p) (row_repr row).row_name
+        may (fonc (p,_) -> it.it_path p) (row_repr row).row_name
     | _ -> ()
-  and it_path p = ()
-  in
+  et it_path p = ()
+  dans
   { it_path; it_type_expr; it_type_kind; it_class_type; it_module_type;
     it_signature; it_class_type_declaration; it_class_declaration;
     it_modtype_declaration; it_module_declaration; it_exception_declaration;
     it_type_declaration; it_value_description; it_signature_item; }
 
-let copy_row f fixed row keep more =
-  let fields = List.map
-      (fun (l, fi) -> l,
-        match row_field_repr fi with
+soit copy_row f fixed row keep more =
+  soit fields = List.map
+      (fonc (l, fi) -> l,
+        filtre row_field_repr fi avec
         | Rpresent(Some ty) -> Rpresent(Some(f ty))
         | Reither(c, tl, m, e) ->
-            let e = if keep then e else ref None in
-            let m = if row.row_fixed then fixed else m in
-            let tl = List.map f tl in
+            soit e = si keep alors e sinon ref None dans
+            soit m = si row.row_fixed alors fixed sinon m dans
+            soit tl = List.map f tl dans
             Reither(c, tl, m, e)
         | _ -> fi)
-      row.row_fields in
-  let name =
-    match row.row_name with None -> None
-    | Some (path, tl) -> Some (path, List.map f tl) in
+      row.row_fields dans
+  soit name =
+    filtre row.row_name avec None -> None
+    | Some (path, tl) -> Some (path, List.map f tl) dans
   { row_fields = fields; row_more = more;
     row_bound = (); row_fixed = row.row_fixed && fixed;
     row_closed = row.row_closed; row_name = name; }
 
-let rec copy_kind = function
+soit rec copy_kind = fonction
     Fvar{contents = Some k} -> copy_kind k
   | Fvar _   -> Fvar (ref None)
   | Fpresent -> Fpresent
-  | Fabsent  -> assert false
+  | Fabsent  -> affirme faux
 
-let copy_commu c =
-  if commu_repr c = Cok then Cok else Clink (ref Cunknown)
+soit copy_commu c =
+  si commu_repr c = Cok alors Cok sinon Clink (ref Cunknown)
 
 (* Since univars may be used as row variables, we need to do some
    encoding during substitution *)
-let rec norm_univar ty =
-  match ty.desc with
+soit rec norm_univar ty =
+  filtre ty.desc avec
     Tunivar _ | Tsubst _ -> ty
   | Tlink ty           -> norm_univar ty
   | Ttuple (ty :: _)   -> norm_univar ty
-  | _                  -> assert false
+  | _                  -> affirme faux
 
-let rec copy_type_desc ?(keep_names=false) f = function
-    Tvar _ as ty        -> if keep_names then ty else Tvar None
+soit rec copy_type_desc ?(keep_names=faux) f = fonction
+    Tvar _ tel ty        -> si keep_names alors ty sinon Tvar None
   | Tarrow (p, ty1, ty2, c)-> Tarrow (p, f ty1, f ty2, copy_commu c)
   | Ttuple l            -> Ttuple (List.map f l)
   | Tconstr (p, l, _)   -> Tconstr (p, List.map f l, ref Mnil)
   | Tobject(ty, {contents = Some (p, tl)})
                         -> Tobject (f ty, ref (Some(p, List.map f tl)))
   | Tobject (ty, _)     -> Tobject (f ty, ref None)
-  | Tvariant row        -> assert false (* too ambiguous *)
+  | Tvariant row        -> affirme faux (* too ambiguous *)
   | Tfield (p, k, ty1, ty2) -> (* the kind is kept shared *)
       Tfield (p, field_kind_repr k, f ty1, f ty2)
   | Tnil                -> Tnil
   | Tlink ty            -> copy_type_desc f ty.desc
-  | Tsubst ty           -> assert false
-  | Tunivar _ as ty     -> ty (* always keep the name *)
+  | Tsubst ty           -> affirme faux
+  | Tunivar _ tel ty     -> ty (* always keep the name *)
   | Tpoly (ty, tyl)     ->
-      let tyl = List.map (fun x -> norm_univar (f x)) tyl in
+      soit tyl = List.map (fonc x -> norm_univar (f x)) tyl dans
       Tpoly (f ty, tyl)
   | Tpackage (p, n, l)  -> Tpackage (p, n, List.map f l)
 
 (* Utilities for copying *)
 
-let saved_desc = ref []
+soit saved_desc = ref []
   (* Saved association of generic nodes with their description. *)
 
-let save_desc ty desc =
+soit save_desc ty desc =
   saved_desc := (ty, desc)::!saved_desc
 
-let saved_kinds = ref [] (* duplicated kind variables *)
-let new_kinds = ref []   (* new kind variables *)
-let dup_kind r =
-  (match !r with None -> () | Some _ -> assert false);
-  if not (List.memq r !new_kinds) then begin
+soit saved_kinds = ref [] (* duplicated kind variables *)
+soit new_kinds = ref []   (* new kind variables *)
+soit dup_kind r =
+  (filtre !r avec None -> () | Some _ -> affirme faux);
+  si not (List.memq r !new_kinds) alors début
     saved_kinds := r :: !saved_kinds;
-    let r' = ref None in
+    soit r' = ref None dans
     new_kinds := r' :: !new_kinds;
     r := Some (Fvar r')
-  end
+  fin
 
 (* Restored type descriptions. *)
-let cleanup_types () =
-  List.iter (fun (ty, desc) -> ty.desc <- desc) !saved_desc;
-  List.iter (fun r -> r := None) !saved_kinds;
+soit cleanup_types () =
+  List.iter (fonc (ty, desc) -> ty.desc <- desc) !saved_desc;
+  List.iter (fonc r -> r := None) !saved_kinds;
   saved_desc := []; saved_kinds := []; new_kinds := []
 
 (* Mark a type. *)
-let rec mark_type ty =
-  let ty = repr ty in
-  if ty.level >= lowest_level then begin
+soit rec mark_type ty =
+  soit ty = repr ty dans
+  si ty.level >= lowest_level alors début
     ty.level <- pivot_level - ty.level;
     iter_type_expr mark_type ty
-  end
+  fin
 
-let mark_type_node ty =
-  let ty = repr ty in
-  if ty.level >= lowest_level then begin
+soit mark_type_node ty =
+  soit ty = repr ty dans
+  si ty.level >= lowest_level alors début
     ty.level <- pivot_level - ty.level;
-  end
+  fin
 
-let mark_type_params ty =
+soit mark_type_params ty =
   iter_type_expr mark_type ty
 
 (* Remove marks from a type. *)
-let rec unmark_type ty =
-  let ty = repr ty in
-  if ty.level < lowest_level then begin
+soit rec unmark_type ty =
+  soit ty = repr ty dans
+  si ty.level < lowest_level alors début
     ty.level <- pivot_level - ty.level;
     iter_type_expr unmark_type ty
-  end
+  fin
 
-let unmark_type_decl decl =
+soit unmark_type_decl decl =
   List.iter unmark_type decl.type_params;
-  begin match decl.type_kind with
+  début filtre decl.type_kind avec
     Type_abstract -> ()
   | Type_variant cstrs ->
       List.iter
-        (fun d ->
+        (fonc d ->
           List.iter unmark_type d.cd_args;
           Misc.may unmark_type d.cd_res)
         cstrs
   | Type_record(lbls, rep) ->
-      List.iter (fun d -> unmark_type d.ld_type) lbls
-  end;
-  begin match decl.type_manifest with
+      List.iter (fonc d -> unmark_type d.ld_type) lbls
+  fin;
+  début filtre decl.type_manifest avec
     None    -> ()
   | Some ty -> unmark_type ty
-  end
+  fin
 
-let unmark_class_signature sign =
+soit unmark_class_signature sign =
   unmark_type sign.csig_self;
-  Vars.iter (fun l (m, v, t) -> unmark_type t) sign.csig_vars
+  Vars.iter (fonc l (m, v, t) -> unmark_type t) sign.csig_vars
 
-let rec unmark_class_type =
-  function
+soit rec unmark_class_type =
+  fonction
     Cty_constr (p, tyl, cty) ->
       List.iter unmark_type tyl; unmark_class_type cty
   | Cty_signature sign ->
@@ -475,10 +475,10 @@ let rec unmark_class_type =
                   (*******************************************)
 
 (* Search whether the expansion has been memorized. *)
-let rec find_expans priv p1 = function
+soit rec find_expans priv p1 = fonction
     Mnil -> None
   | Mcons (priv', p2, ty0, ty, _)
-    when priv' >= priv && Path.same p1 p2 -> Some ty
+    quand priv' >= priv && Path.same p1 p2 -> Some ty
   | Mcons (_, _, _, _, rem)   -> find_expans priv p1 rem
   | Mlink {contents = rem} -> find_expans priv p1 rem
 
@@ -495,25 +495,25 @@ let rec check_expans visited ty =
   | _ -> ()
 *)
 
-let memo = ref []
+soit memo = ref []
         (* Contains the list of saved abbreviation expansions. *)
 
-let cleanup_abbrev () =
+soit cleanup_abbrev () =
         (* Remove all memorized abbreviation expansions. *)
-  List.iter (fun abbr -> abbr := Mnil) !memo;
+  List.iter (fonc abbr -> abbr := Mnil) !memo;
   memo := []
 
-let memorize_abbrev mem priv path v v' =
+soit memorize_abbrev mem priv path v v' =
         (* Memorize the expansion of an abbreviation. *)
   mem := Mcons (priv, path, v, v', !mem);
   (* check_expans [] v; *)
   memo := mem :: !memo
 
-let rec forget_abbrev_rec mem path =
-  match mem with
+soit rec forget_abbrev_rec mem path =
+  filtre mem avec
     Mnil ->
-      assert false
-  | Mcons (_, path', _, _, rem) when Path.same path path' ->
+      affirme faux
+  | Mcons (_, path', _, _, rem) quand Path.same path path' ->
       rem
   | Mcons (priv, path', v, v', rem) ->
       Mcons (priv, path', v, v', forget_abbrev_rec rem path)
@@ -521,8 +521,8 @@ let rec forget_abbrev_rec mem path =
       mem' := forget_abbrev_rec !mem' path;
       raise Exit
 
-let forget_abbrev mem path =
-  try mem := forget_abbrev_rec !mem path with Exit -> ()
+soit forget_abbrev mem path =
+  essaie mem := forget_abbrev_rec !mem path avec Exit -> ()
 
 (* debug: check for invalid abbreviations
 let rec check_abbrev_rec = function
@@ -540,20 +540,20 @@ let check_memorized_abbrevs () =
                   (*  Utilities for labels          *)
                   (**********************************)
 
-let is_optional l =
+soit is_optional l =
   String.length l > 0 && l.[0] = '?'
 
-let label_name l =
-  if is_optional l then String.sub l 1 (String.length l - 1)
-                   else l
+soit label_name l =
+  si is_optional l alors String.sub l 1 (String.length l - 1)
+                   sinon l
 
-let rec extract_label_aux hd l = function
+soit rec extract_label_aux hd l = fonction
     [] -> raise Not_found
-  | (l',t as p) :: ls ->
-      if label_name l' = l then (l', t, List.rev hd, ls)
-      else extract_label_aux (p::hd) l ls
+  | (l',t tel p) :: ls ->
+      si label_name l' = l alors (l', t, List.rev hd, ls)
+      sinon extract_label_aux (p::hd) l ls
 
-let extract_label l ls = extract_label_aux [] l ls
+soit extract_label l ls = extract_label_aux [] l ls
 
 
                   (**********************************)
@@ -561,17 +561,17 @@ let extract_label l ls = extract_label_aux [] l ls
                   (**********************************)
 
 type change =
-    Ctype of type_expr * type_desc
-  | Clevel of type_expr * int
-  | Cname of
+    Ctype de type_expr * type_desc
+  | Clevel de type_expr * int
+  | Cname de
       (Path.t * type_expr list) option ref * (Path.t * type_expr list) option
-  | Crow of row_field option ref * row_field option
-  | Ckind of field_kind option ref * field_kind option
-  | Ccommu of commutable ref * commutable
-  | Cuniv of type_expr option ref * type_expr option
-  | Ctypeset of TypeSet.t ref * TypeSet.t
+  | Crow de row_field option ref * row_field option
+  | Ckind de field_kind option ref * field_kind option
+  | Ccommu de commutable ref * commutable
+  | Cuniv de type_expr option ref * type_expr option
+  | Ctypeset de TypeSet.t ref * TypeSet.t
 
-let undo_change = function
+soit undo_change = fonction
     Ctype  (ty, desc) -> ty.desc <- desc
   | Clevel (ty, level) -> ty.level <- level
   | Cname  (r, v) -> r := v
@@ -582,82 +582,82 @@ let undo_change = function
   | Ctypeset (r, v) -> r := v
 
 type changes =
-    Change of change * changes ref
+    Change de change * changes ref
   | Unchanged
   | Invalid
 
 type snapshot = changes ref * int
 
-let trail = Weak.create 1
-let last_snapshot = ref 0
+soit trail = Weak.create 1
+soit last_snapshot = ref 0
 
-let log_change ch =
-  match Weak.get trail 0 with None -> ()
+soit log_change ch =
+  filtre Weak.get trail 0 avec None -> ()
   | Some r ->
-      let r' = ref Unchanged in
+      soit r' = ref Unchanged dans
       r := Change (ch, r');
       Weak.set trail 0 (Some r')
 
-let log_type ty =
-  if ty.id <= !last_snapshot then log_change (Ctype (ty, ty.desc))
-let link_type ty ty' =
+soit log_type ty =
+  si ty.id <= !last_snapshot alors log_change (Ctype (ty, ty.desc))
+soit link_type ty ty' =
   log_type ty;
-  let desc = ty.desc in
+  soit desc = ty.desc dans
   ty.desc <- Tlink ty';
   (* Name is a user-supplied name for this unification variable (obtained
    * through a type annotation for instance). *)
-  match desc, ty'.desc with
+  filtre desc, ty'.desc avec
     Tvar name, Tvar name' ->
-      begin match name, name' with
+      début filtre name, name' avec
       | Some _, None ->  log_type ty'; ty'.desc <- Tvar name
       | None, Some _ ->  ()
       | Some _, Some _ ->
-          if ty.level < ty'.level then (log_type ty'; ty'.desc <- Tvar name)
+          si ty.level < ty'.level alors (log_type ty'; ty'.desc <- Tvar name)
       | None, None   ->  ()
-      end
+      fin
   | _ -> ()
   (* ; assert (check_memorized_abbrevs ()) *)
   (*  ; check_expans [] ty' *)
-let set_level ty level =
-  if ty.id <= !last_snapshot then log_change (Clevel (ty, ty.level));
+soit set_level ty level =
+  si ty.id <= !last_snapshot alors log_change (Clevel (ty, ty.level));
   ty.level <- level
-let set_univar rty ty =
+soit set_univar rty ty =
   log_change (Cuniv (rty, !rty)); rty := Some ty
-let set_name nm v =
+soit set_name nm v =
   log_change (Cname (nm, !nm)); nm := v
-let set_row_field e v =
+soit set_row_field e v =
   log_change (Crow (e, !e)); e := Some v
-let set_kind rk k =
+soit set_kind rk k =
   log_change (Ckind (rk, !rk)); rk := Some k
-let set_commu rc c =
+soit set_commu rc c =
   log_change (Ccommu (rc, !rc)); rc := c
-let set_typeset rs s =
+soit set_typeset rs s =
   log_change (Ctypeset (rs, !rs)); rs := s
 
-let snapshot () =
-  let old = !last_snapshot in
+soit snapshot () =
+  soit old = !last_snapshot dans
   last_snapshot := !new_id;
-  match Weak.get trail 0 with Some r -> (r, old)
+  filtre Weak.get trail 0 avec Some r -> (r, old)
   | None ->
-      let r = ref Unchanged in
+      soit r = ref Unchanged dans
       Weak.set trail 0 (Some r);
       (r, old)
 
-let rec rev_log accu = function
+soit rec rev_log accu = fonction
     Unchanged -> accu
-  | Invalid -> assert false
+  | Invalid -> affirme faux
   | Change (ch, next) ->
-      let d = !next in
+      soit d = !next dans
       next := Invalid;
       rev_log (ch::accu) d
 
-let backtrack (changes, old) =
-  match !changes with
+soit backtrack (changes, old) =
+  filtre !changes avec
     Unchanged -> last_snapshot := old
   | Invalid -> failwith "Btype.backtrack"
-  | Change _ as change ->
+  | Change _ tel change ->
       cleanup_abbrev ();
-      let backlog = rev_log [] change in
+      soit backlog = rev_log [] change dans
       List.iter undo_change backlog;
       changes := Unchanged;
       last_snapshot := old;

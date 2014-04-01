@@ -13,94 +13,94 @@
 
 (* $Id$ *)
 
-open Int_misc
+ouvre Int_misc
 
 type nat;;
 
-external create_nat: int -> nat = "create_nat"
-external set_to_zero_nat: nat -> int -> int -> unit = "set_to_zero_nat"
-external blit_nat: nat -> int -> nat -> int -> int -> unit = "blit_nat"
-external set_digit_nat: nat -> int -> int -> unit = "set_digit_nat"
-external nth_digit_nat: nat -> int -> int = "nth_digit_nat"
-external set_digit_nat_native: nat -> int -> nativeint -> unit = "set_digit_nat_native"
-external nth_digit_nat_native: nat -> int -> nativeint = "nth_digit_nat_native"
-external num_digits_nat: nat -> int -> int -> int = "num_digits_nat"
-external num_leading_zero_bits_in_digit: nat -> int -> int = "num_leading_zero_bits_in_digit"
-external is_digit_int: nat -> int -> bool = "is_digit_int"
-external is_digit_zero: nat -> int -> bool = "is_digit_zero"
-external is_digit_normalized: nat -> int -> bool = "is_digit_normalized"
-external is_digit_odd: nat -> int -> bool = "is_digit_odd"
-external incr_nat: nat -> int -> int -> int -> int = "incr_nat"
-external add_nat: nat -> int -> int -> nat -> int -> int -> int -> int = "add_nat" "add_nat_native"
-external complement_nat: nat -> int -> int -> unit = "complement_nat"
-external decr_nat: nat -> int -> int -> int -> int = "decr_nat"
-external sub_nat: nat -> int -> int -> nat -> int -> int -> int -> int = "sub_nat" "sub_nat_native"
-external mult_digit_nat: nat -> int -> int -> nat -> int -> int -> nat -> int -> int = "mult_digit_nat" "mult_digit_nat_native"
-external mult_nat: nat -> int -> int -> nat -> int -> int -> nat -> int -> int -> int = "mult_nat" "mult_nat_native"
-external square_nat: nat -> int -> int -> nat -> int -> int -> int = "square_nat" "square_nat_native"
-external shift_left_nat: nat -> int -> int -> nat -> int -> int -> unit = "shift_left_nat" "shift_left_nat_native"
-external div_digit_nat: nat -> int -> nat -> int -> nat -> int -> int -> nat -> int -> unit = "div_digit_nat" "div_digit_nat_native"
-external div_nat: nat -> int -> int -> nat -> int -> int -> unit = "div_nat" "div_nat_native"
-external shift_right_nat: nat -> int -> int -> nat -> int -> int -> unit = "shift_right_nat" "shift_right_nat_native"
-external compare_digits_nat: nat -> int -> nat -> int -> int = "compare_digits_nat"
-external compare_nat: nat -> int -> int -> nat -> int -> int -> int = "compare_nat" "compare_nat_native"
-external land_digit_nat: nat -> int -> nat -> int -> unit = "land_digit_nat"
-external lor_digit_nat: nat -> int -> nat -> int -> unit = "lor_digit_nat"
-external lxor_digit_nat: nat -> int -> nat -> int -> unit = "lxor_digit_nat"
+dehors create_nat: int -> nat = "create_nat"
+dehors set_to_zero_nat: nat -> int -> int -> unit = "set_to_zero_nat"
+dehors blit_nat: nat -> int -> nat -> int -> int -> unit = "blit_nat"
+dehors set_digit_nat: nat -> int -> int -> unit = "set_digit_nat"
+dehors nth_digit_nat: nat -> int -> int = "nth_digit_nat"
+dehors set_digit_nat_native: nat -> int -> nativeint -> unit = "set_digit_nat_native"
+dehors nth_digit_nat_native: nat -> int -> nativeint = "nth_digit_nat_native"
+dehors num_digits_nat: nat -> int -> int -> int = "num_digits_nat"
+dehors num_leading_zero_bits_in_digit: nat -> int -> int = "num_leading_zero_bits_in_digit"
+dehors is_digit_int: nat -> int -> bool = "is_digit_int"
+dehors is_digit_zero: nat -> int -> bool = "is_digit_zero"
+dehors is_digit_normalized: nat -> int -> bool = "is_digit_normalized"
+dehors is_digit_odd: nat -> int -> bool = "is_digit_odd"
+dehors incr_nat: nat -> int -> int -> int -> int = "incr_nat"
+dehors add_nat: nat -> int -> int -> nat -> int -> int -> int -> int = "add_nat" "add_nat_native"
+dehors complement_nat: nat -> int -> int -> unit = "complement_nat"
+dehors decr_nat: nat -> int -> int -> int -> int = "decr_nat"
+dehors sub_nat: nat -> int -> int -> nat -> int -> int -> int -> int = "sub_nat" "sub_nat_native"
+dehors mult_digit_nat: nat -> int -> int -> nat -> int -> int -> nat -> int -> int = "mult_digit_nat" "mult_digit_nat_native"
+dehors mult_nat: nat -> int -> int -> nat -> int -> int -> nat -> int -> int -> int = "mult_nat" "mult_nat_native"
+dehors square_nat: nat -> int -> int -> nat -> int -> int -> int = "square_nat" "square_nat_native"
+dehors shift_left_nat: nat -> int -> int -> nat -> int -> int -> unit = "shift_left_nat" "shift_left_nat_native"
+dehors div_digit_nat: nat -> int -> nat -> int -> nat -> int -> int -> nat -> int -> unit = "div_digit_nat" "div_digit_nat_native"
+dehors div_nat: nat -> int -> int -> nat -> int -> int -> unit = "div_nat" "div_nat_native"
+dehors shift_right_nat: nat -> int -> int -> nat -> int -> int -> unit = "shift_right_nat" "shift_right_nat_native"
+dehors compare_digits_nat: nat -> int -> nat -> int -> int = "compare_digits_nat"
+dehors compare_nat: nat -> int -> int -> nat -> int -> int -> int = "compare_nat" "compare_nat_native"
+dehors land_digit_nat: nat -> int -> nat -> int -> unit = "land_digit_nat"
+dehors lor_digit_nat: nat -> int -> nat -> int -> unit = "lor_digit_nat"
+dehors lxor_digit_nat: nat -> int -> nat -> int -> unit = "lxor_digit_nat"
 
-external initialize_nat: unit -> unit = "initialize_nat"
-let _ = initialize_nat()
+dehors initialize_nat: unit -> unit = "initialize_nat"
+soit _ = initialize_nat()
 
-let length_nat (n : nat) = Obj.size (Obj.repr n) - 1
+soit length_nat (n : nat) = Obj.size (Obj.repr n) - 1
 
-let length_of_digit = Sys.word_size;;
+soit length_of_digit = Sys.word_size;;
 
-let make_nat len =
-  if len < 0 then invalid_arg "make_nat" else
-    let res = create_nat len in set_to_zero_nat res 0 len; res
+soit make_nat len =
+  si len < 0 alors invalid_arg "make_nat" sinon
+    soit res = create_nat len dans set_to_zero_nat res 0 len; res
 
 (* Nat temporaries *)
-let a_2 = make_nat 2
-and a_1 = make_nat 1
-and b_2 = make_nat 2
+soit a_2 = make_nat 2
+et a_1 = make_nat 1
+et b_2 = make_nat 2
 
-let copy_nat nat off_set length =
- let res = create_nat (length) in
+soit copy_nat nat off_set length =
+ soit res = create_nat (length) dans
   blit_nat res 0 nat off_set length;
   res
 
-let is_zero_nat n off len =
+soit is_zero_nat n off len =
   compare_nat (make_nat 1) 0 1 n off (num_digits_nat n off len) = 0
 
-let is_nat_int nat off len =
+soit is_nat_int nat off len =
   num_digits_nat nat off len = 1 && is_digit_int nat off
 
-let sys_int_of_nat nat off len =
-  if is_nat_int nat off len
-  then nth_digit_nat nat off
-  else failwith "int_of_nat"
+soit sys_int_of_nat nat off len =
+  si is_nat_int nat off len
+  alors nth_digit_nat nat off
+  sinon failwith "int_of_nat"
 
-let int_of_nat nat =
+soit int_of_nat nat =
   sys_int_of_nat nat 0 (length_nat nat)
 
-let nat_of_int i =
-  if i < 0 then invalid_arg "nat_of_int" else
-    let res = make_nat 1 in
-    if i = 0 then res else begin set_digit_nat res 0 i; res end
+soit nat_of_int i =
+  si i < 0 alors invalid_arg "nat_of_int" sinon
+    soit res = make_nat 1 dans
+    si i = 0 alors res sinon dÃ©but set_digit_nat res 0 i; res fin
 
-let eq_nat nat1 off1 len1 nat2 off2 len2 =
+soit eq_nat nat1 off1 len1 nat2 off2 len2 =
   compare_nat nat1 off1 (num_digits_nat nat1 off1 len1)
               nat2 off2 (num_digits_nat nat2 off2 len2) = 0
-and le_nat nat1 off1 len1 nat2 off2 len2 =
+et le_nat nat1 off1 len1 nat2 off2 len2 =
   compare_nat nat1 off1 (num_digits_nat nat1 off1 len1)
               nat2 off2 (num_digits_nat nat2 off2 len2) <= 0
-and lt_nat nat1 off1 len1 nat2 off2 len2 =
+et lt_nat nat1 off1 len1 nat2 off2 len2 =
   compare_nat nat1 off1 (num_digits_nat nat1 off1 len1)
               nat2 off2 (num_digits_nat nat2 off2 len2) < 0
-and ge_nat nat1 off1 len1 nat2 off2 len2 =
+et ge_nat nat1 off1 len1 nat2 off2 len2 =
   compare_nat nat1 off1 (num_digits_nat nat1 off1 len1)
               nat2 off2 (num_digits_nat nat2 off2 len2) >= 0
-and gt_nat nat1 off1 len1 nat2 off2 len2 =
+et gt_nat nat1 off1 len1 nat2 off2 len2 =
   compare_nat nat1 off1 (num_digits_nat nat1 off1 len1)
               nat2 off2 (num_digits_nat nat2 off2 len2) > 0
 
@@ -139,51 +139,51 @@ let square_nat nat1 off1 len1 nat2 off2 len2 =
   !c
 ***)
 
-let gcd_int_nat i nat off len =
-  if i = 0 then 1 else
-  if is_nat_int nat off len then begin
+soit gcd_int_nat i nat off len =
+  si i = 0 alors 1 sinon
+  si is_nat_int nat off len alors dÃ©but
     set_digit_nat nat off (gcd_int (nth_digit_nat nat off) i); 0
-  end else begin
-    let len_copy = succ len in
-    let copy = create_nat len_copy
-    and quotient = create_nat 1
-    and remainder = create_nat 1 in
+  fin sinon dÃ©but
+    soit len_copy = succ len dans
+    soit copy = create_nat len_copy
+    et quotient = create_nat 1
+    et remainder = create_nat 1 dans
     blit_nat copy 0 nat off len;
     set_digit_nat copy len 0;
     div_digit_nat quotient 0 remainder 0 copy 0 len_copy (nat_of_int i) 0;
     set_digit_nat nat off (gcd_int (nth_digit_nat remainder 0) i);
     0
-  end
+  fin
 
-let exchange r1 r2 =
-  let old1 = !r1 in r1 := !r2; r2 := old1
+soit exchange r1 r2 =
+  soit old1 = !r1 dans r1 := !r2; r2 := old1
 
-let gcd_nat nat1 off1 len1 nat2 off2 len2 =
-  if is_zero_nat nat1 off1 len1 then begin
+soit gcd_nat nat1 off1 len1 nat2 off2 len2 =
+  si is_zero_nat nat1 off1 len1 alors dÃ©but
     blit_nat nat1 off1 nat2 off2 len2; len2
-  end else begin
-    let copy1 = ref (create_nat (succ len1))
-    and copy2 = ref (create_nat (succ len2)) in
+  fin sinon dÃ©but
+    soit copy1 = ref (create_nat (succ len1))
+    et copy2 = ref (create_nat (succ len2)) dans
       blit_nat !copy1 0 nat1 off1 len1;
       blit_nat !copy2 0 nat2 off2 len2;
       set_digit_nat !copy1 len1 0;
       set_digit_nat !copy2 len2 0;
-      if lt_nat !copy1 0 len1 !copy2 0 len2
-         then exchange copy1 copy2;
-      let real_len1 =
+      si lt_nat !copy1 0 len1 !copy2 0 len2
+         alors exchange copy1 copy2;
+      soit real_len1 =
             ref (num_digits_nat !copy1 0 (length_nat !copy1))
-      and real_len2 =
-            ref (num_digits_nat !copy2 0 (length_nat !copy2)) in
-      while not (is_zero_nat !copy2 0 !real_len2) do
+      et real_len2 =
+            ref (num_digits_nat !copy2 0 (length_nat !copy2)) dans
+      pendant_que not (is_zero_nat !copy2 0 !real_len2) faire
         set_digit_nat !copy1 !real_len1 0;
         div_nat !copy1 0 (succ !real_len1) !copy2 0 !real_len2;
         exchange copy1 copy2;
         real_len1 := !real_len2;
         real_len2 := num_digits_nat !copy2 0 !real_len2
-      done;
+      fait;
       blit_nat nat1 off1 !copy1 0 !real_len1;
       !real_len1
-  end
+  fin
 
 (* Racine carrée entière par la méthode de Newton (entière par défaut). *)
 
@@ -194,37 +194,37 @@ let gcd_nat nat1 off1 len1 nat2 off2 len2 =
 (* et par excès. Dans tous les cas, le dernier terme de la partie *)
 (* strictement décroissante de la suite est le résultat cherché. *)
 
-let sqrt_nat rad off len =
- let len = num_digits_nat rad off len in
+soit sqrt_nat rad off len =
+ soit len = num_digits_nat rad off len dans
  (* Copie de travail du radicande *)
- let len_parity = len mod 2 in
- let rad_len = len + 1 + len_parity in
- let rad =
-   let res = create_nat rad_len in
+ soit len_parity = len mod 2 dans
+ soit rad_len = len + 1 + len_parity dans
+ soit rad =
+   soit res = create_nat rad_len dans
    blit_nat res 0 rad off len;
    set_digit_nat res len 0;
    set_digit_nat res (rad_len - 1) 0;
-   res in
- let cand_len = (len + 1) / 2 in  (* ceiling len / 2 *)
- let cand_rest = rad_len - cand_len in
+   res dans
+ soit cand_len = (len + 1) / 2 dans  (* ceiling len / 2 *)
+ soit cand_rest = rad_len - cand_len dans
  (* Racine carrée supposée cand = "|FFFF .... |" *)
- let cand = make_nat cand_len in
+ soit cand = make_nat cand_len dans
  (* Amélioration de la racine de départ:
     on calcule nbb le nombre de bits significatifs du premier digit du candidat
     (la moitié du nombre de bits significatifs dans les deux premiers
      digits du radicande étendu à une longueur paire).
     shift_cand est word_size - nbb *)
- let shift_cand =
+ soit shift_cand =
    ((num_leading_zero_bits_in_digit rad (len-1)) +
-     Sys.word_size * len_parity) / 2 in
+     Sys.word_size * len_parity) / 2 dans
  (* Tous les bits du radicande sont à 0, on rend 0. *)
- if shift_cand = Sys.word_size then cand else
- begin
+ si shift_cand = Sys.word_size alors cand sinon
+ dÃ©but
   complement_nat cand 0 cand_len;
   shift_right_nat cand 0 1 a_1 0 shift_cand;
-  let next_cand = create_nat rad_len in
+  soit next_cand = create_nat rad_len dans
   (* Repeat until *)
-  let rec loop () =
+  soit rec loop () =
            (* next_cand := rad *)
    blit_nat next_cand 0 rad 0 rad_len;
            (* next_cand <- next_cand / cand *)
@@ -234,70 +234,70 @@ let sqrt_nat rad off len =
    ignore (add_nat next_cand cand_len cand_rest cand 0 cand_len 0);
         (* next_cand <- next_cand / 2 *)
    shift_right_nat next_cand cand_len cand_rest a_1 0 1;
-   if lt_nat next_cand cand_len cand_rest cand 0 cand_len then
-    begin  (* cand <- next_cand *)
+   si lt_nat next_cand cand_len cand_rest cand 0 cand_len alors
+    dÃ©but  (* cand <- next_cand *)
      blit_nat cand 0 next_cand cand_len cand_len; loop ()
-    end
-   else cand in
+    fin
+   sinon cand dans
   loop ()
- end;;
+ fin;;
 
-let power_base_max = make_nat 2;;
+soit power_base_max = make_nat 2;;
 
-match length_of_digit with
+filtre length_of_digit avec
   | 64 ->
       set_digit_nat power_base_max 0 (Int64.to_int 1000000000000000000L);
       ignore
         (mult_digit_nat power_base_max 0 2
            power_base_max 0 1 (nat_of_int 9) 0)
   | 32 -> set_digit_nat power_base_max 0 1000000000
-  | _ -> assert false
+  | _ -> affirme faux
 ;;
 
-let pmax =
-  match length_of_digit with
+soit pmax =
+  filtre length_of_digit avec
   | 64 -> 19
   | 32 -> 9
-  | _ -> assert false
+  | _ -> affirme faux
 ;;
 
-let max_superscript_10_power_in_int =
-  match length_of_digit with
+soit max_superscript_10_power_in_int =
+  filtre length_of_digit avec
   | 64 -> 18
   | 32 -> 9
-  | _ -> assert false
+  | _ -> affirme faux
 ;;
-let max_power_10_power_in_int =
-  match length_of_digit with
+soit max_power_10_power_in_int =
+  filtre length_of_digit avec
   | 64 -> nat_of_int (Int64.to_int 1000000000000000000L)
   | 32 -> nat_of_int 1000000000
-  | _ -> assert false
+  | _ -> affirme faux
 ;;
 
-let raw_string_of_digit nat off =
-  if is_nat_int nat off 1
-     then begin string_of_int (nth_digit_nat nat off) end
-  else begin
+soit raw_string_of_digit nat off =
+  si is_nat_int nat off 1
+     alors dÃ©but string_of_int (nth_digit_nat nat off) fin
+  sinon dÃ©but
        blit_nat b_2 0 nat off 1;
        div_digit_nat a_2 0 a_1 0 b_2 0 2 max_power_10_power_in_int 0;
-       let leading_digits = nth_digit_nat a_2 0
-       and s1 = string_of_int (nth_digit_nat a_1 0) in
-       let len = String.length s1 in
-       if leading_digits < 10 then begin
-            let result = String.make (max_superscript_10_power_in_int+1) '0' in
+       soit leading_digits = nth_digit_nat a_2 0
+       et s1 = string_of_int (nth_digit_nat a_1 0) dans
+       soit len = String.length s1 dans
+       si leading_digits < 10 alors dÃ©but
+            soit result = String.make (max_superscript_10_power_in_int+1) '0' dans
             String.set result 0
                          (Char.chr (48 + leading_digits));
             String.blit s1 0
                  result (String.length result - len) len;
             result
-       end else begin
-            let result = String.make (max_superscript_10_power_in_int+2) '0' in
+       fin sinon dÃ©but
+            soit result = String.make (max_superscript_10_power_in_int+2) '0' dans
             String.blit (string_of_int leading_digits) 0 result 0 2;
             String.blit s1 0
                  result (String.length result - len) len;
             result
-       end
-  end
+       fin
+  fin
 
 (* XL: suppression de string_of_digit et de sys_string_of_digit.
    La copie est de toute facon faite dans string_of_nat, qui est le
@@ -315,7 +315,7 @@ let string_of_digit nat =
 
 *******)
 
-let digits = "0123456789ABCDEF"
+soit digits = "0123456789ABCDEF"
 
 (*
    make_power_base affecte power_base des puissances successives de base a
@@ -324,17 +324,17 @@ let digits = "0123456789ABCDEF"
    sur un seul digit et j est la plus grande puissance de la base qui tient
    sur un int.
 *)
-let make_power_base base power_base =
-  let i = ref 0
-  and j = ref 0 in
+soit make_power_base base power_base =
+  soit i = ref 0
+  et j = ref 0 dans
    set_digit_nat power_base 0 base;
-   while incr i; is_digit_zero power_base !i do
+   pendant_que incr i; is_digit_zero power_base !i faire
      ignore
        (mult_digit_nat power_base !i 2
           power_base (pred !i) 1
           power_base 0)
-   done;
-   while !j <= !i && is_digit_int power_base !j do incr j done;
+   fait;
+   pendant_que !j <= !i && is_digit_int power_base !j faire incr j fait;
   (!i - 2, !j)
 
 (*
@@ -342,60 +342,60 @@ let make_power_base base power_base =
    dans la chaine s en le rangeant de la fin indiquee par pos vers le
    debut, sur times places et affecte a pos sa nouvelle valeur.
 *)
-let int_to_string int s pos_ref base times =
-  let i = ref int
-  and j = ref times in
-     while ((!i != 0) || (!j != 0)) && (!pos_ref != -1) do
+soit int_to_string int s pos_ref base times =
+  soit i = ref int
+  et j = ref times dans
+     pendant_que ((!i != 0) || (!j != 0)) && (!pos_ref != -1) faire
         String.set s !pos_ref (String.get digits (!i mod base));
         decr pos_ref;
         decr j;
         i := !i / base
-     done
+     fait
 
 (* XL: suppression de adjust_string *)
 
-let power_base_int base i =
-  if i = 0 || base = 1 then
+soit power_base_int base i =
+  si i = 0 || base = 1 alors
     nat_of_int 1
-  else if base = 0 then
+  sinon si base = 0 alors
     nat_of_int 0
-  else if i < 0 then
+  sinon si i < 0 alors
     invalid_arg "power_base_int"
-  else begin
-         let power_base = make_nat (succ length_of_digit) in
-         let (pmax, pint) = make_power_base base power_base in
-         let n = i / (succ pmax)
-         and rem = i mod (succ pmax) in
-           if n > 0 then begin
-               let newn =
-                 if i = biggest_int then n else (succ n) in
-               let res = make_nat newn
-               and res2 = make_nat newn
-               and l = num_bits_int n - 2 in
+  sinon dÃ©but
+         soit power_base = make_nat (succ length_of_digit) dans
+         soit (pmax, pint) = make_power_base base power_base dans
+         soit n = i / (succ pmax)
+         et rem = i mod (succ pmax) dans
+           si n > 0 alors dÃ©but
+               soit newn =
+                 si i = biggest_int alors n sinon (succ n) dans
+               soit res = make_nat newn
+               et res2 = make_nat newn
+               et l = num_bits_int n - 2 dans
                  blit_nat res 0 power_base pmax 1;
-                 for i = l downto 0 do
-                   let len = num_digits_nat res 0 newn in
-                   let len2 = min n (2 * len) in
-                   let succ_len2 = succ len2 in
+                 pour i = l descendant_jusqu'a 0 faire
+                   soit len = num_digits_nat res 0 newn dans
+                   soit len2 = min n (2 * len) dans
+                   soit succ_len2 = succ len2 dans
                      ignore (square_nat res2 0 len2 res 0 len);
-                     if n land (1 lsl i) > 0 then begin
+                     si n etl (1 dgl i) > 0 alors dÃ©but
                        set_to_zero_nat res 0 len;
                        ignore
                          (mult_digit_nat res 0 succ_len2
                             res2 0 len2  power_base pmax)
-                     end else
+                     fin sinon
                        blit_nat res 0 res2 0 len2;
                      set_to_zero_nat res2 0 len2
-                 done;
-               if rem > 0 then begin
+                 fait;
+               si rem > 0 alors dÃ©but
                  ignore
                    (mult_digit_nat res2 0 newn
                       res 0 n power_base (pred rem));
                  res2
-               end else res
-            end else
+               fin sinon res
+            fin sinon
               copy_nat power_base (pred rem) 1
-  end
+  fin
 
 (* the ith element (i >= 2) of num_digits_max_vector is :
     |                                 |
@@ -456,29 +456,29 @@ let num_digits_max_vector =
 
 (* XL: suppression de string_list_of_nat *)
 
-let unadjusted_string_of_nat nat off len_nat =
-  let len = num_digits_nat nat off len_nat in
-  if len = 1 then
+soit unadjusted_string_of_nat nat off len_nat =
+  soit len = num_digits_nat nat off len_nat dans
+  si len = 1 alors
        raw_string_of_digit nat off
-  else
-       let len_copy = ref (succ len) in
-       let copy1 = create_nat !len_copy
-       and copy2 = make_nat !len_copy
-       and rest_digit = make_nat 2 in
-         if len > biggest_int / (succ pmax)
-            then failwith "le nombre est trop long"
-            else let len_s = (succ pmax) * len in
-                 let s = String.make len_s '0'
-                 and pos_ref = ref len_s in
+  sinon
+       soit len_copy = ref (succ len) dans
+       soit copy1 = create_nat !len_copy
+       et copy2 = make_nat !len_copy
+       et rest_digit = make_nat 2 dans
+         si len > biggest_int / (succ pmax)
+            alors failwith "le nombre est trop long"
+            sinon soit len_s = (succ pmax) * len dans
+                 soit s = String.make len_s '0'
+                 et pos_ref = ref len_s dans
                    len_copy := pred !len_copy;
                    blit_nat copy1 0 nat off len;
                    set_digit_nat copy1 len 0;
-                   while not (is_zero_nat copy1 0 !len_copy) do
+                   pendant_que not (is_zero_nat copy1 0 !len_copy) faire
                       div_digit_nat copy2 0
                                      rest_digit 0
                                      copy1 0 (succ !len_copy)
                                      power_base_max 0;
-                      let str = raw_string_of_digit rest_digit 0 in
+                      soit str = raw_string_of_digit rest_digit 0 dans
                       String.blit str 0
                                   s (!pos_ref - String.length str)
                                   (String.length str);
@@ -489,69 +489,69 @@ let unadjusted_string_of_nat nat off len_nat =
                       len_copy := num_digits_nat copy2 0 !len_copy;
                       blit_nat copy1 0 copy2 0 !len_copy;
                       set_digit_nat copy1 !len_copy 0
-                   done;
+                   fait;
                    s
 
-let string_of_nat nat =
-  let s = unadjusted_string_of_nat nat 0 (length_nat nat)
-  and index = ref 0 in
-    begin try
-      for i = 0 to String.length s - 2 do
-       if String.get s i <> '0' then (index:= i; raise Exit)
-      done
-    with Exit -> ()
-    end;
+soit string_of_nat nat =
+  soit s = unadjusted_string_of_nat nat 0 (length_nat nat)
+  et index = ref 0 dans
+    dÃ©but essaie
+      pour i = 0 Ã  String.length s - 2 faire
+       si String.get s i <> '0' alors (index:= i; raise Exit)
+      fait
+    avec Exit -> ()
+    fin;
     String.sub s !index (String.length s - !index)
 
 (* XL: suppression de sys_string_of_nat *)
 
 (* XL: suppression de debug_string_nat *)
 
-let base_digit_of_char c base =
-  let n = Char.code c in
-    if n >= 48 && n <= 47 + min base 10 then n - 48
-    else if n >= 65 && n <= 65 + base - 11 then n - 55
-    else if n >= 97 && n <= 97 + base - 11 then n - 87
-    else failwith "chiffre invalide"
+soit base_digit_of_char c base =
+  soit n = Char.code c dans
+    si n >= 48 && n <= 47 + min base 10 alors n - 48
+    sinon si n >= 65 && n <= 65 + base - 11 alors n - 55
+    sinon si n >= 97 && n <= 97 + base - 11 alors n - 87
+    sinon failwith "chiffre invalide"
 
 (*
    La sous-chaine (s, off, len) represente un nat en base base que
    on determine ici
 *)
-let sys_nat_of_string base s off len =
-  let power_base = make_nat (succ length_of_digit) in
-  let (pmax, pint) = make_power_base base power_base in
-  let new_len = ref (1 + len / (pmax + 1))
-  and current_len = ref 1 in
-  let possible_len = ref (min 2 !new_len) in
+soit sys_nat_of_string base s off len =
+  soit power_base = make_nat (succ length_of_digit) dans
+  soit (pmax, pint) = make_power_base base power_base dans
+  soit new_len = ref (1 + len / (pmax + 1))
+  et current_len = ref 1 dans
+  soit possible_len = ref (min 2 !new_len) dans
 
-  let nat1 = make_nat !new_len
-  and nat2 = make_nat !new_len
+  soit nat1 = make_nat !new_len
+  et nat2 = make_nat !new_len
 
-  and digits_read = ref 0
-  and bound = off + len - 1
-  and int = ref 0 in
+  et digits_read = ref 0
+  et bound = off + len - 1
+  et int = ref 0 dans
 
-  for i = off to bound do
+  pour i = off Ã  bound faire
     (*
        on lit pint (au maximum) chiffres, on en fait un int
        et on l integre au nombre
      *)
-      let c = String.get s i  in
-        begin match c with
+      soit c = String.get s i  dans
+        dÃ©but filtre c avec
           ' ' | '\t' | '\n' | '\r' | '\\' -> ()
-        | '_' when i > off -> ()
+        | '_' quand i > off -> ()
         | _ -> int := !int * base + base_digit_of_char c base;
                incr digits_read
-        end;
-        if (!digits_read = pint || i = bound) && not (!digits_read = 0) then
-          begin
+        fin;
+        si (!digits_read = pint || i = bound) && not (!digits_read = 0) alors
+          dÃ©but
            set_digit_nat nat1 0 !int;
-           let erase_len = if !new_len = !current_len then !current_len - 1
-                           else !current_len in
-           for j = 1 to erase_len do
+           soit erase_len = si !new_len = !current_len alors !current_len - 1
+                           sinon !current_len dans
+           pour j = 1 Ã  erase_len faire
              set_digit_nat nat1 j 0
-           done;
+           fait;
            ignore
              (mult_digit_nat nat1 0 !possible_len
                 nat2 0 !current_len power_base (pred !digits_read));
@@ -560,15 +560,15 @@ let sys_nat_of_string base s off len =
            possible_len := min !new_len (succ !current_len);
            int := 0;
            digits_read := 0
-           end
-  done;
+           fin
+  fait;
   (*
      On recadre le nat
   *)
-  let nat = create_nat !current_len in
+  soit nat = create_nat !current_len dans
     blit_nat nat 0 nat1 0 !current_len;
     nat
 
-let nat_of_string s = sys_nat_of_string 10 s 0 (String.length s)
+soit nat_of_string s = sys_nat_of_string 10 s 0 (String.length s)
 
-let float_of_nat nat = float_of_string(string_of_nat nat)
+soit float_of_nat nat = float_of_string(string_of_nat nat)

@@ -12,11 +12,11 @@
 
 (* Pretty-print lists of instructions *)
 
-open Format
-open Lambda
-open Instruct
+ouvre Format
+ouvre Lambda
+ouvre Instruct
 
-let instruction ppf = function
+soit instruction ppf = fonction
   | Klabel lbl -> fprintf ppf "L%i:" lbl
   | Kacc n -> fprintf ppf "\tacc %i" n
   | Kenvacc n -> fprintf ppf "\tenvacc %i" n
@@ -34,7 +34,7 @@ let instruction ppf = function
       fprintf ppf "\tclosure L%i, %i" lbl n
   | Kclosurerec(lbls, n) ->
       fprintf ppf "\tclosurerec";
-      List.iter (fun lbl -> fprintf ppf " %i" lbl) lbls;
+      List.iter (fonc lbl -> fprintf ppf " %i" lbl) lbls;
       fprintf ppf ", %i" n
   | Koffsetclosure n -> fprintf ppf "\toffsetclosure %i" n
   | Kgetglobal id -> fprintf ppf "\tgetglobal %a" Ident.print id
@@ -61,8 +61,8 @@ let instruction ppf = function
   | Kstrictbranchifnot lbl ->
       fprintf ppf "\tstrictbranchifnot L%i" lbl
   | Kswitch(consts, blocks) ->
-      let labels ppf labs =
-        Array.iter (fun lbl -> fprintf ppf "@ %i" lbl) labs in
+      soit labels ppf labs =
+        Array.iter (fonc lbl -> fprintf ppf "@ %i" lbl) labs dans
       fprintf ppf "@[<10>\tswitch%a/%a@]" labels consts labels blocks
   | Kboolnot -> fprintf ppf "\tboolnot"
   | Kpushtrap lbl -> fprintf ppf "\tpushtrap L%i" lbl
@@ -102,12 +102,12 @@ let instruction ppf = function
                          ev.ev_loc.Location.loc_start.Lexing.pos_cnum
                          ev.ev_loc.Location.loc_end.Lexing.pos_cnum
 
-let rec instruction_list ppf = function
+soit rec instruction_list ppf = fonction
     [] -> ()
   | Klabel lbl :: il ->
       fprintf ppf "L%i:%a" lbl instruction_list il
   | instr :: il ->
       fprintf ppf "%a@ %a" instruction instr instruction_list il
 
-let instrlist ppf il =
+soit instrlist ppf il =
   fprintf ppf "@[<v 0>%a@]" instruction_list il

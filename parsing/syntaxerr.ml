@@ -13,17 +13,17 @@
 (* Auxiliary type for reporting syntax errors *)
 
 type error =
-    Unclosed of Location.t * string * Location.t * string
-  | Expecting of Location.t * string
-  | Not_expecting of Location.t * string
-  | Applicative_path of Location.t
-  | Variable_in_scope of Location.t * string
-  | Other of Location.t
+    Unclosed de Location.t * string * Location.t * string
+  | Expecting de Location.t * string
+  | Not_expecting de Location.t * string
+  | Applicative_path de Location.t
+  | Variable_in_scope de Location.t * string
+  | Other de Location.t
 
-exception Error of error
+exception Error de error
 exception Escape_error
 
-let prepare_error = function
+soit prepare_error = fonction
   | Unclosed(opening_loc, opening, closing_loc, closing) ->
       Location.errorf ~loc:closing_loc
         ~sub:[
@@ -52,18 +52,18 @@ let prepare_error = function
   | Other loc ->
       Location.error ~loc "Erreur: erreur de syntaxe"
 
-let () =
+soit () =
   Location.register_error_of_exn
-    (function
+    (fonction
       | Error err -> Some (prepare_error err)
       | _ -> None
     )
 
 
-let report_error ppf err =
+soit report_error ppf err =
   Location.report_error ppf (prepare_error err)
 
-let location_of_error = function
+soit location_of_error = fonction
   | Unclosed(l,_,_,_)
   | Applicative_path l
   | Variable_in_scope(l,_)

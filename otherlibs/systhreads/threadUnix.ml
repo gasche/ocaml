@@ -13,45 +13,45 @@
 
 (* Module [ThreadUnix]: thread-compatible system calls *)
 
-open Unix
+ouvre Unix
 
 (*** Process handling *)
 
-external execv : string -> string array -> unit = "unix_execv"
-external execve : string -> string array -> string array -> unit
+dehors execv : string -> string array -> unit = "unix_execv"
+dehors execve : string -> string array -> string array -> unit
            = "unix_execve"
-external execvp : string -> string array -> unit = "unix_execvp"
-let wait = Unix.wait
-let waitpid = Unix.waitpid
-let system = Unix.system
-let read = Unix.read
-let write = Unix.write
-let select = Unix.select
+dehors execvp : string -> string array -> unit = "unix_execvp"
+soit wait = Unix.wait
+soit waitpid = Unix.waitpid
+soit system = Unix.system
+soit read = Unix.read
+soit write = Unix.write
+soit select = Unix.select
 
-let timed_read fd buff ofs len timeout =
-  if Thread.wait_timed_read fd timeout
-  then Unix.read fd buff ofs len
-  else raise (Unix_error(ETIMEDOUT, "timed_read", ""))
+soit timed_read fd buff ofs len timeout =
+  si Thread.wait_timed_read fd timeout
+  alors Unix.read fd buff ofs len
+  sinon raise (Unix_error(ETIMEDOUT, "timed_read", ""))
 
-let timed_write fd buff ofs len timeout =
-  if Thread.wait_timed_write fd timeout
-  then Unix.write fd buff ofs len
-  else raise (Unix_error(ETIMEDOUT, "timed_write", ""))
+soit timed_write fd buff ofs len timeout =
+  si Thread.wait_timed_write fd timeout
+  alors Unix.write fd buff ofs len
+  sinon raise (Unix_error(ETIMEDOUT, "timed_write", ""))
 
-let pipe = Unix.pipe
+soit pipe = Unix.pipe
 
-let open_process_in = Unix.open_process_in
-let open_process_out = Unix.open_process_out
-let open_process = Unix.open_process
+soit open_process_in = Unix.open_process_in
+soit open_process_out = Unix.open_process_out
+soit open_process = Unix.open_process
 
-external sleep : int -> unit = "unix_sleep"
+dehors sleep : int -> unit = "unix_sleep"
 
-let socket = Unix.socket
-let accept = Unix.accept
-external connect : file_descr -> sockaddr -> unit = "unix_connect"
-let recv = Unix.recv
-let recvfrom = Unix.recvfrom
-let send = Unix.send
-let sendto = Unix.sendto
+soit socket = Unix.socket
+soit accept = Unix.accept
+dehors connect : file_descr -> sockaddr -> unit = "unix_connect"
+soit recv = Unix.recv
+soit recvfrom = Unix.recvfrom
+soit send = Unix.send
+soit sendto = Unix.sendto
 
-let open_connection = Unix.open_connection
+soit open_connection = Unix.open_connection

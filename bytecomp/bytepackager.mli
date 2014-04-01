@@ -16,12 +16,12 @@
 val package_files: Format.formatter -> string list -> string -> unit
 
 type error =
-    Forward_reference of string * Ident.t
-  | Multiple_definition of string * Ident.t
-  | Not_an_object_file of string
-  | Illegal_renaming of string * string * string
-  | File_not_found of string
+    Forward_reference de string * Ident.t
+  | Multiple_definition de string * Ident.t
+  | Not_an_object_file de string
+  | Illegal_renaming de string * string * string
+  | File_not_found de string
 
-exception Error of error
+exception Error de error
 
 val report_error: Format.formatter -> error -> unit

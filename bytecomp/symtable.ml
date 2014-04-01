@@ -12,20 +12,20 @@
 
 (* To assign numbers to globals and primitives *)
 
-open Misc
-open Asttypes
-open Lambda
-open Cmo_format
+ouvre Misc
+ouvre Asttypes
+ouvre Lambda
+ouvre Cmo_format
 
 (* Functions for batch linking *)
 
 type error =
-    Undefined_global of string
-  | Unavailable_primitive of string
-  | Wrong_vm of string
-  | Uninitialized_global of string
+    Undefined_global de string
+  | Unavailable_primitive de string
+  | Wrong_vm de string
+  | Uninitialized_global de string
 
-exception Error of error
+exception Error de error
 
 (* Tables for numbering objects *)
 
@@ -33,161 +33,161 @@ type 'a numtable =
   { num_cnt: int;               (* The next number *)
     num_tbl: ('a, int) Tbl.t }  (* The table of already numbered objects *)
 
-let empty_numtable = { num_cnt = 0; num_tbl = Tbl.empty }
+soit empty_numtable = { num_cnt = 0; num_tbl = Tbl.empty }
 
-let find_numtable nt key =
+soit find_numtable nt key =
   Tbl.find key nt.num_tbl
 
-let enter_numtable nt key =
-  let n = !nt.num_cnt in
+soit enter_numtable nt key =
+  soit n = !nt.num_cnt dans
   nt := { num_cnt = n + 1; num_tbl = Tbl.add key n !nt.num_tbl };
   n
 
-let incr_numtable nt =
-  let n = !nt.num_cnt in
+soit incr_numtable nt =
+  soit n = !nt.num_cnt dans
   nt := { num_cnt = n + 1; num_tbl = !nt.num_tbl };
   n
 
 (* Global variables *)
 
-let global_table = ref(empty_numtable : Ident.t numtable)
-and literal_table = ref([] : (int * structured_constant) list)
+soit global_table = ref(empty_numtable : Ident.t numtable)
+et literal_table = ref([] : (int * structured_constant) list)
 
-let is_global_defined id =
+soit is_global_defined id =
   Tbl.mem id (!global_table).num_tbl
 
-let slot_for_getglobal id =
-  try
+soit slot_for_getglobal id =
+  essaie
     find_numtable !global_table id
-  with Not_found ->
+  avec Not_found ->
     raise(Error(Undefined_global(Ident.name id)))
 
-let slot_for_setglobal id =
+soit slot_for_setglobal id =
   enter_numtable global_table id
 
-let slot_for_literal cst =
-  let n = incr_numtable global_table in
+soit slot_for_literal cst =
+  soit n = incr_numtable global_table dans
   literal_table := (n, cst) :: !literal_table;
   n
 
 (* The C primitives *)
 
-let c_prim_table = ref(empty_numtable : string numtable)
+soit c_prim_table = ref(empty_numtable : string numtable)
 
-let set_prim_table name =
+soit set_prim_table name =
   ignore(enter_numtable c_prim_table name)
 
-let num_of_prim name =
-  try
+soit num_of_prim name =
+  essaie
     find_numtable !c_prim_table name
-  with Not_found ->
-    if !Clflags.custom_runtime then
+  avec Not_found ->
+    si !Clflags.custom_runtime alors
       enter_numtable c_prim_table name
-    else begin
-      let symb =
-        try Dll.find_primitive name
-        with Not_found -> raise(Error(Unavailable_primitive name)) in
-      let num = enter_numtable c_prim_table name in
+    sinon début
+      soit symb =
+        essaie Dll.find_primitive name
+        avec Not_found -> raise(Error(Unavailable_primitive name)) dans
+      soit num = enter_numtable c_prim_table name dans
       Dll.synchronize_primitive num symb;
       num
-    end
+    fin
 
-let require_primitive name =
-  if name.[0] <> '%' then ignore(num_of_prim name)
+soit require_primitive name =
+  si name.[0] <> '%' alors ignore(num_of_prim name)
 
-let all_primitives () =
-  let prim = Array.create !c_prim_table.num_cnt "" in
-  Tbl.iter (fun name number -> prim.(number) <- name) !c_prim_table.num_tbl;
+soit all_primitives () =
+  soit prim = Array.create !c_prim_table.num_cnt "" dans
+  Tbl.iter (fonc name number -> prim.(number) <- name) !c_prim_table.num_tbl;
   prim
 
-let data_primitive_names () =
-  let prim = all_primitives() in
-  let b = Buffer.create 512 in
-  for i = 0 to Array.length prim - 1 do
+soit data_primitive_names () =
+  soit prim = all_primitives() dans
+  soit b = Buffer.create 512 dans
+  pour i = 0 à Array.length prim - 1 faire
     Buffer.add_string b prim.(i); Buffer.add_char b '\000'
-  done;
+  fait;
   Buffer.contents b
 
-let output_primitive_names outchan =
+soit output_primitive_names outchan =
   output_string outchan (data_primitive_names())
 
-open Printf
+ouvre Printf
 
-let output_primitive_table outchan =
-  let prim = all_primitives() in
-  for i = 0 to Array.length prim - 1 do
+soit output_primitive_table outchan =
+  soit prim = all_primitives() dans
+  pour i = 0 à Array.length prim - 1 faire
     fprintf outchan "extern value %s();\n" prim.(i)
-  done;
+  fait;
   fprintf outchan "typedef value (*primitive)();\n";
   fprintf outchan "primitive caml_builtin_cprim[] = {\n";
-  for i = 0 to Array.length prim - 1 do
+  pour i = 0 à Array.length prim - 1 faire
     fprintf outchan "  %s,\n" prim.(i)
-  done;
+  fait;
   fprintf outchan "  (primitive) 0 };\n";
   fprintf outchan "const char * caml_names_of_builtin_cprim[] = {\n";
-  for i = 0 to Array.length prim - 1 do
+  pour i = 0 à Array.length prim - 1 faire
     fprintf outchan "  \"%s\",\n" prim.(i)
-  done;
+  fait;
   fprintf outchan "  (char *) 0 };\n"
 
 (* Initialization for batch linking *)
 
-let init () =
+soit init () =
   (* Enter the predefined exceptions *)
   Array.iteri
-    (fun i name ->
-      let id =
-        try List.assoc name Predef.builtin_values
-        with Not_found -> fatal_error "Symtable.init" in
-      let c = slot_for_setglobal id in
-      let cst = Const_block(Obj.object_tag,
+    (fonc i name ->
+      soit id =
+        essaie List.assoc name Predef.builtin_values
+        avec Not_found -> fatal_error "Symtable.init" dans
+      soit c = slot_for_setglobal id dans
+      soit cst = Const_block(Obj.object_tag,
                             [Const_base(Const_string (name, None));
                              Const_base(Const_int (-i-1))
                             ])
-      in
+      dans
       literal_table := (c, cst) :: !literal_table)
     Runtimedef.builtin_exceptions;
   (* Initialize the known C primitives *)
-  if String.length !Clflags.use_prims > 0 then begin
-      let ic = open_in !Clflags.use_prims in
-      try
-        while true do
+  si String.length !Clflags.use_prims > 0 alors début
+      soit ic = open_in !Clflags.use_prims dans
+      essaie
+        pendant_que vrai faire
           set_prim_table (input_line ic)
-        done
-      with End_of_file -> close_in ic
+        fait
+      avec End_of_file -> close_in ic
          | x -> close_in ic; raise x
-  end else if String.length !Clflags.use_runtime > 0 then begin
-    let primfile = Filename.temp_file "camlprims" "" in
-    try
-      if Sys.command(Printf.sprintf "%s -p > %s"
+  fin sinon si String.length !Clflags.use_runtime > 0 alors début
+    soit primfile = Filename.temp_file "camlprims" "" dans
+    essaie
+      si Sys.command(Printf.sprintf "%s -p > %s"
                                     !Clflags.use_runtime primfile) <> 0
-      then raise(Error(Wrong_vm !Clflags.use_runtime));
-      let ic = open_in primfile in
-      try
-        while true do
+      alors raise(Error(Wrong_vm !Clflags.use_runtime));
+      soit ic = open_in primfile dans
+      essaie
+        pendant_que vrai faire
           set_prim_table (input_line ic)
-        done
-      with End_of_file -> close_in ic; remove_file primfile
+        fait
+      avec End_of_file -> close_in ic; remove_file primfile
          | x -> close_in ic; raise x
-    with x -> remove_file primfile; raise x
-  end else begin
+    avec x -> remove_file primfile; raise x
+  fin sinon début
     Array.iter set_prim_table Runtimedef.builtin_primitives
-  end
+  fin
 
 (* Relocate a block of object bytecode *)
 
 (* Must use the unsafe String.set here because the block may be
    a "fake" string as returned by Meta.static_alloc. *)
 
-let gen_patch_int str_set buff pos n =
+soit gen_patch_int str_set buff pos n =
   str_set buff pos (Char.unsafe_chr n);
-  str_set buff (pos + 1) (Char.unsafe_chr (n asr 8));
-  str_set buff (pos + 2) (Char.unsafe_chr (n asr 16));
-  str_set buff (pos + 3) (Char.unsafe_chr (n asr 24))
+  str_set buff (pos + 1) (Char.unsafe_chr (n dda 8));
+  str_set buff (pos + 2) (Char.unsafe_chr (n dda 16));
+  str_set buff (pos + 3) (Char.unsafe_chr (n dda 24))
 
-let gen_patch_object str_set buff patchlist =
+soit gen_patch_object str_set buff patchlist =
   List.iter
-    (function
+    (fonction
         (Reloc_literal sc, pos) ->
           gen_patch_int str_set buff pos (slot_for_literal sc)
       | (Reloc_getglobal id, pos) ->
@@ -198,12 +198,12 @@ let gen_patch_object str_set buff patchlist =
           gen_patch_int str_set buff pos (num_of_prim name))
     patchlist
 
-let patch_object = gen_patch_object String.unsafe_set
-let ls_patch_object = gen_patch_object LongString.set
+soit patch_object = gen_patch_object String.unsafe_set
+soit ls_patch_object = gen_patch_object LongString.set
 
 (* Translate structured constants *)
 
-let rec transl_const = function
+soit rec transl_const = fonction
     Const_base(Const_int i) -> Obj.repr i
   | Const_base(Const_char c) -> Obj.repr c
   | Const_base(Const_string (s, _)) -> Obj.repr s
@@ -214,43 +214,43 @@ let rec transl_const = function
   | Const_pointer i -> Obj.repr i
   | Const_immstring s -> Obj.repr s
   | Const_block(tag, fields) ->
-      let block = Obj.new_block tag (List.length fields) in
-      let pos = ref 0 in
+      soit block = Obj.new_block tag (List.length fields) dans
+      soit pos = ref 0 dans
       List.iter
-        (fun c -> Obj.set_field block !pos (transl_const c); incr pos)
+        (fonc c -> Obj.set_field block !pos (transl_const c); incr pos)
         fields;
       block
   | Const_float_array fields ->
-      Obj.repr(Array.of_list(List.map (fun f -> float_of_string f) fields))
+      Obj.repr(Array.of_list(List.map (fonc f -> float_of_string f) fields))
 
 (* Build the initial table of globals *)
 
-let initial_global_table () =
-  let glob = Array.create !global_table.num_cnt (Obj.repr 0) in
+soit initial_global_table () =
+  soit glob = Array.create !global_table.num_cnt (Obj.repr 0) dans
   List.iter
-    (fun (slot, cst) -> glob.(slot) <- transl_const cst)
+    (fonc (slot, cst) -> glob.(slot) <- transl_const cst)
     !literal_table;
   literal_table := [];
   glob
 
 (* Save the table of globals *)
 
-let output_global_map oc =
+soit output_global_map oc =
   output_value oc !global_table
 
-let data_global_map () =
+soit data_global_map () =
   Obj.repr !global_table
 
 (* Functions for toplevel use *)
 
 (* Update the in-core table of globals *)
 
-let update_global_table () =
-  let ng = !global_table.num_cnt in
-  if ng > Array.length(Meta.global_data()) then Meta.realloc_global_data ng;
-  let glob = Meta.global_data() in
+soit update_global_table () =
+  soit ng = !global_table.num_cnt dans
+  si ng > Array.length(Meta.global_data()) alors Meta.realloc_global_data ng;
+  soit glob = Meta.global_data() dans
   List.iter
-    (fun (slot, cst) -> glob.(slot) <- transl_const cst)
+    (fonc (slot, cst) -> glob.(slot) <- transl_const cst)
     !literal_table;
   literal_table := []
 
@@ -263,91 +263,91 @@ type section_reader = {
   close_reader: unit -> unit
 }
 
-let read_sections () =
-  try
-    let sections = Meta.get_section_table () in
+soit read_sections () =
+  essaie
+    soit sections = Meta.get_section_table () dans
     { read_string =
-        (fun name -> (Obj.magic(List.assoc name sections) : string));
+        (fonc name -> (Obj.magic(List.assoc name sections) : string));
       read_struct =
-        (fun name -> List.assoc name sections);
+        (fonc name -> List.assoc name sections);
       close_reader =
-        (fun () -> ()) }
-  with Not_found ->
-    let ic = open_in_bin Sys.executable_name in
+        (fonc () -> ()) }
+  avec Not_found ->
+    soit ic = open_in_bin Sys.executable_name dans
     Bytesections.read_toc ic;
     { read_string = Bytesections.read_section_string ic;
       read_struct = Bytesections.read_section_struct ic;
-      close_reader = fun () -> close_in ic }
+      close_reader = fonc () -> close_in ic }
 
 (* Initialize the linker for toplevel use *)
 
-let init_toplevel () =
-  try
-    let sect = read_sections () in
+soit init_toplevel () =
+  essaie
+    soit sect = read_sections () dans
     (* Locations of globals *)
     global_table := (Obj.magic (sect.read_struct "SYMB") : Ident.t numtable);
     (* Primitives *)
-    let prims = sect.read_string "PRIM" in
+    soit prims = sect.read_string "PRIM" dans
     c_prim_table := empty_numtable;
-    let pos = ref 0 in
-    while !pos < String.length prims do
-      let i = String.index_from prims !pos '\000' in
+    soit pos = ref 0 dans
+    pendant_que !pos < String.length prims faire
+      soit i = String.index_from prims !pos '\000' dans
       set_prim_table (String.sub prims !pos (i - !pos));
       pos := i + 1
-    done;
+    fait;
     (* DLL initialization *)
-    let dllpath = try sect.read_string "DLPT" with Not_found -> "" in
+    soit dllpath = essaie sect.read_string "DLPT" avec Not_found -> "" dans
     Dll.init_toplevel dllpath;
     (* Recover CRC infos for interfaces *)
-    let crcintfs =
-      try (Obj.magic (sect.read_struct "CRCS") : (string * Digest.t) list)
-      with Not_found -> [] in
+    soit crcintfs =
+      essaie (Obj.magic (sect.read_struct "CRCS") : (string * Digest.t) list)
+      avec Not_found -> [] dans
     (* Done *)
     sect.close_reader();
     crcintfs
-  with Bytesections.Bad_magic_number | Not_found | Failure _ ->
+  avec Bytesections.Bad_magic_number | Not_found | Failure _ ->
     fatal_error "L'exécutable bytecode de l'entrée interactive est corrompu"
 
 (* Find the value of a global identifier *)
 
-let get_global_position id = slot_for_getglobal id
+soit get_global_position id = slot_for_getglobal id
 
-let get_global_value id =
+soit get_global_value id =
   (Meta.global_data()).(slot_for_getglobal id)
-let assign_global_value id v =
+soit assign_global_value id v =
   (Meta.global_data()).(slot_for_getglobal id) <- v
 
 (* Check that all globals referenced in the given patch list
    have been initialized already *)
 
-let check_global_initialized patchlist =
+soit check_global_initialized patchlist =
   (* First determine the globals we will define *)
-  let defined_globals =
+  soit defined_globals =
     List.fold_left
-      (fun accu rel ->
-        match rel with
+      (fonc accu rel ->
+        filtre rel avec
           (Reloc_setglobal id, pos) -> id :: accu
         | _ -> accu)
-      [] patchlist in
+      [] patchlist dans
   (* Then check that all referenced, not defined globals have a value *)
-  let check_reference = function
+  soit check_reference = fonction
       (Reloc_getglobal id, pos) ->
-        if not (List.mem id defined_globals)
+        si not (List.mem id defined_globals)
         && Obj.is_int (get_global_value id)
-        then raise (Error(Uninitialized_global(Ident.name id)))
-    | _ -> () in
+        alors raise (Error(Uninitialized_global(Ident.name id)))
+    | _ -> () dans
   List.iter check_reference patchlist
 
 (* Save and restore the current state *)
 
 type global_map = Ident.t numtable
 
-let current_state () = !global_table
+soit current_state () = !global_table
 
-let restore_state st = global_table := st
+soit restore_state st = global_table := st
 
-let hide_additions st =
-  if st.num_cnt > !global_table.num_cnt then
+soit hide_additions st =
+  si st.num_cnt > !global_table.num_cnt alors
     fatal_error "Symtable.hide_additions";
   global_table :=
     { num_cnt = !global_table.num_cnt;
@@ -356,18 +356,18 @@ let hide_additions st =
 (* "Filter" the global map according to some predicate.
    Used to expunge the global map for the toplevel. *)
 
-let filter_global_map p gmap =
-  let newtbl = ref Tbl.empty in
+soit filter_global_map p gmap =
+  soit newtbl = ref Tbl.empty dans
   Tbl.iter
-    (fun id num -> if p id then newtbl := Tbl.add id num !newtbl)
+    (fonc id num -> si p id alors newtbl := Tbl.add id num !newtbl)
     gmap.num_tbl;
   {num_cnt = gmap.num_cnt; num_tbl = !newtbl}
 
 (* Error report *)
 
-open Format
+ouvre Format
 
-let report_error ppf = function
+soit report_error ppf = fonction
   | Undefined_global s ->
       fprintf ppf "Reference to undefined global `%s'" s
   | Unavailable_primitive s ->
@@ -377,9 +377,9 @@ let report_error ppf = function
   | Uninitialized_global s ->
       fprintf ppf "The value of the global `%s' is not yet computed" s
 
-let () =
+soit () =
   Location.register_error_of_exn
-    (function
+    (fonction
       | Error err -> Some (Location.error_of_printer_file report_error err)
       | _ -> None
     )

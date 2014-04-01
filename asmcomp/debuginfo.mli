@@ -12,7 +12,7 @@
 
 type kind = Dinfo_call | Dinfo_raise
 
-type t = private {
+type t = privée {
   dinfo_kind: kind;
   dinfo_file: string;
   dinfo_line: int;

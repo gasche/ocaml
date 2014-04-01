@@ -12,74 +12,74 @@
 
 (* Disassembler for executable and .cmo object files *)
 
-open Asttypes
-open Config
-open Instruct
-open Lambda
-open Location
-open Opcodes
-open Opnames
-open Cmo_format
-open Printf
+ouvre Asttypes
+ouvre Config
+ouvre Instruct
+ouvre Lambda
+ouvre Location
+ouvre Opcodes
+ouvre Opnames
+ouvre Cmo_format
+ouvre Printf
 
-let print_locations = ref true
+soit print_locations = ref vrai
 
 (* Read signed and unsigned integers *)
 
-let inputu ic =
-  let b1 = input_byte ic in
-  let b2 = input_byte ic in
-  let b3 = input_byte ic in
-  let b4 = input_byte ic in
-  (b4 lsl 24) + (b3 lsl 16) + (b2 lsl 8) + b1
+soit inputu ic =
+  soit b1 = input_byte ic dans
+  soit b2 = input_byte ic dans
+  soit b3 = input_byte ic dans
+  soit b4 = input_byte ic dans
+  (b4 dgl 24) + (b3 dgl 16) + (b2 dgl 8) + b1
 
-let inputs ic =
-  let b1 = input_byte ic in
-  let b2 = input_byte ic in
-  let b3 = input_byte ic in
-  let b4 = input_byte ic in
-  let b4' = if b4 >= 128 then b4-256 else b4 in
-  (b4' lsl 24) + (b3 lsl 16) + (b2 lsl 8) + b1
+soit inputs ic =
+  soit b1 = input_byte ic dans
+  soit b2 = input_byte ic dans
+  soit b3 = input_byte ic dans
+  soit b4 = input_byte ic dans
+  soit b4' = si b4 >= 128 alors b4-256 sinon b4 dans
+  (b4' dgl 24) + (b3 dgl 16) + (b2 dgl 8) + b1
 
 (* Global variables *)
 
 type global_table_entry =
     Empty
-  | Global of Ident.t
-  | Constant of Obj.t
+  | Global de Ident.t
+  | Constant de Obj.t
 
-let start = ref 0                              (* Position of beg. of code *)
-let reloc = ref ([] : (reloc_info * int) list) (* Relocation table *)
-let globals = ref ([||] : global_table_entry array) (* Global map *)
-let primitives = ref ([||] : string array)     (* Table of primitives *)
-let objfile = ref false                        (* true if dumping a .cmo *)
+soit start = ref 0                              (* Position of beg. of code *)
+soit reloc = ref ([] : (reloc_info * int) list) (* Relocation table *)
+soit globals = ref ([||] : global_table_entry array) (* Global map *)
+soit primitives = ref ([||] : string array)     (* Table of primitives *)
+soit objfile = ref faux                        (* true if dumping a .cmo *)
 
 (* Events (indexed by PC) *)
 
-let event_table = (Hashtbl.create 253 : (int, debug_event) Hashtbl.t)
+soit event_table = (Hashtbl.create 253 : (int, debug_event) Hashtbl.t)
 
-let relocate_event orig ev =
+soit relocate_event orig ev =
   ev.ev_pos <- orig + ev.ev_pos;
-  match ev.ev_repr with
+  filtre ev.ev_repr avec
     Event_parent repr -> repr := ev.ev_pos
   | _                 -> ()
 
-let record_events orig evl =
+soit record_events orig evl =
   List.iter
-    (fun ev ->
+    (fonc ev ->
       relocate_event orig ev;
       Hashtbl.add event_table ev.ev_pos ev)
     evl
 
 (* Print a structured constant *)
 
-let print_float f =
-  if String.contains f '.'
-  then printf "%s" f
-  else printf "%s." f
+soit print_float f =
+  si String.contains f '.'
+  alors printf "%s" f
+  sinon printf "%s." f
 ;;
 
-let rec print_struct_const = function
+soit rec print_struct_const = fonction
     Const_base(Const_int i) -> printf "%d" i
   | Const_base(Const_float f) -> print_float f
   | Const_base(Const_string (s, _)) -> printf "%S" s
@@ -91,142 +91,142 @@ let rec print_struct_const = function
   | Const_pointer n -> printf "%da" n
   | Const_block(tag, args) ->
       printf "<%d>" tag;
-      begin match args with
+      début filtre args avec
         [] -> ()
       | [a1] ->
           printf "("; print_struct_const a1; printf ")"
       | a1::al ->
           printf "("; print_struct_const a1;
-          List.iter (fun a -> printf ", "; print_struct_const a) al;
+          List.iter (fonc a -> printf ", "; print_struct_const a) al;
           printf ")"
-      end
+      fin
   | Const_float_array a ->
       printf "[|";
-      List.iter (fun f -> print_float f; printf "; ") a;
+      List.iter (fonc f -> print_float f; printf "; ") a;
       printf "|]"
 
 (* Print an obj *)
 
-let same_custom x y =
+soit same_custom x y =
   Obj.field x 0 = Obj.field (Obj.repr y) 0
 
-let rec print_obj x =
-  if Obj.is_block x then begin
-    let tag = Obj.tag x in
-    if tag = Obj.string_tag then
+soit rec print_obj x =
+  si Obj.is_block x alors début
+    soit tag = Obj.tag x dans
+    si tag = Obj.string_tag alors
         printf "%S" (Obj.magic x : string)
-    else if tag = Obj.double_tag then
+    sinon si tag = Obj.double_tag alors
         printf "%.12g" (Obj.magic x : float)
-    else if tag = Obj.double_array_tag then begin
-        let a = (Obj.magic x : float array) in
+    sinon si tag = Obj.double_array_tag alors début
+        soit a = (Obj.magic x : float array) dans
         printf "[|";
-        for i = 0 to Array.length a - 1 do
-          if i > 0 then printf ", ";
+        pour i = 0 à Array.length a - 1 faire
+          si i > 0 alors printf ", ";
           printf "%.12g" a.(i)
-        done;
+        fait;
         printf "|]"
-    end else if tag = Obj.custom_tag && same_custom x 0l then
+    fin sinon si tag = Obj.custom_tag && same_custom x 0l alors
         printf "%ldl" (Obj.magic x : int32)
-    else if tag = Obj.custom_tag && same_custom x 0n then
+    sinon si tag = Obj.custom_tag && same_custom x 0n alors
         printf "%ndn" (Obj.magic x : nativeint)
-    else if tag = Obj.custom_tag && same_custom x 0L then
+    sinon si tag = Obj.custom_tag && same_custom x 0L alors
         printf "%LdL" (Obj.magic x : int64)
-    else if tag < Obj.no_scan_tag then begin
+    sinon si tag < Obj.no_scan_tag alors début
         printf "<%d>" (Obj.tag x);
-        match Obj.size x with
+        filtre Obj.size x avec
           0 -> ()
         | 1 ->
             printf "("; print_obj (Obj.field x 0); printf ")"
         | n ->
             printf "("; print_obj (Obj.field x 0);
-            for i = 1 to n - 1 do
+            pour i = 1 à n - 1 faire
               printf ", "; print_obj (Obj.field x i)
-            done;
+            fait;
             printf ")"
-    end else
+    fin sinon
         printf "<tag %d>" tag
-  end else
+  fin sinon
     printf "%d" (Obj.magic x : int)
 
 (* Current position in input file *)
 
-let currpos ic =
+soit currpos ic =
   pos_in ic - !start
 
 (* Access in the relocation table *)
 
-let rec rassoc key = function
+soit rec rassoc key = fonction
     [] -> raise Not_found
-  | (a,b) :: l -> if b = key then a else rassoc key l
+  | (a,b) :: l -> si b = key alors a sinon rassoc key l
 
-let find_reloc ic =
+soit find_reloc ic =
   rassoc (pos_in ic - !start) !reloc
 
 (* Symbolic printing of global names, etc *)
 
-let print_getglobal_name ic =
-  if !objfile then begin
-    begin try
-      match find_reloc ic with
+soit print_getglobal_name ic =
+  si !objfile alors début
+    début essaie
+      filtre find_reloc ic avec
           Reloc_getglobal id -> print_string (Ident.name id)
         | Reloc_literal sc -> print_struct_const sc
         | _ -> print_string "<wrong reloc>"
-    with Not_found ->
+    avec Not_found ->
       print_string "<no reloc>"
-    end;
+    fin;
     ignore (inputu ic);
-  end
-  else begin
-    let n = inputu ic in
-    if n >= Array.length !globals || n < 0
-    then print_string "<global table overflow>"
-    else match !globals.(n) with
+  fin
+  sinon début
+    soit n = inputu ic dans
+    si n >= Array.length !globals || n < 0
+    alors print_string "<global table overflow>"
+    sinon filtre !globals.(n) avec
            Global id -> print_string(Ident.name id)
          | Constant obj -> print_obj obj
          | _ -> print_string "???"
-  end
+  fin
 
-let print_setglobal_name ic =
-  if !objfile then begin
-    begin try
-      match find_reloc ic with
+soit print_setglobal_name ic =
+  si !objfile alors début
+    début essaie
+      filtre find_reloc ic avec
         Reloc_setglobal id -> print_string (Ident.name id)
       | _ -> print_string "<wrong reloc>"
-    with Not_found ->
+    avec Not_found ->
       print_string "<no reloc>"
-    end;
+    fin;
     ignore (inputu ic);
-  end
-  else begin
-    let n = inputu ic in
-    if n >= Array.length !globals || n < 0
-    then print_string "<global table overflow>"
-    else match !globals.(n) with
+  fin
+  sinon début
+    soit n = inputu ic dans
+    si n >= Array.length !globals || n < 0
+    alors print_string "<global table overflow>"
+    sinon filtre !globals.(n) avec
            Global id -> print_string(Ident.name id)
          | _ -> print_string "???"
-  end
+  fin
 
-let print_primitive ic =
-  if !objfile then begin
-    begin try
-      match find_reloc ic with
+soit print_primitive ic =
+  si !objfile alors début
+    début essaie
+      filtre find_reloc ic avec
         Reloc_primitive s -> print_string s
       | _ -> print_string "<wrong reloc>"
-    with Not_found ->
+    avec Not_found ->
       print_string "<no reloc>"
-    end;
+    fin;
     ignore (inputu ic);
-  end
-  else begin
-    let n = inputu ic in
-    if n >= Array.length !primitives || n < 0
-    then print_int n
-    else print_string !primitives.(n)
-  end
+  fin
+  sinon début
+    soit n = inputu ic dans
+    si n >= Array.length !primitives || n < 0
+    alors print_int n
+    sinon print_string !primitives.(n)
+  fin
 
 (* Disassemble one instruction *)
 
-let currpc ic =
+soit currpc ic =
   currpos ic / 4
 
 type shape =
@@ -247,7 +247,7 @@ type shape =
   | Pubmet
 ;;
 
-let op_shapes = [
+soit op_shapes = [
   opACC0, Nothing;
   opACC1, Nothing;
   opACC2, Nothing;
@@ -396,35 +396,35 @@ let op_shapes = [
   opBREAK, Nothing;
 ];;
 
-let print_event ev =
-  if !print_locations then
-    let ls = ev.ev_loc.loc_start in
-    let le = ev.ev_loc.loc_end in
+soit print_event ev =
+  si !print_locations alors
+    soit ls = ev.ev_loc.loc_start dans
+    soit le = ev.ev_loc.loc_end dans
     printf "File \"%s\", line %d, characters %d-%d:\n" ls.Lexing.pos_fname
       ls.Lexing.pos_lnum (ls.Lexing.pos_cnum - ls.Lexing.pos_bol)
       (le.Lexing.pos_cnum - ls.Lexing.pos_bol)
 
-let print_instr ic =
-  let pos = currpos ic in
+soit print_instr ic =
+  soit pos = currpos ic dans
   List.iter print_event (Hashtbl.find_all event_table pos);
   printf "%8d  " (pos / 4);
-  let op = inputu ic in
-  if op >= Array.length names_of_instructions || op < 0
-  then (print_string "*** unknown opcode : "; print_int op)
-  else print_string names_of_instructions.(op);
+  soit op = inputu ic dans
+  si op >= Array.length names_of_instructions || op < 0
+  alors (print_string "*** unknown opcode : "; print_int op)
+  sinon print_string names_of_instructions.(op);
   print_string " ";
-  begin try match List.assoc op op_shapes with
+  début essaie filtre List.assoc op op_shapes avec
   | Uint -> print_int (inputu ic)
   | Sint -> print_int (inputs ic)
   | Uint_Uint
      -> print_int (inputu ic); print_string ", "; print_int (inputu ic)
-  | Disp -> let p = currpc ic in print_int (p + inputs ic)
+  | Disp -> soit p = currpc ic dans print_int (p + inputs ic)
   | Uint_Disp
      -> print_int (inputu ic); print_string ", ";
-        let p = currpc ic in print_int (p + inputs ic)
+        soit p = currpc ic dans print_int (p + inputs ic)
   | Sint_Disp
      -> print_int (inputs ic); print_string ", ";
-        let p = currpc ic in print_int (p + inputs ic)
+        soit p = currpc ic dans print_int (p + inputs ic)
   | Getglobal -> print_getglobal_name ic
   | Getglobal_Uint
      -> print_getglobal_name ic; print_string ", "; print_int (inputu ic)
@@ -433,47 +433,47 @@ let print_instr ic =
   | Uint_Primitive
      -> print_int(inputu ic); print_string ", "; print_primitive ic
   | Switch
-     -> let n = inputu ic in
-        let orig = currpc ic in
-        for i = 0 to (n land 0xFFFF) - 1 do
+     -> soit n = inputu ic dans
+        soit orig = currpc ic dans
+        pour i = 0 à (n etl 0xFFFF) - 1 faire
           print_string "\n        int "; print_int i; print_string " -> ";
           print_int(orig + inputs ic);
-        done;
-        for i = 0 to (n lsr 16) - 1 do
+        fait;
+        pour i = 0 à (n ddl 16) - 1 faire
           print_string "\n        tag "; print_int i; print_string " -> ";
           print_int(orig + inputs ic);
-        done;
+        fait;
   | Closurerec
-     -> let nfuncs = inputu ic in
-        let nvars = inputu ic in
-        let orig = currpc ic in
+     -> soit nfuncs = inputu ic dans
+        soit nvars = inputu ic dans
+        soit orig = currpc ic dans
         print_int nvars;
-        for _i = 0 to nfuncs - 1 do
+        pour _i = 0 à nfuncs - 1 faire
           print_string ", ";
           print_int (orig + inputs ic);
-        done;
+        fait;
   | Pubmet
-     -> let tag = inputs ic in
-        let _cache = inputu ic in
+     -> soit tag = inputs ic dans
+        soit _cache = inputu ic dans
         print_int tag
   | Nothing -> ()
-  with Not_found -> print_string "(unknown arguments)"
-  end;
+  avec Not_found -> print_string "(unknown arguments)"
+  fin;
   print_string "\n";
 ;;
 
 (* Disassemble a block of code *)
 
-let print_code ic len =
+soit print_code ic len =
   start := pos_in ic;
-  let stop = !start + len in
-  while pos_in ic < stop do print_instr ic done
+  soit stop = !start + len dans
+  pendant_que pos_in ic < stop faire print_instr ic fait
 
 (* Dump relocation info *)
 
-let print_reloc (info, pos) =
+soit print_reloc (info, pos) =
   printf "    %d    (%d)    " pos (pos/4);
-  match info with
+  filtre info avec
     Reloc_literal sc -> print_struct_const sc; printf "\n"
   | Reloc_getglobal id -> printf "require    %s\n" (Ident.name id)
   | Reloc_setglobal id -> printf "provide    %s\n" (Ident.name id)
@@ -481,87 +481,87 @@ let print_reloc (info, pos) =
 
 (* Print a .cmo file *)
 
-let dump_obj filename ic =
-  let buffer = Misc.input_bytes ic (String.length cmo_magic_number) in
-  if buffer <> cmo_magic_number then begin
+soit dump_obj filename ic =
+  soit buffer = Misc.input_bytes ic (String.length cmo_magic_number) dans
+  si buffer <> cmo_magic_number alors début
     prerr_endline "Not an object file"; exit 2
-  end;
-  let cu_pos = input_binary_int ic in
+  fin;
+  soit cu_pos = input_binary_int ic dans
   seek_in ic cu_pos;
-  let cu = (input_value ic : compilation_unit) in
+  soit cu = (input_value ic : compilation_unit) dans
   reloc := cu.cu_reloc;
-  if cu.cu_debug > 0 then begin
+  si cu.cu_debug > 0 alors début
     seek_in ic cu.cu_debug;
-    let evl = (input_value ic : debug_event list) in
+    soit evl = (input_value ic : debug_event list) dans
     record_events 0 evl
-  end;
+  fin;
   seek_in ic cu.cu_pos;
   print_code ic cu.cu_codesize
 
 (* Read the primitive table from an executable *)
 
-let read_primitive_table ic len =
-  let p = Misc.input_bytes ic len in
-  let rec split beg cur =
-    if cur >= len then []
-    else if p.[cur] = '\000' then
+soit read_primitive_table ic len =
+  soit p = Misc.input_bytes ic len dans
+  soit rec split beg cur =
+    si cur >= len alors []
+    sinon si p.[cur] = '\000' alors
       String.sub p beg (cur - beg) :: split (cur + 1) (cur + 1)
-    else
-      split beg (cur + 1) in
+    sinon
+      split beg (cur + 1) dans
   Array.of_list(split 0 0)
 
 (* Print an executable file *)
 
-let dump_exe ic =
+soit dump_exe ic =
   Bytesections.read_toc ic;
-  let prim_size = Bytesections.seek_section ic "PRIM" in
+  soit prim_size = Bytesections.seek_section ic "PRIM" dans
   primitives := read_primitive_table ic prim_size;
   ignore(Bytesections.seek_section ic "DATA");
-  let init_data = (input_value ic : Obj.t array) in
+  soit init_data = (input_value ic : Obj.t array) dans
   globals := Array.create (Array.length init_data) Empty;
-  for i = 0 to Array.length init_data - 1 do
+  pour i = 0 à Array.length init_data - 1 faire
     !globals.(i) <- Constant (init_data.(i))
-  done;
+  fait;
   ignore(Bytesections.seek_section ic "SYMB");
-  let (_, sym_table) = (input_value ic : int * (Ident.t, int) Tbl.t) in
-  Tbl.iter (fun id pos -> !globals.(pos) <- Global id) sym_table;
-  begin try
+  soit (_, sym_table) = (input_value ic : int * (Ident.t, int) Tbl.t) dans
+  Tbl.iter (fonc id pos -> !globals.(pos) <- Global id) sym_table;
+  début essaie
     ignore (Bytesections.seek_section ic "DBUG");
-    let num_eventlists = input_binary_int ic in
-    for _i = 1 to num_eventlists do
-      let orig = input_binary_int ic in
-      let evl = (input_value ic : debug_event list) in
+    soit num_eventlists = input_binary_int ic dans
+    pour _i = 1 à num_eventlists faire
+      soit orig = input_binary_int ic dans
+      soit evl = (input_value ic : debug_event list) dans
       record_events orig evl
-    done
-  with Not_found -> ()
-  end;
-  let code_size = Bytesections.seek_section ic "CODE" in
+    fait
+  avec Not_found -> ()
+  fin;
+  soit code_size = Bytesections.seek_section ic "CODE" dans
   print_code ic code_size
 
-let arg_list = [
+soit arg_list = [
   "-noloc", Arg.Clear print_locations, " : don't print source information";
 ]
-let arg_usage =
+soit arg_usage =
   Printf.sprintf "%s [OPTIONS] FILES : dump content of bytecode files"
                  Sys.argv.(0)
 
-let first_file = ref true
+soit first_file = ref vrai
 
-let arg_fun filename =
-  let ic = open_in_bin filename in
-  if not !first_file then print_newline ();
-  first_file := false;
+soit arg_fun filename =
+  soit ic = open_in_bin filename dans
+  si not !first_file alors print_newline ();
+  first_file := faux;
   printf "## start of ocaml dump of %S\n%!" filename;
-  begin try
-          objfile := false; dump_exe ic
-    with Bytesections.Bad_magic_number ->
-      objfile := true; seek_in ic 0; dump_obj filename ic
-  end;
+  début essaie
+          objfile := faux; dump_exe ic
+    avec Bytesections.Bad_magic_number ->
+      objfile := vrai; seek_in ic 0; dump_obj filename ic
+  fin;
   close_in ic;
   printf "## end of ocaml dump of %S\n%!" filename
 
-let main() =
+soit main() =
   Arg.parse arg_list arg_fun arg_usage;
     exit 0
 
-let _ = main ()
+soit _ = main ()

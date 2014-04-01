@@ -12,17 +12,17 @@
 
 (* Operations on core types *)
 
-open Asttypes
-open Types
+ouvre Asttypes
+ouvre Types
 
-exception Unify of (type_expr * type_expr) list
-exception Tags of label * label
-exception Subtype of
+exception Unify de (type_expr * type_expr) list
+exception Tags de label * label
+exception Subtype de
         (type_expr * type_expr) list * (type_expr * type_expr) list
 exception Cannot_expand
 exception Cannot_apply
 exception Recursive_abbrev
-exception Unification_recursive_abbrev of (type_expr * type_expr) list
+exception Unification_recursive_abbrev de (type_expr * type_expr) list
 
 val init_def: int -> unit
         (* Set the initial variable level *)
@@ -185,21 +185,21 @@ val matches: Env.t -> type_expr -> type_expr -> bool
 
 type class_match_failure =
     CM_Virtual_class
-  | CM_Parameter_arity_mismatch of int * int
-  | CM_Type_parameter_mismatch of Env.t * (type_expr * type_expr) list
-  | CM_Class_type_mismatch of Env.t * class_type * class_type
-  | CM_Parameter_mismatch of Env.t * (type_expr * type_expr) list
-  | CM_Val_type_mismatch of string * Env.t * (type_expr * type_expr) list
-  | CM_Meth_type_mismatch of string * Env.t * (type_expr * type_expr) list
-  | CM_Non_mutable_value of string
-  | CM_Non_concrete_value of string
-  | CM_Missing_value of string
-  | CM_Missing_method of string
-  | CM_Hide_public of string
-  | CM_Hide_virtual of string * string
-  | CM_Public_method of string
-  | CM_Private_method of string
-  | CM_Virtual_method of string
+  | CM_Parameter_arity_mismatch de int * int
+  | CM_Type_parameter_mismatch de Env.t * (type_expr * type_expr) list
+  | CM_Class_type_mismatch de Env.t * class_type * class_type
+  | CM_Parameter_mismatch de Env.t * (type_expr * type_expr) list
+  | CM_Val_type_mismatch de string * Env.t * (type_expr * type_expr) list
+  | CM_Meth_type_mismatch de string * Env.t * (type_expr * type_expr) list
+  | CM_Non_mutable_value de string
+  | CM_Non_concrete_value de string
+  | CM_Missing_value de string
+  | CM_Missing_method de string
+  | CM_Hide_public de string
+  | CM_Hide_virtual de string * string
+  | CM_Public_method de string
+  | CM_Private_method de string
+  | CM_Virtual_method de string
 val match_class_types:
     ?trace:bool -> Env.t -> class_type -> class_type -> class_match_failure list
         (* Check if the first class type is more general than the second. *)
@@ -246,8 +246,8 @@ val free_variables: ?env:Env.t -> type_expr -> type_expr list
         (* If env present, then check for incomplete definitions too *)
 val closed_type_decl: type_declaration -> type_expr option
 type closed_class_failure =
-    CC_Method of type_expr * bool * string * type_expr
-  | CC_Value of type_expr * bool * string * type_expr
+    CC_Method de type_expr * bool * string * type_expr
+  | CC_Value de type_expr * bool * string * type_expr
 val closed_class:
         type_expr list -> class_signature -> closed_class_failure option
         (* Check whether all type variables are bound *)

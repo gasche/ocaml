@@ -12,19 +12,19 @@
 
 (* Environment handling *)
 
-open Types
+ouvre Types
 
 type summary =
     Env_empty
-  | Env_value of summary * Ident.t * value_description
-  | Env_type of summary * Ident.t * type_declaration
-  | Env_exception of summary * Ident.t * exception_declaration
-  | Env_module of summary * Ident.t * module_declaration
-  | Env_modtype of summary * Ident.t * modtype_declaration
-  | Env_class of summary * Ident.t * class_declaration
-  | Env_cltype of summary * Ident.t * class_type_declaration
-  | Env_open of summary * Path.t
-  | Env_functor_arg of summary * Ident.t
+  | Env_value de summary * Ident.t * value_description
+  | Env_type de summary * Ident.t * type_declaration
+  | Env_exception de summary * Ident.t * exception_declaration
+  | Env_module de summary * Ident.t * module_declaration
+  | Env_modtype de summary * Ident.t * modtype_declaration
+  | Env_class de summary * Ident.t * class_declaration
+  | Env_cltype de summary * Ident.t * class_type_declaration
+  | Env_open de summary * Path.t
+  | Env_functor_arg de summary * Ident.t
 
 type t
 
@@ -183,14 +183,14 @@ val env_of_only_summary : (summary -> Subst.t -> t) -> t -> t
 (* Error report *)
 
 type error =
-  | Illegal_renaming of string * string * string
-  | Inconsistent_import of string * string * string
-  | Need_recursive_types of string * string
-  | Missing_module of Location.t * Path.t * Path.t
+  | Illegal_renaming de string * string * string
+  | Inconsistent_import de string * string * string
+  | Need_recursive_types de string * string
+  | Missing_module de Location.t * Path.t * Path.t
 
-exception Error of error
+exception Error de error
 
-open Format
+ouvre Format
 
 val report_error: formatter -> error -> unit
 

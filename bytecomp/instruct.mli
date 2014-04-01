@@ -12,7 +12,7 @@
 
 (* The type of the instructions of the abstract machine *)
 
-open Lambda
+ouvre Lambda
 
 (* Structure of compilation environments *)
 
@@ -36,7 +36,7 @@ type compilation_env =
 
 (* Warning: when you change these types, check byterun/backtrace.c *)
 type debug_event =
-  { mutable ev_pos: int;                (* Position in bytecode *)
+  { modifiable ev_pos: int;                (* Position in bytecode *)
     ev_module: string;                  (* Name of defining module *)
     ev_loc: Location.t;                 (* Location in source file *)
     ev_kind: debug_event_kind;          (* Before/after event *)
@@ -47,78 +47,78 @@ type debug_event =
     ev_stacksize: int;                  (* Size of stack frame *)
     ev_repr: debug_event_repr }         (* Position of the representative *)
 
-and debug_event_kind =
+et debug_event_kind =
     Event_before
-  | Event_after of Types.type_expr
+  | Event_after de Types.type_expr
   | Event_pseudo
 
-and debug_event_info =
+et debug_event_info =
     Event_function
-  | Event_return of int
+  | Event_return de int
   | Event_other
 
-and debug_event_repr =
+et debug_event_repr =
     Event_none
-  | Event_parent of int ref
-  | Event_child of int ref
+  | Event_parent de int ref
+  | Event_child de int ref
 
 (* Abstract machine instructions *)
 
 type label = int                        (* Symbolic code labels *)
 
 type instruction =
-    Klabel of label
-  | Kacc of int
-  | Kenvacc of int
+    Klabel de label
+  | Kacc de int
+  | Kenvacc de int
   | Kpush
-  | Kpop of int
-  | Kassign of int
-  | Kpush_retaddr of label
-  | Kapply of int                       (* number of arguments *)
-  | Kappterm of int * int               (* number of arguments, slot size *)
-  | Kreturn of int                      (* slot size *)
+  | Kpop de int
+  | Kassign de int
+  | Kpush_retaddr de label
+  | Kapply de int                       (* number of arguments *)
+  | Kappterm de int * int               (* number of arguments, slot size *)
+  | Kreturn de int                      (* slot size *)
   | Krestart
-  | Kgrab of int                        (* number of arguments *)
-  | Kclosure of label * int
-  | Kclosurerec of label list * int
-  | Koffsetclosure of int
-  | Kgetglobal of Ident.t
-  | Ksetglobal of Ident.t
-  | Kconst of structured_constant
-  | Kmakeblock of int * int             (* size, tag *)
-  | Kmakefloatblock of int
-  | Kgetfield of int
-  | Ksetfield of int
-  | Kgetfloatfield of int
-  | Ksetfloatfield of int
+  | Kgrab de int                        (* number of arguments *)
+  | Kclosure de label * int
+  | Kclosurerec de label list * int
+  | Koffsetclosure de int
+  | Kgetglobal de Ident.t
+  | Ksetglobal de Ident.t
+  | Kconst de structured_constant
+  | Kmakeblock de int * int             (* size, tag *)
+  | Kmakefloatblock de int
+  | Kgetfield de int
+  | Ksetfield de int
+  | Kgetfloatfield de int
+  | Ksetfloatfield de int
   | Kvectlength
   | Kgetvectitem
   | Ksetvectitem
   | Kgetstringchar
   | Ksetstringchar
-  | Kbranch of label
-  | Kbranchif of label
-  | Kbranchifnot of label
-  | Kstrictbranchif of label
-  | Kstrictbranchifnot of label
-  | Kswitch of label array * label array
+  | Kbranch de label
+  | Kbranchif de label
+  | Kbranchifnot de label
+  | Kstrictbranchif de label
+  | Kstrictbranchifnot de label
+  | Kswitch de label array * label array
   | Kboolnot
-  | Kpushtrap of label
+  | Kpushtrap de label
   | Kpoptrap
-  | Kraise of raise_kind
+  | Kraise de raise_kind
   | Kcheck_signals
-  | Kccall of string * int
+  | Kccall de string * int
   | Knegint | Kaddint | Ksubint | Kmulint | Kdivint | Kmodint
   | Kandint | Korint | Kxorint | Klslint | Klsrint | Kasrint
-  | Kintcomp of comparison
-  | Koffsetint of int
-  | Koffsetref of int
+  | Kintcomp de comparison
+  | Koffsetint de int
+  | Koffsetref de int
   | Kisint
   | Kisout
   | Kgetmethod
-  | Kgetpubmet of int
+  | Kgetpubmet de int
   | Kgetdynmet
-  | Kevent of debug_event
+  | Kevent de debug_event
   | Kstop
 
 val immed_min: int

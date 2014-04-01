@@ -12,7 +12,7 @@
 
 (* The toplevel directives. *)
 
-open Format
+ouvre Format
 
 val dir_quit : unit -> unit
 val dir_directory : string -> unit

@@ -12,48 +12,48 @@
 
 (* Link a set of .cmo files and produce a bytecode executable. *)
 
-open Misc
-open Config
-open Cmo_format
+ouvre Misc
+ouvre Config
+ouvre Cmo_format
 
 type error =
-    File_not_found of string
-  | Not_an_object_file of string
-  | Wrong_object_name of string
-  | Symbol_error of string * Symtable.error
-  | Inconsistent_import of string * string * string
+    File_not_found de string
+  | Not_an_object_file de string
+  | Wrong_object_name de string
+  | Symbol_error de string * Symtable.error
+  | Inconsistent_import de string * string * string
   | Custom_runtime
-  | File_exists of string
-  | Cannot_open_dll of string
+  | File_exists de string
+  | Cannot_open_dll de string
   | Not_compatible_32
 
-exception Error of error
+exception Error de error
 
 type link_action =
-    Link_object of string * compilation_unit
+    Link_object de string * compilation_unit
       (* Name of .cmo file and descriptor of the unit *)
-  | Link_archive of string * compilation_unit list
+  | Link_archive de string * compilation_unit list
       (* Name of .cma file and descriptors of the units to be linked. *)
 
 (* Add C objects and options from a library descriptor *)
 (* Ignore them if -noautolink or -use-runtime or -use-prim was given *)
 
-let lib_ccobjs = ref []
-let lib_ccopts = ref []
-let lib_dllibs = ref []
+soit lib_ccobjs = ref []
+soit lib_ccopts = ref []
+soit lib_dllibs = ref []
 
-let add_ccobjs l =
-  if not !Clflags.no_auto_link then begin
-    if
+soit add_ccobjs l =
+  si not !Clflags.no_auto_link alors début
+    si
       String.length !Clflags.use_runtime = 0
       && String.length !Clflags.use_prims = 0
-    then begin
-      if l.lib_custom then Clflags.custom_runtime := true;
+    alors début
+      si l.lib_custom alors Clflags.custom_runtime := vrai;
       lib_ccobjs := l.lib_ccobjs @ !lib_ccobjs;
       lib_ccopts := l.lib_ccopts @ !lib_ccopts;
-    end;
+    fin;
     lib_dllibs := l.lib_dllibs @ !lib_dllibs
-  end
+  fin
 
 (* A note on ccobj ordering:
    - Clflags.ccobjs is in reverse order w.r.t. what was given on the
@@ -82,74 +82,74 @@ let add_ccobjs l =
 module IdentSet =
   Set.Make(struct
     type t = Ident.t
-    let compare = compare
-  end)
+    soit compare = compare
+  fin)
 
-let missing_globals = ref IdentSet.empty
+soit missing_globals = ref IdentSet.empty
 
-let is_required (rel, pos) =
-  match rel with
+soit is_required (rel, pos) =
+  filtre rel avec
     Reloc_setglobal id ->
       IdentSet.mem id !missing_globals
-  | _ -> false
+  | _ -> faux
 
-let add_required (rel, pos) =
-  match rel with
+soit add_required (rel, pos) =
+  filtre rel avec
     Reloc_getglobal id ->
       missing_globals := IdentSet.add id !missing_globals
   | _ -> ()
 
-let remove_required (rel, pos) =
-  match rel with
+soit remove_required (rel, pos) =
+  filtre rel avec
     Reloc_setglobal id ->
       missing_globals := IdentSet.remove id !missing_globals
   | _ -> ()
 
-let scan_file obj_name tolink =
-  let file_name =
-    try
+soit scan_file obj_name tolink =
+  soit file_name =
+    essaie
       find_in_path !load_path obj_name
-    with Not_found ->
-      raise(Error(File_not_found obj_name)) in
-  let ic = open_in_bin file_name in
-  try
-    let buffer = input_bytes ic (String.length cmo_magic_number) in
-    if buffer = cmo_magic_number then begin
+    avec Not_found ->
+      raise(Error(File_not_found obj_name)) dans
+  soit ic = open_in_bin file_name dans
+  essaie
+    soit buffer = input_bytes ic (String.length cmo_magic_number) dans
+    si buffer = cmo_magic_number alors début
       (* This is a .cmo file. It must be linked in any case.
          Read the relocation information to see which modules it
          requires. *)
-      let compunit_pos = input_binary_int ic in  (* Go to descriptor *)
+      soit compunit_pos = input_binary_int ic dans  (* Go to descriptor *)
       seek_in ic compunit_pos;
-      let compunit = (input_value ic : compilation_unit) in
+      soit compunit = (input_value ic : compilation_unit) dans
       close_in ic;
       List.iter add_required compunit.cu_reloc;
       Link_object(file_name, compunit) :: tolink
-    end
-    else if buffer = cma_magic_number then begin
+    fin
+    sinon si buffer = cma_magic_number alors début
       (* This is an archive file. Each unit contained in it will be linked
          in only if needed. *)
-      let pos_toc = input_binary_int ic in    (* Go to table of contents *)
+      soit pos_toc = input_binary_int ic dans    (* Go to table of contents *)
       seek_in ic pos_toc;
-      let toc = (input_value ic : library) in
+      soit toc = (input_value ic : library) dans
       close_in ic;
       add_ccobjs toc;
-      let required =
+      soit required =
         List.fold_right
-          (fun compunit reqd ->
-            if compunit.cu_force_link
+          (fonc compunit reqd ->
+            si compunit.cu_force_link
             || !Clflags.link_everything
             || List.exists is_required compunit.cu_reloc
-            then begin
+            alors début
               List.iter remove_required compunit.cu_reloc;
               List.iter add_required compunit.cu_reloc;
               compunit :: reqd
-            end else
+            fin sinon
               reqd)
-          toc.lib_units [] in
+          toc.lib_units [] dans
       Link_archive(file_name, required) :: tolink
-    end
-    else raise(Error(Not_an_object_file file_name))
-  with
+    fin
+    sinon raise(Error(Not_an_object_file file_name))
+  avec
     End_of_file -> close_in ic; raise(Error(Not_an_object_file file_name))
   | x -> close_in ic; raise x
 
@@ -157,62 +157,62 @@ let scan_file obj_name tolink =
 
 (* Consistency check between interfaces *)
 
-let crc_interfaces = Consistbl.create ()
-let implementations_defined = ref ([] : (string * string) list)
+soit crc_interfaces = Consistbl.create ()
+soit implementations_defined = ref ([] : (string * string) list)
 
-let check_consistency ppf file_name cu =
-  begin try
+soit check_consistency ppf file_name cu =
+  début essaie
     List.iter
-      (fun (name, crc) ->
-        if name = cu.cu_name
-        then Consistbl.set crc_interfaces name crc file_name
-        else Consistbl.check crc_interfaces name crc file_name)
+      (fonc (name, crc) ->
+        si name = cu.cu_name
+        alors Consistbl.set crc_interfaces name crc file_name
+        sinon Consistbl.check crc_interfaces name crc file_name)
       cu.cu_imports
-  with Consistbl.Inconsistency(name, user, auth) ->
+  avec Consistbl.Inconsistency(name, user, auth) ->
     raise(Error(Inconsistent_import(name, user, auth)))
-  end;
-  begin try
-    let source = List.assoc cu.cu_name !implementations_defined in
+  fin;
+  début essaie
+    soit source = List.assoc cu.cu_name !implementations_defined dans
     Location.print_warning (Location.in_file file_name) ppf
       (Warnings.Multiple_definition(cu.cu_name,
                                     Location.show_filename file_name,
                                     Location.show_filename source))
-  with Not_found -> ()
-  end;
+  avec Not_found -> ()
+  fin;
   implementations_defined :=
     (cu.cu_name, file_name) :: !implementations_defined
 
-let extract_crc_interfaces () =
+soit extract_crc_interfaces () =
   Consistbl.extract crc_interfaces
 
 (* Record compilation events *)
 
-let debug_info = ref ([] : (int * LongString.t) list)
+soit debug_info = ref ([] : (int * LongString.t) list)
 
 (* Link in a compilation unit *)
 
-let link_compunit ppf output_fun currpos_fun inchan file_name compunit =
+soit link_compunit ppf output_fun currpos_fun inchan file_name compunit =
   check_consistency ppf file_name compunit;
   seek_in inchan compunit.cu_pos;
-  let code_block = LongString.input_bytes inchan compunit.cu_codesize in
+  soit code_block = LongString.input_bytes inchan compunit.cu_codesize dans
   Symtable.ls_patch_object code_block compunit.cu_reloc;
-  if !Clflags.debug && compunit.cu_debug > 0 then begin
+  si !Clflags.debug && compunit.cu_debug > 0 alors début
     seek_in inchan compunit.cu_debug;
-    let buffer = LongString.input_bytes inchan compunit.cu_debugsize in
+    soit buffer = LongString.input_bytes inchan compunit.cu_debugsize dans
     debug_info := (currpos_fun(), buffer) :: !debug_info
-  end;
+  fin;
   Array.iter output_fun code_block;
-  if !Clflags.link_everything then
+  si !Clflags.link_everything alors
     List.iter Symtable.require_primitive compunit.cu_primitives
 
 (* Link in a .cmo file *)
 
-let link_object ppf output_fun currpos_fun file_name compunit =
-  let inchan = open_in_bin file_name in
-  try
+soit link_object ppf output_fun currpos_fun file_name compunit =
+  soit inchan = open_in_bin file_name dans
+  essaie
     link_compunit ppf output_fun currpos_fun inchan file_name compunit;
     close_in inchan
-  with
+  avec
     Symtable.Error msg ->
       close_in inchan; raise(Error(Symbol_error(file_name, msg)))
   | x ->
@@ -220,23 +220,23 @@ let link_object ppf output_fun currpos_fun file_name compunit =
 
 (* Link in a .cma file *)
 
-let link_archive ppf output_fun currpos_fun file_name units_required =
-  let inchan = open_in_bin file_name in
-  try
+soit link_archive ppf output_fun currpos_fun file_name units_required =
+  soit inchan = open_in_bin file_name dans
+  essaie
     List.iter
-      (fun cu ->
-         let name = file_name ^ "(" ^ cu.cu_name ^ ")" in
-         try
+      (fonc cu ->
+         soit name = file_name ^ "(" ^ cu.cu_name ^ ")" dans
+         essaie
            link_compunit ppf output_fun currpos_fun inchan name cu
-         with Symtable.Error msg ->
+         avec Symtable.Error msg ->
            raise(Error(Symbol_error(name, msg))))
       units_required;
     close_in inchan
-  with x -> close_in inchan; raise x
+  avec x -> close_in inchan; raise x
 
 (* Link in a .cmo or .cma file *)
 
-let link_file ppf output_fun currpos_fun = function
+soit link_file ppf output_fun currpos_fun = fonction
     Link_object(file_name, unit) ->
       link_object ppf output_fun currpos_fun file_name unit
   | Link_archive(file_name, units) ->
@@ -251,10 +251,10 @@ let link_file ppf output_fun currpos_fun = function
       <int32>          offset of last event list
       <output_value>   last event list *)
 
-let output_debug_info oc =
+soit output_debug_info oc =
   output_binary_int oc (List.length !debug_info);
   List.iter
-    (fun (ofs, evl) ->
+    (fonc (ofs, evl) ->
       output_binary_int oc ofs;
       Array.iter (output_string oc) evl)
     !debug_info;
@@ -262,89 +262,89 @@ let output_debug_info oc =
 
 (* Output a list of strings with 0-termination *)
 
-let output_stringlist oc l =
-  List.iter (fun s -> output_string oc s; output_byte oc 0) l
+soit output_stringlist oc l =
+  List.iter (fonc s -> output_string oc s; output_byte oc 0) l
 
 (* Transform a file name into an absolute file name *)
 
-let make_absolute file =
-  if Filename.is_relative file
-  then Filename.concat (Sys.getcwd()) file
-  else file
+soit make_absolute file =
+  si Filename.is_relative file
+  alors Filename.concat (Sys.getcwd()) file
+  sinon file
 
 (* Create a bytecode executable file *)
 
-let link_bytecode ppf tolink exec_name standalone =
+soit link_bytecode ppf tolink exec_name standalone =
   (* Avoid the case where the specified exec output file is the same as
      one of the objects to be linked *)
-  List.iter (function
-    | Link_object(file_name, _) when file_name = exec_name ->
+  List.iter (fonction
+    | Link_object(file_name, _) quand file_name = exec_name ->
       raise (Error (Wrong_object_name exec_name));
     | _ -> ()) tolink;
   Misc.remove_file exec_name; (* avoid permission problems, cf PR#1911 *)
-  let outchan =
+  soit outchan =
     open_out_gen [Open_wronly; Open_trunc; Open_creat; Open_binary]
-                 0o777 exec_name in
-  try
-    if standalone then begin
+                 0o777 exec_name dans
+  essaie
+    si standalone alors début
       (* Copy the header *)
-      try
-        let header =
-          if String.length !Clflags.use_runtime > 0
-          then "camlheader_ur" else "camlheader" ^ !Clflags.runtime_variant in
-        let inchan = open_in_bin (find_in_path !load_path header) in
+      essaie
+        soit header =
+          si String.length !Clflags.use_runtime > 0
+          alors "camlheader_ur" sinon "camlheader" ^ !Clflags.runtime_variant dans
+        soit inchan = open_in_bin (find_in_path !load_path header) dans
         copy_file inchan outchan;
         close_in inchan
-      with Not_found | Sys_error _ -> ()
-    end;
+      avec Not_found | Sys_error _ -> ()
+    fin;
     Bytesections.init_record outchan;
     (* The path to the bytecode interpreter (in use_runtime mode) *)
-    if String.length !Clflags.use_runtime > 0 then begin
+    si String.length !Clflags.use_runtime > 0 alors début
       output_string outchan (make_absolute !Clflags.use_runtime);
       output_char outchan '\n';
       Bytesections.record outchan "RNTM"
-    end;
+    fin;
     (* The bytecode *)
-    let start_code = pos_out outchan in
+    soit start_code = pos_out outchan dans
     Symtable.init();
     Consistbl.clear crc_interfaces;
-    let sharedobjs = List.map Dll.extract_dll_name !Clflags.dllibs in
-    let check_dlls = standalone && Config.target = Config.host in
-    if check_dlls then begin
+    soit sharedobjs = List.map Dll.extract_dll_name !Clflags.dllibs dans
+    soit check_dlls = standalone && Config.target = Config.host dans
+    si check_dlls alors début
       (* Initialize the DLL machinery *)
       Dll.init_compile !Clflags.no_std_include;
       Dll.add_path !load_path;
-      try Dll.open_dlls Dll.For_checking sharedobjs
-      with Failure reason -> raise(Error(Cannot_open_dll reason))
-    end;
-    let output_fun = output_string outchan
-    and currpos_fun () = pos_out outchan - start_code in
+      essaie Dll.open_dlls Dll.For_checking sharedobjs
+      avec Failure reason -> raise(Error(Cannot_open_dll reason))
+    fin;
+    soit output_fun = output_string outchan
+    et currpos_fun () = pos_out outchan - start_code dans
     List.iter (link_file ppf output_fun currpos_fun) tolink;
-    if check_dlls then Dll.close_all_dlls();
+    si check_dlls alors Dll.close_all_dlls();
     (* The final STOP instruction *)
     output_byte outchan Opcodes.opSTOP;
     output_byte outchan 0; output_byte outchan 0; output_byte outchan 0;
     Bytesections.record outchan "CODE";
     (* DLL stuff *)
-    if standalone then begin
+    si standalone alors début
       (* The extra search path for DLLs *)
       output_stringlist outchan !Clflags.dllpaths;
       Bytesections.record outchan "DLPT";
       (* The names of the DLLs *)
       output_stringlist outchan sharedobjs;
       Bytesections.record outchan "DLLS"
-    end;
+    fin;
     (* The names of all primitives *)
     Symtable.output_primitive_names outchan;
     Bytesections.record outchan "PRIM";
     (* The table of global data *)
-    begin try
+    début essaie
       Marshal.to_channel outchan (Symtable.initial_global_table())
-          (if !Clflags.bytecode_compatible_32
-           then [Marshal.Compat_32] else [])
-    with Failure _ ->
+          (si !Clflags.bytecode_compatible_32
+           alors [Marshal.Compat_32] sinon [])
+    avec Failure _ ->
       raise (Error Not_compatible_32)
-    end;
+    fin;
     Bytesections.record outchan "DATA";
     (* The map of global identifiers *)
     Symtable.output_global_map outchan;
@@ -353,60 +353,60 @@ let link_bytecode ppf tolink exec_name standalone =
     output_value outchan (extract_crc_interfaces());
     Bytesections.record outchan "CRCS";
     (* Debug info *)
-    if !Clflags.debug then begin
+    si !Clflags.debug alors début
       output_debug_info outchan;
       Bytesections.record outchan "DBUG"
-    end;
+    fin;
     (* The table of contents and the trailer *)
     Bytesections.write_toc_and_trailer outchan;
     close_out outchan
-  with x ->
+  avec x ->
     close_out outchan;
     remove_file exec_name;
     raise x
 
 (* Output a string as a C array of unsigned ints *)
 
-let output_code_string_counter = ref 0
+soit output_code_string_counter = ref 0
 
-let output_code_string outchan code =
-  let pos = ref 0 in
-  let len = String.length code in
-  while !pos < len do
-    let c1 = Char.code(code.[!pos]) in
-    let c2 = Char.code(code.[!pos + 1]) in
-    let c3 = Char.code(code.[!pos + 2]) in
-    let c4 = Char.code(code.[!pos + 3]) in
+soit output_code_string outchan code =
+  soit pos = ref 0 dans
+  soit len = String.length code dans
+  pendant_que !pos < len faire
+    soit c1 = Char.code(code.[!pos]) dans
+    soit c2 = Char.code(code.[!pos + 1]) dans
+    soit c3 = Char.code(code.[!pos + 2]) dans
+    soit c4 = Char.code(code.[!pos + 3]) dans
     pos := !pos + 4;
     Printf.fprintf outchan "0x%02x%02x%02x%02x, " c4 c3 c2 c1;
     incr output_code_string_counter;
-    if !output_code_string_counter >= 6 then begin
+    si !output_code_string_counter >= 6 alors début
       output_char outchan '\n';
       output_code_string_counter := 0
-    end
-  done
+    fin
+  fait
 
 (* Output a string as a C string *)
 
-let output_data_string outchan data =
-  let counter = ref 0 in
-  for i = 0 to String.length data - 1 do
+soit output_data_string outchan data =
+  soit counter = ref 0 dans
+  pour i = 0 à String.length data - 1 faire
     Printf.fprintf outchan "%d, " (Char.code(data.[i]));
     incr counter;
-    if !counter >= 12 then begin
+    si !counter >= 12 alors début
       output_string outchan "\n";
       counter := 0
-    end
-  done
+    fin
+  fait
 
 (* Output a debug stub *)
 
-let output_cds_file outfile =
+soit output_cds_file outfile =
   Misc.remove_file outfile;
-  let outchan =
+  soit outchan =
     open_out_gen [Open_wronly; Open_trunc; Open_creat; Open_binary]
-      0o777 outfile in
-  try
+      0o777 outfile dans
+  essaie
     Bytesections.init_record outchan;
     (* The map of global identifiers *)
     Symtable.output_global_map outchan;
@@ -417,16 +417,16 @@ let output_cds_file outfile =
     (* The table of contents and the trailer *)
     Bytesections.write_toc_and_trailer outchan;
     close_out outchan
-  with x ->
+  avec x ->
     close_out outchan;
     remove_file outfile;
     raise x
 
 (* Output a bytecode executable as a C file *)
 
-let link_bytecode_as_c ppf tolink outfile =
-  let outchan = open_out outfile in
-  begin try
+soit link_bytecode_as_c ppf tolink outfile =
+  soit outchan = open_out outfile dans
+  début essaie
     (* The bytecode *)
     output_string outchan "\
 #ifdef __cplusplus\
@@ -441,11 +441,11 @@ let link_bytecode_as_c ppf tolink outfile =
     output_string outchan "static int caml_code[] = {\n";
     Symtable.init();
     Consistbl.clear crc_interfaces;
-    let currpos = ref 0 in
-    let output_fun code =
+    soit currpos = ref 0 dans
+    soit output_fun code =
       output_code_string outchan code;
       currpos := !currpos + String.length code
-    and currpos_fun () = !currpos in
+    et currpos_fun () = !currpos dans
     List.iter (link_file ppf output_fun currpos_fun) tolink;
     (* The final STOP instruction *)
     Printf.fprintf outchan "\n0x%x};\n\n" Opcodes.opSTOP;
@@ -455,10 +455,10 @@ let link_bytecode_as_c ppf tolink outfile =
       (Marshal.to_string (Symtable.initial_global_table()) []);
     output_string outchan "\n};\n\n";
     (* The sections *)
-    let sections =
+    soit sections =
       [ "SYMB", Symtable.data_global_map();
         "PRIM", Obj.repr(Symtable.data_primitive_names());
-        "CRCS", Obj.repr(extract_crc_interfaces()) ] in
+        "CRCS", Obj.repr(extract_crc_interfaces()) ] dans
     output_string outchan "static char caml_sections[] = {\n";
     output_data_string outchan
       (Marshal.to_string sections []);
@@ -478,25 +478,25 @@ let link_bytecode_as_c ppf tolink outfile =
 \n}\
 \n#endif\n";
     close_out outchan
-  with x ->
+  avec x ->
     close_out outchan;
     remove_file outfile;
     raise x
-  end;
-  if !Clflags.debug then
+  fin;
+  si !Clflags.debug alors
     output_cds_file ((Filename.chop_extension outfile) ^ ".cds")
 
 (* Build a custom runtime *)
 
-let build_custom_runtime prim_name exec_name =
-  let runtime_lib = "-lcamlrun" ^ !Clflags.runtime_variant in
+soit build_custom_runtime prim_name exec_name =
+  soit runtime_lib = "-lcamlrun" ^ !Clflags.runtime_variant dans
   Ccomp.call_linker Ccomp.Exe exec_name
     ([prim_name] @ List.rev !Clflags.ccobjs @ [runtime_lib])
     (Clflags.std_include_flag "-I" ^ " " ^ Config.bytecomp_c_libraries)
 
-let append_bytecode_and_cleanup bytecode_name exec_name prim_name =
-  let oc = open_out_gen [Open_wronly; Open_append; Open_binary] 0 exec_name in
-  let ic = open_in_bin bytecode_name in
+soit append_bytecode_and_cleanup bytecode_name exec_name prim_name =
+  soit oc = open_out_gen [Open_wronly; Open_append; Open_binary] 0 exec_name dans
+  soit ic = open_in_bin bytecode_name dans
   copy_file ic oc;
   close_in ic;
   close_out oc;
@@ -506,32 +506,32 @@ let append_bytecode_and_cleanup bytecode_name exec_name prim_name =
 (* Fix the name of the output file, if the C compiler changes it behind
    our back. *)
 
-let fix_exec_name name =
-  match Sys.os_type with
+soit fix_exec_name name =
+  filtre Sys.os_type avec
     "Win32" | "Cygwin" ->
-      if String.contains name '.' then name else name ^ ".exe"
+      si String.contains name '.' alors name sinon name ^ ".exe"
   | _ -> name
 
 (* Main entry point (build a custom runtime if needed) *)
 
-let link ppf objfiles output_name =
-  let objfiles =
-    if !Clflags.nopervasives then objfiles
-    else if !Clflags.output_c_object then "stdlib.cma" :: objfiles
-    else "stdlib.cma" :: (objfiles @ ["std_exit.cmo"]) in
-  let tolink = List.fold_right scan_file objfiles [] in
+soit link ppf objfiles output_name =
+  soit objfiles =
+    si !Clflags.nopervasives alors objfiles
+    sinon si !Clflags.output_c_object alors "stdlib.cma" :: objfiles
+    sinon "stdlib.cma" :: (objfiles @ ["std_exit.cmo"]) dans
+  soit tolink = List.fold_right scan_file objfiles [] dans
   Clflags.ccobjs := !Clflags.ccobjs @ !lib_ccobjs; (* put user's libs last *)
   Clflags.all_ccopts := !lib_ccopts @ !Clflags.all_ccopts;
                                                    (* put user's opts first *)
   Clflags.dllibs := !lib_dllibs @ !Clflags.dllibs; (* put user's DLLs first *)
-  if not !Clflags.custom_runtime then
-    link_bytecode ppf tolink output_name true
-  else if not !Clflags.output_c_object then begin
-    let bytecode_name = Filename.temp_file "camlcode" "" in
-    let prim_name = Filename.temp_file "camlprim" ".c" in
-    try
-      link_bytecode ppf tolink bytecode_name false;
-      let poc = open_out prim_name in
+  si not !Clflags.custom_runtime alors
+    link_bytecode ppf tolink output_name vrai
+  sinon si not !Clflags.output_c_object alors début
+    soit bytecode_name = Filename.temp_file "camlcode" "" dans
+    soit prim_name = Filename.temp_file "camlprim" ".c" dans
+    essaie
+      link_bytecode ppf tolink bytecode_name faux;
+      soit poc = open_out prim_name dans
       output_string poc "\
         #ifdef __cplusplus\n\
         extern \"C\" {\n\
@@ -551,48 +551,48 @@ let link ppf objfiles output_name =
         }\n\
         #endif\n";
       close_out poc;
-      let exec_name = fix_exec_name output_name in
-      if not (build_custom_runtime prim_name exec_name)
-      then raise(Error Custom_runtime);
-      if !Clflags.make_runtime
-      then (remove_file bytecode_name; remove_file prim_name)
-      else append_bytecode_and_cleanup bytecode_name exec_name prim_name
-    with x ->
+      soit exec_name = fix_exec_name output_name dans
+      si not (build_custom_runtime prim_name exec_name)
+      alors raise(Error Custom_runtime);
+      si !Clflags.make_runtime
+      alors (remove_file bytecode_name; remove_file prim_name)
+      sinon append_bytecode_and_cleanup bytecode_name exec_name prim_name
+    avec x ->
       remove_file bytecode_name;
       remove_file prim_name;
       raise x
-  end else begin
-    let basename = Filename.chop_extension output_name in
-    let c_file = basename ^ ".c"
-    and obj_file = basename ^ Config.ext_obj in
-    if Sys.file_exists c_file then raise(Error(File_exists c_file));
-    let temps = ref [] in
-    try
+  fin sinon début
+    soit basename = Filename.chop_extension output_name dans
+    soit c_file = basename ^ ".c"
+    et obj_file = basename ^ Config.ext_obj dans
+    si Sys.file_exists c_file alors raise(Error(File_exists c_file));
+    soit temps = ref [] dans
+    essaie
       link_bytecode_as_c ppf tolink c_file;
-      if not (Filename.check_suffix output_name ".c") then begin
+      si not (Filename.check_suffix output_name ".c") alors début
         temps := c_file :: !temps;
-        if Ccomp.compile_file c_file <> 0 then raise(Error Custom_runtime);
-        if not (Filename.check_suffix output_name Config.ext_obj) then begin
+        si Ccomp.compile_file c_file <> 0 alors raise(Error Custom_runtime);
+        si not (Filename.check_suffix output_name Config.ext_obj) alors début
           temps := obj_file :: !temps;
-          if not (
-            let runtime_lib = "-lcamlrun" ^ !Clflags.runtime_variant in
+          si not (
+            soit runtime_lib = "-lcamlrun" ^ !Clflags.runtime_variant dans
             Ccomp.call_linker Ccomp.MainDll output_name
               ([obj_file] @ List.rev !Clflags.ccobjs @ [runtime_lib])
               Config.bytecomp_c_libraries
-           ) then raise (Error Custom_runtime);
-        end
-      end;
+           ) alors raise (Error Custom_runtime);
+        fin
+      fin;
       List.iter remove_file !temps
-    with x ->
+    avec x ->
       List.iter remove_file !temps;
       raise x
-  end
+  fin
 
 (* Error report *)
 
-open Format
+ouvre Format
 
-let report_error ppf = function
+soit report_error ppf = fonction
   | File_not_found name ->
       fprintf ppf "Cannot find file %a" Location.print_filename name
   | Not_an_object_file name ->
@@ -623,9 +623,9 @@ let report_error ppf = function
       fprintf ppf "Generated bytecode executable cannot be run\
                   \ on a 32-bit platform"
 
-let () =
+soit () =
   Location.register_error_of_exn
-    (function
+    (fonction
       | Error err -> Some (Location.error_of_printer_file report_error err)
       | _ -> None
     )

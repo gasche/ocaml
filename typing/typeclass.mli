@@ -10,9 +10,9 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Asttypes
-open Types
-open Format
+ouvre Asttypes
+ouvre Types
+ouvre Format
 
 val class_declarations:
   Env.t -> Parsetree.class_declaration list ->
@@ -77,35 +77,35 @@ val type_classes :
 *)
 
 type error =
-    Unconsistent_constraint of (type_expr * type_expr) list
-  | Field_type_mismatch of string * string * (type_expr * type_expr) list
-  | Structure_expected of class_type
-  | Cannot_apply of class_type
-  | Apply_wrong_label of label
-  | Pattern_type_clash of type_expr
+    Unconsistent_constraint de (type_expr * type_expr) list
+  | Field_type_mismatch de string * string * (type_expr * type_expr) list
+  | Structure_expected de class_type
+  | Cannot_apply de class_type
+  | Apply_wrong_label de label
+  | Pattern_type_clash de type_expr
   | Repeated_parameter
-  | Unbound_class_2 of Longident.t
-  | Unbound_class_type_2 of Longident.t
-  | Abbrev_type_clash of type_expr * type_expr * type_expr
-  | Constructor_type_mismatch of string * (type_expr * type_expr) list
-  | Virtual_class of bool * bool * string list * string list
-  | Parameter_arity_mismatch of Longident.t * int * int
-  | Parameter_mismatch of (type_expr * type_expr) list
-  | Bad_parameters of Ident.t * type_expr * type_expr
-  | Class_match_failure of Ctype.class_match_failure list
-  | Unbound_val of string
-  | Unbound_type_var of (formatter -> unit) * Ctype.closed_class_failure
-  | Make_nongen_seltype of type_expr
-  | Non_generalizable_class of Ident.t * Types.class_declaration
-  | Cannot_coerce_self of type_expr
-  | Non_collapsable_conjunction of
+  | Unbound_class_2 de Longident.t
+  | Unbound_class_type_2 de Longident.t
+  | Abbrev_type_clash de type_expr * type_expr * type_expr
+  | Constructor_type_mismatch de string * (type_expr * type_expr) list
+  | Virtual_class de bool * bool * string list * string list
+  | Parameter_arity_mismatch de Longident.t * int * int
+  | Parameter_mismatch de (type_expr * type_expr) list
+  | Bad_parameters de Ident.t * type_expr * type_expr
+  | Class_match_failure de Ctype.class_match_failure list
+  | Unbound_val de string
+  | Unbound_type_var de (formatter -> unit) * Ctype.closed_class_failure
+  | Make_nongen_seltype de type_expr
+  | Non_generalizable_class de Ident.t * Types.class_declaration
+  | Cannot_coerce_self de type_expr
+  | Non_collapsable_conjunction de
       Ident.t * Types.class_declaration * (type_expr * type_expr) list
-  | Final_self_clash of (type_expr * type_expr) list
-  | Mutability_mismatch of string * mutable_flag
-  | No_overriding of string * string
-  | Duplicate of string * string
-  | Extension of string
+  | Final_self_clash de (type_expr * type_expr) list
+  | Mutability_mismatch de string * mutable_flag
+  | No_overriding de string * string
+  | Duplicate de string * string
+  | Extension de string
 
-exception Error of Location.t * Env.t * error
+exception Error de Location.t * Env.t * error
 
 val report_error : Env.t -> formatter -> error -> unit

@@ -13,9 +13,9 @@
 (* Translation from typed abstract syntax to lambda terms,
    for the core language *)
 
-open Asttypes
-open Typedtree
-open Lambda
+ouvre Asttypes
+ouvre Typedtree
+ouvre Lambda
 
 val transl_exp: expression -> lambda
 val transl_apply: lambda -> (label * expression option * optional) list
@@ -29,11 +29,11 @@ type error =
     Illegal_letrec_pat
   | Illegal_letrec_expr
   | Free_super_var
-  | Unknown_builtin_primitive of string
+  | Unknown_builtin_primitive de string
 
-exception Error of Location.t * error
+exception Error de Location.t * error
 
-open Format
+ouvre Format
 
 val report_error: formatter -> error -> unit
 

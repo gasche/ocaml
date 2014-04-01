@@ -19,24 +19,24 @@
   interesting in case of errors.
 *)
 
-open Annot;;
-open Lexing;;
-open Location;;
-open Typedtree;;
+ouvre Annot;;
+ouvre Lexing;;
+ouvre Location;;
+ouvre Typedtree;;
 
-let output_int oc i = output_string oc (string_of_int i)
+soit output_int oc i = output_string oc (string_of_int i)
 
 type annotation =
-  | Ti_pat   of pattern
-  | Ti_expr  of expression
-  | Ti_class of class_expr
-  | Ti_mod   of module_expr
-  | An_call of Location.t * Annot.call
-  | An_ident of Location.t * string * Annot.ident
+  | Ti_pat   de pattern
+  | Ti_expr  de expression
+  | Ti_class de class_expr
+  | Ti_mod   de module_expr
+  | An_call de Location.t * Annot.call
+  | An_ident de Location.t * string * Annot.ident
 ;;
 
-let get_location ti =
-  match ti with
+soit get_location ti =
+  filtre ti avec
     Ti_pat p   -> p.pat_loc
   | Ti_expr e  -> e.exp_loc
   | Ti_class c -> c.cl_loc
@@ -45,35 +45,35 @@ let get_location ti =
   | An_ident (l, s, k) -> l
 ;;
 
-let annotations = ref ([] : annotation list);;
-let phrases = ref ([] : Location.t list);;
+soit annotations = ref ([] : annotation list);;
+soit phrases = ref ([] : Location.t list);;
 
-let record ti =
-  if !Clflags.annotations && not (get_location ti).Location.loc_ghost then
+soit record ti =
+  si !Clflags.annotations && not (get_location ti).Location.loc_ghost alors
     annotations := ti :: !annotations
 ;;
 
-let record_phrase loc =
-  if !Clflags.annotations then phrases := loc :: !phrases;
+soit record_phrase loc =
+  si !Clflags.annotations alors phrases := loc :: !phrases;
 ;;
 
 (* comparison order:
    the intervals are sorted by order of increasing upper bound
    same upper bound -> sorted by decreasing lower bound
 *)
-let cmp_loc_inner_first loc1 loc2 =
-  match compare loc1.loc_end.pos_cnum loc2.loc_end.pos_cnum with
+soit cmp_loc_inner_first loc1 loc2 =
+  filtre compare loc1.loc_end.pos_cnum loc2.loc_end.pos_cnum avec
   | 0 -> compare loc2.loc_start.pos_cnum loc1.loc_start.pos_cnum
   | x -> x
 ;;
-let cmp_ti_inner_first ti1 ti2 =
+soit cmp_ti_inner_first ti1 ti2 =
   cmp_loc_inner_first (get_location ti1) (get_location ti2)
 ;;
 
-let print_position pp pos =
-  if pos = dummy_pos then
+soit print_position pp pos =
+  si pos = dummy_pos alors
     output_string pp "--"
-  else begin
+  sinon début
     output_char pp '\"';
     output_string pp (String.escaped pos.pos_fname);
     output_string pp "\" ";
@@ -82,47 +82,47 @@ let print_position pp pos =
     output_int pp pos.pos_bol;
     output_char pp ' ';
     output_int pp pos.pos_cnum;
-  end
+  fin
 ;;
 
-let print_location pp loc =
+soit print_location pp loc =
   print_position pp loc.loc_start;
   output_char pp ' ';
   print_position pp loc.loc_end;
 ;;
 
-let sort_filter_phrases () =
-  let ph = List.sort (fun x y -> cmp_loc_inner_first y x) !phrases in
-  let rec loop accu cur l =
-    match l with
+soit sort_filter_phrases () =
+  soit ph = List.sort (fonc x y -> cmp_loc_inner_first y x) !phrases dans
+  soit rec loop accu cur l =
+    filtre l avec
     | [] -> accu
     | loc :: t ->
-       if cur.loc_start.pos_cnum <= loc.loc_start.pos_cnum
+       si cur.loc_start.pos_cnum <= loc.loc_start.pos_cnum
           && cur.loc_end.pos_cnum >= loc.loc_end.pos_cnum
-       then loop accu cur t
-       else loop (loc :: accu) loc t
-  in
+       alors loop accu cur t
+       sinon loop (loc :: accu) loc t
+  dans
   phrases := loop [] Location.none ph;
 ;;
 
-let rec printtyp_reset_maybe loc =
-  match !phrases with
-  | cur :: t when cur.loc_start.pos_cnum <= loc.loc_start.pos_cnum ->
+soit rec printtyp_reset_maybe loc =
+  filtre !phrases avec
+  | cur :: t quand cur.loc_start.pos_cnum <= loc.loc_start.pos_cnum ->
      Printtyp.reset ();
      phrases := t;
      printtyp_reset_maybe loc;
   | _ -> ()
 ;;
 
-let call_kind_string k =
-  match k with
+soit call_kind_string k =
+  filtre k avec
   | Tail -> "tail"
   | Stack -> "stack"
   | Inline -> "inline"
 ;;
 
-let print_ident_annot pp str k =
-  match k with
+soit print_ident_annot pp str k =
+  filtre k avec
   | Idef l ->
       output_string pp "def ";
       output_string pp str;
@@ -143,63 +143,63 @@ let print_ident_annot pp str k =
 
 (* The format of the annotation file is documented in emacs/caml-types.el. *)
 
-let print_info pp prev_loc ti =
-  match ti with
+soit print_info pp prev_loc ti =
+  filtre ti avec
   | Ti_class _ | Ti_mod _ -> prev_loc
   | Ti_pat  {pat_loc = loc; pat_type = typ; pat_env = env}
   | Ti_expr {exp_loc = loc; exp_type = typ; exp_env = env} ->
-      if loc <> prev_loc then begin
+      si loc <> prev_loc alors début
         print_location pp loc;
         output_char pp '\n'
-      end;
+      fin;
       output_string pp "type(\n";
       printtyp_reset_maybe loc;
       Printtyp.mark_loops typ;
       Format.pp_print_string Format.str_formatter "  ";
       Printtyp.wrap_printing_env env
-                       (fun () -> Printtyp.type_sch Format.str_formatter typ);
+                       (fonc () -> Printtyp.type_sch Format.str_formatter typ);
       Format.pp_print_newline Format.str_formatter ();
-      let s = Format.flush_str_formatter () in
+      soit s = Format.flush_str_formatter () dans
       output_string pp s;
       output_string pp ")\n";
       loc
   | An_call (loc, k) ->
-      if loc <> prev_loc then begin
+      si loc <> prev_loc alors début
         print_location pp loc;
         output_char pp '\n'
-      end;
+      fin;
       output_string pp "call(\n  ";
       output_string pp (call_kind_string k);
       output_string pp "\n)\n";
       loc
   | An_ident (loc, str, k) ->
-      if loc <> prev_loc then begin
+      si loc <> prev_loc alors début
         print_location pp loc;
         output_char pp '\n'
-      end;
+      fin;
       output_string pp "ident(\n  ";
       print_ident_annot pp str k;
       output_string pp ")\n";
       loc
 ;;
 
-let get_info () =
-  let info = List.fast_sort cmp_ti_inner_first !annotations in
+soit get_info () =
+  soit info = List.fast_sort cmp_ti_inner_first !annotations dans
   annotations := [];
   info
 ;;
 
-let dump filename =
-  if !Clflags.annotations then begin
-    let info = get_info () in
-    let pp =
-      match filename with
+soit dump filename =
+  si !Clflags.annotations alors début
+    soit info = get_info () dans
+    soit pp =
+      filtre filename avec
           None -> stdout
-        | Some filename -> open_out filename in
+        | Some filename -> open_out filename dans
     sort_filter_phrases ();
     ignore (List.fold_left (print_info pp) Location.none info);
     phrases := [];
-  end else begin
+  fin sinon début
     annotations := [];
-  end;
+  fin;
 ;;

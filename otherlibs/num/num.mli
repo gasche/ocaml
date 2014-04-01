@@ -19,15 +19,15 @@
    plus the special elements [1/0] (infinity) and [0/0] (undefined).
 *)
 
-open Nat
-open Big_int
-open Ratio
+ouvre Nat
+ouvre Big_int
+ouvre Ratio
 
 (** The type of numbers. *)
 type num =
-    Int of int
-  | Big_int of big_int
-  | Ratio of ratio
+    Int de int
+  | Big_int de big_int
+  | Ratio de ratio
 
 
 (** {6 Arithmetic operations} *)

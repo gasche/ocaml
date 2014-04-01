@@ -12,84 +12,84 @@
 
 (* Compiling C files and building C libraries *)
 
-let command cmdline =
-  if !Clflags.verbose then begin
+soit command cmdline =
+  si !Clflags.verbose alors début
     prerr_string "+ ";
     prerr_string cmdline;
     prerr_newline()
-  end;
+  fin;
   Sys.command cmdline
 
-let run_command cmdline = ignore(command cmdline)
+soit run_command cmdline = ignore(command cmdline)
 
 (* Build @responsefile to work around Windows limitations on
    command-line length *)
-let build_diversion lst =
-  let (responsefile, oc) = Filename.open_temp_file "camlresp" "" in
-  List.iter (fun f -> Printf.fprintf oc "%s\n" f) lst;
+soit build_diversion lst =
+  soit (responsefile, oc) = Filename.open_temp_file "camlresp" "" dans
+  List.iter (fonc f -> Printf.fprintf oc "%s\n" f) lst;
   close_out oc;
-  at_exit (fun () -> Misc.remove_file responsefile);
+  at_exit (fonc () -> Misc.remove_file responsefile);
   "@" ^ responsefile
 
-let quote_files lst =
-  let lst = List.filter (fun f -> f <> "") lst in
-  let quoted = List.map Filename.quote lst in
-  let s = String.concat " " quoted in
-  if String.length s >= 4096 && Sys.os_type = "Win32"
-  then build_diversion quoted
-  else s
+soit quote_files lst =
+  soit lst = List.filter (fonc f -> f <> "") lst dans
+  soit quoted = List.map Filename.quote lst dans
+  soit s = String.concat " " quoted dans
+  si String.length s >= 4096 && Sys.os_type = "Win32"
+  alors build_diversion quoted
+  sinon s
 
-let quote_prefixed pr lst =
-  let lst = List.filter (fun f -> f <> "") lst in
-  let lst = List.map (fun f -> pr ^ f) lst in
+soit quote_prefixed pr lst =
+  soit lst = List.filter (fonc f -> f <> "") lst dans
+  soit lst = List.map (fonc f -> pr ^ f) lst dans
   quote_files lst
 
-let quote_optfile = function
+soit quote_optfile = fonction
   | None -> ""
   | Some f -> Filename.quote f
 
-let compile_file name =
+soit compile_file name =
   command
     (Printf.sprintf
        "%s -c %s %s %s %s"
-       (match !Clflags.c_compiler with
+       (filtre !Clflags.c_compiler avec
         | Some cc -> cc
         | None ->
-            if !Clflags.native_code
-            then Config.native_c_compiler
-            else Config.bytecomp_c_compiler)
+            si !Clflags.native_code
+            alors Config.native_c_compiler
+            sinon Config.bytecomp_c_compiler)
        (String.concat " " (List.rev !Clflags.all_ccopts))
        (quote_prefixed "-I" (List.rev !Clflags.include_dirs))
        (Clflags.std_include_flag "-I")
        (Filename.quote name))
 
-let create_archive archive file_list =
+soit create_archive archive file_list =
   Misc.remove_file archive;
-  let quoted_archive = Filename.quote archive in
-  match Config.ccomp_type with
+  soit quoted_archive = Filename.quote archive dans
+  filtre Config.ccomp_type avec
     "msvc" ->
       command(Printf.sprintf "link /lib /nologo /out:%s %s"
                              quoted_archive (quote_files file_list))
   | _ ->
-      assert(String.length Config.ar > 0);
-      let r1 =
+      affirme(String.length Config.ar > 0);
+      soit r1 =
         command(Printf.sprintf "%s rc %s %s"
-                Config.ar quoted_archive (quote_files file_list)) in
-      if r1 <> 0 || String.length Config.ranlib = 0
-      then r1
-      else command(Config.ranlib ^ " " ^ quoted_archive)
+                Config.ar quoted_archive (quote_files file_list)) dans
+      si r1 <> 0 || String.length Config.ranlib = 0
+      alors r1
+      sinon command(Config.ranlib ^ " " ^ quoted_archive)
 
-let expand_libname name =
-  if String.length name < 2 || String.sub name 0 2 <> "-l"
-  then name
-  else begin
-    let libname =
-      "lib" ^ String.sub name 2 (String.length name - 2) ^ Config.ext_lib in
-    try
+soit expand_libname name =
+  si String.length name < 2 || String.sub name 0 2 <> "-l"
+  alors name
+  sinon début
+    soit libname =
+      "lib" ^ String.sub name 2 (String.length name - 2) ^ Config.ext_lib dans
+    essaie
       Misc.find_in_path !Config.load_path libname
-    with Not_found ->
+    avec Not_found ->
       libname
-  end
+  fin
 
 type link_mode =
   | Exe
@@ -97,30 +97,30 @@ type link_mode =
   | MainDll
   | Partial
 
-let call_linker mode output_name files extra =
-  let files = quote_files files in
-  let cmd =
-    if mode = Partial then
+soit call_linker mode output_name files extra =
+  soit files = quote_files files dans
+  soit cmd =
+    si mode = Partial alors
       Printf.sprintf "%s%s %s %s"
         Config.native_pack_linker
         (Filename.quote output_name)
         files
         extra
-    else
+    sinon
       Printf.sprintf "%s -o %s %s %s %s %s %s %s"
-        (match !Clflags.c_compiler, mode with
+        (filtre !Clflags.c_compiler, mode avec
         | Some cc, _ -> cc
         | None, Exe -> Config.mkexe
         | None, Dll -> Config.mkdll
         | None, MainDll -> Config.mkmaindll
-        | None, Partial -> assert false
+        | None, Partial -> affirme faux
         )
         (Filename.quote output_name)
-        (if !Clflags.gprofile then Config.cc_profile else "")
+        (si !Clflags.gprofile alors Config.cc_profile sinon "")
         ""  (*(Clflags.std_include_flag "-I")*)
         (quote_prefixed "-L" !Config.load_path)
         (String.concat " " (List.rev !Clflags.all_ccopts))
         files
         extra
-  in
+  dans
   command cmd = 0

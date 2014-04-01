@@ -10,8 +10,8 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Clambda
-open Format
+ouvre Clambda
+ouvre Format
 
 val clambda: formatter -> ulambda -> unit
 val approx: formatter -> value_approximation -> unit

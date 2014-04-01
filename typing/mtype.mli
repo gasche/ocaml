@@ -12,7 +12,7 @@
 
 (* Operations on module types *)
 
-open Types
+ouvre Types
 
 val scrape: Env.t -> module_type -> module_type
         (* Expand toplevel module type abbreviations

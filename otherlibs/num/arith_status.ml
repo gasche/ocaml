@@ -13,35 +13,35 @@
 
 (* $Id$ *)
 
-open Arith_flags;;
+ouvre Arith_flags;;
 
-let get_error_when_null_denominator () =
+soit get_error_when_null_denominator () =
   !error_when_null_denominator_flag
-and set_error_when_null_denominator choice =
+et set_error_when_null_denominator choice =
  error_when_null_denominator_flag := choice;;
 
-let get_normalize_ratio () = !normalize_ratio_flag
-and set_normalize_ratio choice = normalize_ratio_flag := choice;;
+soit get_normalize_ratio () = !normalize_ratio_flag
+et set_normalize_ratio choice = normalize_ratio_flag := choice;;
 
-let get_normalize_ratio_when_printing () =
+soit get_normalize_ratio_when_printing () =
   !normalize_ratio_when_printing_flag
-and set_normalize_ratio_when_printing choice =
+et set_normalize_ratio_when_printing choice =
  normalize_ratio_when_printing_flag := choice;;
 
-let get_floating_precision () = !floating_precision
-and set_floating_precision i = floating_precision := i;;
+soit get_floating_precision () = !floating_precision
+et set_floating_precision i = floating_precision := i;;
 
-let get_approx_printing () = !approx_printing_flag
-and set_approx_printing b = approx_printing_flag := b;;
+soit get_approx_printing () = !approx_printing_flag
+et set_approx_printing b = approx_printing_flag := b;;
 
-let arith_print_string s = print_string s; print_string " --> ";;
+soit arith_print_string s = print_string s; print_string " --> ";;
 
-let arith_print_bool = function
-  true -> print_string "ON"
+soit arith_print_bool = fonction
+  vrai -> print_string "ON"
 | _ -> print_string "OFF"
 ;;
 
-let arith_status () =
+soit arith_status () =
   print_newline ();
 
   arith_print_string
@@ -76,8 +76,8 @@ let arith_status () =
   print_string
   "     (modifiable with set_approx_printing <your choice>)";
   print_newline ();
-  (if (get_approx_printing ())
-      then (print_string "  Default precision = ";
+  (si (get_approx_printing ())
+      alors (print_string "  Default precision = ";
             print_int (get_floating_precision ());
             print_newline ();
             print_string "     (returned by get_floating_precision ())";
@@ -86,7 +86,7 @@ let arith_status () =
               "     (modifiable with set_floating_precision <your choice>)";
             print_newline ();
             print_newline ())
-      else print_newline());
+      sinon print_newline());
 
   arith_print_string
   "Error when a rational denominator is null";

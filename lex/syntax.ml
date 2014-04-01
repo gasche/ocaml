@@ -25,12 +25,12 @@ type location = {
 
 type regular_expression =
     Epsilon
-  | Characters of Cset.t
+  | Characters de Cset.t
   | Eof
-  | Sequence of regular_expression * regular_expression
-  | Alternative of regular_expression * regular_expression
-  | Repetition of regular_expression
-  | Bind of regular_expression * (string * location)
+  | Sequence de regular_expression * regular_expression
+  | Alternative de regular_expression * regular_expression
+  | Repetition de regular_expression
+  | Bind de regular_expression * (string * location)
 
 type ('arg,'action) entry =
   {name:string ;

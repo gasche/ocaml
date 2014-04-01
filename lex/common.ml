@@ -11,9 +11,9 @@
 (*                                                                     *)
 (***********************************************************************)
 
-open Printf
-open Syntax
-open Lexgen
+ouvre Printf
+ouvre Syntax
+ouvre Lexgen
 
 
 (* To copy the ML code fragments *)
@@ -22,78 +22,78 @@ type line_tracker = {
   file : string;
   oc : out_channel;
   ic : in_channel;
-  mutable cur_line : int;
+  modifiable cur_line : int;
 };;
 
-let open_tracker file oc = {
+soit open_tracker file oc = {
   file = file;
   oc = oc;
   ic = open_in_bin file;
   cur_line = 1;
 };;
 
-let close_tracker tr = close_in_noerr tr.ic;;
+soit close_tracker tr = close_in_noerr tr.ic;;
 
-let update_tracker tr =
+soit update_tracker tr =
   fprintf tr.oc "\n";
   flush tr.oc;
-  let cr_seen = ref false in
-  try while true do
-    match input_char tr.ic with
-    | '\010' when not !cr_seen -> tr.cur_line <- tr.cur_line + 1;
-    | '\013' -> cr_seen := true; tr.cur_line <- tr.cur_line + 1;
-    | _ -> cr_seen := false;
-  done with End_of_file ->
+  soit cr_seen = ref faux dans
+  essaie pendant_que vrai faire
+    filtre input_char tr.ic avec
+    | '\010' quand not !cr_seen -> tr.cur_line <- tr.cur_line + 1;
+    | '\013' -> cr_seen := vrai; tr.cur_line <- tr.cur_line + 1;
+    | _ -> cr_seen := faux;
+  fait avec End_of_file ->
   fprintf tr.oc "# %d \"%s\"\n" (tr.cur_line+1) tr.file;
 ;;
 
-let copy_buffer = String.create 1024
+soit copy_buffer = String.create 1024
 
-let copy_chars_unix ic oc start stop =
-  let n = ref (stop - start) in
-  while !n > 0 do
-    let m = input ic copy_buffer 0 (min !n 1024) in
+soit copy_chars_unix ic oc start stop =
+  soit n = ref (stop - start) dans
+  pendant_que !n > 0 faire
+    soit m = input ic copy_buffer 0 (min !n 1024) dans
     output oc copy_buffer 0 m;
     n := !n - m
-  done
+  fait
 
-let copy_chars_win32 ic oc start stop =
-  for _i = start to stop - 1 do
-    let c = input_char ic in
-    if c <> '\r' then output_char oc c
-  done
+soit copy_chars_win32 ic oc start stop =
+  pour _i = start à stop - 1 faire
+    soit c = input_char ic dans
+    si c <> '\r' alors output_char oc c
+  fait
 
-let copy_chars =
-  match Sys.os_type with
+soit copy_chars =
+  filtre Sys.os_type avec
     "Win32" | "Cygwin" -> copy_chars_win32
   | _       -> copy_chars_unix
 
-let copy_chunk ic oc trl loc add_parens =
-  if loc.start_pos < loc.end_pos || add_parens then begin
+soit copy_chunk ic oc trl loc add_parens =
+  si loc.start_pos < loc.end_pos || add_parens alors début
     fprintf oc "# %d \"%s\"\n" loc.start_line loc.loc_file;
-    if add_parens then begin
-      for _i = 1 to loc.start_col - 1 do output_char oc ' ' done;
+    si add_parens alors début
+      pour _i = 1 à loc.start_col - 1 faire output_char oc ' ' fait;
       output_char oc '(';
-    end else begin
-      for _i = 1 to loc.start_col do output_char oc ' ' done;
-    end;
+    fin sinon début
+      pour _i = 1 à loc.start_col faire output_char oc ' ' fait;
+    fin;
     seek_in ic loc.start_pos;
     copy_chars ic oc loc.start_pos loc.end_pos;
-    if add_parens then output_char oc ')';
+    si add_parens alors output_char oc ')';
     update_tracker trl;
-  end
+  fin
 
 (* Various memory actions *)
 
-let output_mem_access oc i = fprintf oc "lexbuf.Lexing.lex_mem.(%d)" i
+soit output_mem_access oc i = fprintf oc "lexbuf.Lexing.lex_mem.(%d)" i
 
-let output_memory_actions pref oc = function
+soit output_memory_actions pref oc = fonction
   | []  -> ()
   | mvs ->
       output_string oc "(* " ;
   fprintf oc "L=%d " (List.length mvs) ;
   List.iter
-    (fun mv -> match mv with
+    (fonc mv -> filtre mv avec
     | Copy (tgt, src) ->
         fprintf oc "[%d] <- [%d] ;" tgt src
     | Set tgt ->
@@ -101,7 +101,7 @@ let output_memory_actions pref oc = function
     mvs ;
   output_string oc " *)\n" ;
   List.iter
-    (fun mv -> match mv with
+    (fonc mv -> filtre mv avec
     | Copy (tgt, src) ->
         fprintf oc
           "%s%a <- %a ;\n"
@@ -111,61 +111,61 @@ let output_memory_actions pref oc = function
           pref output_mem_access tgt)
     mvs
 
-let output_base_mem oc = function
+soit output_base_mem oc = fonction
   | Mem i -> output_mem_access oc i
   | Start -> fprintf oc "lexbuf.Lexing.lex_start_pos"
   | End   -> fprintf oc  "lexbuf.Lexing.lex_curr_pos"
 
-let output_tag_access oc = function
+soit output_tag_access oc = fonction
   | Sum (a,0) ->
       output_base_mem oc a
   | Sum (a,i) ->
       fprintf oc "(%a + %d)" output_base_mem a i
 
-let output_env ic oc tr env =
-  let pref = ref "let" in
-  match env with
+soit output_env ic oc tr env =
+  soit pref = ref "let" dans
+  filtre env avec
   | [] -> ()
   | _  ->
       (* Probably, we are better with variables sorted
          in apparition order *)
-      let env =
+      soit env =
         List.sort
-          (fun ((_,p1),_) ((_,p2),_) ->
+          (fonc ((_,p1),_) ((_,p2),_) ->
             Pervasives.compare p1.start_pos  p2.start_pos)
-          env in
+          env dans
 
       List.iter
-        (fun ((x,pos),v) ->
+        (fonc ((x,pos),v) ->
           fprintf oc "%s\n" !pref ;
-          copy_chunk ic oc tr pos false ;
-          begin match v with
+          copy_chunk ic oc tr pos faux ;
+          début filtre v avec
           | Ident_string (o,nstart,nend) ->
               fprintf oc
                 "= Lexing.sub_lexeme%s lexbuf %a %a"
-                (if o then "_opt" else "")
+                (si o alors "_opt" sinon "")
                 output_tag_access nstart output_tag_access nend
           | Ident_char (o,nstart) ->
               fprintf oc
                 "= Lexing.sub_lexeme_char%s lexbuf %a"
-                (if o then "_opt" else "")
+                (si o alors "_opt" sinon "")
                 output_tag_access nstart
-          end ;
+          fin ;
           pref := "\nand")
         env ;
       fprintf oc " in\n"
 
 (* Output the user arguments *)
-let output_args oc args =
-  List.iter (fun x -> (output_string oc x; output_char oc ' ')) args
+soit output_args oc args =
+  List.iter (fonc x -> (output_string oc x; output_char oc ' ')) args
 
-let output_refill_handler ic oc oci = function
-  | None -> false
+soit output_refill_handler ic oc oci = fonction
+  | None -> faux
   | Some location ->
     output_string oc "let __ocaml_lex_refill : \
                       (Lexing.lexbuf -> 'a) -> (Lexing.lexbuf -> 'a) =\n";
-    copy_chunk ic oc oci location true;
-    true
+    copy_chunk ic oc oci location vrai;
+    vrai
 
 (* quiet flag *)
-let quiet_mode = ref false;;
+soit quiet_mode = ref faux;;

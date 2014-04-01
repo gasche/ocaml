@@ -12,86 +12,86 @@
 
 (* Predefined type constructors (with special typing rules in typecore) *)
 
-open Path
-open Types
-open Btype
+ouvre Path
+ouvre Types
+ouvre Btype
 
-let builtin_idents = ref []
+soit builtin_idents = ref []
 
-let wrap create s =
-  let id = create s in
+soit wrap create s =
+  soit id = create s dans
   builtin_idents := (s, id) :: !builtin_idents;
   id
 
-let ident_create = wrap Ident.create
-let ident_create_predef_exn = wrap Ident.create_predef_exn
+soit ident_create = wrap Ident.create
+soit ident_create_predef_exn = wrap Ident.create_predef_exn
 
-let ident_int = ident_create "int"
-and ident_char = ident_create "char"
-and ident_string = ident_create "string"
-and ident_float = ident_create "float"
-and ident_bool = ident_create "bool"
-and ident_unit = ident_create "unit"
-and ident_exn = ident_create "exn"
-and ident_array = ident_create "array"
-and ident_list = ident_create "list"
-and ident_format6 = ident_create "format6"
-and ident_option = ident_create "option"
-and ident_nativeint = ident_create "nativeint"
-and ident_int32 = ident_create "int32"
-and ident_int64 = ident_create "int64"
-and ident_lazy_t = ident_create "lazy_t"
+soit ident_int = ident_create "int"
+et ident_char = ident_create "char"
+et ident_string = ident_create "string"
+et ident_float = ident_create "float"
+et ident_bool = ident_create "bool"
+et ident_unit = ident_create "unit"
+et ident_exn = ident_create "exn"
+et ident_array = ident_create "array"
+et ident_list = ident_create "list"
+et ident_format6 = ident_create "format6"
+et ident_option = ident_create "option"
+et ident_nativeint = ident_create "nativeint"
+et ident_int32 = ident_create "int32"
+et ident_int64 = ident_create "int64"
+et ident_lazy_t = ident_create "lazy_t"
 
-let path_int = Pident ident_int
-and path_char = Pident ident_char
-and path_string = Pident ident_string
-and path_float = Pident ident_float
-and path_bool = Pident ident_bool
-and path_unit = Pident ident_unit
-and path_exn = Pident ident_exn
-and path_array = Pident ident_array
-and path_list = Pident ident_list
-and path_format6 = Pident ident_format6
-and path_option = Pident ident_option
-and path_nativeint = Pident ident_nativeint
-and path_int32 = Pident ident_int32
-and path_int64 = Pident ident_int64
-and path_lazy_t = Pident ident_lazy_t
+soit path_int = Pident ident_int
+et path_char = Pident ident_char
+et path_string = Pident ident_string
+et path_float = Pident ident_float
+et path_bool = Pident ident_bool
+et path_unit = Pident ident_unit
+et path_exn = Pident ident_exn
+et path_array = Pident ident_array
+et path_list = Pident ident_list
+et path_format6 = Pident ident_format6
+et path_option = Pident ident_option
+et path_nativeint = Pident ident_nativeint
+et path_int32 = Pident ident_int32
+et path_int64 = Pident ident_int64
+et path_lazy_t = Pident ident_lazy_t
 
-let type_int = newgenty (Tconstr(path_int, [], ref Mnil))
-and type_char = newgenty (Tconstr(path_char, [], ref Mnil))
-and type_string = newgenty (Tconstr(path_string, [], ref Mnil))
-and type_float = newgenty (Tconstr(path_float, [], ref Mnil))
-and type_bool = newgenty (Tconstr(path_bool, [], ref Mnil))
-and type_unit = newgenty (Tconstr(path_unit, [], ref Mnil))
-and type_exn = newgenty (Tconstr(path_exn, [], ref Mnil))
-and type_array t = newgenty (Tconstr(path_array, [t], ref Mnil))
-and type_list t = newgenty (Tconstr(path_list, [t], ref Mnil))
-and type_option t = newgenty (Tconstr(path_option, [t], ref Mnil))
-and type_nativeint = newgenty (Tconstr(path_nativeint, [], ref Mnil))
-and type_int32 = newgenty (Tconstr(path_int32, [], ref Mnil))
-and type_int64 = newgenty (Tconstr(path_int64, [], ref Mnil))
-and type_lazy_t t = newgenty (Tconstr(path_lazy_t, [t], ref Mnil))
+soit type_int = newgenty (Tconstr(path_int, [], ref Mnil))
+et type_char = newgenty (Tconstr(path_char, [], ref Mnil))
+et type_string = newgenty (Tconstr(path_string, [], ref Mnil))
+et type_float = newgenty (Tconstr(path_float, [], ref Mnil))
+et type_bool = newgenty (Tconstr(path_bool, [], ref Mnil))
+et type_unit = newgenty (Tconstr(path_unit, [], ref Mnil))
+et type_exn = newgenty (Tconstr(path_exn, [], ref Mnil))
+et type_array t = newgenty (Tconstr(path_array, [t], ref Mnil))
+et type_list t = newgenty (Tconstr(path_list, [t], ref Mnil))
+et type_option t = newgenty (Tconstr(path_option, [t], ref Mnil))
+et type_nativeint = newgenty (Tconstr(path_nativeint, [], ref Mnil))
+et type_int32 = newgenty (Tconstr(path_int32, [], ref Mnil))
+et type_int64 = newgenty (Tconstr(path_int64, [], ref Mnil))
+et type_lazy_t t = newgenty (Tconstr(path_lazy_t, [t], ref Mnil))
 
-let ident_match_failure = ident_create_predef_exn "Match_failure"
-and ident_out_of_memory = ident_create_predef_exn "Out_of_memory"
-and ident_invalid_argument = ident_create_predef_exn "Invalid_argument"
-and ident_failure = ident_create_predef_exn "Failure"
-and ident_not_found = ident_create_predef_exn "Not_found"
-and ident_sys_error = ident_create_predef_exn "Sys_error"
-and ident_end_of_file = ident_create_predef_exn "End_of_file"
-and ident_division_by_zero = ident_create_predef_exn "Division_by_zero"
-and ident_stack_overflow = ident_create_predef_exn "Stack_overflow"
-and ident_sys_blocked_io = ident_create_predef_exn "Sys_blocked_io"
-and ident_assert_failure = ident_create_predef_exn "Assert_failure"
-and ident_undefined_recursive_module =
+soit ident_match_failure = ident_create_predef_exn "Match_failure"
+et ident_out_of_memory = ident_create_predef_exn "Out_of_memory"
+et ident_invalid_argument = ident_create_predef_exn "Invalid_argument"
+et ident_failure = ident_create_predef_exn "Failure"
+et ident_not_found = ident_create_predef_exn "Not_found"
+et ident_sys_error = ident_create_predef_exn "Sys_error"
+et ident_end_of_file = ident_create_predef_exn "End_of_file"
+et ident_division_by_zero = ident_create_predef_exn "Division_by_zero"
+et ident_stack_overflow = ident_create_predef_exn "Stack_overflow"
+et ident_sys_blocked_io = ident_create_predef_exn "Sys_blocked_io"
+et ident_assert_failure = ident_create_predef_exn "Assert_failure"
+et ident_undefined_recursive_module =
         ident_create_predef_exn "Undefined_recursive_module"
 
-let path_match_failure = Pident ident_match_failure
-and path_assert_failure = Pident ident_assert_failure
-and path_undefined_recursive_module = Pident ident_undefined_recursive_module
+soit path_match_failure = Pident ident_match_failure
+et path_assert_failure = Pident ident_assert_failure
+et path_undefined_recursive_module = Pident ident_undefined_recursive_module
 
-let decl_abstr =
+soit decl_abstr =
   {type_params = [];
    type_arity = 0;
    type_kind = Type_abstract;
@@ -103,7 +103,7 @@ let decl_abstr =
    type_attributes = [];
   }
 
-let cstr id args =
+soit cstr id args =
   {
     cd_id = id;
     cd_args = args;
@@ -112,62 +112,62 @@ let cstr id args =
     cd_attributes = [];
   }
 
-let ident_false = ident_create "false"
-and ident_true = ident_create "true"
-and ident_void = ident_create "()"
-and ident_nil = ident_create "[]"
-and ident_cons = ident_create "::"
-and ident_none = ident_create "None"
-and ident_some = ident_create "Some"
-let build_initial_env add_type add_exception empty_env =
-  let decl_bool =
-    {decl_abstr with
+soit ident_false = ident_create "false"
+et ident_true = ident_create "true"
+et ident_void = ident_create "()"
+et ident_nil = ident_create "[]"
+et ident_cons = ident_create "::"
+et ident_none = ident_create "None"
+et ident_some = ident_create "Some"
+soit build_initial_env add_type add_exception empty_env =
+  soit decl_bool =
+    {decl_abstr avec
      type_kind = Type_variant([cstr ident_false []; cstr ident_true []])}
-  and decl_unit =
-    {decl_abstr with
+  et decl_unit =
+    {decl_abstr avec
      type_kind = Type_variant([cstr ident_void []])}
-  and decl_exn =
-    {decl_abstr with
+  et decl_exn =
+    {decl_abstr avec
      type_kind = Type_variant []}
-  and decl_array =
-    let tvar = newgenvar() in
-    {decl_abstr with
+  et decl_array =
+    soit tvar = newgenvar() dans
+    {decl_abstr avec
      type_params = [tvar];
      type_arity = 1;
      type_variance = [Variance.full]}
-  and decl_list =
-    let tvar = newgenvar() in
-    {decl_abstr with
+  et decl_list =
+    soit tvar = newgenvar() dans
+    {decl_abstr avec
      type_params = [tvar];
      type_arity = 1;
      type_kind =
      Type_variant([cstr ident_nil []; cstr ident_cons [tvar; type_list tvar]]);
      type_variance = [Variance.covariant]}
-  and decl_format6 =
-    let params = List.map (newgenvar ?name:None) [();();();();();()] in
-    {decl_abstr with
+  et decl_format6 =
+    soit params = List.map (newgenvar ?name:None) [();();();();();()] dans
+    {decl_abstr avec
      type_params = params;
      type_arity = 6;
-     type_variance = List.map (fun _ -> Variance.full) params}
-  and decl_option =
-    let tvar = newgenvar() in
-    {decl_abstr with
+     type_variance = List.map (fonc _ -> Variance.full) params}
+  et decl_option =
+    soit tvar = newgenvar() dans
+    {decl_abstr avec
      type_params = [tvar];
      type_arity = 1;
      type_kind = Type_variant([cstr ident_none []; cstr ident_some [tvar]]);
      type_variance = [Variance.covariant]}
-  and decl_lazy_t =
-    let tvar = newgenvar() in
-    {decl_abstr with
+  et decl_lazy_t =
+    soit tvar = newgenvar() dans
+    {decl_abstr avec
      type_params = [tvar];
      type_arity = 1;
      type_variance = [Variance.covariant]}
-  in
+  dans
 
-  let add_exception id l =
+  soit add_exception id l =
     add_exception id
       { exn_args = l; exn_loc = Location.none; exn_attributes = [] }
-  in
+  dans
   add_exception ident_match_failure
                          [newgenty (Ttuple[type_string; type_int; type_int])] (
   add_exception ident_out_of_memory [] (
@@ -200,8 +200,8 @@ let build_initial_env add_type add_exception empty_env =
   add_type ident_int decl_abstr (
     empty_env)))))))))))))))))))))))))))
 
-let builtin_values =
-  List.map (fun id -> Ident.make_global id; (Ident.name id, id))
+soit builtin_values =
+  List.map (fonc id -> Ident.make_global id; (Ident.name id, id))
       [ident_match_failure; ident_out_of_memory; ident_stack_overflow;
        ident_invalid_argument;
        ident_failure; ident_not_found; ident_sys_error; ident_end_of_file;
@@ -212,5 +212,5 @@ let builtin_values =
    be defined in this file (above!) without breaking .cmi
    compatibility. *)
 
-let _ = Ident.set_current_time 999
-let builtin_idents = List.rev !builtin_idents
+soit _ = Ident.set_current_time 999
+soit builtin_idents = List.rev !builtin_idents

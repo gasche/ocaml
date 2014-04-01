@@ -14,24 +14,24 @@
 
 (* List of all sections, in reverse order *)
 
-let section_table = ref ([] : (string * int) list)
+soit section_table = ref ([] : (string * int) list)
 
 (* Recording sections *)
 
-let section_beginning = ref 0
+soit section_beginning = ref 0
 
-let init_record outchan =
+soit init_record outchan =
   section_beginning := pos_out outchan;
   section_table := []
 
-let record outchan name =
-  let pos = pos_out outchan in
+soit record outchan name =
+  soit pos = pos_out outchan dans
   section_table := (name, pos - !section_beginning) :: !section_table;
   section_beginning := pos
 
-let write_toc_and_trailer outchan =
+soit write_toc_and_trailer outchan =
   List.iter
-    (fun (name, len) ->
+    (fonc (name, len) ->
       output_string outchan name; output_binary_int outchan len)
     (List.rev !section_table);
   output_binary_int outchan (List.length !section_table);
@@ -42,51 +42,51 @@ let write_toc_and_trailer outchan =
 
 exception Bad_magic_number
 
-let read_toc ic =
-  let pos_trailer = in_channel_length ic - 16 in
+soit read_toc ic =
+  soit pos_trailer = in_channel_length ic - 16 dans
   seek_in ic pos_trailer;
-  let num_sections = input_binary_int ic in
-  let header = Misc.input_bytes ic (String.length Config.exec_magic_number) in
-  if header <> Config.exec_magic_number then raise Bad_magic_number;
+  soit num_sections = input_binary_int ic dans
+  soit header = Misc.input_bytes ic (String.length Config.exec_magic_number) dans
+  si header <> Config.exec_magic_number alors raise Bad_magic_number;
   seek_in ic (pos_trailer - 8 * num_sections);
   section_table := [];
-  for _i = 1 to num_sections do
-    let name = Misc.input_bytes ic 4 in
-    let len = input_binary_int ic in
+  pour _i = 1 à num_sections faire
+    soit name = Misc.input_bytes ic 4 dans
+    soit len = input_binary_int ic dans
     section_table := (name, len) :: !section_table
-  done
+  fait
 
 (* Return the current table of contents *)
 
-let toc () = List.rev !section_table
+soit toc () = List.rev !section_table
 
 (* Position ic at the beginning of the section named "name",
    and return the length of that section.  Raise Not_found if no
    such section exists. *)
 
-let seek_section ic name =
-  let rec seek_sec curr_ofs = function
+soit seek_section ic name =
+  soit rec seek_sec curr_ofs = fonction
     [] -> raise Not_found
   | (n, len) :: rem ->
-      if n = name
-      then begin seek_in ic (curr_ofs - len); len end
-      else seek_sec (curr_ofs - len) rem in
+      si n = name
+      alors début seek_in ic (curr_ofs - len); len fin
+      sinon seek_sec (curr_ofs - len) rem dans
   seek_sec (in_channel_length ic - 16 - 8 * List.length !section_table)
            !section_table
 
 (* Return the contents of a section, as a string *)
 
-let read_section_string ic name =
+soit read_section_string ic name =
   Misc.input_bytes ic (seek_section ic name)
 
 (* Return the contents of a section, as marshalled data *)
 
-let read_section_struct ic name =
+soit read_section_struct ic name =
   ignore (seek_section ic name);
   input_value ic
 
 (* Return the position of the beginning of the first section *)
 
-let pos_first_section ic =
+soit pos_first_section ic =
   in_channel_length ic - 16 - 8 * List.length !section_table -
-  List.fold_left (fun total (name, len) -> total + len) 0 !section_table
+  List.fold_left (fonc total (name, len) -> total + len) 0 !section_table
