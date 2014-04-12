@@ -34,6 +34,10 @@ val type_format :
 
 val fmt_ebb_of_string : string -> ('b, 'c, 'e, 'f) fmt_ebb
 
+val fmtty_of_fmt :
+  ('a, 'b, 'c, 'd, 'e, 'f) fmt ->
+  ('a, 'b, 'c, 'd, 'e, 'f) fmtty
+
 val format_of_string_fmtty :
   string ->
   ('a, 'b, 'c, 'd, 'e, 'f) CamlinternalFormatBasics.fmtty ->
