@@ -2,6 +2,22 @@
 
 open CamlinternalFormatBasics
 
+val create_char_set : unit -> string
+val add_in_char_set : string -> char -> unit
+val rev_char_set : string -> string
+val is_in_char_set : string -> char -> bool
+
+val reader_nb_unifier_of_fmtty :
+  ('a, 'b, 'c, 'd, 'e, 'f) fmtty -> ('d, 'e, 'd, 'e) reader_nb_unifier
+
+type ('a, 'b, 'c, 'd, 'e, 'f) param_format_ebb = Param_format_EBB :
+  ('x -> 'a, 'b, 'c, 'd, 'e, 'f) fmt ->
+  ('a, 'b, 'c, 'd, 'e, 'f) param_format_ebb
+
+val param_format_of_ignored_format :
+  ('a, 'b, 'c, 'd, 'y, 'x) ignored -> ('x, 'b, 'c, 'y, 'e, 'f) fmt ->
+  ('a, 'b, 'c, 'd, 'e, 'f) param_format_ebb
+
 type ('b, 'c) acc =
   | Acc_formatting  of ('b, 'c) acc * formatting
   | Acc_string      of ('b, 'c) acc * string
