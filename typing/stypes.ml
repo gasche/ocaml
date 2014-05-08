@@ -70,24 +70,19 @@ let cmp_ti_inner_first ti1 ti2 =
   cmp_loc_inner_first (get_location ti1) (get_location ti2)
 ;;
 
+open Printf
+
 let print_position pp pos =
   if pos = dummy_pos then
-    output_string pp "--"
-  else begin
-    output_char pp '\"';
-    output_string pp (String.escaped pos.pos_fname);
-    output_string pp "\" ";
-    output_int pp pos.pos_lnum;
-    output_char pp ' ';
-    output_int pp pos.pos_bol;
-    output_char pp ' ';
-    output_int pp pos.pos_cnum;
-  end
+    fprintf pp "--"
+  else
+    fprintf pp "%S %d %d %d" pos.pos_fname pos.pos_lnum pos.pos_bol
+                             pos.pos_cnum
 ;;
 
 let print_location pp loc =
   print_position pp loc.loc_start;
-  output_char pp ' ';
+  fprintf pp " ";
   print_position pp loc.loc_end;
 ;;
 
@@ -121,24 +116,11 @@ let call_kind_string k =
   | Inline -> "inline"
 ;;
 
-let print_ident_annot pp str k =
+let print_ident_annot pp (str, k) =
   match k with
-  | Idef l ->
-      output_string pp "def ";
-      output_string pp str;
-      output_char pp ' ';
-      print_location pp l;
-      output_char pp '\n'
-  | Iref_internal l ->
-      output_string pp "int_ref ";
-      output_string pp str;
-      output_char pp ' ';
-      print_location pp l;
-      output_char pp '\n'
-  | Iref_external ->
-      output_string pp "ext_ref ";
-      output_string pp str;
-      output_char pp '\n'
+  | Idef l -> fprintf pp "def %s %a\n" str print_location l;
+  | Iref_internal l -> fprintf pp "int_ref %s %a\n" str print_location l;
+  | Iref_external -> fprintf pp "ext_ref %s\n" str;
 ;;
 
 (* The format of the annotation file is documented in emacs/caml-types.el. *)
@@ -148,38 +130,22 @@ let print_info pp prev_loc ti =
   | Ti_class _ | Ti_mod _ -> prev_loc
   | Ti_pat  {pat_loc = loc; pat_type = typ; pat_env = env}
   | Ti_expr {exp_loc = loc; exp_type = typ; exp_env = env} ->
-      if loc <> prev_loc then begin
-        print_location pp loc;
-        output_char pp '\n'
-      end;
-      output_string pp "type(\n";
+      if loc <> prev_loc then fprintf pp "%a\n" print_location loc;
       printtyp_reset_maybe loc;
       Printtyp.mark_loops typ;
-      Format.pp_print_string Format.str_formatter "  ";
       Printtyp.wrap_printing_env env
-                       (fun () -> Printtyp.type_sch Format.str_formatter typ);
+        (fun () -> Printtyp.type_sch Format.str_formatter typ);
       Format.pp_print_newline Format.str_formatter ();
       let s = Format.flush_str_formatter () in
-      output_string pp s;
-      output_string pp ")\n";
+      fprintf pp "type(\n  %s)\n" s;
       loc
   | An_call (loc, k) ->
-      if loc <> prev_loc then begin
-        print_location pp loc;
-        output_char pp '\n'
-      end;
-      output_string pp "call(\n  ";
-      output_string pp (call_kind_string k);
-      output_string pp "\n)\n";
+      if loc <> prev_loc then fprintf pp "%a\n" print_location loc;
+      fprintf pp "call(\n  %s\n)\n" (call_kind_string k);
       loc
   | An_ident (loc, str, k) ->
-      if loc <> prev_loc then begin
-        print_location pp loc;
-        output_char pp '\n'
-      end;
-      output_string pp "ident(\n  ";
-      print_ident_annot pp str k;
-      output_string pp ")\n";
+      if loc <> prev_loc then fprintf pp "%a\n" print_location loc;
+      fprintf pp "ident(\n  %a)\n" print_ident_annot (str, k);
       loc
 ;;
 
