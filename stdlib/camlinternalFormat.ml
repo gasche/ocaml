@@ -457,7 +457,7 @@ let string_of_formatting formatting = match formatting with
   | Force_newline        -> "@\n"
   | Flush_newline        -> "@."
   | Magic_size (str, _)  -> str
-  | Escaped_at           -> "@@"
+  | Escaped_at           -> "@" (* PR#6024 *)
   | Escaped_percent      -> "@%"
   | Scan_indic c -> "@" ^ (String.make 1 c)
 
