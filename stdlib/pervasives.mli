@@ -971,10 +971,10 @@ module CamlinternalFormatBasics : sig
 
   type block_type = Pp_hbox | Pp_vbox | Pp_hvbox | Pp_hovbox | Pp_box | Pp_fits
 
-  type formatting =
+  type 'a formatting =
     | Open_box of string * block_type * int
     | Close_box
-    | Open_tag of string * string
+    | Open_tag of 'a
     | Close_tag
     | Break of string * int * int
     | FFlush
@@ -1130,8 +1130,9 @@ module CamlinternalFormatBasics : sig
         ('a, 'b, 'c, 'd, 'e, 'f) fmt ->
           (('b -> 'c) -> 'a, 'b, 'c, 'd, 'e, 'f) fmt
     | Formatting :
-        formatting * ('a, 'b, 'c, 'd, 'e, 'f) fmt ->
-          ('a, 'b, 'c, 'd, 'e, 'f) fmt
+        ('a2, unit, string, 'd2, 'd, 'a) format6 formatting
+      * ('a, 'b, 'c, 'd, 'e, 'f) fmt
+     -> ('a2, 'b, 'c, 'd2, 'e, 'f) fmt
     | Reader :
         ('a, 'b, 'c, 'd, 'e, 'f) fmt ->
           ('x -> 'a, 'b, 'c, ('b -> 'x) -> 'd, 'e, 'f) fmt

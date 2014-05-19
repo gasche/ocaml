@@ -463,10 +463,10 @@ type block_type =
   | Pp_fits   (* Internal usage: when a block fits on a single line *)
 
 (* Formatting element used by the Format pretty-printter. *)
-type formatting =
+type 'a formatting =
   | Open_box of string * block_type * int   (* @[   *)
   | Close_box                               (* @]   *)
-  | Open_tag of string * string             (* @{   *)
+  | Open_tag of 'a                          (* @{   *)
   | Close_tag                               (* @}   *)
   | Break of string * int * int             (* @, | @  | @; | @;<> *)
   | FFlush                                  (* @?   *)
@@ -688,8 +688,9 @@ and ('a, 'b, 'c, 'd, 'e, 'f) fmt =
 
   (* Format specific constructor: *)
   | Formatting :                                             (* @_ *)
-      formatting * ('a, 'b, 'c, 'd, 'e, 'f) fmt ->
-        ('a, 'b, 'c, 'd, 'e, 'f) fmt
+      ('a2, unit, string, 'd2, 'd, 'a) format6 formatting
+    * ('a2, 'b, 'c, 'd2, 'e, 'f) fmt
+   -> ('a, 'b, 'c, 'd, 'e, 'f) fmt
 
   (* Scanf specific constructors: *)
   | Reader :                                                 (* %r *)

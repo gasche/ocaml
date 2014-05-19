@@ -140,7 +140,8 @@ fun ign fmt -> match ign with
 (* Reversed list of printing atoms. *)
 (* Used to accumulate printf arguments. *)
 type ('b, 'c) acc =
-  | Acc_formatting  of ('b, 'c) acc * formatting(* Special formatting (box)   *)
+  | Acc_formatting  of ('b, 'c) acc
+                       * string formatting      (* Special formatting (box) *)
   | Acc_string      of ('b, 'c) acc * string    (* Literal or generated string*)
   | Acc_char        of ('b, 'c) acc * char      (* Literal or generated char  *)
   | Acc_delay       of ('b, 'c) acc * ('b -> 'c)(* Delayed printing (%a, %t)  *)
@@ -447,10 +448,10 @@ let bprint_float_fmt buf ign_flag fconv pad prec =
 
 (* Compute the literal string representation of a formatting. *)
 (* Also used by Printf and Scanf where formatting is not interpreted. *)
-let string_of_formatting formatting = match formatting with
+let string_of_formatting f = function
   | Open_box (str, _, _) -> str
   | Close_box            -> "@]"
-  | Open_tag (str, _)    -> str
+  | Open_tag tag         -> f tag
   | Close_tag            -> "@}"
   | Break (str, _, _)    -> str
   | FFlush               -> "@?"
@@ -591,14 +592,13 @@ let bprint_fmt buf fmt =
       fmtiter fmt' true;
 
     | Formatting (fmting, rest) ->
-      bprint_string_literal buf (string_of_formatting fmting);
+      bprint_string_literal buf
+        (string_of_formatting string_of_format fmting);
       fmtiter rest ign_flag;
 
     | End_of_format -> ()
 
   in fmtiter fmt false
-
-(***)
 
 (* Convert a format to string. *)
 let string_of_fmt fmt =
