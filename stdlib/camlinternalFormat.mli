@@ -22,7 +22,7 @@ val param_format_of_ignored_format :
   ('a, 'b, 'c, 'd, 'e, 'f) param_format_ebb
 
 type ('b, 'c) acc =
-  | Acc_formatting  of ('b, 'c) acc * string formatting
+  | Acc_formatting  of ('b, 'c) acc * formatting_lit
   | Acc_string      of ('b, 'c) acc * string
   | Acc_char        of ('b, 'c) acc * char
   | Acc_delay       of ('b, 'c) acc * ('b -> 'c)
@@ -65,7 +65,7 @@ val format_of_string_format :
 
 val char_of_iconv : CamlinternalFormatBasics.int_conv -> char
 val string_of_formatting :
-  ('a -> string) -> 'a CamlinternalFormatBasics.formatting -> string
+  CamlinternalFormatBasics.formatting_lit -> string
 
 val string_of_fmtty :
   ('a, 'b, 'c, 'd, 'e, 'f) CamlinternalFormatBasics.fmtty -> string

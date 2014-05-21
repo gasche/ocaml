@@ -140,13 +140,24 @@ fun ign fmt -> match ign with
 (* Reversed list of printing atoms. *)
 (* Used to accumulate printf arguments. *)
 type ('b, 'c) acc =
-  | Acc_formatting  of ('b, 'c) acc
-                       * string formatting      (* Special formatting (box) *)
-  | Acc_string      of ('b, 'c) acc * string    (* Literal or generated string*)
-  | Acc_char        of ('b, 'c) acc * char      (* Literal or generated char  *)
-  | Acc_delay       of ('b, 'c) acc * ('b -> 'c)(* Delayed printing (%a, %t)  *)
-  | Acc_flush       of ('b, 'c) acc             (* Flush                      *)
-  | Acc_invalid_arg of ('b, 'c) acc * string    (* Raise Invalid_argument msg *)
+  (* Special formatting (box) *)
+  | Acc_formatting  of ('b, 'c) acc * formatting_lit
+
+  (* Literal or generated string*)
+  | Acc_string      of ('b, 'c) acc * string
+
+  (* Literal or generated char  *)
+  | Acc_char        of ('b, 'c) acc * char
+
+  (* Delayed printing (%a, %t)  *)
+  | Acc_delay       of ('b, 'c) acc * ('b -> 'c)
+
+  (* Flush                      *)
+  | Acc_flush       of ('b, 'c) acc
+
+  (* Raises Invalid_argument msg *)
+  | Acc_invalid_arg of ('b, 'c) acc * string
+
   | End_of_acc
 
 (* List of heterogeneous values. *)
@@ -448,10 +459,10 @@ let bprint_float_fmt buf ign_flag fconv pad prec =
 
 (* Compute the literal string representation of a formatting. *)
 (* Also used by Printf and Scanf where formatting is not interpreted. *)
-let string_of_formatting f = function
+let string_of_formatting = function
   | Open_box (str, _, _) -> str
   | Close_box            -> "@]"
-  | Open_tag tag         -> f tag
+  | Open_tag (str, _)    -> str
   | Close_tag            -> "@}"
   | Break (str, _, _)    -> str
   | FFlush               -> "@?"
@@ -591,10 +602,19 @@ let bprint_fmt buf fmt =
       let Param_format_EBB fmt' = param_format_of_ignored_format ign rest in
       fmtiter fmt' true;
 
-    | Formatting (fmting, rest) ->
+    | Formatting_lit (fmting, rest) ->
       bprint_string_literal buf
-        (string_of_formatting string_of_format fmting);
+        (string_of_formatting fmting);
       fmtiter rest ign_flag;
+
+    | Formatting (fmting, rest) ->
+      begin match fmting with
+        | Open_tag_fmt (Format (_fmt, str)) ->
+          bprint_string_literal buf "@{<";
+          bprint_string_literal buf str;
+          bprint_string_literal buf ">";
+          fmtiter rest ign_flag;
+      end
 
     | End_of_format -> ()
 
@@ -658,7 +678,12 @@ fun fmtty -> match fmtty with
   | Scan_char_set (_, _, rest) -> String_ty (fmtty_of_fmt rest)
   | Scan_get_counter (_, rest) -> Int_ty (fmtty_of_fmt rest)
   | Ignored_param (ign, rest)  -> fmtty_of_ignored_format ign rest
-  | Formatting (_, rest)       -> fmtty_of_fmt rest
+  | Formatting_lit (_, rest)   -> fmtty_of_fmt rest
+  | Formatting (fmting, rest)  ->
+    begin match fmting with
+      | Open_tag_fmt (Format (fmt, _)) ->
+        concat_fmtty (fmtty_of_fmt fmt) (fmtty_of_fmt rest)
+    end
 
   | End_of_format              -> End_of_fmtty
 
@@ -815,8 +840,10 @@ fun fmt fmtty -> match fmt, fmtty with
     Theta (type_format fmt_rest fmtty_rest)
 
   (* Format specific constructors: *)
+  | Formatting_lit (formatting, fmt_rest), _ ->
+    Formatting_lit (formatting, type_format fmt_rest fmtty)
   | Formatting (formatting, fmt_rest), _ ->
-    Formatting (formatting, type_format fmt_rest fmtty)
+    type_formatting formatting fmt_rest fmtty
 
   (* Scanf specific constructors: *)
   | Reader fmt_rest, Reader_ty fmtty_rest ->

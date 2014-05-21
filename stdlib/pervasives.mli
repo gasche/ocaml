@@ -971,10 +971,10 @@ module CamlinternalFormatBasics : sig
 
   type block_type = Pp_hbox | Pp_vbox | Pp_hvbox | Pp_hovbox | Pp_box | Pp_fits
 
-  type 'a formatting =
+  type formatting_lit =
     | Open_box of string * block_type * int
     | Close_box
-    | Open_tag of 'a
+    | Open_tag of string * string
     | Close_tag
     | Break of string * int * int
     | FFlush
@@ -1129,10 +1129,14 @@ module CamlinternalFormatBasics : sig
     | Theta :
         ('a, 'b, 'c, 'd, 'e, 'f) fmt ->
           (('b -> 'c) -> 'a, 'b, 'c, 'd, 'e, 'f) fmt
+
+    | Formatting_lit :
+        formatting_lit * ('a, 'b, 'c, 'd, 'e, 'f) fmt
+      -> ('a, 'b, 'c, 'd, 'e, 'f) fmt
     | Formatting :
-        ('a2, unit, string, 'd2, 'd, 'a) format6 formatting
-      * ('a, 'b, 'c, 'd, 'e, 'f) fmt
+        ('a2, 'b, 'c, 'd2, 'd, 'a) formatting * ('a, 'b, 'c, 'd, 'e, 'f) fmt
      -> ('a2, 'b, 'c, 'd2, 'e, 'f) fmt
+
     | Reader :
         ('a, 'b, 'c, 'd, 'e, 'f) fmt ->
           ('x -> 'a, 'b, 'c, ('b -> 'x) -> 'd, 'e, 'f) fmt
@@ -1181,6 +1185,9 @@ module CamlinternalFormatBasics : sig
         pad_option * char_set -> ('a, 'b, 'c, 'd, 'd, 'a) ignored
     | Ignored_scan_get_counter :
         counter -> ('a, 'b, 'c, 'd, 'd, 'a) ignored
+
+  and ('a, 'b, 'c, 'd, 'e, 'f) formatting =
+    | Open_tag_fmt of ('a, 'b, 'c, 'd, 'e, 'f) format6
 
   and ('a, 'b, 'c, 'd, 'e, 'f) format6 =
     Format of ('a, 'b, 'c, 'd, 'e, 'f) fmt * string
