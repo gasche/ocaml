@@ -1033,7 +1033,8 @@ fun k fmt -> match fmt with
   | Scan_char_set (_, _, rest)       -> take_format_readers k rest
   | Scan_get_counter (_, rest)       -> take_format_readers k rest
 
-  | Formatting (_, rest)             -> take_format_readers k rest
+  | Formatting_lit (_, rest)         -> take_format_readers k rest
+  | Formatting _ -> assert false
 
   | Format_arg (_, _, rest)          -> take_format_readers k rest
   | Format_subst (_, _, fmtty, rest) -> take_fmtty_format_readers k fmtty rest
@@ -1185,7 +1186,7 @@ fun ib fmt readers -> match fmt with
     let c = token_char ib in
     Cons (c, make_scanf ib rest readers)
 
-  | String (pad, Formatting (fmting, rest)) ->
+  | String (pad, Formatting_lit (fmting, rest)) ->
     let stp, str = stopper_of_formatting fmting in
     let scan width _ ib = scan_string (Some stp) width ib in
     let str_rest = String_literal (str, rest) in
@@ -1264,7 +1265,7 @@ fun ib fmt readers -> match fmt with
     Cons (Format (fmt', s),
           make_scanf ib (concat_fmt fmt rest) readers)
 
-  | Scan_char_set (width_opt, char_set, Formatting (fmting, rest)) ->
+  | Scan_char_set (width_opt, char_set, Formatting_lit (fmting, rest)) ->
     let stp, str = stopper_of_formatting fmting in
     let width = width_of_pad_opt width_opt in
     let _ = scan_chars_in_char_set char_set (Some stp) width ib in
@@ -1280,9 +1281,10 @@ fun ib fmt readers -> match fmt with
     let count = get_counter ib counter in
     Cons (count, make_scanf ib rest readers)
 
-  | Formatting (formatting, rest) ->
+  | Formatting_lit (formatting, rest) ->
     String.iter (check_char ib) (string_of_formatting formatting);
     make_scanf ib rest readers
+  | Formatting _ -> failwith "TODO"
 
   | Ignored_param (ign, rest) ->
     let Param_format_EBB fmt' = param_format_of_ignored_format ign rest in

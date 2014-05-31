@@ -14,6 +14,8 @@ let legacy_behavior = true
 *)
 
 
+type (_, _) eq = Refl : ('a, 'a) eq
+
 (******************************************************************************)
            (* Tools to manipulate scanning set of chars (see %[...]) *)
 
@@ -629,6 +631,87 @@ let string_of_fmt fmt =
 (******************************************************************************)
                           (* Type extraction *)
 
+let rec no_user_printer :
+  type a b1 b2 c1 c2 d e f .
+    (a, b1, c1, d, e, f) fmt ->
+    (d, e) eq * (a, b2, c2, d, e, f) fmt
+= function
+  | Char rest -> 
+    let eq, rest = no_user_printer rest in eq,
+    Char rest
+  | Caml_char rest ->
+    let eq, rest = no_user_printer rest in eq,
+    Caml_char rest
+  | String (pad, rest) ->
+    let eq, rest = no_user_printer rest in eq,
+    String (pad, rest)
+  | Caml_string (pad, rest) ->
+    let eq, rest = no_user_printer rest in eq,
+    Caml_string (pad, rest)
+
+  | Int (iconv, pad, prec, rest) ->
+    let eq, rest = no_user_printer rest in eq,
+    Int (iconv, pad, prec, rest)
+  | Int32 (iconv, pad, prec, rest) ->
+    let eq, rest = no_user_printer rest in eq,
+    Int32 (iconv, pad, prec, rest)
+  | Nativeint (iconv, pad, prec, rest) ->
+    let eq, rest = no_user_printer rest in eq,
+    Nativeint (iconv, pad, prec, rest)
+  | Int64 (iconv, pad, prec, rest) ->
+    let eq, rest = no_user_printer rest in eq,
+    Int64 (iconv, pad, prec, rest)
+  | Float (fconv, pad, prec, rest) ->
+    let eq, rest = no_user_printer rest in eq,
+    Float (fconv, pad, prec, rest)
+
+  | Bool rest ->
+    let eq, rest = no_user_printer rest in eq,
+    Bool (rest)
+
+  | Alpha _rest -> raise Exit
+  | Theta _rest -> raise Exit
+
+  | Reader _rest -> raise Exit
+
+  | Flush rest ->
+    let eq, rest = no_user_printer rest in eq,
+    Flush (rest)
+
+  | String_literal (str, rest) ->
+    let eq, rest = no_user_printer rest in eq,
+    String_literal (str, rest)
+  | Char_literal (chr, rest) ->
+    let eq, rest = no_user_printer rest in eq,
+    Char_literal   (chr, rest)
+
+  | Format_arg (pad, fmtty, rest) ->
+    let eq, rest = no_user_printer rest in eq,
+    Format_arg (pad, fmtty, rest)
+  | Format_subst (pad, rnu, fmtty, rest) ->
+    ignore (pad, rnu, fmtty, rest);
+    failwith ""
+
+  | Scan_char_set (width_opt, char_set, rest) ->
+    let eq, rest = no_user_printer rest in eq,
+    Scan_char_set (width_opt, char_set, rest)
+  | Scan_get_counter (counter, rest) ->
+    let eq, rest = no_user_printer rest in eq,
+    Scan_get_counter (counter, rest)
+  | Ignored_param (ign, rest) ->
+    ignore (ign, rest);
+    failwith ""
+
+  | Formatting_lit (fmting, rest) ->
+    let eq, rest = no_user_printer rest in eq,
+    Formatting_lit (fmting, rest)
+  | Formatting (Open_tag_fmt (Format (fmt, str)), rest) ->
+    let Refl, fmt = no_user_printer fmt in
+    let Refl, rest = no_user_printer rest in
+    Refl, Formatting (Open_tag_fmt (Format (fmt, str)), rest)
+
+  | End_of_format -> Refl, End_of_format
+
 (* Extract the type representation (an fmtty) of a format. *)
 let rec fmtty_of_fmt : type a b c d e f .
   (a, b, c, d, e, f) CamlinternalFormatBasics.fmt -> (a, b, c, d, e, f) fmtty =
@@ -759,6 +842,12 @@ fun pad prec fmtty -> match prec, type_padding pad fmtty with
     Padprec_fmtty_EBB (pad, Arg_precision, rest)
   | _, Padding_fmtty_EBB (_, _) -> raise Type_mismatch
 
+type (_, _, _, _, _, _) format_prefix_ebb =
+| Format_prefix_EBB :
+    ('a2, 'b, 'c, 'd2, 'd1, 'a1) CamlinternalFormatBasics.fmt
+  * ('a1, 'b, 'c, 'd1, 'e, 'f) fmtty
+ -> ('a2, 'b, 'c, 'd2, 'e, 'f) format_prefix_ebb
+
 (* Type a format according to an fmtty. *)
 (* If typing succeed, generate a copy of the format with the same
     type parameters as the fmtty. *)
@@ -767,96 +856,116 @@ let rec type_format : type x t u v a b c d e f .
     (x, b, c, t, u, v) CamlinternalFormatBasics.fmt ->
     (a, b, c, d, e, f) fmtty ->
     (a, b, c, d, e, f) CamlinternalFormatBasics.fmt =
+  fun fmt fmtty ->
+    let (Format_prefix_EBB (fmt, restty)) = type_format_prefix fmt fmtty in
+    match restty with
+      | End_of_fmtty -> fmt
+      | _ -> raise Type_mismatch
+
+and type_format_prefix : type x t u v a b c d e f .
+    (x, b, c, t, u, v) CamlinternalFormatBasics.fmt ->
+    (a, b, c, d, e, f) fmtty ->
+    (a, b, c, d, e, f) format_prefix_ebb =
 fun fmt fmtty -> match fmt, fmtty with
   | Char fmt_rest, Char_ty fmtty_rest ->
-    Char (type_format fmt_rest fmtty_rest)
+    let Format_prefix_EBB (fmt, fmtty) = type_format_prefix fmt_rest fmtty_rest in
+    Format_prefix_EBB (Char fmt, fmtty)
   | Caml_char fmt_rest, Char_ty fmtty_rest ->
-    Caml_char (type_format fmt_rest fmtty_rest)
+    let Format_prefix_EBB (fmt, fmtty) = type_format_prefix fmt_rest fmtty_rest in
+    Format_prefix_EBB (Caml_char fmt, fmtty)
   | String (pad, fmt_rest), _ -> (
     match type_padding pad fmtty with
     | Padding_fmtty_EBB (pad, String_ty fmtty_rest) ->
-      String (pad, type_format fmt_rest fmtty_rest)
+      let Format_prefix_EBB (fmt, fmtty) = type_format_prefix fmt_rest fmtty_rest in
+      Format_prefix_EBB (String (pad, fmt), fmtty)
     | Padding_fmtty_EBB (_, _) -> raise Type_mismatch
   )
-  | Caml_string (pad, fmt_rest), _ -> (
-    match type_padding pad fmtty with
-    | Padding_fmtty_EBB (pad, String_ty fmtty_rest) ->
-      Caml_string (pad, type_format fmt_rest fmtty_rest)
-    | Padding_fmtty_EBB (_, _) -> raise Type_mismatch
-  )
-  | Int (iconv, pad, prec, fmt_rest), _ -> (
-    match type_padprec pad prec fmtty with
-    | Padprec_fmtty_EBB (pad, prec, Int_ty fmtty_rest) ->
-      Int (iconv, pad, prec, type_format fmt_rest fmtty_rest)
-    | Padprec_fmtty_EBB (_, _, _) -> raise Type_mismatch
-  )
-  | Int32 (iconv, pad, prec, fmt_rest), _ -> (
-    match type_padprec pad prec fmtty with
-    | Padprec_fmtty_EBB (pad, prec, Int32_ty fmtty_rest) ->
-      Int32 (iconv, pad, prec, type_format fmt_rest fmtty_rest)
-    | Padprec_fmtty_EBB (_, _, _) -> raise Type_mismatch
-  )
-  | Nativeint (iconv, pad, prec, fmt_rest), _ -> (
-    match type_padprec pad prec fmtty with
-    | Padprec_fmtty_EBB (pad, prec, Nativeint_ty fmtty_rest) ->
-      Nativeint (iconv, pad, prec, type_format fmt_rest fmtty_rest)
-    | Padprec_fmtty_EBB (_, _, _) -> raise Type_mismatch
-  )
-  | Int64 (iconv, pad, prec, fmt_rest), _ -> (
-    match type_padprec pad prec fmtty with
-    | Padprec_fmtty_EBB (pad, prec, Int64_ty fmtty_rest) ->
-      Int64 (iconv, pad, prec, type_format fmt_rest fmtty_rest)
-    | Padprec_fmtty_EBB (_, _, _) -> raise Type_mismatch
-  )
-  | Float (fconv, pad, prec, fmt_rest), _ -> (
-    match type_padprec pad prec fmtty with
-    | Padprec_fmtty_EBB (pad, prec, Float_ty fmtty_rest) ->
-      Float (fconv, pad, prec, type_format fmt_rest fmtty_rest)
-    | Padprec_fmtty_EBB (_, _, _) -> raise Type_mismatch
-  )
-  | Bool fmt_rest, Bool_ty fmtty_rest ->
-    Bool (type_format fmt_rest fmtty_rest)
-  | Flush fmt_rest, _ ->
-    Flush (type_format fmt_rest fmtty)
+  (* | Caml_string (pad, fmt_rest), _ -> ( *)
+  (*   match type_padding pad fmtty with *)
+  (*   | Padding_fmtty_EBB (pad, String_ty fmtty_rest) -> *)
+  (*     Caml_string (pad, type_format fmt_rest fmtty_rest) *)
+  (*   | Padding_fmtty_EBB (_, _) -> raise Type_mismatch *)
+  (* ) *)
+  (* | Int (iconv, pad, prec, fmt_rest), _ -> ( *)
+  (*   match type_padprec pad prec fmtty with *)
+  (*   | Padprec_fmtty_EBB (pad, prec, Int_ty fmtty_rest) -> *)
+  (*     Int (iconv, pad, prec, type_format fmt_rest fmtty_rest) *)
+  (*   | Padprec_fmtty_EBB (_, _, _) -> raise Type_mismatch *)
+  (* ) *)
+  (* | Int32 (iconv, pad, prec, fmt_rest), _ -> ( *)
+  (*   match type_padprec pad prec fmtty with *)
+  (*   | Padprec_fmtty_EBB (pad, prec, Int32_ty fmtty_rest) -> *)
+  (*     Int32 (iconv, pad, prec, type_format fmt_rest fmtty_rest) *)
+  (*   | Padprec_fmtty_EBB (_, _, _) -> raise Type_mismatch *)
+  (* ) *)
+  (* | Nativeint (iconv, pad, prec, fmt_rest), _ -> ( *)
+  (*   match type_padprec pad prec fmtty with *)
+  (*   | Padprec_fmtty_EBB (pad, prec, Nativeint_ty fmtty_rest) -> *)
+  (*     Nativeint (iconv, pad, prec, type_format fmt_rest fmtty_rest) *)
+  (*   | Padprec_fmtty_EBB (_, _, _) -> raise Type_mismatch *)
+  (* ) *)
+  (* | Int64 (iconv, pad, prec, fmt_rest), _ -> ( *)
+  (*   match type_padprec pad prec fmtty with *)
+  (*   | Padprec_fmtty_EBB (pad, prec, Int64_ty fmtty_rest) -> *)
+  (*     Int64 (iconv, pad, prec, type_format fmt_rest fmtty_rest) *)
+  (*   | Padprec_fmtty_EBB (_, _, _) -> raise Type_mismatch *)
+  (* ) *)
+  (* | Float (fconv, pad, prec, fmt_rest), _ -> ( *)
+  (*   match type_padprec pad prec fmtty with *)
+  (*   | Padprec_fmtty_EBB (pad, prec, Float_ty fmtty_rest) -> *)
+  (*     Float (fconv, pad, prec, type_format fmt_rest fmtty_rest) *)
+  (*   | Padprec_fmtty_EBB (_, _, _) -> raise Type_mismatch *)
+  (* ) *)
+  (* | Bool fmt_rest, Bool_ty fmtty_rest -> *)
+  (*   Bool (type_format fmt_rest fmtty_rest) *)
+  (* | Flush fmt_rest, _ -> *)
+  (*   Flush (type_format fmt_rest fmtty) *)
 
-  | String_literal (str, fmt_rest), _ ->
-    String_literal (str, type_format fmt_rest fmtty)
-  | Char_literal (chr, fmt_rest), _ ->
-    Char_literal (chr, type_format fmt_rest fmtty)
+  (* | String_literal (str, fmt_rest), _ -> *)
+  (*   String_literal (str, type_format fmt_rest fmtty) *)
+  (* | Char_literal (chr, fmt_rest), _ -> *)
+  (*   Char_literal (chr, type_format fmt_rest fmtty) *)
 
-  | Format_arg (pad_opt, sub_fmtty, fmt_rest),
-    Format_arg_ty (sub_fmtty', fmtty_rest) ->
-    if Fmtty_EBB sub_fmtty <> Fmtty_EBB sub_fmtty' then raise Type_mismatch;
-    Format_arg (pad_opt, sub_fmtty', type_format fmt_rest fmtty_rest)
-  | Format_subst (pad_opt, _, sub_fmtty, fmt_rest),
-    Format_subst_ty (rnu', sub_fmtty', fmtty_rest) ->
-    if Fmtty_EBB sub_fmtty <> Fmtty_EBB sub_fmtty' then raise Type_mismatch;
-    Format_subst (pad_opt, rnu', sub_fmtty', type_format fmt_rest fmtty_rest)
+  (* | Format_arg (pad_opt, sub_fmtty, fmt_rest), *)
+  (*   Format_arg_ty (sub_fmtty', fmtty_rest) -> *)
+  (*   if Fmtty_EBB sub_fmtty <> Fmtty_EBB sub_fmtty' then raise Type_mismatch; *)
+  (*   Format_arg (pad_opt, sub_fmtty', type_format fmt_rest fmtty_rest) *)
+  (* | Format_subst (pad_opt, _, sub_fmtty, fmt_rest), *)
+  (*   Format_subst_ty (rnu', sub_fmtty', fmtty_rest) -> *)
+  (*   if Fmtty_EBB sub_fmtty <> Fmtty_EBB sub_fmtty' then raise Type_mismatch; *)
+  (*   Format_subst (pad_opt, rnu', sub_fmtty', type_format fmt_rest fmtty_rest) *)
 
-  (* Printf and Format specific constructors: *)
-  | Alpha fmt_rest, Alpha_ty fmtty_rest ->
-    Alpha (type_format fmt_rest fmtty_rest)
-  | Theta fmt_rest, Theta_ty fmtty_rest ->
-    Theta (type_format fmt_rest fmtty_rest)
+  (* (\* Printf and Format specific constructors: *\) *)
+  (* | Alpha fmt_rest, Alpha_ty fmtty_rest -> *)
+  (*   Alpha (type_format fmt_rest fmtty_rest) *)
+  (* | Theta fmt_rest, Theta_ty fmtty_rest -> *)
+  (*   Theta (type_format fmt_rest fmtty_rest) *)
 
-  (* Format specific constructors: *)
-  | Formatting_lit (formatting, fmt_rest), _ ->
-    Formatting_lit (formatting, type_format fmt_rest fmtty)
-  | Formatting (formatting, fmt_rest), _ ->
-    type_formatting formatting fmt_rest fmtty
+  (* (\* Format specific constructors: *\) *)
+  (* | Formatting_lit (formatting, fmt_rest), _ -> *)
+  (*   Formatting_lit (formatting, type_format fmt_rest fmtty) *)
+  | Formatting (formatting, fmt_next), _ ->
+    begin match formatting with
+      | Open_tag_fmt (Format (format, str)) ->
+        let Format_prefix_EBB (format, fmtty_next) =
+          type_format_prefix format fmtty in
+        let formatting = Open_tag_fmt (Format (format, str)) in
+        let Format_prefix_EBB (fmt_rest, fmtty_rest) =
+          type_format_prefix fmt_next fmtty_next in
+        Format_prefix_EBB (Formatting (formatting, fmt_rest), fmtty_rest)
+    end
+  (* (\* Scanf specific constructors: *\) *)
+  (* | Reader fmt_rest, Reader_ty fmtty_rest -> *)
+  (*   Reader (type_format fmt_rest fmtty_rest) *)
+  (* | Scan_char_set (width_opt, char_set, fmt_rest), String_ty fmtty_rest -> *)
+  (*   Scan_char_set *)
+  (*     (width_opt, char_set, type_format fmt_rest fmtty_rest) *)
+  (* | Scan_get_counter (counter, fmt_rest), Int_ty fmtty_rest -> *)
+  (*   Scan_get_counter (counter, type_format fmt_rest fmtty_rest) *)
+  (* | Ignored_param (ign, rest), _ -> *)
+  (*   type_ignored_param ign rest fmtty *)
 
-  (* Scanf specific constructors: *)
-  | Reader fmt_rest, Reader_ty fmtty_rest ->
-    Reader (type_format fmt_rest fmtty_rest)
-  | Scan_char_set (width_opt, char_set, fmt_rest), String_ty fmtty_rest ->
-    Scan_char_set
-      (width_opt, char_set, type_format fmt_rest fmtty_rest)
-  | Scan_get_counter (counter, fmt_rest), Int_ty fmtty_rest ->
-    Scan_get_counter (counter, type_format fmt_rest fmtty_rest)
-  | Ignored_param (ign, rest), _ ->
-    type_ignored_param ign rest fmtty
-
-  | End_of_format, End_of_fmtty -> End_of_format
+  (* | End_of_format, End_of_fmtty -> End_of_format *)
 
   | _ -> raise Type_mismatch
 
@@ -1089,9 +1198,9 @@ let string_of_fmtty fmtty =
      o: the output stream (see k, %a and %t).
      acc: rev list of printing entities (string, char, flush, formatting, ...).
      fmt: the format. *)
-let rec make_printf : type a b c d .
-    (b -> (b, c) acc -> d) -> b -> (b, c) acc ->
-    (a, b, c, c, c, d) CamlinternalFormatBasics.fmt -> a =
+let rec make_printf : type a b c d f .
+    (b -> (b, c) acc -> f) -> b -> (b, c) acc ->
+    (a, b, c, d, d, f) CamlinternalFormatBasics.fmt -> a =
 fun k o acc fmt -> match fmt with
   | Char rest ->
     fun c ->
@@ -1160,20 +1269,42 @@ fun k o acc fmt -> match fmt with
       let new_acc = Acc_string (acc, format_int "%u" n) in
       make_printf k o new_acc rest
   | Ignored_param (ign, rest) ->
-    make_ignored_param k o acc ign rest
+    make_ignored_param k o acc (Obj.magic ign) (Obj.magic rest)
 
-  | Formatting (fmting, rest) ->
+  | Formatting_lit (fmting, rest) ->
     make_printf k o (Acc_formatting (acc, fmting)) rest
+
+  | Formatting (Open_tag_fmt (Format (fmt, _)), rest) ->
+    let Refl, fmt = no_user_printer fmt in
+    make_printf (fun () fmt_acc ->
+      let b = Buffer.create 10 in
+      let rec put = function
+        | Acc_formatting (p, fmting) ->
+          let s = string_of_formatting fmting in
+          put p;
+          Buffer.add_string b s;
+        | Acc_string (p, s)        -> put p; Buffer.add_string b s
+        | Acc_char (p, c)          -> put p; Buffer.add_char b c
+        | Acc_delay (p, f)         -> put p; f ()
+        | Acc_flush p              -> put p;
+        | Acc_invalid_arg (p, msg) -> put p; invalid_arg msg;
+        | End_of_acc               -> ()
+      in
+      put fmt_acc;
+      let fmt_result = Buffer.contents b in
+      let fmting_lit = Open_tag (fmt_result, "TODO") in
+      make_printf k o (Acc_formatting (acc, fmting_lit)) rest
+    ) () End_of_acc fmt
 
   | End_of_format ->
     k o acc
 
 (* Delay the error (Invalid_argument "Printf: bad conversion %_"). *)
 (* Generate functions to take remaining arguments (after the "%_"). *)
-and make_ignored_param : type x y a b c f .
+and make_ignored_param : type x a b c d f .
     (b -> (b, c) acc -> f) -> b -> (b, c) acc ->
-    (a, b, c, c, y, x) CamlinternalFormatBasics.ignored ->
-    (x, b, c, y, c, f) CamlinternalFormatBasics.fmt -> a =
+    (a, b, c, d, d, x) CamlinternalFormatBasics.ignored ->
+    (x, b, c, d, d, f) CamlinternalFormatBasics.fmt -> a =
 fun k o acc ign fmt -> match ign with
   | Ignored_char                    -> make_invalid_arg k o acc fmt
   | Ignored_caml_char               -> make_invalid_arg k o acc fmt
@@ -1193,10 +1324,10 @@ fun k o acc ign fmt -> match ign with
 
 
 (* Special case of printf "%_(". *)
-and make_from_fmtty : type x y a b c f .
+and make_from_fmtty : type x a b c d f .
     (b -> (b, c) acc -> f) -> b -> (b, c) acc ->
-    (a, b, c, c, y, x) CamlinternalFormatBasics.fmtty ->
-    (x, b, c, y, c, f) CamlinternalFormatBasics.fmt -> a =
+    (a, b, c, d, d, x) CamlinternalFormatBasics.fmtty ->
+    (x, b, c, d, d, f) CamlinternalFormatBasics.fmt -> a =
 fun k o acc fmtty fmt -> match fmtty with
   | Char_ty rest            -> fun _ -> make_from_fmtty k o acc rest fmt
   | String_ty rest          -> fun _ -> make_from_fmtty k o acc rest fmt
@@ -1217,16 +1348,16 @@ fun k o acc fmtty fmt -> match fmtty with
 
 (* Insert an Acc_invalid_arg in the accumulator and continue to generate
    closures to get the remaining arguments. *)
-and make_invalid_arg : type a b c f .
+and make_invalid_arg : type a b c d f .
     (b -> (b, c) acc -> f) -> b -> (b, c) acc ->
-    (a, b, c, c, c, f) CamlinternalFormatBasics.fmt -> a =
+    (a, b, c, d, d, f) CamlinternalFormatBasics.fmt -> a =
 fun k o acc fmt ->
   make_printf k o (Acc_invalid_arg (acc, "Printf: bad conversion %_")) fmt
 
 (* Fix padding, take it as an extra integer argument if needed. *)
-and make_string_padding : type x z a b c d .
-    (b -> (b, c) acc -> d) -> b -> (b, c) acc ->
-    (a, b, c, c, c, d) CamlinternalFormatBasics.fmt ->
+and make_string_padding : type x z a b c d f .
+    (b -> (b, c) acc -> f) -> b -> (b, c) acc ->
+    (a, b, c, d, d, f) CamlinternalFormatBasics.fmt ->
     (x, z -> a) padding -> (z -> string) -> x =
   fun k o acc fmt pad trans -> match pad with
   | No_padding ->
@@ -1244,9 +1375,9 @@ and make_string_padding : type x z a b c d .
 
 (* Fix padding and precision for int, int32, nativeint or int64. *)
 (* Take one or two extra integer arguments if needed. *)
-and make_int_padding_precision : type x y z a b c d .
-    (b -> (b, c) acc -> d) -> b -> (b, c) acc ->
-    (a, b, c, c, c, d) CamlinternalFormatBasics.fmt ->
+and make_int_padding_precision : type x y z a b c d f .
+    (b -> (b, c) acc -> f) -> b -> (b, c) acc ->
+    (a, b, c, d, d, f) CamlinternalFormatBasics.fmt ->
     (x, y) padding -> (y, z -> a) precision -> (int_conv -> z -> string) ->
     int_conv -> x =
   fun k o acc fmt pad prec trans iconv -> match pad, prec with
@@ -1289,9 +1420,9 @@ and make_int_padding_precision : type x y z a b c d .
 
 (* Convert a float, fix padding and precision if needed. *)
 (* Take the float argument and one or two extra integer arguments if needed. *)
-and make_float_padding_precision : type x y a b c d .
-    (b -> (b, c) acc -> d) -> b -> (b, c) acc ->
-    (a, b, c, c, c, d) CamlinternalFormatBasics.fmt ->
+and make_float_padding_precision : type x y a b c d f .
+    (b -> (b, c) acc -> f) -> b -> (b, c) acc ->
+    (a, b, c, d, d, f) CamlinternalFormatBasics.fmt ->
     (x, y) padding -> (y, float -> a) precision -> float_conv -> x =
   fun k o acc fmt pad prec fconv -> match pad, prec with
   | No_padding, No_precision ->
@@ -1879,43 +2010,43 @@ let fmt_ebb_of_string str =
         parse_open_box (str_ind + 1) end_ind
       | ']' ->
         let Fmt_EBB fmt_rest = parse (str_ind + 1) end_ind in
-        Fmt_EBB (Formatting (Close_box, fmt_rest))
+        Fmt_EBB (Formatting_lit (Close_box, fmt_rest))
       | '{' ->
         parse_open_tag (str_ind + 1) end_ind
       | '}' ->
         let Fmt_EBB fmt_rest = parse (str_ind + 1) end_ind in
-        Fmt_EBB (Formatting (Close_tag, fmt_rest))
+        Fmt_EBB (Formatting_lit (Close_tag, fmt_rest))
       | ',' ->
         let Fmt_EBB fmt_rest = parse (str_ind + 1) end_ind in
-        Fmt_EBB (Formatting (Break ("@,", 0, 0), fmt_rest))
+        Fmt_EBB (Formatting_lit (Break ("@,", 0, 0), fmt_rest))
       | ' ' ->
         let Fmt_EBB fmt_rest = parse (str_ind + 1) end_ind in
-        Fmt_EBB (Formatting (Break ("@ ", 1, 0), fmt_rest))
+        Fmt_EBB (Formatting_lit (Break ("@ ", 1, 0), fmt_rest))
       | ';' ->
         parse_good_break (str_ind + 1) end_ind
       | '?' ->
         let Fmt_EBB fmt_rest = parse (str_ind + 1) end_ind in
-        Fmt_EBB (Formatting (FFlush, fmt_rest))
+        Fmt_EBB (Formatting_lit (FFlush, fmt_rest))
       | '\n' ->
         let Fmt_EBB fmt_rest = parse (str_ind + 1) end_ind in
-        Fmt_EBB (Formatting (Force_newline, fmt_rest))
+        Fmt_EBB (Formatting_lit (Force_newline, fmt_rest))
       | '.' ->
         let Fmt_EBB fmt_rest = parse (str_ind + 1) end_ind in
-        Fmt_EBB (Formatting (Flush_newline, fmt_rest))
+        Fmt_EBB (Formatting_lit (Flush_newline, fmt_rest))
       | '<' ->
         parse_magic_size (str_ind + 1) end_ind
       | '@' ->
         let Fmt_EBB fmt_rest = parse (str_ind + 1) end_ind in
-        Fmt_EBB (Formatting (Escaped_at, fmt_rest))
+        Fmt_EBB (Formatting_lit (Escaped_at, fmt_rest))
       | '%' when str_ind + 1 < end_ind && str.[str_ind + 1] = '%' ->
         let Fmt_EBB fmt_rest = parse (str_ind + 2) end_ind in
-        Fmt_EBB (Formatting (Escaped_percent, fmt_rest))
+        Fmt_EBB (Formatting_lit (Escaped_percent, fmt_rest))
       | '%' ->
         let Fmt_EBB fmt_rest = parse str_ind end_ind in
         Fmt_EBB (Char_literal ('@', fmt_rest))
       | c ->
         let Fmt_EBB fmt_rest = parse (str_ind + 1) end_ind in
-        Fmt_EBB (Formatting (Scan_indic c, fmt_rest))
+        Fmt_EBB (Formatting_lit (Scan_indic c, fmt_rest))
 
   (* Try to read the optionnal <...> after "@[". *)
   and parse_open_box : type e f . int -> int -> (_, _, e, f) fmt_ebb =
@@ -1957,7 +2088,7 @@ let fmt_ebb_of_string str =
     in
     let s = String.sub str (str_ind - 2) (next_ind - str_ind + 2) in
     let Fmt_EBB fmt_rest = parse next_ind end_ind in
-    Fmt_EBB (Formatting (Open_box (s, box_ty, indent), fmt_rest))
+    Fmt_EBB (Formatting_lit (Open_box (s, box_ty, indent), fmt_rest))
 
   (* Try to read the optionnal <name> after "@{". *)
   and parse_open_tag : type e f . int -> int -> (_, _, e, f) fmt_ebb =
@@ -1976,7 +2107,7 @@ let fmt_ebb_of_string str =
       with Not_found -> str_ind, "@{", ""
     in
     let Fmt_EBB fmt_rest = parse next_ind end_ind in
-    Fmt_EBB (Formatting (Open_tag (lit, name), fmt_rest))
+    Fmt_EBB (Formatting_lit (Open_tag (lit, name), fmt_rest))
 
   (* Try to read the optionnal <width offset> after "@;". *)
   and parse_good_break : type e f . int -> int -> (_, _, e, f) fmt_ebb =
@@ -2006,7 +2137,7 @@ let fmt_ebb_of_string str =
         str_ind, Break ("@;", 1, 0)
     in
     let Fmt_EBB fmt_rest = parse next_ind end_ind in
-    Fmt_EBB (Formatting (formatting, fmt_rest))
+    Fmt_EBB (Formatting_lit (formatting, fmt_rest))
 
   (* Parse the size in a <n>. *)
   and parse_magic_size : type e f . int -> int -> (_, _, e, f) fmt_ebb =
@@ -2027,10 +2158,10 @@ let fmt_ebb_of_string str =
     with
     | Some (next_ind, formatting) ->
       let Fmt_EBB fmt_rest = parse next_ind end_ind in
-      Fmt_EBB (Formatting (formatting, fmt_rest))
+      Fmt_EBB (Formatting_lit (formatting, fmt_rest))
     | None ->
       let Fmt_EBB fmt_rest = parse str_ind end_ind in
-      Fmt_EBB (Formatting (Scan_indic '<', fmt_rest))
+      Fmt_EBB (Formatting_lit (Scan_indic '<', fmt_rest))
 
   (* Parse and construct a char set. *)
   and parse_char_set str_ind end_ind =
@@ -2309,3 +2440,7 @@ let format_of_string_format str (Format (fmt', str')) =
   with Type_mismatch ->
     failwith_message
       "bad input: format type mismatch between %S and %S" str str'
+let () =
+  ignore (type_padprec,
+          type_ignored_param,
+          type_ignored_format_substitution)
