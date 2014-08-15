@@ -22,6 +22,10 @@ open Typedtree
 open Outcometree
 open Ast_helper
 
+(* Toplevel directives may signal failure
+   by raising this exception *)
+exception Directive_failure
+
 type directive_fun =
    | Directive_none of (unit -> unit)
    | Directive_string of (string -> unit)
@@ -293,16 +297,24 @@ let execute_phrase print_outcome ppf phr =
           fprintf ppf "Unknown directive `%s'.@." dir_name;
           false
       | Some d ->
-          match d, dir_arg with
-          | Directive_none f, Pdir_none -> f (); true
-          | Directive_string f, Pdir_string s -> f s; true
-          | Directive_int f, Pdir_int n -> f n; true
-          | Directive_ident f, Pdir_ident lid -> f lid; true
-          | Directive_bool f, Pdir_bool b -> f b; true
-          | _ ->
-              fprintf ppf "Wrong type of argument for directive `%s'.@."
-                dir_name;
-              false
+          try
+            begin match d, dir_arg with
+            | Directive_none f, Pdir_none -> f (); true
+            | Directive_string f, Pdir_string s -> f s; true
+            | Directive_int f, Pdir_int n -> f n; true
+            | Directive_ident f, Pdir_ident lid -> f lid; true
+            | Directive_bool f, Pdir_bool b -> f b; true
+            | _ ->
+                fprintf ppf "Wrong type of argument for directive `%s'.@."
+                  dir_name;
+                false
+            end
+          with Directive_failure ->
+            (* PR#3959: if we are in interactive mode, we should
+               return `true` and let the user recover from the
+               failure; in non-interactive mode the script execution
+               should stop after this error *)
+            !Sys.interactive
       end
 
 

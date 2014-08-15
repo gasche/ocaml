@@ -163,11 +163,15 @@ and really_load_file recursive ppf name filename ic =
       end
   with Load_failed -> false
 
-let dir_load ppf name = ignore (load_file false ppf name)
+let dir_load ppf name =
+  if not (load_file false ppf name)
+  then raise Directive_failure
 
 let _ = Hashtbl.add directive_table "load" (Directive_string (dir_load std_out))
 
-let dir_load_rec ppf name = ignore (load_file true ppf name)
+let dir_load_rec ppf name =
+  if not (load_file true ppf name)
+  then raise Directive_failure
 
 let _ = Hashtbl.add directive_table "load_rec"
                     (Directive_string (dir_load_rec std_out))
@@ -176,8 +180,13 @@ let load_file = load_file false
 
 (* Load commands from a file *)
 
-let dir_use ppf name = ignore(Toploop.use_file ppf name)
-let dir_mod_use ppf name = ignore(Toploop.mod_use_file ppf name)
+let dir_use ppf name =
+  if not (Toploop.use_file ppf name)
+  then raise Directive_failure
+
+let dir_mod_use ppf name =
+  if not (Toploop.mod_use_file ppf name)
+  then raise Directive_failure
 
 let _ = Hashtbl.add directive_table "use" (Directive_string (dir_use std_out))
 let _ = Hashtbl.add directive_table "mod_use"
@@ -233,7 +242,7 @@ let dir_install_printer ppf lid =
       else
         (fun formatter repr -> Obj.obj v formatter (Obj.obj repr)) in
     install_printer path ty_arg print_function
-  with Exit -> ()
+  with Exit -> raise Directive_failure
 
 let dir_remove_printer ppf lid =
   try
@@ -241,9 +250,10 @@ let dir_remove_printer ppf lid =
     begin try
       remove_printer path
     with Not_found ->
-      fprintf ppf "No printer named %a.@." Printtyp.longident lid
+      fprintf ppf "No printer named %a.@." Printtyp.longident lid;
+      raise Exit
     end
-  with Exit -> ()
+  with Exit -> raise Directive_failure
 
 let _ = Hashtbl.add directive_table "install_printer"
              (Directive_ident (dir_install_printer std_out))
@@ -265,7 +275,8 @@ let dir_trace ppf lid =
     match desc.val_kind with
     | Val_prim p ->
         fprintf ppf "%a is an external function and cannot be traced.@."
-        Printtyp.longident lid
+          Printtyp.longident lid;
+        raise Directive_failure
     | _ ->
         let clos = eval_path !toplevel_env path in
         (* Nothing to do if it's not a closure *)
@@ -275,8 +286,9 @@ let dir_trace ppf lid =
         match is_traced clos with
         | Some opath ->
             fprintf ppf "%a is already traced (under the name %a).@."
-            Printtyp.path path
-            Printtyp.path opath
+              Printtyp.path path
+              Printtyp.path opath
+            (* we consider that this is not a failure of the directive *)
         | None ->
             (* Instrument the old closure *)
             traced_functions :=
@@ -290,9 +302,14 @@ let dir_trace ppf lid =
                to the instrumentation function *)
             set_code_pointer clos tracing_function_ptr;
             fprintf ppf "%a is now traced.@." Printtyp.longident lid
-        end else fprintf ppf "%a is not a function.@." Printtyp.longident lid
+        end else begin
+          fprintf ppf "%a is not a function.@." Printtyp.longident lid;
+          raise Directive_failure
+        end
   with
-  | Not_found -> fprintf ppf "Unbound value %a.@." Printtyp.longident lid
+  | Not_found ->
+    fprintf ppf "Unbound value %a.@." Printtyp.longident lid;
+    raise Directive_failure
 
 let dir_untrace ppf lid =
   try
@@ -301,6 +318,7 @@ let dir_untrace ppf lid =
     | [] ->
         fprintf ppf "%a was not traced.@." Printtyp.longident lid;
         []
+        (* we consider that this is not an error of the directive *)
     | f :: rem ->
         if Path.same f.path path then begin
           set_code_pointer f.closure f.actual_code;
@@ -309,7 +327,9 @@ let dir_untrace ppf lid =
         end else f :: remove rem in
     traced_functions := remove !traced_functions
   with
-  | Not_found -> fprintf ppf "Unbound value %a.@." Printtyp.longident lid
+  | Not_found ->
+    fprintf ppf "Unbound value %a.@." Printtyp.longident lid;
+    raise Directive_failure
 
 let dir_untrace_all ppf () =
   List.iter
@@ -321,7 +341,9 @@ let dir_untrace_all ppf () =
 
 let parse_warnings ppf iserr s =
   try Warnings.parse_options iserr s
-  with Arg.Bad err -> fprintf ppf "%s.@." err
+  with Arg.Bad err ->
+    fprintf ppf "%s.@." err;
+    raise Directive_failure
 
 (* Typing information *)
 
@@ -362,8 +384,10 @@ let show_prim to_sig ppf lid =
     fprintf ppf "@[%a@]@." Printtyp.signature sg
   with
   | Not_found ->
-      fprintf ppf "@[Unknown element.@]@."
-  | Exit -> ()
+      fprintf ppf "@[Unknown element.@]@.";
+      raise Directive_failure
+  | Exit ->
+      raise Directive_failure
 
 let all_show_funs = ref []
 

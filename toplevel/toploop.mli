@@ -33,6 +33,10 @@ val run_script : formatter -> string -> string array -> bool
 
 (* Interface with toplevel directives *)
 
+(* Toplevel directives may signal failure
+   by raising this exception *)
+exception Directive_failure
+
 type directive_fun =
    | Directive_none of (unit -> unit)
    | Directive_string of (string -> unit)
