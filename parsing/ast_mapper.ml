@@ -697,45 +697,6 @@ let restore_ppx_context payload =
   in
   List.iter (function ({txt=Lident name}, x) -> field name x | _ -> ()) fields
 
-type ast =
-  | Intf of Parsetree.signature
-  | Impl of Parsetree.structure
-
-let input_ast source =
-  let ic = open_in_bin source in
-  let magic =
-    really_input_string ic (String.length Config.ast_impl_magic_number)
-  in
-  let ast =
-    if magic = Config.ast_impl_magic_number then begin
-      Location.input_name := input_value ic;
-      let ast : Parsetree.structure = input_value ic in
-      Impl ast
-    end else if magic = Config.ast_intf_magic_number then begin
-      Location.input_name := input_value ic;
-      let ast : Parsetree.signature = input_value ic in
-      Intf ast
-    end else begin
-      close_in ic;
-      failwith "Ast_mapper: OCaml version mismatch or malformed input"
-    end
-  in
-  close_in ic;
-  ast
-
-let output_ast target ast =
-  let oc = open_out_bin target in
-  ( match ast with
-    | Impl ast ->
-        output_string oc Config.ast_impl_magic_number;
-        output_value oc !Location.input_name;
-        output_value oc ast
-    | Intf ast ->
-        output_string oc Config.ast_intf_magic_number;
-        output_value oc !Location.input_name;
-        output_value oc ast );
-  close_out oc
-
 let apply ~source ~target mapper =
   let implem ast =
     try
@@ -767,12 +728,32 @@ let apply ~source ~target mapper =
             psig_loc  = Location.none}]
       | None -> raise exn
   in
-  let ast =
-    match input_ast source with
-    | Impl ast -> Impl (implem ast)
-    | Intf ast -> Intf (iface ast)
+
+  let ic = open_in_bin source in
+  let magic =
+    really_input_string ic (String.length Config.ast_impl_magic_number)
   in
-  output_ast target ast
+
+  let rewrite transform =
+    Location.input_name := input_value ic;
+    let ast = input_value ic in
+    close_in ic;
+    let ast = transform ast in
+    let oc = open_out_bin target in
+    output_string oc magic;
+    output_value oc !Location.input_name;
+    output_value oc ast;
+    close_out oc
+  and fail () =
+    close_in ic;
+    failwith "Ast_mapper: OCaml version mismatch or malformed input";
+  in
+
+  if magic = Config.ast_impl_magic_number then
+    rewrite implem
+  else if magic = Config.ast_intf_magic_number then
+    rewrite iface
+  else fail ()
 
 let run_main mapper =
   try
