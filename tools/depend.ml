@@ -29,6 +29,8 @@ let rec addmodule bv lid =
   | Ldot(l, _s) -> addmodule bv l
   | Lapply(l1, l2) -> addmodule bv l1; addmodule bv l2
 
+let open_module bv lid = addmodule bv lid
+
 let add bv lid =
   match lid.txt with
     Ldot(l, _s) -> addmodule bv l
@@ -192,7 +194,7 @@ let rec add_expr bv exp =
       let bv = add_pattern bv pat in List.iter (add_class_field bv) fieldl
   | Pexp_newtype (_, e) -> add_expr bv e
   | Pexp_pack m -> add_module bv m
-  | Pexp_open (_ovf, m, e) -> addmodule bv m; add_expr bv e
+  | Pexp_open (_ovf, m, e) -> open_module bv m.txt; add_expr bv e
   | Pexp_extension _ -> ()
 
 and add_cases bv cases =
@@ -260,7 +262,7 @@ and add_sig_item bv item =
       end;
       bv
   | Psig_open od ->
-      addmodule bv od.popen_lid; bv
+      open_module bv od.popen_lid.txt; bv
   | Psig_include incl ->
       add_modtype bv incl.pincl_mod; bv
   | Psig_class cdl ->
@@ -321,7 +323,7 @@ and add_struct_item bv item =
       end;
       bv
   | Pstr_open od ->
-      addmodule bv od.popen_lid; bv
+      open_module bv od.popen_lid.txt; bv
   | Pstr_class cdl ->
       List.iter (add_class_declaration bv) cdl; bv
   | Pstr_class_type cdtl ->
