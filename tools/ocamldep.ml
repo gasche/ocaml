@@ -217,6 +217,15 @@ let report_err exn =
 
 let tool_name = "ocamldep"
 
+(* make an [open M] structure item from a "-open M" command-line paramater *)
+let str_open modname =
+  let modid = {
+    Location.txt = Longident.Lident modname;
+    loc = Location.none;
+  } in
+  let open Ast_helper in
+  Str.open_ (Opn.mk modid)
+
 let read_parse_and_extract parse_function extract_function magic source_file =
   Depend.free_structure_names := Depend.StringSet.empty;
   try
@@ -226,7 +235,15 @@ let read_parse_and_extract parse_function extract_function magic source_file =
         Pparse.file ~tool_name Format.err_formatter
 		    input_file parse_function magic
       in
-      extract_function Depend.StringSet.empty ast;
+      let bound_vars = Depend.StringSet.empty in
+      (* note that the dependency checker does not expect all
+         Depend.add_foo to come from a single logical source: it is
+         not an issue to use structure items (rather than
+         signature items) to explain "-open M" before computing
+         dependencies of a .mli interface. *)
+      Depend.add_implementation bound_vars
+        (List.map str_open !Clflags.open_modules);
+      extract_function bound_vars ast;
       Pparse.remove_preprocessed input_file;
       !Depend.free_structure_names
     with x ->
@@ -433,6 +450,8 @@ let _ =
         " Generate dependencies for native-code only (no .cmo files)";
      "-one-line", Arg.Set one_line,
         " Output one line per file, regardless of the length";
+     "-open", Arg.String (add_to_list Clflags.open_modules),
+        "<module>  Opens the module <module> before typing";
      "-pp", Arg.String(fun s -> Clflags.preprocessor := Some s),
          "<cmd>  Pipe sources through preprocessor <cmd>";
      "-ppx", Arg.String (add_to_list first_ppx),
