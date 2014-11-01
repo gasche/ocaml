@@ -26,7 +26,7 @@ let vargen_rec = { x = (); y = `A };;
 let cst_rec = { x = (); y = A };;
 let gen_rec = { x = (); y = C };;
 let flt_rec = { x = (); y = 0. };;
-let flt_rec' = { w = 0.;; z = 0. };;
+let flt_rec' = { w = 0.; z = 0. };;
 
 int_rec.y <- 2;;
 var_rec.y <- `B;;

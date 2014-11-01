@@ -64,8 +64,9 @@ val gen_rec : gen custom_rec = {x = (); y = C}
 # (let (flt_rec/1234 = (makemutable 0 0a 0.))
   (apply (field 1 (global Toploop!)) "flt_rec" flt_rec/1234))
 val flt_rec : float custom_rec = {x = (); y = 0.}
-# M# let flt_rec' = { w = 0.[4m;;[24m z = 0. };;
-[24mError: Syntax error
+# (let (flt_rec'/1236 = (makearray float 0. 0.))
+  (apply (field 1 (global Toploop!)) "flt_rec'" flt_rec'/1236))
+val flt_rec' : float_rec = {w = 0.; z = 0.}
 #   (let (int_rec/1224 = (apply (field 0 (global Toploop!)) "int_rec"))
   (setfield_imm 1 int_rec/1224 2))
 - : unit = ()
@@ -90,7 +91,7 @@ val flt_rec : float custom_rec = {x = (); y = 0.}
 # (let (flt_rec/1234 = (apply (field 0 (global Toploop!)) "flt_rec"))
   (setfield_ptr 1 flt_rec/1234 1.))
 - : unit = ()
-# M# [4mflt_rec'[24m.z <- 1.;;
-[24mError: Unbound value flt_rec'
-Hint: Did you mean flt_rec?
+# (let (flt_rec'/1236 = (apply (field 0 (global Toploop!)) "flt_rec'"))
+  (setfloatfield 1 flt_rec'/1236 1.))
+- : unit = ()
 # 
