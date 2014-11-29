@@ -50,8 +50,12 @@ module type S =
           Env.t -> t -> type_expr -> Outcometree.out_value
   end
 
-module ObjTbl = Hashtbl.Make(struct
-        type t = Obj.t
+module Make(O : OBJ)(EVP : EVALPATH with type valu = O.t) = struct
+
+    type t = O.t
+
+    module ObjTbl = Hashtbl.Make(struct
+        type t = O.t
         let equal = (==)
         let hash x =
           try
@@ -59,9 +63,6 @@ module ObjTbl = Hashtbl.Make(struct
           with exn -> 0
       end)
 
-module Make(O : OBJ)(EVP : EVALPATH with type valu = O.t) = struct
-
-    type t = O.t
 
     (* Given an exception value, we cannot recover its type,
        hence we cannot print its arguments in general.
@@ -184,8 +185,8 @@ module Make(O : OBJ)(EVP : EVALPATH with type valu = O.t) = struct
 
       let nested_values = ObjTbl.create 8 in
       let nest_gen err f depth obj ty =
-        let repr = Obj.repr obj in
-        if not (Obj.is_block repr) then
+        let repr = obj in
+        if not (O.is_block repr) then
           f depth obj ty
         else
           if ObjTbl.mem nested_values repr then
