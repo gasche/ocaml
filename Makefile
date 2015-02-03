@@ -617,6 +617,26 @@ ocamlyacc:
 clean::
 	cd yacc; $(MAKE) clean
 
+# The Menhir-generated parser
+parsing/parser_menhir.ml: parsing/parser_menhir.cmi
+	cp boot/menhir/parser_menhir.ml parsing
+
+parsing/parser_menhir.mli:
+	cp boot/menhir/parser_menhir.mli parsing
+
+parsing/menhirLib.ml: parsing/menhirLib.cmi
+	cp boot/menhir/menhirLib.ml parsing
+
+parsing/menhirLib.mli:
+	cp boot/menhir/menhirLib.mli parsing
+
+partialclean::
+	rm -f parsing/parser_menhir.{mli,ml} parsing/menhirLib.{mli,ml}
+
+# exports a promote-menhir-parser rule that calls Menhir to
+# re-generate boot/menhir files
+include Makefile.menhir
+
 # Tools
 
 ocamltools: ocamlc ocamlyacc ocamllex asmcomp/cmx_format.cmi \

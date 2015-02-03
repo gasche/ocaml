@@ -44,6 +44,7 @@ UTILS=utils/config.cmo utils/clflags.cmo \
 PARSING=parsing/location.cmo parsing/longident.cmo \
   parsing/docstrings.cmo parsing/ast_helper.cmo \
   parsing/syntaxerr.cmo parsing/parser.cmo \
+  parsing/menhirLib.cmo parsing/parser_menhir.cmo \
   parsing/lexer.cmo parsing/parse.cmo parsing/printast.cmo \
   parsing/pprintast.cmo \
   parsing/ast_mapper.cmo parsing/attr_helper.cmo
