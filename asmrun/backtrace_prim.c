@@ -28,24 +28,19 @@
 /* In order to prevent the GC from walking through the debug information
    (which have no headers), we transform frame_descr pointers into
    31/63 bits ocaml integers by shifting them by 1 to the right. We do
-   not lose information as descr pointers are aligned.
-
-   In particular, we do not need to use [caml_modify] when setting
-   an array element with such a value.
-*/
-value caml_raw_backtrace_slot_of_code(code_t pc)
+   not lose information as descr pointers are aligned.  */
+value caml_val_raw_backtrace_slot(backtrace_slot pc)
 {
   return Val_long((uintnat)pc>>1);
 }
 
-code_t caml_raw_backtrace_slot_code(value v)
+backtrace_slot caml_raw_backtrace_slot_val(value v)
 {
-  return ((code_t)(Long_val(v)<<1));
+  return ((backtrace_slot)(Long_val(v)<<1));
 }
 
-/* returns the next frame descriptor (or NULL if none is available),
+/* Returns the next frame descriptor (or NULL if none is available),
    and updates *pc and *sp to point to the following one.  */
-
 frame_descr * caml_next_frame_descriptor(uintnat * pc, char ** sp)
 {
   frame_descr * d;
@@ -92,7 +87,6 @@ frame_descr * caml_next_frame_descriptor(uintnat * pc, char ** sp)
    preserved the global, statically bounded buffer of the old
    implementation -- before the more flexible
    [caml_get_current_callstack] was implemented. */
-
 void caml_stash_backtrace(value exn, uintnat pc, char * sp, char * trapsp)
 {
   if (exn != caml_backtrace_last_exn) {
@@ -101,7 +95,7 @@ void caml_stash_backtrace(value exn, uintnat pc, char * sp, char * trapsp)
   }
   if (caml_backtrace_buffer == NULL) {
     Assert(caml_backtrace_pos == 0);
-    caml_backtrace_buffer = malloc(BACKTRACE_BUFFER_SIZE * sizeof(code_t));
+    caml_backtrace_buffer = malloc(BACKTRACE_BUFFER_SIZE * sizeof(backtrace_slot));
     if (caml_backtrace_buffer == NULL) return;
   }
 
@@ -111,7 +105,7 @@ void caml_stash_backtrace(value exn, uintnat pc, char * sp, char * trapsp)
     if (descr == NULL) return;
     /* store its descriptor in the backtrace buffer */
     if (caml_backtrace_pos >= BACKTRACE_BUFFER_SIZE) return;
-    caml_backtrace_buffer[caml_backtrace_pos++] = (code_t) descr;
+    caml_backtrace_buffer[caml_backtrace_pos++] = (backtrace_slot) descr;
 
     /* Stop when we reach the current exception handler */
 #ifndef Stack_grows_upwards
@@ -128,8 +122,8 @@ void caml_stash_backtrace(value exn, uintnat pc, char * sp, char * trapsp)
    (hopefully less often). Instead of using a bounded buffer as
    [caml_stash_backtrace], we first traverse the stack to compute the
    right size, then allocate space for the trace. */
-
-CAMLprim value caml_get_current_callstack(value max_frames_value) {
+CAMLprim value caml_get_current_callstack(value max_frames_value)
+{
   CAMLparam1(max_frames_value);
   CAMLlocal1(trace);
 
@@ -172,7 +166,7 @@ CAMLprim value caml_get_current_callstack(value max_frames_value) {
     for (trace_pos = 0; trace_pos < trace_size; trace_pos++) {
       frame_descr * descr = caml_next_frame_descriptor(&pc, &sp);
       Assert(descr != NULL);
-      Field(trace, trace_pos) = caml_raw_backtrace_slot_of_code((code_t) descr);
+      Store_field(trace, trace_pos, caml_val_raw_backtrace_slot((backtrace_slot) descr));
     }
   }
 
@@ -180,8 +174,7 @@ CAMLprim value caml_get_current_callstack(value max_frames_value) {
 }
 
 /* Extract location information for the given frame descriptor */
-
-void caml_extract_location_info(code_t slot, /*out*/ struct caml_loc_info * li)
+void caml_extract_location_info(backtrace_slot slot, /*out*/ struct caml_loc_info * li)
 {
   uintnat infoptr;
   uint32_t info1, info2;
@@ -219,12 +212,52 @@ void caml_extract_location_info(code_t slot, /*out*/ struct caml_loc_info * li)
   li->loc_endchr = ((info2 & 0xF) << 6) | (info1 >> 26);
 }
 
+<<<<<<< HEAD
 CAMLprim value caml_add_debug_info(code_t start, value size, value events)
+||||||| parent of 75d0a36... Document backtrace infrastructure, make types more explicit
+/* Print location information -- same behavior as in Printexc
+
+   note that the test for compiler-inserted raises is slightly redundant:
+     (!li->loc_valid && li->loc_is_raise)
+   extract_location_info above guarantees that when li->loc_valid is
+   0, then li->loc_is_raise is always 1, so the latter test is
+   useless. We kept it to keep code identical to the byterun/
+   implementation. */
+
+static void print_location(struct caml_loc_info * li, int index)
+{
+  char * info;
+
+  /* Ignore compiler-inserted raise */
+  if (!li->loc_valid && li->loc_is_raise) return;
+
+  if (li->loc_is_raise) {
+    /* Initial raise if index == 0, re-raise otherwise */
+    if (index == 0)
+      info = "Raised at";
+    else
+      info = "Re-raised at";
+  } else {
+    if (index == 0)
+      info = "Raised by primitive operation at";
+    else
+      info = "Called from";
+  }
+  if (! li->loc_valid) {
+    fprintf(stderr, "%s unknown location\n", info);
+  } else {
+    fprintf (stderr, "%s file \"%s\", line %d, characters %d-%d\n",
+             info, li->loc_filename, li->loc_lnum,
+             li->loc_startchr, li->loc_endchr);
+  }
+}
+
+CAMLprim value caml_add_debug_info(backtrace_slot start, value size, value events)
 {
   return Val_unit;
 }
 
-CAMLprim value caml_remove_debug_info(code_t start)
+CAMLprim value caml_remove_debug_info(backtrace_slot start)
 {
   return Val_unit;
 }
