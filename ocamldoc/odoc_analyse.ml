@@ -146,7 +146,7 @@ let process_file ppf sourcefile =
              None
          | Some (parsetree, typedtree) ->
              let file_module = Ast_analyser.analyse_typed_tree file
-                 !Location.input_name parsetree typedtree
+                 input_file parsetree typedtree
              in
              file_module.Odoc_module.m_top_deps <- Odoc_dep.impl_dependencies parsetree ;
 
@@ -174,7 +174,7 @@ let process_file ppf sourcefile =
        try
          let (ast, signat, input_file) = process_interface_file ppf file in
          let file_module = Sig_analyser.analyse_signature file
-             !Location.input_name ast signat.sig_type
+             input_file ast signat.sig_type
          in
 
          file_module.Odoc_module.m_top_deps <- Odoc_dep.intf_dependencies ast ;
