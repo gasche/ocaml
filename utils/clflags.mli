@@ -136,6 +136,7 @@ val dump_instr : bool ref
 val keep_camlprimc_file : bool ref
 val keep_asm_file : bool ref
 val optimize_for_speed : bool ref
+val parse_only : bool ref
 val dump_cmm : bool ref
 val dump_selection : bool ref
 val dump_cse : bool ref
