@@ -32,6 +32,7 @@ let interface ppf sourcefile outputprefix =
   let ast = Pparse.parse_interface ~tool_name ppf sourcefile in
   if !Clflags.dump_parsetree then fprintf ppf "%a@." Printast.interface ast;
   if !Clflags.dump_source then fprintf ppf "%a@." Pprintast.signature ast;
+  if !Clflags.parse_only then () else
   let tsg = Typemod.type_interface initial_env ast in
   if !Clflags.dump_typedtree then fprintf ppf "%a@." Printtyped.interface tsg;
   let sg = tsg.sig_type in
@@ -68,8 +69,6 @@ let implementation ppf sourcefile outputprefix =
   let comp ast =
     let (typedtree, coercion) =
       ast
-      ++ print_if ppf Clflags.dump_parsetree Printast.implementation
-      ++ print_if ppf Clflags.dump_source Pprintast.structure
       ++ Typemod.type_implementation sourcefile outputprefix modulename env
       ++ print_if ppf Clflags.dump_typedtree
         Printtyped.implementation_with_coercion
@@ -86,7 +85,13 @@ let implementation ppf sourcefile outputprefix =
     Warnings.check_fatal ();
     Stypes.dump (Some (outputprefix ^ ".annot"))
   in
-  try comp (Pparse.parse_implementation ~tool_name ppf sourcefile)
+  try
+    let parsetree =
+      Pparse.parse_implementation ~tool_name ppf sourcefile
+      ++ print_if ppf Clflags.dump_parsetree Printast.implementation
+      ++ print_if ppf Clflags.dump_source Pprintast.structure
+    in
+    if !Clflags.parse_only then () else comp parsetree
   with x ->
     Stypes.dump (Some (outputprefix ^ ".annot"));
     remove_file objfile;
