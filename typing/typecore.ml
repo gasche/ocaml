@@ -3846,7 +3846,8 @@ and type_cases ?exception_allowed ?in_function env ty_arg ty_res partial_flag lo
     List.iter (fun (pat, (env, _)) -> check_absent_variant env pat)
       pat_env_list;
     check_unused ~lev env (instance env ty_arg) val_cases;
-    check_unused ~lev env Predef.type_exn exn_cases
+    check_unused ~lev env Predef.type_exn exn_cases ;
+    Parmatch.check_ambiguous_bindings cases
   in
   if contains_polyvars then
     let ty_arg_check =
