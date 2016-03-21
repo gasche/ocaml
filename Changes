@@ -18,7 +18,7 @@ Standard library:
   slower.
   (Alain Frisch)
 
-Build system:
+Compiler build system:
 - GPR#324: Compiler developpers only: Adding new primitives to the
   standard runtime doesn't require anymore to run `make bootstrap`
   (François Bobot)
@@ -29,6 +29,10 @@ Build system:
   (David Allsopp)
 - GPR#507: More sharing between Unix and Windows makefiles
   (whitequark, review by Alain Frisch)
+
+Toplevel and debugger:
+- MPR#7189: toplevel #show, follow chains of module aliases
+  (Gabriel Scherer, report by Daniel Bünzli)
 
 Bug fixes:
 - PR#7112: Aliased arguments ignored for equality of module types
