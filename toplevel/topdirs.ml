@@ -568,11 +568,26 @@ let () =
 
 let () =
   reg_show_prim "show_module"
-    (fun env loc id lid ->
+    (fun env loc _id lid ->
+       (* For
+            module A = struct let x = 1 end;;
+            module B = struct module M = A end;;
+            module C = B.M;;
+            module D = C;;
+            #show D;;
+          we show
+            module D = C
+            module C = B.M
+            module B.M = A
+            module A : sig val x : int end
+        *)
        let rec accum_aliases lid acc =
-         let _, md = Typetexp.find_module env loc lid in
+         let path, md = Typetexp.find_module env loc lid in
          let acc =
-           Sig_module (id, {md with md_type = trim_signature md.md_type},
+           (* fake_id may in fact not be a syntactically valid identifier,
+              see B.M in the example above *)
+           let fake_id = Ident.create (Path.name path) in
+           Sig_module (fake_id, {md with md_type = trim_signature md.md_type},
                        Trec_not) :: acc in
          match md.md_type with
          | Mty_alias path ->
