@@ -135,6 +135,9 @@ OCaml 4.04.0:
   of Warning 52 (fragile constant pattern)
   (Gabriel Scherer, William, Adrien Nader, Jacques Garrigue)
 
+- GPR#693: fail on unexpected errors or warnings within caml_example
+  environment.
+  (Florian Angeletti)
 
 ### Build system:
 
