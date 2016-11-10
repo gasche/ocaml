@@ -418,7 +418,7 @@ let emit_instr i =
           { gc_lbl = lbl_call_gc;
             gc_return_lbl = lbl_redo;
             gc_frame_lbl = lbl_frame } :: !call_gc_sites;
-        `{emit_label lbl_redo}:`;
+        `{emit_label lbl_redo}:\n`;
         `	lay	%r11, {emit_int(-n)}(%r11)\n`;
         `	clgr	%r11, %r10\n`;
         `	brcl	4, {emit_label lbl_call_gc}\n`;  (* less than *)
@@ -592,7 +592,7 @@ let emit_instr i =
         `	br	%r1\n`;
         emit_string rodata_space;
         `	.align	8\n`;
-        `{emit_label lbl}:`;
+        `{emit_label lbl}:\n`;
         for i = 0 to Array.length jumptbl - 1 do
           `	.long	{emit_label jumptbl.(i)} - {emit_label lbl}\n`
         done;
@@ -665,8 +665,7 @@ let fundecl fundecl =
     `	.align	8\n`;
     List.iter
       (fun (f, lbl) ->
-        `{emit_label lbl}:`;
-        emit_float64_directive ".quad" f)
+        `{emit_label lbl}:`; emit_float64_directive ".quad" f)
       !float_literals;
     List.iter
       (fun (n, lbl) ->
