@@ -411,12 +411,6 @@ esac
 
 byteccprivatecompopts="-DCAML_NAME_SPACE $byteccprivatecompopts"
 
-# for reproducible compilation
-case "$ccfamily" in
-  gcc-*)
-    bytecccompopts="-fdebug-prefix-map=$project_root=. $bytecccompopts";;
-esac
-
 # Adjust according to target
 
 case "$bytecc,$target" in
@@ -1022,6 +1016,13 @@ case "$arch,$system" in
                           aspp="${TOOLPREF}gcc -c"
                           ;;
                   esac;;
+esac
+
+# for reproducible compilation
+case "$ccfamily" in
+  gcc-*)
+    bytecccompopts="-fdebug-prefix-map=$project_root=. $bytecccompopts";
+    as="$as --debug-prefix-map=$project_root=.";;
 esac
 
 if test -n "$asoption"; then as="$asoption"; fi
