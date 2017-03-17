@@ -65,6 +65,7 @@ afl_instrument=false
 max_testsuite_dir_retries=0
 with_cplugins=true
 with_fpic=false
+project_root=$(pwd)
 
 # Try to turn internationalization off, can cause config.guess to malfunction!
 unset LANG
@@ -409,6 +410,12 @@ case "$ccfamily" in
 esac
 
 byteccprivatecompopts="-DCAML_NAME_SPACE $byteccprivatecompopts"
+
+# for reproducible compilation
+case "$ccfamily" in
+  gcc-*)
+    bytecccompopts="-fdebug-prefix-map=$project_root=. $bytecccompopts";;
+esac
 
 # Adjust according to target
 
