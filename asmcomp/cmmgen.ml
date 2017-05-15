@@ -77,6 +77,15 @@ let bind_nonvar name arg fn =
   | Cblockheader _ -> fn arg
   | _ -> let id = Ident.create name in Clet(id, arg, fn (Cvar id))
 
+(* bind a value that is going to be used at most once:
+   if the value is in fact pure, we can substitute instead *)
+let bind_affine name arg fn =
+  let effects = Selection.effects_of arg in
+  let open Selectgen in
+  match Effect_and_coeffect.(effect effects, coeffect effects) with
+  | (Effect.None, Coeffect.None) -> fn arg
+  | _, _ -> let id = Ident.create name in Clet(id, arg, fn (Cvar id))
+
 let caml_black = Nativeint.shift_left (Nativeint.of_int 3) 8
     (* cf. byterun/gc.h *)
 
@@ -409,7 +418,7 @@ let rec div_int c1 c2 is_safe dbg =
       Cop(Cdivi, [c1; c2], dbg)
   | (c1, c2) ->
       bind "divisor" c2 (fun c2 ->
-        bind "dividend" c1 (fun c1 ->
+        bind_affine "dividend" c1 (fun c1 ->
           Cifthenelse(c2,
                       Cop(Cdivi, [c1; c2], dbg),
                       raise_symbol dbg "caml_exn_Division_by_zero")))
@@ -446,7 +455,7 @@ let mod_int c1 c2 is_safe dbg =
       Cop(Cmodi, [c1; c2], dbg)
   | (c1, c2) ->
       bind "divisor" c2 (fun c2 ->
-        bind "dividend" c1 (fun c1 ->
+        bind_affine "dividend" c1 (fun c1 ->
           Cifthenelse(c2,
                       Cop(Cmodi, [c1; c2], dbg),
                       raise_symbol dbg "caml_exn_Division_by_zero")))
@@ -702,13 +711,13 @@ let string_length exp dbg =
 (* Message sending *)
 
 let lookup_tag obj tag dbg =
-  bind "tag" tag (fun tag ->
+  bind_affine "tag" tag (fun tag ->
     Cop(Cextcall("caml_get_public_method", typ_val, false, None),
         [obj; tag],
         dbg))
 
 let lookup_label obj lab dbg =
-  bind "lab" lab (fun lab ->
+  bind_affine "lab" lab (fun lab ->
     let table = Cop (Cload (Word_val, Mutable), [obj], dbg) in
     addr_array_ref table lab dbg)
 
@@ -1059,7 +1068,7 @@ let bigarray_word_kind = function
   | Pbigarray_complex64 -> Double
 
 let bigarray_get unsafe elt_kind layout b args dbg =
-  bind "ba" b (fun b ->
+  bind_affine "ba" b (fun b ->
     match elt_kind with
       Pbigarray_complex32 | Pbigarray_complex64 ->
         let kind = bigarray_word_kind elt_kind in
@@ -1076,7 +1085,7 @@ let bigarray_get unsafe elt_kind layout b args dbg =
             dbg))
 
 let bigarray_set unsafe elt_kind layout b args newval dbg =
-  bind "ba" b (fun b ->
+  bind_affine "ba" b (fun b ->
     match elt_kind with
       Pbigarray_complex32 | Pbigarray_complex64 ->
         let kind = bigarray_word_kind elt_kind in
@@ -1697,18 +1706,21 @@ let rec transl env e =
             (List.map (transl env) args) @ [clos] in
           Cop(Capply typ_val, cargs, dbg)
       in
-      bind "obj" (transl env obj) (fun obj ->
-        match kind, args with
-          Self, _ ->
+      begin match kind, args with
+        Self, _ ->
+          bind "obj" (transl env obj) (fun obj ->
             bind "met" (lookup_label obj (transl env met) dbg)
-              (call_met obj args)
-        | Cached, cache :: pos :: args ->
+              (call_met obj args))
+      | Cached, cache :: pos :: args ->
+          bind_affine "obj" (transl env obj) (fun obj ->
             call_cached_method obj
               (transl env met) (transl env cache) (transl env pos)
-              (List.map (transl env) args) dbg
-        | _ ->
+              (List.map (transl env) args) dbg)
+      | _ ->
+          bind "obj" (transl env obj) (fun obj ->
             bind "met" (lookup_tag obj (transl env met) dbg)
               (call_met obj args))
+      end
   | Ulet(str, kind, id, exp, body) ->
       transl_let env str kind id exp body
   | Uletrec(bindings, body) ->

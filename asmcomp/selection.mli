@@ -16,4 +16,6 @@
 (* Selection of pseudo-instructions, assignment of pseudo-registers,
    sequentialization. *)
 
+val effects_of : Cmm.expression -> Selectgen.Effect_and_coeffect.t
+
 val fundecl: Cmm.fundecl -> Mach.fundecl

@@ -864,16 +864,16 @@ asmcomp/cmmgen.cmo : asmcomp/un_anf.cmi typing/types.cmi bytecomp/switch.cmi \
     middle_end/debuginfo.cmi utils/config.cmi asmcomp/compilenv.cmi \
     asmcomp/cmx_format.cmi asmcomp/cmm.cmi utils/clflags.cmi \
     asmcomp/clambda.cmi parsing/asttypes.cmi asmcomp/arch.cmo \
-    asmcomp/afl_instrument.cmi asmcomp/cmmgen.cmi
+    asmcomp/afl_instrument.cmi asmcomp/cmmgen.cmi asmcomp/selection.cmo
 asmcomp/cmmgen.cmx : asmcomp/un_anf.cmx typing/types.cmx bytecomp/switch.cmx \
     asmcomp/strmatch.cmx asmcomp/proc.cmx bytecomp/printlambda.cmx \
     typing/primitive.cmx utils/misc.cmx bytecomp/lambda.cmx typing/ident.cmx \
     middle_end/debuginfo.cmx utils/config.cmx asmcomp/compilenv.cmx \
     asmcomp/cmx_format.cmi asmcomp/cmm.cmx utils/clflags.cmx \
     asmcomp/clambda.cmx parsing/asttypes.cmi asmcomp/arch.cmx \
-    asmcomp/afl_instrument.cmx asmcomp/cmmgen.cmi
+    asmcomp/afl_instrument.cmx asmcomp/cmmgen.cmi asmcomp/selection.cmx
 asmcomp/cmmgen.cmi : asmcomp/cmx_format.cmi asmcomp/cmm.cmi \
-    asmcomp/clambda.cmi
+    asmcomp/clambda.cmi asmcomp/selection.cmi
 asmcomp/cmx_format.cmi : asmcomp/export_info.cmi asmcomp/clambda.cmi
 asmcomp/coloring.cmo : asmcomp/reg.cmi asmcomp/proc.cmi asmcomp/coloring.cmi
 asmcomp/coloring.cmx : asmcomp/reg.cmx asmcomp/proc.cmx asmcomp/coloring.cmi
@@ -1134,7 +1134,7 @@ asmcomp/selection.cmo : asmcomp/spacetime_profiling.cmi \
 asmcomp/selection.cmx : asmcomp/spacetime_profiling.cmx \
     asmcomp/selectgen.cmx asmcomp/proc.cmx asmcomp/mach.cmx utils/config.cmx \
     asmcomp/cmm.cmx utils/clflags.cmx asmcomp/arch.cmx asmcomp/selection.cmi
-asmcomp/selection.cmi : asmcomp/mach.cmi asmcomp/cmm.cmi
+asmcomp/selection.cmi : asmcomp/mach.cmi asmcomp/cmm.cmi asmcomp/selectgen.cmi
 asmcomp/spacetime_profiling.cmo : asmcomp/selectgen.cmi asmcomp/proc.cmi \
     utils/misc.cmi asmcomp/mach.cmi bytecomp/lambda.cmi typing/ident.cmi \
     middle_end/debuginfo.cmi utils/config.cmi asmcomp/cmm.cmi \

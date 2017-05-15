@@ -268,4 +268,6 @@ method! insert_op_debug op dbg rs rd =
 
 end
 
+let effects_of cmm = (new selector)#effects_of cmm
+
 let fundecl f = (new selector)#emit_fundecl f

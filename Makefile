@@ -167,10 +167,10 @@ ASMCOMP=\
   asmcomp/import_approx.cmo \
   asmcomp/un_anf.cmo \
   asmcomp/afl_instrument.cmo \
-  asmcomp/strmatch.cmo asmcomp/cmmgen.cmo \
+  asmcomp/strmatch.cmo \
   asmcomp/interval.cmo \
   asmcomp/printmach.cmo asmcomp/selectgen.cmo \
-  asmcomp/spacetime_profiling.cmo asmcomp/selection.cmo \
+  asmcomp/spacetime_profiling.cmo asmcomp/selection.cmo asmcomp/cmmgen.cmo \
   asmcomp/comballoc.cmo \
   asmcomp/CSEgen.cmo asmcomp/CSE.cmo \
   asmcomp/liveness.cmo \
