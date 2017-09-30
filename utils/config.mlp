@@ -63,7 +63,21 @@ let mkdll, mkexe, mkmaindll =
 
 let profiling = %%PROFILING%%
 let flambda = %%FLAMBDA%%
+
+(* Safe strings: bytes and string are always distinct
+   Unsafe strings: bytes and string identical by default,
+     unless the user asks for -safe-string at compile-time
+   Prudent strings: bytes and string are distinct by default,
+     unless the user asks for -unsafe-string at compile-time
+*)
+type safety = Safe | Prudent | Unsafe
+let string_of_safety = function
+  | Safe -> "Safe"
+  | Prudent -> "Prudent"
+  | Unsafe -> "Unsafe"
+
 let safe_string = %%SAFE_STRING%%
+
 let windows_unicode = %%WINDOWS_UNICODE%% != 0
 
 let flat_float_array = %%FLAT_FLOAT_ARRAY%%
@@ -140,6 +154,8 @@ let print_config oc =
   let p name valu = Printf.fprintf oc "%s: %s\n" name valu in
   let p_int name valu = Printf.fprintf oc "%s: %d\n" name valu in
   let p_bool name valu = Printf.fprintf oc "%s: %B\n" name valu in
+  let p_safe name valu =
+    Printf.fprintf oc "%s: %s\n" name (string_of_safety valu) in
   p "version" version;
   p "standard_library_default" standard_library_default;
   p "standard_library" standard_library;
@@ -174,7 +190,7 @@ let print_config oc =
   p_bool "profiling" profiling;
   p_bool "flambda" flambda;
   p_bool "spacetime" spacetime;
-  p_bool "safe_string" safe_string;
+  p_safe "safe_string" safe_string;
   p_bool "flat_float_array" flat_float_array;
   p_bool "windows_unicode" windows_unicode;
 

@@ -120,7 +120,7 @@ let rec declare_const t (const : Lambda.structured_constant)
   | Const_base (Const_char c) -> Const (Char c), "char"
   | Const_base (Const_string (s, _)) ->
     let const, name =
-      if Config.safe_string then
+      if Config.safe_string = Config.Safe then
         Flambda.Allocated_const (Immutable_string s), "immstring"
       else Flambda.Allocated_const (String s), "string"
     in

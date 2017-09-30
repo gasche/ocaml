@@ -742,7 +742,7 @@ let acknowledge_pers_struct check modname
             if not !Clflags.recursive_types then
               error (Need_recursive_types(ps.ps_name, !current_unit))
         | Unsafe_string ->
-            if Config.safe_string then
+            if Config.safe_string = Config.Safe then
               error (Depend_on_unsafe_string_unit (ps.ps_name, !current_unit));
         | Deprecated _ -> ()
         | Opaque -> add_imported_opaque modname)

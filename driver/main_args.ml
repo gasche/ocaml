@@ -428,8 +428,10 @@ let mk_S f =
 
 let mk_safe_string f =
   "-safe-string", Arg.Unit f,
-  if Config.safe_string then " Make strings immutable (default)"
-  else " Make strings immutable"
+  (match Config.safe_string with
+  | Config.Safe -> " (configured to be always on)"
+  | Config.Prudent -> " Make strings immutable (default)"
+  | Config.Unsafe -> " Make strings immutable")
 ;;
 
 let mk_shared f =
@@ -496,14 +498,17 @@ let mk_unsafe f =
 ;;
 
 let mk_unsafe_string f =
-  if Config.safe_string then
+  match Config.safe_string with
+  | Config.Safe ->
     let err () =
       raise (Arg.Bad "OCaml has been configured with -safe-string: \
                       -unsafe-string is not available")
     in
-    "-unsafe-string", Arg.Unit err, " (option not available)"
-  else
-    "-unsafe-string", Arg.Unit f, " Make strings mutable (default)"
+    ("-unsafe-string", Arg.Unit err, " (option not available)")
+  | Config.Prudent ->
+    ("-unsafe-string", Arg.Unit f, " Make strings mutable")
+  | Config.Unsafe ->
+    ("-unsafe-string", Arg.Unit f, " Make strings mutable (default)")
 ;;
 
 let mk_use_runtime f =

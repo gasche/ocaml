@@ -2016,7 +2016,7 @@ let inactive ~partial pat =
             true
         | Tpat_constant c -> begin
             match c with
-            | Const_string _ -> Config.safe_string
+            | Const_string _ -> (Config.safe_string = Config.Safe)
             | Const_int _ | Const_char _ | Const_float _
             | Const_int32 _ | Const_int64 _ | Const_nativeint _ -> true
           end

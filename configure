@@ -63,7 +63,7 @@ native_compiler=true
 TOOLPREF=""
 with_cfi=true
 flambda=false
-safe_string=false
+safe_string=Prudent
 afl_instrument=false
 max_testsuite_dir_retries=0
 with_cplugins=false
@@ -214,8 +214,32 @@ while : ; do
         ;; # Ignored for backward compatibility
     -fPIC|--fPIC)
         with_fpic=true;;
+    # There are three configure-time string safety modes, which
+    # interact with two compile-time options, -safe-string
+    # and -unsafe-string:
+    #
+    # 1. -unsafe-string at configure-time sets -unsafe-string as the
+    #    default compile-time option: when compiling, 'bytes' and
+    #    'string' are considered equal unless -safe-string is set
+    # 2. -prudent-string at configure-time sets -safe-string as the
+    #    default compile-time option: when compiling, 'bytes' and
+    #    'string' are considered distinct unless -unsafe-string is set
+    # 3. -safe-string at configure-time guarantees that 'bytes' and
+    #    'string' will always be distinct, by disabling the
+    #    '-unsafe-string' compile-time option. This means let us
+    #    assume pervasive string immutability, for code optimizations
+    #    and in the C layer.
+    #
+    # The configure-time behavior of OCaml 4.05 and older was
+    # equivalent to the -unsafe-string setting (which did not exist
+    # then). OCaml 4.06 uses -prudent-string by default. We
+    # expect -safe-string to become the default in the future.
     -safe-string|--safe-string)
-        safe_string=true;;
+        safe_string="Safe";;
+    -prudent-string|--prudent-string)
+        safe_string="Prudent";;
+    -unsafe-string|--unsafe-string)
+        safe_string="Unsafe";;
     -flat-float-array|--flat-float-array)
         flat_float_array=true;;
     -no-flat-float-array|--no-flat-float-array)
@@ -2006,7 +2030,7 @@ if $with_fpic; then
   echo "#define CAML_WITH_FPIC" >> m.h
 fi
 
-if $safe_string; then
+if test "$safe_string" = "Safe"; then
   echo "#define CAML_SAFE_STRING" >> m.h
 fi
 

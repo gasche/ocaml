@@ -816,7 +816,7 @@ let rec close fenv cenv = function
                  time is not enough, since the unit could be linked
                  with another one compiled without -safe-string, and
                  that one could modify our string literal.  *)
-            str ~shared:Config.safe_string (Uconst_string s)
+            str ~shared:(Config.safe_string = Config.Safe) (Uconst_string s)
         | Const_base(Const_float x) -> str (Uconst_float (float_of_string x))
         | Const_base(Const_int32 x) -> str (Uconst_int32 x)
         | Const_base(Const_int64 x) -> str (Uconst_int64 x)

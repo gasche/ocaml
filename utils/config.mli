@@ -165,7 +165,8 @@ val libunwind_available : bool
 val libunwind_link_flags : string
         (* Linker flags to use libunwind *)
 
-val safe_string: bool
+type safety = Safe | Prudent | Unsafe
+val safe_string: safety
         (* Whether the compiler was configured with -safe-string *)
 val flat_float_array : bool
         (* Whether the compiler and runtime automagically flatten float

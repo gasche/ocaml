@@ -75,9 +75,15 @@ Release branch for 4.06:
   and patterns (plus fix printing of (::) in the toplevel)
   (Florian Angeletti, review by Alain Frisch, Gabriel Scherer)
 
-* GPR#1252: The default mode is now safe-string, can be overridden
-  at configure time or at compile time.
-  (Damien Doligez)
+* GPR#1252, GPR#TODO: -safe-string is now the default compile-time
+  string safety option. This corresponds to a new configure-time
+  setting, -prudent-string, weaker than -safe-string that guarantees
+  that -unsafe-string is never set (the types are always distinct).
+  A new -unsafe-string configure-time option sets -unsafe-string back
+  as the default compile-time string safety option. You may use
+  an -unsafe-string as a last resort if your dependencies choke on the
+  the new default.
+  (Damien Doligez, Gabriel Scherer)
 
 - GPR#1253: Private extensible variants
   (Leo White, review by Alain Frisch)
