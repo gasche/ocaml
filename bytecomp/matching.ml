@@ -22,6 +22,7 @@ open Typedtree
 open Lambda
 open Parmatch
 open Printf
+open Printpat
 
 
 let dbg = false
@@ -47,6 +48,18 @@ let string_of_lam lam =
   Printlambda.lambda Format.str_formatter lam ;
   Format.flush_str_formatter ()
 
+let all_record_args lbls = match lbls with
+| (_,{lbl_all=lbl_all},_)::_ ->
+    let t =
+      Array.map
+        (fun lbl -> mknoloc (Longident.Lident "?temp?"), lbl,omega)
+        lbl_all in
+    List.iter
+      (fun ((_, lbl,_) as x) ->  t.(lbl.lbl_pos) <- x)
+      lbls ;
+    Array.to_list t
+|  _ -> fatal_error "Parmatch.all_record_args"
+
 type matrix = pattern list list
 
 let add_omega_column pss = List.map (fun ps -> omega::ps) pss
@@ -57,9 +70,9 @@ let pretty_ctx ctx =
   List.iter
     (fun {left=left ; right=right} ->
       prerr_string "LEFT:" ;
-      pretty_line left ;
+      pretty_line Format.err_formatter left ;
       prerr_string " RIGHT:" ;
-      pretty_line right ;
+      pretty_line Format.err_formatter right ;
       prerr_endline "")
     ctx
 
@@ -150,7 +163,7 @@ let filter_matrix matcher pss =
         end
     | [] -> []
     | _ ->
-        pretty_matrix pss ;
+        pretty_matrix Format.err_formatter pss ;
         fatal_error "Matching.filter_matrix" in
   filter_rec pss
 
@@ -399,7 +412,7 @@ let pretty_cases cases =
     (fun (ps,_l) ->
       List.iter
         (fun p ->
-          Parmatch.top_pretty Format.str_formatter p ;
+          top_pretty Format.str_formatter p ;
           prerr_string " " ;
           prerr_string (Format.flush_str_formatter ()))
         ps ;
@@ -416,7 +429,7 @@ let pretty_def def =
   List.iter
     (fun (pss,i) ->
       Printf.fprintf stderr "Matrix for %d\n"  i ;
-      pretty_matrix pss)
+      pretty_matrix Format.err_formatter pss)
     def ;
   prerr_endline "+++++++++++++++++++++"
 
@@ -433,7 +446,7 @@ let rec pretty_precompiled = function
   | PmOr x ->
       prerr_endline "++++ OR ++++" ;
       pretty_pm x.body ;
-      pretty_matrix x.or_matrix ;
+      pretty_matrix Format.err_formatter x.or_matrix ;
       List.iter
         (fun (_,i,_,pm) ->
           eprintf "++ Handler %d ++\n" i ;

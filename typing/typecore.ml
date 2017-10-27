@@ -1420,7 +1420,7 @@ let partial_pred ~lev ?mode ?explode env expected_ty constrs labels p =
 
 let check_partial ?(lev=get_current_level ()) env expected_ty loc cases =
   let explode = match cases with [_] -> 5 | _ -> 0 in
-  Parmatch.check_partial_gadt
+  Parmatch.check_partial
     (partial_pred ~lev ~explode env expected_ty) loc cases
 
 let check_unused ?(lev=get_current_level ()) env expected_ty cases =
@@ -4436,7 +4436,7 @@ let report_error env ppf = function
         "@[%s@ %s@ %a@]"
         "This match case could not be refuted."
         "Here is an example of a value that would reach it:"
-        Parmatch.top_pretty pat
+        Printpat.top_pretty pat
   | Invalid_extension_constructor_payload ->
       fprintf ppf
         "Invalid [%%extension_constructor] payload, a constructor is expected."
