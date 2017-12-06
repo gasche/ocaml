@@ -151,6 +151,8 @@ and operation =
   | Ccmpf of comparison
   | Craise of raise_kind
   | Ccheckbound
+  | Csuspendafl
+  | Crestoreafl
 
 type expression =
     Cconst_int of int

@@ -151,6 +151,9 @@ type primitive =
   | Pint_as_pointer
   (* Inhibition of optimisation *)
   | Popaque
+  (* Suspend and restore afl-fuzz instrumentation *)
+  | Psuspendafl
+  | Prestoreafl
 
 and comparison =
     Ceq | Cneq | Clt | Cgt | Cle | Cge

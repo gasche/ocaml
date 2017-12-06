@@ -1784,6 +1784,10 @@ let rec transl env e =
       begin match (simplif_primitive prim, args) with
         (Pgetglobal id, []) ->
           Cconst_symbol (Ident.name id)
+      | (Psuspendafl, []) ->
+          Cop (Csuspendafl, [], Debuginfo.none)
+      | (Prestoreafl, []) ->
+          Cop (Crestoreafl, [], Debuginfo.none)
       | (Pmakeblock _, []) ->
           assert false
       | (Pmakeblock(tag, _mut, _kind), args) ->

@@ -134,7 +134,10 @@ let for_primitive (prim : Lambda.primitive) =
   | Pbigarrayset _
   | Pbigstring_set_16 _
   | Pbigstring_set_32 _
-  | Pbigstring_set_64 _ ->
+  | Pbigstring_set_64 _
+  | Prestoreafl
+  | Psuspendafl
+    ->
       (* Whether or not some of these are "unsafe" is irrelevant; they always
          have an effect. *)
       Arbitrary_effects, No_coeffects
