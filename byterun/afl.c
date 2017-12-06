@@ -55,8 +55,6 @@ static unsigned char afl_area_initial[1 << 16];
 unsigned char* caml_afl_area_ptr = afl_area_initial;
 uintnat caml_afl_prev_loc;
 
-uintnat caml_afl_status = 1;
-
 /* File descriptors used to synchronise with afl-fuzz */
 #define FORKSRV_FD_READ 198
 #define FORKSRV_FD_WRITE 199
@@ -158,7 +156,6 @@ CAMLprim value caml_reset_afl_instrumentation(value full)
     memset(caml_afl_area_ptr, 0, sizeof(afl_area_initial));
   }
   caml_afl_prev_loc = 0;
-  caml_afl_status = 1;
   return Val_unit;
 }
 
