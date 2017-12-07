@@ -693,6 +693,7 @@ method emit_expr (env:environment) exp =
       end
   | Cop(Ccmpf _, _, _) ->
       self#emit_expr env (Cifthenelse(exp, Cconst_int 1, Cconst_int 0))
+  | Cop((Csuspendafl | Crestoreafl), _, _) -> Some [||]
   | Cop(op, args, dbg) ->
       begin match self#emit_parts_list env args with
         None -> None
