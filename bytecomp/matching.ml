@@ -1481,6 +1481,16 @@ let restore_afl_tracing body =
   if not (!Clflags.afl_instrument && !Clflags.native_code) then body
   else Lsequence(Lprim(Prestoreafl, [], Location.none), body)
 
+let bracket_afl_tracing body =
+  if not (!Clflags.afl_instrument && !Clflags.native_code) then body
+  else begin
+    let result = Ident.create "result" in
+    suspend_afl_tracing @@
+    Llet(Strict, Pgenval, result, body,
+    restore_afl_tracing @@
+    Lvar result)
+  end
+
 (* inline_lazy_force inlines the beginning of the code of Lazy.force. When
    the value argument is tagged as:
    - forward, take field 0
@@ -1497,7 +1507,7 @@ let inline_lazy_force_cond arg loc =
   let tag = Ident.create "tag" in
   let force_fun = Lazy.force code_force_lazy_block in
   Llet(Strict, Pgenval, idarg, arg,
-       suspend_afl_tracing @@
+       bracket_afl_tracing @@
        Llet(Alias, Pgenval, tag, Lprim(Pccall prim_obj_tag, [varg], loc),
             Lifthenelse(
               (* if (tag == Obj.forward_tag) then varg.(0) else ... *)
@@ -1505,12 +1515,12 @@ let inline_lazy_force_cond arg loc =
                     [Lvar tag; Lconst(Const_base(Const_int Obj.forward_tag))],
                     loc),
               Lprim(Pfield 0, [varg], loc),
-              restore_afl_tracing @@
               Lifthenelse(
                 (* ... if (tag == Obj.lazy_tag) then Lazy.force varg else ... *)
                 Lprim(Pintcomp Ceq,
                       [Lvar tag; Lconst(Const_base(Const_int Obj.lazy_tag))],
                       loc),
+                restore_afl_tracing @@
                 Lapply{ap_should_be_tailcall=false;
                        ap_loc=loc;
                        ap_func=force_fun;
@@ -1525,7 +1535,7 @@ let inline_lazy_force_switch arg loc =
   let varg = Lvar idarg in
   let force_fun = Lazy.force code_force_lazy_block in
   Llet(Strict, Pgenval, idarg, arg,
-       suspend_afl_tracing @@
+       bracket_afl_tracing @@
        Lifthenelse(
          Lprim(Pisint, [varg], loc), varg,
          (Lswitch
