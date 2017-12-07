@@ -21,6 +21,10 @@ let afl_area_ptr = Cconst_symbol "caml_afl_area_ptr"
 let afl_prev_loc = Cconst_symbol "caml_afl_prev_loc"
 let afl_map_size = 1 lsl 16
 
+let afl_status = Cconst_symbol "caml_afl_status"
+
+let op oper args = Cop (oper, args, Debuginfo.none)
+
 let rec with_afl_logging b =
   if !Clflags.afl_inst_ratio < 100 &&
     Random.int 100 >= !Clflags.afl_inst_ratio then instrument b else
@@ -33,11 +37,11 @@ let rec with_afl_logging b =
 
        See http://lcamtuf.coredump.cx/afl/technical_details.txt or
        docs/technical_details.txt in afl-fuzz source for for a full
-       description of what's going on. *)
+       description of what's going on.
+    *)
     let cur_location = Random.int afl_map_size in
     let cur_pos = Ident.create "pos" in
     let afl_area = Ident.create "shared_mem" in
-    let op oper args = Cop (oper, args, Debuginfo.none) in
     Clet(afl_area, op (Cload (Word_int, Asttypes.Mutable)) [afl_area_ptr],
     Clet(cur_pos,  op Cxor [op (Cload (Word_int, Asttypes.Mutable))
       [afl_prev_loc]; Cconst_int cur_location],
@@ -49,9 +53,29 @@ let rec with_afl_logging b =
                     Cconst_int 1]],
       op (Cstore(Word_int, Assignment))
          [afl_prev_loc; Cconst_int (cur_location lsr 1)]))) in
+  let instrumentation =
+    (* We allow OCaml code to selectively disable instrumentation for
+       stability purposes (disable tracing of semantics-preserving
+       branches that depend on global state or non-determin GC effects),
+       so this instrumentation check is wrapped under a conditional
+
+         if (caml_afl_status == 1) { <instrumentation> }
+    *)
+    let status = op (Cload(Word_int, Asttypes.Mutable)) [afl_status] in
+    let cond = op (Ccmpi Ceq) [status; Cconst_int 1] in
+    Cifthenelse (cond, instrumentation, Ctuple [])
+  in
   Csequence(instrumentation, instrument b)
 
 and instrument = function
+  | Cop ((Csuspendafl | Crestoreafl) as change, [], _debuginfo) ->
+    let new_status = match change with
+      | Csuspendafl -> Cconst_int 0
+      | Crestoreafl -> Cconst_int 1
+      | _ -> assert false
+    in
+    op (Cstore(Word_int, Assignment)) [afl_status; new_status]
+
   (* these cases add logging, as they may be targets of conditional branches *)
   | Cifthenelse (cond, t, f) ->
      Cifthenelse (instrument cond, with_afl_logging t, with_afl_logging f)
