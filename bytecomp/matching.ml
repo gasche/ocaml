@@ -1554,8 +1554,38 @@ let inline_lazy_force_switch arg loc =
                            ap_specialised=Default_specialise}) ];
                sw_failaction = Some varg }, loc ))))
 
+let inline_lazy_force_stable arg loc =
+  let idarg = Ident.create "lzarg" in
+  let varg = Lvar idarg in
+  let tag = Ident.create "tag" in
+  let force_fun = Lazy.force code_force_lazy_block in
+  Llet(Strict, Pgenval, idarg, arg,
+       Llet(Alias, Pgenval, tag, Lprim(Pccall prim_obj_tag, [varg], loc),
+            Lifthenelse(
+              (* ... if (tag == Obj.lazy_tag) then Lazy.force varg else ... *)
+              Lprim(Pintcomp Ceq,
+                    [Lvar tag; Lconst(Const_base(Const_int Obj.lazy_tag))],
+                    loc),
+              Lapply{ap_should_be_tailcall=false;
+                     ap_loc=loc;
+                     ap_func=force_fun;
+                     ap_args=[varg];
+                     ap_inlined=Default_inline;
+                     ap_specialised=Default_specialise},
+              suspend_afl_tracing @@
+              Lifthenelse(
+                (* if (tag == Obj.forward_tag) then varg.(0) else ... *)
+                Lprim(Pintcomp Ceq,
+                      [Lvar tag; Lconst(Const_base(Const_int Obj.forward_tag))],
+                      loc),
+                Lprim(Pfield 0, [varg], loc),
+                (* ... arg *)
+                varg))))
+
 let inline_lazy_force arg loc =
-  if !Clflags.native_code then
+  if !Clflags.native_code && !Clflags.afl_instrument then
+    inline_lazy_force_stable arg loc
+  else if !Clflags.native_code then
     (* Lswitch generates compact and efficient native code *)
     inline_lazy_force_switch arg loc
   else
