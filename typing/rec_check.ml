@@ -700,10 +700,27 @@ and is_destructuring_pattern : Typedtree.pattern -> bool =
 
 let is_valid_recursive_expression idlist expr =
   let ty = expression (build_unguarded_env idlist) expr in
+  let warn_loc () =
+    Location.print_loc Format.str_formatter expr.exp_loc;
+    print_endline (Format.flush_str_formatter ()) in
   match Use.unguarded ty, Use.dependent ty, classify_expression expr with
-  | _ :: _, _, _ (* The expression inspects rec-bound variables *)
-  | _, _ :: _, Dynamic -> (* The expression depends on rec-bound variables
-                              and its size is unknown *)
+  | (_ :: _) as unguarded_vars, _, _
+    ->
+      (* The expression inspects rec-bound variables *)
+      warn_loc ();
+      Printf.printf
+        "Unguarded variable(s) %s.\n%!"
+        (* Location.print_loc expr.exp_loc *)
+        (String.concat ", " @@ List.map Ident.name unguarded_vars);
+      false
+  | _, _ :: _, Dynamic ->
+      (* The expression depends on rec-bound variables
+         and its size is unknown *)
+      warn_loc ();
+      Printf.printf
+        "Unknown expression size.\n%!"
+        (* Location.print_loc expr.exp_loc *)
+      ;
       false
   | [], _, Static (* The expression has known size *)
   | [], [], Dynamic -> (* The expression has unknown size,
