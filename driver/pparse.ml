@@ -214,26 +214,6 @@ let () =
       | _ -> None
     )
 
-let parse_file ~tool_name invariant_fun apply_hooks parse kind ppf sourcefile =
-  Location.input_name := sourcefile;
-  let inputfile = preprocess sourcefile in
-  let ast =
-    try file_aux ppf ~tool_name inputfile parse invariant_fun kind
-    with exn ->
-      remove_preprocessed inputfile;
-      raise exn
-  in
-  remove_preprocessed inputfile;
-  let ast = apply_hooks { Misc.sourcefile } ast in
-  ast
-
-module ImplementationHooks = Misc.MakeHooks(struct
-    type t = Parsetree.structure
-  end)
-module InterfaceHooks = Misc.MakeHooks(struct
-    type t = Parsetree.signature
-  end)
-
 let compare_parsers parsers sourcefile print use =
   let asts = List.map (fun (name, parse) -> (name, use name parse)) parsers in
   match asts with
@@ -257,6 +237,26 @@ let compare_parsers parsers sourcefile print use =
       | exception Not_found -> ast1
       end
 
+let parse_file ~tool_name invariant_fun parsers printer kind ppf sourcefile =
+  Location.input_name := sourcefile;
+  let inputfile = preprocess sourcefile in
+  Misc.try_finally
+    (fun () ->
+       compare_parsers parsers sourcefile printer @@ fun name parse ->
+       Profile.record_call (Printf.sprintf "parsing(%s)" name) @@ fun () ->
+       file_aux ppf ~tool_name inputfile parse invariant_fun kind)
+    (fun () -> remove_preprocessed inputfile)
+
+module ImplementationHooks = Misc.MakeHooks(struct
+    type t = Parsetree.structure
+  end)
+module InterfaceHooks = Misc.MakeHooks(struct
+    type t = Parsetree.signature
+  end)
+
+let yacc = "yacc"
+let menhir = "menhir"
+
 let choose_parsers parser_table =
   match Sys.getenv "OCAML_PARSERS" with
   | exception Not_found -> parser_table
@@ -275,29 +275,20 @@ let choose_parsers parser_table =
       in
       List.map get_parser env_parsers
 
-let yacc = "yacc"
-let menhir = "menhir"
-
 let parse_implementation ppf ~tool_name sourcefile =
   let parse = choose_parsers [
       (yacc, parse Structure);
       (menhir, parse_menhir Structure)
     ] in
-  compare_parsers parse sourcefile Printast.implementation
-    (fun name parse ->
-       Profile.record_call (Printf.sprintf "parsing(%s)" name)
-         (fun () ->
-            parse_file ~tool_name Ast_invariants.structure
-              ImplementationHooks.apply_hooks parse Structure ppf sourcefile))
+  parse_file ~tool_name Ast_invariants.structure
+      parse Printast.implementation Structure ppf sourcefile
+  |> ImplementationHooks.apply_hooks { Misc.sourcefile }
 
 let parse_interface ppf ~tool_name sourcefile =
   let parse = choose_parsers [
       (yacc, parse Signature);
       (menhir, parse_menhir Signature)
     ] in
-  compare_parsers parse sourcefile Printast.interface
-    (fun name parse ->
-       Profile.record_call (Printf.sprintf "parsing(%s)" name)
-         (fun () ->
-            parse_file ~tool_name Ast_invariants.signature
-              InterfaceHooks.apply_hooks parse Signature ppf sourcefile))
+  parse_file ~tool_name Ast_invariants.signature
+    parse Printast.interface Signature ppf sourcefile
+  |> InterfaceHooks.apply_hooks { Misc.sourcefile }
