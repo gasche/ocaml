@@ -56,38 +56,46 @@ Line 2, characters 17-19:
   simple_expr.{3, 2;;
               ^    ^^
 Syntax error: '}' expected, the highlighted '{' might be unmatched
+Line 2, characters 0-1,
 Line 2, characters 10-12:
   { x = 3; y;;
-            ^^
-Error: Syntax error
+  ^         ^^
+Syntax error: '}' expected, the highlighted '{' might be unmatched
+Line 2, characters 5-6,
 Line 2, characters 16-18:
   List.{ x = 3; y ;;
-                  ^^
-Error: Syntax error
+       ^          ^^
+Syntax error: '}' expected, the highlighted '{' might be unmatched
+Line 2, characters 0-2,
 Line 2, characters 7-9:
   [| 3; 2;;
-         ^^
-Error: Syntax error
+  ^^     ^^
+Syntax error: '|]' expected, the highlighted '[|' might be unmatched
+Line 2, characters 5-7,
 Line 2, characters 11-13:
   List.[|3; 2;;
-             ^^
-Error: Syntax error
+       ^^    ^^
+Syntax error: '|]' expected, the highlighted '[|' might be unmatched
+Line 2, characters 0-1,
 Line 2, characters 5-7:
   [3; 2;;
-       ^^
-Error: Syntax error
+  ^    ^^
+Syntax error: ']' expected, the highlighted '[' might be unmatched
+Line 2, characters 5-6,
 Line 2, characters 10-12:
   List.[3; 2;;
-            ^^
-Error: Syntax error
+       ^    ^^
+Syntax error: ']' expected, the highlighted '[' might be unmatched
+Line 2, characters 0-2,
 Line 2, characters 13-15:
   {< x = 3; y; ;;
-               ^^
-Error: Syntax error
+  ^^           ^^
+Syntax error: '>}' expected, the highlighted '{<' might be unmatched
+Line 2, characters 5-7,
 Line 2, characters 17-19:
   List.{< x = 3; y ;;
-                   ^^
-Error: Syntax error
+       ^^          ^^
+Syntax error: '>}' expected, the highlighted '{<' might be unmatched
 Line 2, characters 0-1,
 Line 2, characters 20-22:
   (module struct end :;;

@@ -11,20 +11,23 @@ Line 4, characters 0-2:
   ....(.......
   ;;
 Syntax error: ')' expected, the highlighted '(' might be unmatched
+Line 6, characters 18-25:
+    | (module Foo : sig end
+                    ^^^^^^^
+Error: invalid package type: only module type identifier and 'with type' constraints are supported
+Line 6, characters 4-5,
 Line 7, characters 0-2:
+  ....{..........
   ;;
-  ^^
-Error: Syntax error: module-expr expected.
-Line 7, characters 0-2:
-  ;;
-  ^^
-Error: Syntax error
+Syntax error: '}' expected, the highlighted '{' might be unmatched
+Line 3, characters 4-5,
 Line 4, characters 0-2:
+  ....[......
   ;;
-  ^^
-Error: Syntax error
+Syntax error: ']' expected, the highlighted '[' might be unmatched
+Line 3, characters 4-6,
 Line 4, characters 0-2:
+  ....[|......
   ;;
-  ^^
-Error: Syntax error
+Syntax error: '|]' expected, the highlighted '[|' might be unmatched
 
