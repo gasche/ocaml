@@ -397,6 +397,10 @@ Working version
   command-line arguments in a file.
   (Nicolás Ojeda Bär, review by Gabriel Scherer and Daniel Bünzli)
 
+- GPR#2189: new -one-file-per-line ocamldep option, for
+  more readable diffs of versioned dependencies.
+  (Gabriel Scherer, review by ?)
+
 ### Manual and documentation:
 
 - MPR#7546, GPR#2020: preambles and introduction for compiler-libs.
