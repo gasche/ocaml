@@ -25,7 +25,7 @@ STDLIBFLAGS = -nostdlib -I $(ROOTDIR)/stdlib
 OCAMLC    = $(OCAMLRUN) $(ROOTDIR)/ocamlc $(STDLIBFLAGS)
 OCAMLOPT  = $(OCAMLRUN) $(ROOTDIR)/ocamlopt $(STDLIBFLAGS)
 OCAMLDEP  = $(OCAMLRUN) $(ROOTDIR)/tools/ocamldep
-DEPFLAGS = -slash
+DEPFLAGS = -slash -one-file-per-line
 OCAMLLEX  = $(OCAMLRUN) $(ROOTDIR)/boot/ocamllex
 # TODO: figure out whether the DEBUG lines the following preprocessor removes
 # are actually useful.

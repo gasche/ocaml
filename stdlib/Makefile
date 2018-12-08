@@ -34,7 +34,7 @@ endif
 OPTCOMPILER=$(ROOTDIR)/ocamlopt
 CAMLOPT=$(CAMLRUN) $(OPTCOMPILER)
 CAMLDEP=$(CAMLRUN) $(ROOTDIR)/tools/ocamldep
-DEPFLAGS=-slash
+DEPFLAGS=-slash -one-file-per-line
 
 OC_CPPFLAGS += -I$(ROOTDIR)/runtime
 

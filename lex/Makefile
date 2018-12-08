@@ -32,7 +32,7 @@ LINKFLAGS =
 YACCFLAGS = -v
 CAMLLEX = $(CAMLRUN) $(ROOTDIR)/boot/ocamllex
 CAMLDEP = $(CAMLRUN) $(ROOTDIR)/tools/ocamldep
-DEPFLAGS = -slash
+DEPFLAGS = -slash -one-file-per-line
 DEPINCLUDES =
 
 OBJS=cset.cmo syntax.cmo parser.cmo lexer.cmo table.cmo lexgen.cmo \

@@ -29,7 +29,7 @@ LINKFLAGS=-linkall -I $(UNIXDIR)
 YACCFLAGS=
 CAMLLEX=$(CAMLRUN) $(ROOTDIR)/boot/ocamllex
 CAMLDEP=$(CAMLRUN) $(ROOTDIR)/tools/ocamldep
-DEPFLAGS=-slash
+DEPFLAGS=-slash -one-file-per-line
 DEPINCLUDES=$(INCLUDES)
 
 DIRECTORIES=$(UNIXDIR) $(addprefix $(ROOTDIR)/,\

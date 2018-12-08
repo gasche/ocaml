@@ -426,7 +426,7 @@ clean::
 	rm -f *.cmo *.cmi *.cma *.dll *.so *.lib *.a
 
 CAMLDEP=$(CAMLRUN) ./ocamldep
-DEPFLAGS=-slash
+DEPFLAGS=-slash -one-file-per-line
 DEPINCLUDES=$(INCLUDES)
 depend: beforedepend
 	$(CAMLDEP) $(DEPFLAGS) $(DEPINCLUDES) *.mli *.ml > .depend
