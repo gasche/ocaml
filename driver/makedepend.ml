@@ -33,6 +33,7 @@ let raw_dependencies = ref false
 let sort_files = ref false
 let all_dependencies = ref false
 let one_line = ref false
+let one_file_per_line = ref false
 let files =
   ref ([] : (string * file_kind * String.Set.t * string list) list)
 let allow_approximation = ref false
@@ -205,10 +206,15 @@ let print_dependencies target_files deps =
     then print_on_same_line dep
     else print_on_new_line dep
   in
+  let print_dep dep =
+    if !one_file_per_line
+    then print_on_new_line dep
+    else print_item dep
+  in
   List.iter print_item target_files;
   print_string " "; print_string depends_on;
   pos := !pos + String.length depends_on + 1;
-  List.iter print_item deps;
+  List.iter print_dep deps;
   print_string "\n"
 
 let print_raw_dependencies source_file deps =
@@ -587,6 +593,8 @@ let main () =
         " Generate dependencies for bytecode-code only (no .cmx files)";
      "-one-line", Arg.Set one_line,
         " Output one line per file, regardless of the length";
+     "-one-file-per-line", Arg.Set one_file_per_line,
+        " Output each dependency on its own line";
      "-open", Arg.String (add_to_list Clflags.open_modules),
         "<module>  Opens the module <module> before typing";
      "-plugin", Arg.String Compplugin.load,
