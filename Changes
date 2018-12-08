@@ -789,6 +789,13 @@ OCaml 4.08.0 (13 June 2019)
   (Alban Reynaud and Gabriel Scherer,
    review by Jeremy Yallop, Armaël Guéneau and Damien Doligez)
 
+- MPR#7364, GPR#2188: improvement of the unboxability check for types
+  with a single constructor. Mutually-recursive type declarations can
+  now contain unboxed types. This is based on the paper
+    https://arxiv.org/abs/1811.02300
+  (Gabriel Scherer and Rodolphe Lepigre,
+   review by Jeremy Yallop, Damien Doligez and Frédéric Bour)
+
 ### Standard library:
 
 - #2128: Add Fun module: `id, const, flip, negate, protect`
