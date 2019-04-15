@@ -332,6 +332,12 @@ let rec pkey chan  = function
       Printf.fprintf chan "%a %a" pkey rem pkind k
 *)
 
+  module IMap = Map.Make(Int)
+  let loc_of_input switch_loc i input_locs =
+    match IMap.find_opt i input_locs with
+    | Some loc -> loc
+    | None -> switch_loc
+
   let t = Hashtbl.create 17
 
   let make_key  cases =
@@ -577,38 +583,40 @@ let rec pkey chan  = function
   let do_make_if_out loc h arg ifso ifnot =
     Arg.make_if loc (Arg.make_isout loc h arg) ifso ifnot
 
-  let make_if_out loc ctx l d mk_ifso mk_ifno = match l with
+  let make_if_out loc ctx (loc_l, l) (loc_d, d) mk_ifso mk_ifno = match l with
     | 0 ->
         do_make_if_out loc
-          (Arg.make_const loc d) ctx.arg (mk_ifso ctx) (mk_ifno ctx)
+          (Arg.make_const loc_d d) ctx.arg (mk_ifso ctx) (mk_ifno ctx)
     | _ ->
         Arg.bind
-          (Arg.make_offset loc ctx.arg (-l))
+          (Arg.make_offset loc_l ctx.arg (-l))
           (fun arg ->
              let ctx = {off= (-l+ctx.off); arg=arg; } in
              do_make_if_out loc
-               (Arg.make_const loc d) arg (mk_ifso ctx) (mk_ifno ctx))
+               (Arg.make_const loc_d d) arg (mk_ifso ctx) (mk_ifno ctx))
 
   let do_make_if_in loc h arg ifso ifnot =
     Arg.make_if loc (Arg.make_isin loc h arg) ifso ifnot
 
-  let make_if_in loc ctx l d mk_ifso mk_ifnot = match l with
+  let make_if_in loc ctx (loc_l, l) (loc_d, d) mk_ifso mk_ifnot = match l with
     | 0 ->
         let ifso = mk_ifso ctx in
         let ifnot = mk_ifnot ctx in
-        do_make_if_in loc (Arg.make_const loc d) ctx.arg ifso ifnot
+        do_make_if_in loc (Arg.make_const loc_d d) ctx.arg ifso ifnot
     | _ ->
         Arg.bind
-          (Arg.make_offset loc ctx.arg (-l))
+          (Arg.make_offset loc_l ctx.arg (-l))
           (fun arg ->
              let ctx = {off= (-l+ctx.off) ; arg=arg;} in
              let ifso = mk_ifso ctx in
              let ifnot = mk_ifnot ctx in
-             do_make_if_in loc (Arg.make_const loc d) arg ifso ifnot)
+             do_make_if_in loc (Arg.make_const loc_d d) arg ifso ifnot)
 
-  let no_loc = Arg.no_loc
+  let _no_loc = Arg.no_loc
 
-  let rec c_test ctx ({cases=cases ; actions=actions} as s) =
+  let rec c_test switch_loc input_locs ctx ({cases=cases ; actions=actions} as s) =
+    let continue ctx s = c_test switch_loc input_locs ctx s in
+    let loc_of i = loc_of_input switch_loc i input_locs in
     let lcases = Array.length cases in
     assert(lcases > 0) ;
     if lcases = 1 then
@@ -632,32 +640,32 @@ let rec pkey chan  = function
              in the privileged (positive) branch of ``if'' *)
           if low=high then begin
             if less_tests coutside cinside then
-              make_if_eq no_loc
+              make_if_eq (loc_of low)
                 ctx.arg
                 (low+ctx.off)
-                (c_test ctx {s with cases=inside})
-                (c_test ctx {s with cases=outside})
+                (continue ctx {s with cases=inside})
+                (continue ctx {s with cases=outside})
             else
-              make_if_ne no_loc
+              make_if_ne (loc_of low)
                 ctx.arg
                 (low+ctx.off)
-                (c_test ctx {s with cases=outside})
-                (c_test ctx {s with cases=inside})
+                (continue ctx {s with cases=outside})
+                (continue ctx {s with cases=inside})
           end else begin
             if less_tests coutside cinside then
-              make_if_in no_loc
+              make_if_in (loc_of low)
                 ctx
-                (low+ctx.off)
-                (high-low)
-                (fun ctx -> c_test ctx {s with cases=inside})
-                (fun ctx -> c_test ctx {s with cases=outside})
+                (loc_of low, low+ctx.off)
+                (loc_of high, high-low)
+                (fun ctx -> continue ctx {s with cases=inside})
+                (fun ctx -> continue ctx {s with cases=outside})
             else
-              make_if_out no_loc
+              make_if_out (loc_of low)
                 ctx
-                (low+ctx.off)
-                (high-low)
-                (fun ctx -> c_test ctx {s with cases=outside})
-                (fun ctx -> c_test ctx {s with cases=inside})
+                (loc_of low, low+ctx.off)
+                (loc_of high, high-low)
+                (fun ctx -> continue ctx {s with cases=outside})
+                (fun ctx -> continue ctx {s with cases=inside})
           end
       | Sep i ->
           let lim,left,right = coupe cases i in
@@ -665,19 +673,18 @@ let rec pkey chan  = function
           and _,(cright,_) = opt_count false right in
           let left = {s with cases=left}
           and right = {s with cases=right} in
-
           if i=1 && (lim+ctx.off)=1 && get_low cases 0+ctx.off=0 then
-            make_if_ne no_loc
+            make_if_ne (loc_of lim)
               ctx.arg 0
-              (c_test ctx right) (c_test ctx left)
+              (continue ctx right) (continue ctx left)
           else if less_tests cright cleft then
-            make_if_lt no_loc
+            make_if_lt (loc_of lim)
               ctx.arg (lim+ctx.off)
-              (c_test ctx left) (c_test ctx right)
+              (continue ctx left) (continue ctx right)
           else
-            make_if_ge no_loc
+            make_if_ge (loc_of lim)
               ctx.arg (lim+ctx.off)
-              (c_test ctx right) (c_test ctx left)
+              (continue ctx right) (continue ctx left)
 
     end
 
@@ -828,7 +835,7 @@ let rec pkey chan  = function
   ;;
 
 
-  let do_zyva loc (low,high) arg cases actions =
+  let do_zyva loc input_locs (low,high) arg cases actions =
     let old_ok = !ok_inter in
     ok_inter := (abs low <= inter_limit && abs high <= inter_limit) ;
     if !ok_inter <> old_ok then Hashtbl.clear t ;
@@ -842,33 +849,32 @@ let rec pkey chan  = function
 *)
     let n_clusters,k = comp_clusters s in
     let clusters = make_clusters loc s n_clusters k in
-    c_test {arg=arg ; off=0} clusters
+    c_test loc input_locs {arg=arg ; off=0} clusters
 
-  let abstract_shared actions =
+  let abstract_shared switch_loc actions =
     let handlers = ref (fun x -> x) in
     let actions =
       Array.map
         (fun act -> match  act with
            | Single act -> act
            | Shared act ->
-               let i,h = Arg.make_catch no_loc act in
+               let i,h = Arg.make_catch switch_loc act in
                let oh = !handlers in
                handlers := (fun act -> h (oh act)) ;
-               Arg.make_exit no_loc i)
+               Arg.make_exit switch_loc i)
         actions in
     !handlers,actions
 
   let zyva loc input_locs lh arg cases actions =
     assert (Array.length cases > 0) ;
     let actions = actions.act_get_shared () in
-    let hs,actions = abstract_shared actions in
-    ignore input_locs;
-    hs (do_zyva loc lh arg cases actions)
+    let hs,actions = abstract_shared loc actions in
+    hs (do_zyva loc input_locs lh arg cases actions)
 
   and test_sequence loc input_locs arg cases actions =
     assert (Array.length cases > 0) ;
     let actions = actions.act_get_shared () in
-    let hs,actions = abstract_shared actions in
+    let hs,actions = abstract_shared loc actions in
     let old_ok = !ok_inter in
     ok_inter := false ;
     if !ok_inter <> old_ok then Hashtbl.clear t ;
@@ -880,8 +886,7 @@ let rec pkey chan  = function
   pcases stderr cases ;
   prerr_endline "" ;
 *)
-    ignore (loc, input_locs);
-    hs (c_test {arg=arg ; off=0} s)
+    hs (c_test loc input_locs {arg=arg ; off=0} s)
   ;;
 
 end
