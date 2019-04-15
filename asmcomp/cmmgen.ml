@@ -1796,11 +1796,12 @@ module StoreExp =
     end)
 
 module SwitcherBlocks = Switch.Make(SArgBlocks)
+module CaseMap = Map.Make(Int)
 
 (* Int switcher, arg in [low..high],
    cases is list of individual cases, and is sorted by first component *)
 
-let transl_int_switch loc arg low high cases default = match cases with
+let transl_int_switch dbg arg low high cases default = match cases with
 | [] -> assert false
 | _::_ ->
     let store = StoreExp.mk_store () in
@@ -1837,10 +1838,17 @@ let transl_int_switch loc arg low high cases default = match cases with
     | (k0,act0)::rem ->
         if k0 = low then inters k0 k0 act0 rem
         else inters low (k0-1) 0 cases in
+    let case_dbgs =
+      let dbg_of_case (i, _act) =
+        (* TODO update with case-specific debuginfo *)
+        (i, dbg) in
+      List.to_seq cases
+      |> Seq.map dbg_of_case
+      |> CaseMap.of_seq in
     bind "switcher" arg
       (fun a ->
         SwitcherBlocks.zyva
-          loc
+          dbg case_dbgs
           (low,high)
           a
           (Array.of_list inters) store)
@@ -3180,10 +3188,17 @@ and transl_switch dbg env arg index cases = match Array.length cases with
     match !inters with
     | [_] -> cases.(0)
     | inters ->
+        let case_dbgs =
+          let dbg_of_case (i, _act) =
+            (* TODO update with case-specific debuginfo *)
+            (i, dbg) in
+          Array.to_seqi cases
+          |> Seq.map dbg_of_case
+          |> CaseMap.of_seq in
         bind "switcher" arg
           (fun a ->
             SwitcherBlocks.zyva
-              dbg
+              dbg case_dbgs
               (0,n_index-1)
               a
               (Array.of_list inters) store)

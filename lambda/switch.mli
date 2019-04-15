@@ -117,15 +117,18 @@ module Make :
     sig
 (* Standard entry point, sharing is tracked *)
       val zyva :
-          Arg.location ->
-          (int * int) ->
+           Arg.location ->
+           Arg.location Map.Make(Int).t ->
+           (int * int) ->
            Arg.act ->
            (int * int * int) array ->
            (Arg.act, _) t_store ->
            Arg.act
 
 (* Output test sequence, sharing tracked *)
-     val test_sequence :
+      val test_sequence :
+           Arg.location ->
+           Arg.location Map.Make(Int).t ->
            Arg.act ->
            (int * int * int) array ->
            (Arg.act, _) t_store ->

@@ -858,13 +858,14 @@ let rec pkey chan  = function
         actions in
     !handlers,actions
 
-  let zyva loc lh arg cases actions =
+  let zyva loc input_locs lh arg cases actions =
     assert (Array.length cases > 0) ;
     let actions = actions.act_get_shared () in
     let hs,actions = abstract_shared actions in
+    ignore input_locs;
     hs (do_zyva loc lh arg cases actions)
 
-  and test_sequence arg cases actions =
+  and test_sequence loc input_locs arg cases actions =
     assert (Array.length cases > 0) ;
     let actions = actions.act_get_shared () in
     let hs,actions = abstract_shared actions in
@@ -879,6 +880,7 @@ let rec pkey chan  = function
   pcases stderr cases ;
   prerr_endline "" ;
 *)
+    ignore (loc, input_locs);
     hs (c_test {arg=arg ; off=0} s)
   ;;
 

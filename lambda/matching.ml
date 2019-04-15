@@ -2023,6 +2023,7 @@ let reintroduce_fail sw = match sw.sw_failaction with
 
 
 module Switcher = Switch.Make(SArg)
+module CaseMap = Map.Make(Int)
 open Switch
 
 let rec last def = function
@@ -2146,7 +2147,14 @@ let as_interval fail low high l =
 let call_switcher loc fail arg low high int_lambda_list =
   let edges, (cases, actions) =
     as_interval fail low high int_lambda_list in
-  Switcher.zyva loc edges arg cases actions
+  let case_locs =
+    let loc_of_case (i, _act) =
+      (* TODO update with case-specific location *)
+      (i, loc) in
+    List.to_seq int_lambda_list
+    |> Seq.map loc_of_case
+    |> CaseMap.of_seq in
+  Switcher.zyva loc case_locs edges arg cases actions
 
 
 let rec list_as_pat = function
@@ -2419,7 +2427,15 @@ let combine_constructor loc arg ex_pat cstr partial ctx def
 let make_test_sequence_variant_constant fail arg int_lambda_list =
   let _, (cases, actions) =
     as_interval fail min_int max_int int_lambda_list in
-  Switcher.test_sequence arg cases actions
+  let loc = Location.none (* TODO update *) in
+  let case_locs =
+    let loc_of_case (i, _act) =
+      (* TODO update with case-specific location *)
+      (i, loc) in
+    List.to_seq int_lambda_list
+    |> Seq.map loc_of_case
+    |> CaseMap.of_seq in
+  Switcher.test_sequence loc case_locs arg cases actions
 
 let call_switcher_variant_constant loc fail arg int_lambda_list =
   call_switcher loc fail arg min_int max_int int_lambda_list
