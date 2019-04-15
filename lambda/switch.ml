@@ -809,7 +809,7 @@ let rec pkey chan  = function
       Hashtbl.add t !bidon (i,act) ;
       i in
 
-    let rec zyva j ir =
+    let rec loop j ir =
       let i = k.(j) in
       begin if i=j then
           let l,h,act = cases.(i) in
@@ -819,9 +819,9 @@ let rec pkey chan  = function
           and _,h,_ = cases.(j) in
           r.(ir) <- (l,h,add_index (make_switch loc s i j))
       end ;
-      if i > 0 then zyva (i-1) (ir-1) in
+      if i > 0 then loop (i-1) (ir-1) in
 
-    zyva (len-1) (n_clusters-1) ;
+    loop (len-1) (n_clusters-1) ;
     let acts = Array.make !index (fun _ -> assert false) in
     Hashtbl.iter (fun _ (i,act) -> acts.(i) <- act) t ;
     {cases = r ; actions = acts}
