@@ -118,7 +118,6 @@ sig
   type act
 
   type location
-  val no_loc : location (* TODO remove *)
   val location_of_action : act -> location
 
   val bind : act -> (act -> act) -> act
@@ -611,8 +610,6 @@ let rec pkey chan  = function
              let ifso = mk_ifso ctx in
              let ifnot = mk_ifnot ctx in
              do_make_if_in loc (Arg.make_const loc_d d) arg ifso ifnot)
-
-  let _no_loc = Arg.no_loc
 
   let rec c_test switch_loc input_locs ctx ({cases=cases ; actions=actions} as s) =
     let continue ctx s = c_test switch_loc input_locs ctx s in

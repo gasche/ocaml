@@ -1924,8 +1924,7 @@ module SArg = struct
   type act = Lambda.lambda
 
   type location = Location.t
-  let no_loc = Location.none
-  let location_of_action _act = no_loc (* TODO move to located lambda blocks *)
+  let location_of_action _act = Location.none (* TODO move to located lambda blocks *)
 
   let make_prim loc p args = Lprim (p,args,loc)
   let make_offset loc arg n = match n with

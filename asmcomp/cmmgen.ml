@@ -1720,8 +1720,7 @@ struct
   type act = expression
 
   type location = Debuginfo.t
-  let no_loc = Debuginfo.none
-  let location_of_action _ = no_loc (* TODO to be improved *)
+  let location_of_action _ = Debuginfo.none (* TODO to be improved *)
 
   (* CR mshinwell: GPR#2294 will fix the Debuginfo here *)
 

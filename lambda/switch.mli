@@ -81,7 +81,6 @@ module type S =
     (* actions have locations
        (Location.t in frontend, Debuginfo.t in backend) *)
     type location
-    val no_loc : location
     val location_of_action : act -> location
 
     (* Various constructors, for making a binder,
