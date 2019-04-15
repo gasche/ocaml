@@ -1923,10 +1923,14 @@ module SArg = struct
 
   type act = Lambda.lambda
 
-  let make_prim p args = Lprim (p,args,Location.none)
-  let make_offset arg n = match n with
+  type location = Location.t
+  let no_loc = Location.none
+  let location_of_action _act = no_loc (* TODO move to located lambda blocks *)
+
+  let make_prim loc p args = Lprim (p,args,loc)
+  let make_offset loc arg n = match n with
   | 0 -> arg
-  | _ -> Lprim (Poffsetint n,[arg],Location.none)
+  | _ -> Lprim (Poffsetint n,[arg],loc)
 
   let bind arg body =
     let newvar,newarg = match arg with
@@ -1935,10 +1939,10 @@ module SArg = struct
         let newvar = Ident.create_local "switcher" in
         newvar,Lvar newvar in
     bind Alias newvar arg (body newarg)
-  let make_const i = Lconst (Const_base (Const_int i))
-  let make_isout h arg = Lprim (Pisout, [h ; arg],Location.none)
-  let make_isin h arg = Lprim (Pnot,[make_isout h arg],Location.none)
-  let make_if cond ifso ifnot = Lifthenelse (cond, ifso, ifnot)
+  let make_const _loc i = Lconst (Const_base (Const_int i))
+  let make_isout loc h arg = Lprim (Pisout, [h ; arg], loc)
+  let make_isin loc h arg = Lprim (Pnot,[make_isout loc h arg], loc)
+  let make_if _loc cond ifso ifnot = Lifthenelse (cond, ifso, ifnot)
   let make_switch loc arg cases acts =
     let l = ref [] in
     for i = Array.length cases-1 downto 0 do
@@ -1948,8 +1952,8 @@ module SArg = struct
             {sw_numconsts = Array.length cases ; sw_consts = !l ;
              sw_numblocks = 0 ; sw_blocks =  []  ;
              sw_failaction = None}, loc)
-  let make_catch  = make_catch_delayed
-  let make_exit = make_exit
+  let make_catch _loc  = make_catch_delayed
+  let make_exit _loc = make_exit
 
 end
 

@@ -1719,27 +1719,28 @@ struct
 
   type act = expression
 
+  type location = Debuginfo.t
+  let no_loc = Debuginfo.none
+  let location_of_action _ = no_loc (* TODO to be improved *)
+
   (* CR mshinwell: GPR#2294 will fix the Debuginfo here *)
 
-  let make_const i =  Cconst_int (i, Debuginfo.none)
-  let make_prim p args = Cop (p,args, Debuginfo.none)
-  let make_offset arg n = add_const arg n Debuginfo.none
-  let make_isout h arg = Cop (Ccmpa Clt, [h ; arg], Debuginfo.none)
-  let make_isin h arg = Cop (Ccmpa Cge, [h ; arg], Debuginfo.none)
-  let make_if cond ifso ifnot =
-    Cifthenelse (cond, Debuginfo.none, ifso, Debuginfo.none, ifnot,
-      Debuginfo.none)
-  let make_switch loc arg cases actions =
-    let dbg = Debuginfo.from_location loc in
+  let make_const dbg i =  Cconst_int (i, dbg)
+  let make_prim dbg p args = Cop (p,args, dbg)
+  let make_offset dbg arg n = add_const arg n dbg
+  let make_isout dbg h arg = Cop (Ccmpa Clt, [h ; arg], dbg)
+  let make_isin dbg h arg = Cop (Ccmpa Cge, [h ; arg], dbg)
+  let make_if dbg cond ifso ifnot =
+    Cifthenelse (cond, dbg, ifso, dbg, ifnot, dbg)
+  let make_switch dbg arg cases actions =
     let actions = Array.map (fun expr -> expr, dbg) actions in
     make_switch arg cases actions dbg
   let bind arg body = bind "switcher" arg body
 
-  let make_catch handler =
+  let make_catch dbg handler =
   match handler with
   | Cexit (i,[]) -> i,fun e -> e
   | _ ->
-      let dbg = Debuginfo.none in
       let i = next_raise_count () in
 (*
       Printf.eprintf  "SHARE CMM: %i\n" i ;
@@ -1753,7 +1754,7 @@ struct
           else body
       | _ ->  ccatch (i,[],body,handler, dbg))
 
-  let make_exit i = Cexit (i,[])
+  let make_exit _dbg i = Cexit (i,[])
 
 end
 
@@ -2211,7 +2212,6 @@ let rec transl env e =
 
   (* Control structures *)
   | Uswitch(arg, s, dbg) ->
-      let loc = Debuginfo.to_location dbg in
       (* As in the bytecode interpreter, only matching against constants
          can be checked *)
       if Array.length s.us_index_blocks = 0 then
@@ -2222,17 +2222,17 @@ let rec transl env e =
           dbg
       else if Array.length s.us_index_consts = 0 then
         bind "switch" (transl env arg) (fun arg ->
-          transl_switch loc env (get_tag arg dbg)
+          transl_switch dbg env (get_tag arg dbg)
             s.us_index_blocks s.us_actions_blocks)
       else
         bind "switch" (transl env arg) (fun arg ->
           Cifthenelse(
           Cop(Cand, [arg; Cconst_int (1, dbg)], dbg),
           dbg,
-          transl_switch loc env
+          transl_switch dbg env
             (untag_int arg dbg) s.us_index_consts s.us_actions_consts,
           dbg,
-          transl_switch loc env
+          transl_switch dbg env
             (get_tag arg dbg) s.us_index_blocks s.us_actions_blocks,
           dbg))
   | Ustringswitch(arg,sw,d) ->
@@ -3150,7 +3150,7 @@ and transl_sequor env (approx : then_else)
     then_
 
 (* This assumes that [arg] can be safely discarded if it is not used. *)
-and transl_switch loc env arg index cases = match Array.length cases with
+and transl_switch dbg env arg index cases = match Array.length cases with
 | 0 -> fatal_error "Cmmgen.transl_switch"
 | 1 -> transl env cases.(0)
 | _ ->
@@ -3183,7 +3183,7 @@ and transl_switch loc env arg index cases = match Array.length cases with
         bind "switcher" arg
           (fun a ->
             SwitcherBlocks.zyva
-              loc
+              dbg
               (0,n_index-1)
               a
               (Array.of_list inters) store)

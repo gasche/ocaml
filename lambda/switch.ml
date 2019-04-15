@@ -117,16 +117,20 @@ sig
   val gtint : primitive
   type act
 
+  type location
+  val no_loc : location (* TODO remove *)
+  val location_of_action : act -> location
+
   val bind : act -> (act -> act) -> act
-  val make_const : int -> act
-  val make_offset : act -> int -> act
-  val make_prim : primitive -> act list -> act
-  val make_isout : act -> act -> act
-  val make_isin : act -> act -> act
-  val make_if : act -> act -> act -> act
-  val make_switch : Location.t -> act -> int array -> act array -> act
-  val make_catch : act -> int * (act -> act)
-  val make_exit : int -> act
+  val make_const : location -> int -> act
+  val make_offset : location -> act -> int -> act
+  val make_prim : location -> primitive -> act list -> act
+  val make_isout : location -> act -> act -> act
+  val make_isin : location -> act -> act -> act
+  val make_if : location -> act -> act -> act -> act
+  val make_switch : location -> act -> int array -> act array -> act
+  val make_catch : location -> act -> int * (act -> act)
+  val make_exit : location -> int -> act
 end
 
 (* The module will ``produce good code for the case statement'' *)
@@ -547,58 +551,62 @@ let rec pkey chan  = function
     end ;
     !r, !rc
 
-  let make_if_test test arg i ifso ifnot =
-    Arg.make_if
-      (Arg.make_prim test [arg ; Arg.make_const i])
+  let make_if_test loc test arg i ifso ifnot =
+    Arg.make_if loc
+      (Arg.make_prim loc test [arg ; Arg.make_const loc i])
       ifso ifnot
 
-  let make_if_lt arg i  ifso ifnot = match i with
+  let make_if_lt loc arg i ifso ifnot = match i with
     | 1 ->
-        make_if_test Arg.leint arg 0 ifso ifnot
+        make_if_test loc Arg.leint arg 0 ifso ifnot
     | _ ->
-        make_if_test Arg.ltint arg i ifso ifnot
+        make_if_test loc Arg.ltint arg i ifso ifnot
 
-  and make_if_ge arg i  ifso ifnot = match i with
+  and make_if_ge loc arg i ifso ifnot = match i with
     | 1 ->
-        make_if_test Arg.gtint arg 0 ifso ifnot
+        make_if_test loc Arg.gtint arg 0 ifso ifnot
     | _ ->
-        make_if_test Arg.geint arg i ifso ifnot
+        make_if_test loc Arg.geint arg i ifso ifnot
 
-  and make_if_eq  arg i ifso ifnot =
-    make_if_test Arg.eqint arg i ifso ifnot
+  and make_if_eq loc arg i ifso ifnot =
+    make_if_test loc Arg.eqint arg i ifso ifnot
 
-  and make_if_ne  arg i ifso ifnot =
-    make_if_test Arg.neint arg i ifso ifnot
+  and make_if_ne loc arg i ifso ifnot =
+    make_if_test loc Arg.neint arg i ifso ifnot
 
-  let do_make_if_out h arg ifso ifno =
-    Arg.make_if (Arg.make_isout h arg) ifso ifno
+  let do_make_if_out loc h arg ifso ifnot =
+    Arg.make_if loc (Arg.make_isout loc h arg) ifso ifnot
 
-  let make_if_out ctx l d mk_ifso mk_ifno = match l with
+  let make_if_out loc ctx l d mk_ifso mk_ifno = match l with
     | 0 ->
-        do_make_if_out
-          (Arg.make_const d) ctx.arg (mk_ifso ctx) (mk_ifno ctx)
+        do_make_if_out loc
+          (Arg.make_const loc d) ctx.arg (mk_ifso ctx) (mk_ifno ctx)
     | _ ->
         Arg.bind
-          (Arg.make_offset ctx.arg (-l))
+          (Arg.make_offset loc ctx.arg (-l))
           (fun arg ->
-             let ctx = {off= (-l+ctx.off) ; arg=arg} in
-             do_make_if_out
-               (Arg.make_const d) arg (mk_ifso ctx) (mk_ifno ctx))
+             let ctx = {off= (-l+ctx.off); arg=arg; } in
+             do_make_if_out loc
+               (Arg.make_const loc d) arg (mk_ifso ctx) (mk_ifno ctx))
 
-  let do_make_if_in h arg ifso ifno =
-    Arg.make_if (Arg.make_isin h arg) ifso ifno
+  let do_make_if_in loc h arg ifso ifnot =
+    Arg.make_if loc (Arg.make_isin loc h arg) ifso ifnot
 
-  let make_if_in ctx l d mk_ifso mk_ifno = match l with
+  let make_if_in loc ctx l d mk_ifso mk_ifnot = match l with
     | 0 ->
-        do_make_if_in
-          (Arg.make_const d) ctx.arg (mk_ifso ctx) (mk_ifno ctx)
+        let ifso = mk_ifso ctx in
+        let ifnot = mk_ifnot ctx in
+        do_make_if_in loc (Arg.make_const loc d) ctx.arg ifso ifnot
     | _ ->
         Arg.bind
-          (Arg.make_offset ctx.arg (-l))
+          (Arg.make_offset loc ctx.arg (-l))
           (fun arg ->
-             let ctx = {off= (-l+ctx.off) ; arg=arg} in
-             do_make_if_in
-               (Arg.make_const d) arg (mk_ifso ctx) (mk_ifno ctx))
+             let ctx = {off= (-l+ctx.off) ; arg=arg;} in
+             let ifso = mk_ifso ctx in
+             let ifnot = mk_ifnot ctx in
+             do_make_if_in loc (Arg.make_const loc d) arg ifso ifnot)
+
+  let no_loc = Arg.no_loc
 
   let rec c_test ctx ({cases=cases ; actions=actions} as s) =
     let lcases = Array.length cases in
@@ -624,27 +632,27 @@ let rec pkey chan  = function
              in the privileged (positive) branch of ``if'' *)
           if low=high then begin
             if less_tests coutside cinside then
-              make_if_eq
+              make_if_eq no_loc
                 ctx.arg
                 (low+ctx.off)
                 (c_test ctx {s with cases=inside})
                 (c_test ctx {s with cases=outside})
             else
-              make_if_ne
+              make_if_ne no_loc
                 ctx.arg
                 (low+ctx.off)
                 (c_test ctx {s with cases=outside})
                 (c_test ctx {s with cases=inside})
           end else begin
             if less_tests coutside cinside then
-              make_if_in
+              make_if_in no_loc
                 ctx
                 (low+ctx.off)
                 (high-low)
                 (fun ctx -> c_test ctx {s with cases=inside})
                 (fun ctx -> c_test ctx {s with cases=outside})
             else
-              make_if_out
+              make_if_out no_loc
                 ctx
                 (low+ctx.off)
                 (high-low)
@@ -659,15 +667,15 @@ let rec pkey chan  = function
           and right = {s with cases=right} in
 
           if i=1 && (lim+ctx.off)=1 && get_low cases 0+ctx.off=0 then
-            make_if_ne
+            make_if_ne no_loc
               ctx.arg 0
               (c_test ctx right) (c_test ctx left)
           else if less_tests cright cleft then
-            make_if_lt
+            make_if_lt no_loc
               ctx.arg (lim+ctx.off)
               (c_test ctx left) (c_test ctx right)
           else
-            make_if_ge
+            make_if_ge no_loc
               ctx.arg (lim+ctx.off)
               (c_test ctx right) (c_test ctx left)
 
@@ -772,7 +780,7 @@ let rec pkey chan  = function
        | 0 -> Arg.make_switch loc ctx.arg tbl acts
        | _ ->
            Arg.bind
-             (Arg.make_offset ctx.arg (-ll-ctx.off))
+             (Arg.make_offset loc ctx.arg (-ll-ctx.off))
              (fun arg -> Arg.make_switch loc arg tbl acts))
 
 
@@ -843,10 +851,10 @@ let rec pkey chan  = function
         (fun act -> match  act with
            | Single act -> act
            | Shared act ->
-               let i,h = Arg.make_catch act in
+               let i,h = Arg.make_catch no_loc act in
                let oh = !handlers in
                handlers := (fun act -> h (oh act)) ;
-               Arg.make_exit i)
+               Arg.make_exit no_loc i)
         actions in
     !handlers,actions
 

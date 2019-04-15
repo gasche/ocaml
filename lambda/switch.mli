@@ -74,32 +74,36 @@ module type S =
     val ltint : primitive
     val geint : primitive
     val gtint : primitive
+
     (* type of actions *)
     type act
+
+    (* actions have locations
+       (Location.t in frontend, Debuginfo.t in backend) *)
+    type location
+    val no_loc : location
+    val location_of_action : act -> location
 
     (* Various constructors, for making a binder,
         adding one integer, etc. *)
     val bind : act -> (act -> act) -> act
-    val make_const : int -> act
-    val make_offset : act -> int -> act
-    val make_prim : primitive -> act list -> act
-    val make_isout : act -> act -> act
-    val make_isin : act -> act -> act
-    val make_if : act -> act -> act -> act
+    val make_const : location -> int -> act
+    val make_offset : location -> act -> int -> act
+    val make_prim : location -> primitive -> act list -> act
+    val make_isout : location -> act -> act -> act
+    val make_isin : location -> act -> act -> act
+    val make_if : location -> act -> act -> act -> act
    (* construct an actual switch :
-      make_switch arg cases acts
+      make_switch loc arg cases acts
       NB:  cases is in the value form *)
-    val make_switch :
-        Location.t -> act -> int array -> act array -> act
-   (* Build last minute sharing of action stuff *)
-   val make_catch : act -> int * (act -> act)
-   val make_exit : int -> act
-
+    val make_switch : location -> act -> int array -> act array -> act
+    (* Build last minute sharing of action stuff *)
+    val make_catch : location -> act -> int * (act -> act)
+    val make_exit : location -> int -> act
   end
 
-
 (*
-  Make.zyva arg low high cases actions where
+  Make.zyva loc arg (low, high) cases actions where
     - arg is the argument of the switch.
     - low, high are the interval limits.
     - cases is a list of sub-interval and action indices
@@ -113,7 +117,7 @@ module Make :
     sig
 (* Standard entry point, sharing is tracked *)
       val zyva :
-          Location.t ->
+          Arg.location ->
           (int * int) ->
            Arg.act ->
            (int * int * int) array ->
