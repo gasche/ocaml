@@ -27,6 +27,11 @@ OCaml 4.07 maintenance branch
 - MPR#7838: -principal causes assertion failure in type checker
   (Jacques Garrigue, report by Markus Mottl, review by Thomas Refis)
 
+- #8715: minor bugfixes in CamlinternalFormat; removes the unused
+  and misleading function CamlinternalFormat.string_of_formatting_gen
+  (Gabriel Scherer and Florian Angeletti,
+   review by Florian Angeletti and Gabriel Radanne)
+
 OCaml 4.07.0 (10 July 2018)
 ---------------------------
 
