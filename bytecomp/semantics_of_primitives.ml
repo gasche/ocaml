@@ -20,6 +20,7 @@ type effects = No_effects | Only_generative_effects | Arbitrary_effects
 type coeffects = No_coeffects | Has_coeffects
 
 let for_primitive (prim : Lambda.primitive) =
+  let open Lambda in
   match prim with
   | Pignore | Pidentity ->
       No_effects, No_coeffects
