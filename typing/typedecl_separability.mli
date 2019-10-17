@@ -20,7 +20,7 @@
 
     (Note: This assumption is required for the dynamic float array optimization;
     it is only made if Config.flat_float_array is set,
-    otherwise the code in this module defaults becomes trivial
+    otherwise the code in this module becomes trivial
     -- see {!compute_decl}.)
 
     This soundness requirement could be broken by type declarations mixing
@@ -56,7 +56,7 @@
    similar to what is done for inferring the variance of type parameters.
 
    Our analysis is defined using inference rules "Def; Gamma |- t : m", in
-   which a type expression "t" is checked agains a "mode" "m". This "mode"
+   which a type expression "t" is checked against a "mode" "m". This "mode"
    describes the separability requirement on the type expression (see below
    for more details). In the inference rules, [Gamma] maps type variables to
    modes and [Def] records the "mode signature" of the mutually-recursive
