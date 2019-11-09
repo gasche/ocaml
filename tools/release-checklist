@@ -170,7 +170,26 @@ Go to
 and add a rule for protecting the new branch
 (copy the rights from the previous version)
 
-## 5.1: create the release on github (only for a production release)
+## 5.1: Update Changes
+
+If you created a new branch:
+- in both trunk and the new branch, change "Working version"
+  into "OCaml $MAJOR.$MINOR release preparation branch"
+- in trunk, add a new "Working version" section with empty subsections
+  (see the Changelog section at the end for an example)
+
+If you made a release (beta or production), change the release preparation section
+into "OCaml $VERSION (<release date>)" in both the release branch and trunk;
+
+- if it was a production release, add a new empty section
+  "OCaml $MAJOR.$MINOR maintenance branch"
+  (only in the release branch; we don't track
+   maintenance-branch backports in trunk Changes)
+- otherwise add a new empty section
+  "OCaml $MAJOR.$MINOR (release preparation branch)
+  in both the release branch and trunk
+
+## 5.2: create the release on github (only for a production release)
 
 open https://github.com/ocaml/ocaml/releases
 # and click "Draft a new release"
@@ -203,6 +222,7 @@ Update the synopsis and "src" field in the opam $VERSION packages.
 The "src" field should point to
  src: "https://github.com/ocaml/ocaml/archive/$VERSION.tar.gz"
 The synopsis should be "latest $VERSION development(,...)".
+
 
 ## 7: build the release archives
 
@@ -442,7 +462,7 @@ Happy hacking,
 -- Damien Doligez for the OCaml team.
 ```
 
-#Changelog
+# Changelog
 
 A list of common subsection for the "Changes" file:
 
