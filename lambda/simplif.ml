@@ -878,8 +878,14 @@ let simplify_local_functions lam =
   else
     rewrite lam
 
+(* trmc rewriting *)
+
+
 (* The entry point:
-   simplification + emission of tailcall annotations, if needed. *)
+   simplification
+   + rewriting of trmc-calls
+   + emission of tailcall annotations, if needed
+*)
 
 let simplify_lambda lam =
   let lam =
@@ -889,6 +895,7 @@ let simplify_lambda lam =
        )
     |> simplify_exits
     |> simplify_lets
+    |> Trmc.rewrite
   in
   if !Clflags.annotations || Warnings.is_active (Warnings.Expect_tailcall true)
     then emit_tail_infos true lam;
