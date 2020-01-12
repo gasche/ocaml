@@ -3247,6 +3247,7 @@ lambda/runtimedef.cmi :
 lambda/simplif.cmo : \
     utils/warnings.cmi \
     typing/stypes.cmi \
+    lambda/trmc.cmo \
     typing/primitive.cmi \
     parsing/location.cmi \
     lambda/lambda.cmi \
@@ -3258,6 +3259,7 @@ lambda/simplif.cmo : \
 lambda/simplif.cmx : \
     utils/warnings.cmx \
     typing/stypes.cmx \
+    lambda/trmc.cmx \
     typing/primitive.cmx \
     parsing/location.cmx \
     lambda/lambda.cmx \
@@ -3520,6 +3522,16 @@ lambda/translprim.cmi : \
     lambda/lambda.cmi \
     typing/ident.cmi \
     typing/env.cmi
+lambda/trmc.cmo : \
+    utils/misc.cmi \
+    lambda/lambda.cmi \
+    typing/ident.cmi \
+    lambda/debuginfo.cmi
+lambda/trmc.cmx : \
+    utils/misc.cmx \
+    lambda/lambda.cmx \
+    typing/ident.cmx \
+    lambda/debuginfo.cmx
 file_formats/cmi_format.cmo : \
     typing/types.cmi \
     utils/misc.cmi \
