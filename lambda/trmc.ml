@@ -1,15 +1,5 @@
 open Lambda
 
-open struct
-  let combine_upto short long =
-    let prefix, rest = Misc.Stdlib.List.split_at (List.length short) long in
-    List.combine short prefix, rest
-
-  let option_of_list = function
-    | [] -> None, []
-    | x::xs -> Some x, xs
-end
-
 (** TMC (Tail Modulo Cons) is a code transformation that
     rewrites transformed functions in destination-passing-style, in
     such a way that certain calls that were not in tail position in the
@@ -106,9 +96,17 @@ module Dps = struct
   (** Create a new destination-passing-style term which is simply
       setting the destination with the given [v], hence "returning"
       it. *)
-  let return (v : lambda): lambda t =
-    fun ~tail:_ ~dst ->
-      assign_to_dst dst v
+  let return (v : lambda): lambda t = fun ~tail:_ ~dst ->
+    assign_to_dst dst v
+
+  let map (f : 'a -> 'b) (dps : 'a t) : 'b t = fun ~tail ~dst ->
+    f @@ dps ~tail ~dst
+
+  let pair (fa : 'a t) (fb : 'b t) : ('a * 'b) t = fun ~tail ~dst ->
+    (fa ~tail ~dst, fb ~tail ~dst)
+
+  let unit : unit t = fun ~tail:_ ~dst:_ ->
+    ()
 end
 
 (** The TMC transformation requires information flows in two opposite
@@ -130,16 +128,26 @@ end
 
     2. Code-production operators that have contextual information
     to transform a "code choice" into the final code.
+
+    The code-production choices for a single term have type [lambda Choice.t];
+    using a parametrized type ['a Choice.t] is useful to represent
+    simultaneous choices over several subterms; for example
+    [(lambda * lambda) Choice.t] makes a choice for a pair of terms,
+    for example the [then] and [else] cases of a conditional. With
+    this parameter, ['a Choice.t] has an applicative structure, which
+    is useful to write the actual code transformation in the {!choice}
+    function.
 *)
 module Choice = struct
-  type t = {
-    dps : lambda Dps.t;
-    direct : unit -> lambda;
+  type 'a t = {
+    dps : 'a Dps.t;
+    direct : unit -> 'a;
     has_tmc_calls : bool;
   }
   (**
-     A [Choice.t] represents code that may be written in destination-passing style
-     if its usage context allows it. More precisely:
+     An ['a Choice.t] represents code that may be written
+     in destination-passing style if its usage context allows it.
+     More precisely:
 
      - If the surrounding context is already in destination-passing
        style, it has a destination available, we should produce the
@@ -158,25 +166,59 @@ module Choice = struct
        position and are rewritten into tailcalls in the [dps] version.
    *)
 
-  let return v = {
+  let return (v : lambda) : lambda t = {
     dps = Dps.return v;
     direct = (fun () -> v);
     has_tmc_calls = false;
   }
 
-  let direct (c : t) : lambda =
+  let map f s = {
+      dps = Dps.map f s.dps;
+      direct = (fun () -> f (s.direct ()));
+      has_tmc_calls = s.has_tmc_calls;
+  }
+
+  let direct (c : lambda t) : lambda =
     c.direct ()
 
-  let dps (c : t) ~tail ~dst =
+  let dps (c : lambda t) ~tail ~dst =
     c.dps ~tail:tail ~dst:dst
 
-  (** Finds the first [Choice.t] in a list that [has_tmc_calls] *)
-  type zipper = {
-    rev_before : lambda list;
-    choice : t;
-    after: t list
+  let pair ((c1, c2) : 'a t * 'b t) : ('a * 'b) t = {
+    dps = Dps.pair c1.dps c2.dps;
+    direct = (fun () -> (c1.direct (), c2.direct ()));
+    has_tmc_calls = c1.has_tmc_calls || c2.has_tmc_calls;
   }
-  let find_tmc_calls : t list -> (zipper, lambda list) result =
+
+  let unit = {
+    dps = Dps.unit;
+    direct = (fun () -> ());
+    has_tmc_calls = false;
+  }
+
+  let (let+) c f = map f c
+  let (and+) c1 c2 = pair (c1, c2)
+
+  let option (c : 'a t option) : 'a option t =
+    match c with
+    | None -> let+ () = unit in None
+    | Some c -> let+ v = c in Some v
+
+  let rec list (c : 'a t list) : 'a list t =
+    match c with
+    | [] -> let+ () = unit in []
+    | c::cs ->
+        let+ v = c
+        and+ vs = list cs in
+        v :: vs
+
+  (** Finds the first [Choice.t] in a list that [has_tmc_calls] *)
+  type 'a zipper = {
+    rev_before : 'a list;
+    choice : 'a t;
+    after: 'a t list
+  }
+  let find_tmc_calls : 'a t list -> ('a zipper, 'a list) result =
     let rec find rev_before = function
       | [] -> Error (List.rev rev_before)
       | choice :: after ->
@@ -185,6 +227,8 @@ module Choice = struct
           else find (choice.direct () :: rev_before) after
     in find []
 end
+
+let (let+), (and+) = Choice.((let+), (and+))
 
 type context = {
   specialized: specialized Ident.Map.t;
@@ -235,52 +279,47 @@ let rec choice ctx t =
          the whole term from choices for the tail subterms. *)
       | Lsequence (l1, l2) ->
           let l1 = traverse ctx l1 in
-          lift ctx [l2] @@ fun [l2] ->
+          let+ l2 = choice ctx l2 in
           Lsequence (l1, l2)
       | Lifthenelse (l1, l2, l3) ->
           let l1 = traverse ctx l1 in
-          lift ctx [l2; l3]
-            (fun [l2; l3] -> Lifthenelse (l1, l2, l3))
+          let+ (l2, l3) = choice_pair ctx (l2, l3) in
+          Lifthenelse (l1, l2, l3)
       | Llet (lk, vk, var, def, body) ->
           (* non-recursive bindings are not specialized *)
           let def = traverse ctx def in
-          lift ctx [body] @@ fun [body] ->
+          let+ body = choice ctx body in
           Llet (lk, vk, var, def, body)
       | Lletrec (bindings, body) ->
           let ctx, bindings = traverse_letrec ctx bindings in
-          lift ctx [body] @@ fun [body] ->
+          let+ body = choice ctx body in
           Lletrec(bindings, body)
       | Lswitch (l1, sw, loc) ->
-          let l1 = traverse ctx l1 in
+          (* decompose *)
           let consts_lhs, consts_rhs = List.split sw.sw_consts in
           let blocks_lhs, blocks_rhs = List.split sw.sw_blocks in
-          let failaction = Option.to_list sw.sw_failaction in
-          lift ctx (consts_rhs @ blocks_rhs @ failaction)
-            (fun li ->
-               let consts, li = combine_upto consts_lhs li in
-               let blocks, li = combine_upto blocks_lhs li in
-               let fail, li = option_of_list li in
-               assert (li = []);
-               let sw =
-                 { sw with
-                   sw_consts = consts;
-                   sw_blocks = blocks;
-                   sw_failaction = fail;
-                 }
-               in
-               Lswitch (l1, sw, loc))
-      | Lstringswitch (l1, ls, lo, loc) ->
+          (* transform *)
           let l1 = traverse ctx l1 in
-          let cases_lhs, cases_rhs = List.split ls in
-          let failaction = Option.to_list lo in
-          lift ctx (cases_rhs @ failaction)
-            (fun li ->
-               let cases, li = combine_upto cases_lhs li in
-               let fail, li = option_of_list li in
-               assert (li = []);
-               Lstringswitch (l1, cases, fail, loc))
+          let+ consts_rhs = choice_list ctx consts_rhs
+          and+ blocks_rhs = choice_list ctx blocks_rhs
+          and+ sw_failaction = choice_option ctx sw.sw_failaction in
+          (* rebuild *)
+          let sw_consts = List.combine consts_lhs consts_rhs in
+          let sw_blocks = List.combine blocks_lhs blocks_rhs in
+          let sw = { sw with sw_consts; sw_blocks; sw_failaction; } in
+          Lswitch (l1, sw, loc)
+      | Lstringswitch (l1, cases, fail, loc) ->
+          (* decompose *)
+          let cases_lhs, cases_rhs = List.split cases in
+          (* transform *)
+          let l1 = traverse ctx l1 in
+          let+ cases_rhs = choice_list ctx cases_rhs
+          and+ fail = choice_option ctx fail in
+          (* rebuild *)
+          let cases = List.combine cases_lhs cases_rhs in
+          Lstringswitch (l1, cases, fail, loc)
       | Lstaticraise (id, ls) ->
-          let ls = List.map (traverse ctx) ls in
+          let ls = traverse_list ctx ls in
           Choice.return (Lstaticraise (id, ls))
       | Ltrywith (l1, id, l2) ->
           (* in [try l1 with id -> l2], the term [l1] is
@@ -288,40 +327,21 @@ let rec choice ctx t =
              we need to remove the exception handler),
              so it is not transformed here *)
           let l1 = traverse ctx l1 in
-          lift ctx [l2]
-            (fun [l2] -> Ltrywith (l1, id, l2))
+          let+ l2 = choice ctx l2 in
+          Ltrywith (l1, id, l2)
       | Lstaticcatch (l1, ids, l2) ->
           (* In [static-catch l1 with ids -> l2],
              the term [l1] is in fact in tail-position *)
-          lift ctx [l1; l2]
-            (fun [l1; l2] -> Lstaticcatch (l1, ids, l2))
+          let+ l1 = choice ctx l1
+          and+ l2 = choice ctx l2 in
+          Lstaticcatch (l1, ids, l2)
       | Levent (lam, lev) ->
-          lift ctx [lam]
-            (fun [lam] -> Levent (lam, lev))
+          let+ lam = choice ctx lam in
+          Levent (lam, lev)
       | Lifused (x, lam) ->
-          lift ctx [lam]
-            (fun [lam] -> Lifused (x, lam))
+          let+ lam = choice ctx lam in
+          Lifused (x, lam)
     end
-
-  (* [lift ctx tail_terms context] optimizes a term of the form
-     C[t1,..,tn] where the t1,..,tn are subterms of the multi-context C
-     that are all in tail position.
-
-     It works by recursively compiling each t1..tn into the corresponding choice.
-     If they are all Return, we Return the overall context;
-     otherwise there is at least one tail-term
-     that is Set (would benefit from TMC), so we Set.
-  *)
-  and lift ctx tail_terms context =
-    let choices = List.map (choice ctx) tail_terms in
-    {
-      Choice.dps = (fun ~tail ~dst ->
-        context (List.map (Choice.dps ~tail ~dst) choices));
-      direct = (fun () ->
-        context (List.map Choice.direct choices));
-      has_tmc_calls =
-        List.exists (fun choice -> choice.Choice.has_tmc_calls) choices;
-    }
 
   and choice_apply ctx apply =
     let exception No_tmc in
@@ -409,22 +429,18 @@ let rec choice ctx t =
 
       (* Some primitives have arguments in tail-position *)
       | (Pidentity | Popaque) as idop ->
-          let [l1] = primargs in
-          lift ctx [l1] (fun [l1] -> Lprim (idop, [l1], loc))
+          let l1 = match primargs with
+            |  [l1] -> l1
+            | _ -> invalid_arg "choice_prim" in
+          let+ l1 = choice ctx l1 in
+          Lprim (idop, [l1], loc)
       | (Psequand | Psequor) as shortcutop ->
-          let [l1; l2] = primargs in
-          lift ctx [l2]
-            (fun [l2] -> Lprim (shortcutop, [l1; l2], loc))
-
-      (* cases we don't handle yet *)
-      | (Prevapply | Pdirapply) ->
-          failwith "TODO: should have been simplified away already"
-
-      | (Pmakearray _ | Pduparray _) ->
-          failwith "TODO: we don't handle array indices as destinations yet"
-
-      | Pduprecord _ ->
-          failwith "TODO"
+          let l1, l2 = match primargs with
+            |  [l1; l2] -> l1, l2
+            | _ -> invalid_arg "choice_prim" in
+          let l1 = traverse ctx l1 in
+          let+ l2 = choice ctx l2 in
+          Lprim (shortcutop, [l1; l2], loc)
 
       (* in common cases we just Return *)
       | Pbytes_to_string | Pbytes_of_string
@@ -448,6 +464,13 @@ let rec choice ctx t =
       | Pbyteslength | Pbytesrefu | Pbytessetu | Pbytesrefs | Pbytessets
       | Parraylength _ | Parrayrefu _ | Parraysetu _ | Parrayrefs _ | Parraysets _
       | Pisint | Pisout
+
+      (* we don't handle array indices as destinations yet *)
+      | (Pmakearray _ | Pduparray _)
+
+      (* we don't handle { foo with x = ...; y = recursive-call } *)
+      | Pduprecord _
+
       | (
         (* operations returning boxed values could be considered constructions someday *)
         Pbintofint _ | Pintofbint _
@@ -468,8 +491,17 @@ let rec choice ctx t =
       | Pbbswap _
       | Pint_as_pointer
         ->
+          let primargs = traverse_list ctx primargs in
           Choice.return (Lprim (prim, primargs, loc))
     end
+
+  and choice_list ctx terms =
+    Choice.list (List.map (choice ctx) terms)
+  and choice_pair ctx (t1, t2) =
+    Choice.pair (choice ctx t1, choice ctx t2)
+  and choice_option ctx t =
+    Choice.option (Option.map (choice ctx) t)
+
   in choice ctx t
 
 and traverse ctx = function
@@ -505,6 +537,9 @@ and traverse_binding ctx (var, def) =
     } in
   let dps_var = special.dps_id in
   [(var, direct); (dps_var, dps)]
+
+and traverse_list ctx terms =
+  List.map (traverse ctx) terms
 
 let rewrite t =
   let ctx = { specialized = Ident.Map.empty } in
