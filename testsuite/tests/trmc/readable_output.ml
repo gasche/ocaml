@@ -54,11 +54,13 @@ let[@tail_mod_cons] rec rec_map f = function
     rec_map_dps
       (function dst offset[int] f param tail_mod_cons
         (if param
-          (let (*match* =a (field 0 param) block = (makemutable 0 0))
-            (seq (setfield_ptr(heap-init)_computed dst offset block)
-              (let (block = (makemutable 0 (apply f (field 0 *match*)) 0))
-                (seq (setfield_ptr(heap-init)_computed block 0 block)
-                  (apply rec_map_dps block 1 f (field 1 *match*) tailcall)))))
+          (let
+            (*match* =a (field 0 param)
+             block = (makemutable 0 (apply f (field 0 *match*)) 0))
+            (seq
+              (setfield_ptr(heap-init)_computed dst offset
+                (makeblock 0 block))
+              (apply rec_map_dps block 1 f (field 1 *match*) tailcall)))
           (setfield_ptr(heap-init)_computed dst offset 0))))
   (apply (field 1 (global Toploop!)) "rec_map" rec_map))
 val rec_map : ('a -> 'b) -> 'a rec_list -> 'b rec_list = <fun>
@@ -80,11 +82,13 @@ let[@tail_mod_cons] rec trip = function
            (x =a (field 0 param)
             block = (makemutable 0 (makeblock 0 (*,int) x 0) 0))
            (seq
-             (let (block = (makemutable 0 (makeblock 0 (*,int) x 1) 0))
-               (seq (setfield_ptr(heap-init)_computed block 1 block)
-                 (let (block = (makemutable 0 (makeblock 0 (*,int) x 2) 0))
-                   (seq (setfield_ptr(heap-init)_computed block 1 block)
-                     (apply trip_dps block 1 (field 1 param))))))
+             (let
+               (arg1 = (makeblock 0 (*,int) x 1)
+                block = (makemutable 0 (makeblock 0 (*,int) x 2) 0))
+               (seq
+                 (setfield_ptr(heap-init)_computed block 1
+                   (makeblock 0 arg1 block))
+                 (apply trip_dps block 1 (field 1 param))))
              block))
          0))
     trip_dps
@@ -92,13 +96,13 @@ let[@tail_mod_cons] rec trip = function
         (if param
           (let
             (x =a (field 0 param)
-             block = (makemutable 0 (makeblock 0 (*,int) x 0) 0))
-            (seq (setfield_ptr(heap-init)_computed dst offset block)
-              (let (block = (makemutable 0 (makeblock 0 (*,int) x 1) 0))
-                (seq (setfield_ptr(heap-init)_computed block 1 block)
-                  (let (block = (makemutable 0 (makeblock 0 (*,int) x 2) 0))
-                    (seq (setfield_ptr(heap-init)_computed block 1 block)
-                      (apply trip_dps block 1 (field 1 param) tailcall)))))))
+             arg1 = (makeblock 0 (*,int) x 0)
+             arg1 = (makeblock 0 (*,int) x 1)
+             block = (makemutable 0 (makeblock 0 (*,int) x 2) 0))
+            (seq
+              (setfield_ptr(heap-init)_computed dst offset
+                (makeblock 0 arg1 (makeblock 0 arg1 block)))
+              (apply trip_dps block 1 (field 1 param) tailcall)))
           (setfield_ptr(heap-init)_computed dst offset 0))))
   (apply (field 1 (global Toploop!)) "trip" trip))
 val trip : 'a list -> ('a * int) list = <fun>
@@ -130,11 +134,12 @@ let[@tail_mod_cons] rec effects f = function
         (if param
           (let
             (*match* =a (field 0 param)
-             block = (makemutable 0 (apply f (field 0 *match*)) 0))
-            (seq (setfield_ptr(heap-init)_computed dst offset block)
-              (let (block = (makemutable 0 (apply f (field 1 *match*)) 0))
-                (seq (setfield_ptr(heap-init)_computed block 1 block)
-                  (apply effects_dps block 1 f (field 1 param) tailcall)))))
+             arg1 = (apply f (field 0 *match*))
+             block = (makemutable 0 (apply f (field 1 *match*)) 0))
+            (seq
+              (setfield_ptr(heap-init)_computed dst offset
+                (makeblock 0 arg1 block))
+              (apply effects_dps block 1 f (field 1 param) tailcall)))
           (setfield_ptr(heap-init)_computed dst offset 0))))
   (apply (field 1 (global Toploop!)) "effects" effects))
 val effects : ('a -> 'b) -> ('a * 'a) list -> 'b list = <fun>
@@ -211,14 +216,15 @@ type 'a stream = { hd : 'a; tl : unit -> 'a stream; }
     smap_stutter_dps
       (function dst offset[int] f xs n[int] tail_mod_cons
         (if (== n 0) (setfield_ptr(heap-init)_computed dst offset 0)
-          (let (block = (makemutable 0 (apply f 0) 0))
-            (seq (setfield_ptr(heap-init)_computed dst offset block)
-              (let
-                (v = (apply f (makeblock 0 (field 0 xs)))
-                 block = (makemutable 0 v 0))
-                (seq (setfield_ptr(heap-init)_computed block 1 block)
-                  (apply smap_stutter_dps block 1 f (apply (field 1 xs) 0)
-                    (- n 1) tailcall))))))))
+          (let
+            (arg1 = (apply f 0)
+             v = (apply f (makeblock 0 (field 0 xs)))
+             block = (makemutable 0 v 0))
+            (seq
+              (setfield_ptr(heap-init)_computed dst offset
+                (makeblock 0 arg1 block))
+              (apply smap_stutter_dps block 1 f (apply (field 1 xs) 0)
+                (- n 1) tailcall))))))
   (apply (field 1 (global Toploop!)) "smap_stutter" smap_stutter))
 val smap_stutter : ('a option -> 'b) -> 'a stream -> int -> 'b list = <fun>
 |}]

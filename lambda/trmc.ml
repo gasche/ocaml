@@ -84,29 +84,202 @@ let assign_to_dst {var; offset; loc} lam =
         [Lvar var; offset; lam], loc)
 
 (** The type ['a Dps.t] (destination-passing-style) represents a
-    version of ['a] that is parametrized over a [lambda destination]. *)
+    version of ['a] that is parametrized over a [lambda destination].
+    A [lambda Dps.t] is a code fragment in destination-passing-style,
+    a [(lambda * lambda) Dps.t] represents two subterms parametrized
+    over the same destination. *)
 module Dps = struct
-  type 'a t =
+  type 'a dynamic =
     tail:bool -> dst:lambda destination -> 'a
-  (** A term parameterized over a destination.  The [tail] argument
-      is passed by the caller to indicate whether the term will be placed
+  (** A term parametrized over a destination. The [tail] argument is
+      passed by the caller to indicate whether the term will be placed
       in tail-position -- this allows to generate correct @tailcall
       annotations. *)
 
-  (** Create a new destination-passing-style term which is simply
-      setting the destination with the given [v], hence "returning"
-      it. *)
-  let return (v : lambda): lambda t = fun ~tail:_ ~dst ->
-    assign_to_dst dst v
+  type 'a linear_static =
+    tail:bool -> dst:lambda destination -> delayed:(lambda -> lambda) -> 'a
+  (** Short verion:
 
-  let map (f : 'a -> 'b) (dps : 'a t) : 'b t = fun ~tail ~dst ->
-    f @@ dps ~tail ~dst
+      To optimize nested constructors, we keep track in the choice
+      structure of which DPS terms are in the "linear static"
+      fragment, where the destination is set in a single static
+      location of the program (and not by calling another TMC function).
 
-  let pair (fa : 'a t) (fb : 'b t) : ('a * 'b) t = fun ~tail ~dst ->
-    (fa ~tail ~dst, fb ~tail ~dst)
+      When we would generate code to update a destination by setting
+      it to a "partial value" containing a new destination, we can
+      look at whether the consumer of this new destination is in the
+      linear static DPS fragment. In this case we optimize away the
+      creation of the new location (and update to the
+      current destination) by "delaying" the partial value application
+      to the unique place inside the DPS term that sets its
+      destination.
 
-  let unit : unit t = fun ~tail:_ ~dst:_ ->
-    ()
+      The [delayed] argument of a static DPS term represents those
+      delayed partial contexts, to be applied when setting the
+      location.
+
+      Longer version with examples:
+
+      We want to optimize nested constructors, for example
+
+      {[
+        (x () :: y () :: tmc call)
+      ]}
+
+      which would naively generate (in a DPS context parametrized
+      over a location dst.i):
+
+      {[
+        let dstx = x () :: Placeholder in
+        dst.i <- dstx;
+        let dsty = y () :: Placeholder in
+        dstx.1 <- dsty;
+        tmc dsty.1 call
+      ]}
+
+      when we would rather hope for
+
+      {[
+        let vx = x () in
+        let dsty = y () :: Placeholder in
+        dst.i <- vx :: dsty;
+        tmc dsty.1 call
+      ]}
+
+      We could detect this special case (nested constructors)
+      and generate the expected code. But can we instead see this as
+      a specific instance of a more general/powerful optimization?
+
+      The idea is that the unoptimized version is of the form
+      of a destination-creation site for dstx.1
+
+      {[
+        let dstx = x () :: Placeholder in
+        dst.i <- dstx;
+      ]}
+
+      followed by a piece of code where the value set to [dstx.1] is
+      statically known: there is a single place that writes to it, in the
+      current function body. This destination is used in a linear static
+      way, in opposition to:
+
+      - non-linear usage: cases where the control-flow splits and
+        multiple places write different things to dstx.1
+
+      - dynamic usage: when the destination is passed to a function call
+        rather than set explicitly in the body.
+
+      When a choice uses its destination in a linear static way, we
+      could optimize away the destination creation by inlining it
+      inside the linear-static choice, to get simplified away when it
+      meets the single destination-set instruction. This
+      transformation suffices to get from the "regular" to the
+      "optimized" version of the instance above.
+
+      So this is the idea: this simplification of nested constructors
+      can be justified for the whole class of expressions that are doing
+      a "linear static" usage of their continuations.
+
+      We do this on the fly in our implementation. We avoid creating
+      this new destination [dstx.1], and instead pass to the following
+      code the destination [dst.i] with a "delayed" transformation
+      [(x () ::)], to be applied at the place where [dstx.1] would
+      have been set:
+
+      {[
+        dstx.1 <- dsty;
+      ]}
+      becomes
+      {[
+        dst.i <- x () :: dsty;
+      ]}
+
+      More precisely, we need to bind the possibly-effectful [x ()]
+      to a variable [vx], so that it does not get reordered with
+      respect to other computations in the term ([y ()] in our example above).
+
+      Finally, we give some counter-examples where usage is non-linear.
+
+      Source program:
+      {[
+        x :: (if foo then y1 :: tmc call1 else y2 :: tmc call2)
+      ]}
+
+      Naive code:
+      {[
+        let dstx = x :: Placeholder in
+        dst.i <- dstx;
+        if foo then begin
+          let dsty1 = y1 :: Placeholder in
+          dstx.1 <- dsty1;
+          tmc dsty1.1 call1
+        end else
+          let dsty2 = y2 :: Placeholder in
+          dstx.1 <- dsty2;
+          tmc dsty2.1 call1
+        end
+      ]}
+
+      One could propose to optimize this into:
+      {[
+        let vx = x in
+        if foo then begin
+          let dsty1 = y1 :: Placeholder in
+          dstx.1 <- vx :: sty1;
+          tmc dsty1.1 call1
+        end else
+          let dsty2 = y2 :: Placeholder in
+          dstx.1 <- vx :: dsty2;
+          tmc dsty2.1 call1
+        end
+      ]}
+      but note that this duplicates the (vx ::) construction in the two
+      branches, while we want to avoid any code duplication in the code
+      generated for a single specialization of the TMC
+      function. (In general this duplicated part corresponds to the
+      nested constructors so it may be quite large, when constructing
+      interesting AST fragments for example.)
+
+      On the other hand, the following examples are outside the "nested
+      constructor" fragment and yet remains static and linear, so we can
+      optimize them:
+      {[
+        x :: (foo; y :: tmc call)
+        x :: (let v = e in y :: tmc call)
+      ]}
+  *)
+
+  type 'a t =
+    | Dynamic of 'a dynamic
+    | Linear_static of 'a linear_static
+
+  let coerce (dps : 'a linear_static) : 'a dynamic =
+    fun ~tail ~dst ->
+      dps ~tail ~dst ~delayed:(fun t -> t)
+
+  let return (v : lambda): lambda t =
+    Linear_static (fun ~tail:_ ~dst ~delayed ->
+      assign_to_dst dst (delayed v))
+
+  let run : 'a t -> 'a dynamic = function
+    | Dynamic dps -> dps
+    | Linear_static dps -> coerce dps
+
+  let map f = function
+    | Dynamic dps ->
+        Dynamic (fun ~tail ~dst -> f (dps ~tail ~dst))
+    | Linear_static dps ->
+        Linear_static (fun ~tail ~dst ~delayed -> f (dps ~tail ~dst ~delayed))
+
+  (* Pairing two DPS terms gives a result that
+     uses its destination at least twice, so it is
+     never linear, always Dynamic *)
+  let pair (fa : 'a t) (fb : 'b t) : ('a * 'b) t =
+    let dyna, dynb = run fa, run fb in
+    Dynamic (fun ~tail ~dst -> (dyna ~tail ~dst, dynb ~tail ~dst))
+
+  let unit : unit t = Dynamic (fun ~tail:_ ~dst:_ ->
+    ())
 end
 
 (** The TMC transformation requires information flows in two opposite
@@ -122,7 +295,7 @@ end
 
     1. A function [choice t] that takes a term and processes it from
     leaves to root; it produces a "code choice", a piece of data of
-    type [Choice.t], that contains information on how to transform the
+    type [lambda Choice.t], that contains information on how to transform the
     input term [t] *parameterized* over the (still missing) contextual
     information.
 
@@ -182,7 +355,7 @@ module Choice = struct
     c.direct ()
 
   let dps (c : lambda t) ~tail ~dst =
-    c.dps ~tail:tail ~dst:dst
+    Dps.run c.dps ~tail:tail ~dst:dst
 
   let pair ((c1, c2) : 'a t * 'b t) : ('a * 'b) t = {
     dps = Dps.pair c1.dps c2.dps;
@@ -360,7 +533,7 @@ let rec choice ctx t =
               raise No_tmc
           in
           {
-            Choice.dps = (fun ~tail ~dst ->
+            Choice.dps = Dynamic (fun ~tail ~dst ->
               let f_dps = specialized.dps_id in
               Lapply { apply with
                        ap_func = Lvar f_dps;
@@ -388,12 +561,12 @@ let rec choice ctx t =
           | Ok _another_choice ->
               failwith "TODO proper error/warning: ambiguous settable position"
         end;
+        let before = List.rev rev_before in
+        let after = List.map Choice.direct after in
+        let plug_args before t after =
+          List.append before @@ t :: after in
         let k_with_placeholder =
-          k Mutable
-            (List.rev_append rev_before @@
-             tmc_placeholder ::
-             List.map Choice.direct after)
-        in
+          k Mutable (plug_args before tmc_placeholder after) in
         let placeholder_pos = List.length rev_before in
         let placeholder_pos_lam = Lconst (Const_base (Const_int placeholder_pos)) in
         let let_block_in body =
@@ -407,17 +580,37 @@ let rec choice ctx t =
           loc;
         } in
         {
-          Choice.dps = (fun ~tail ~dst:old_dst ->
+          Choice.direct = (fun () ->
             let_block_in @@ fun block_var ->
-            Lsequence(assign_to_dst old_dst (Lvar block_var),
-                      choice.dps ~tail ~dst:(block_dst block_var))
-          );
-          direct = (fun () ->
-            let_block_in @@ fun block_var ->
-            Lsequence(choice.dps ~tail:false ~dst:(block_dst block_var),
+            Lsequence(Dps.run choice.dps ~tail:false ~dst:(block_dst block_var),
                       Lvar block_var)
           );
           has_tmc_calls = choice.has_tmc_calls;
+          dps = Linear_static (fun ~tail ~dst ~delayed ->
+            match choice.dps with
+            | Dynamic dps ->
+                let_block_in @@ fun block_var ->
+                Lsequence(assign_to_dst dst (delayed (Lvar block_var)),
+                          dps ~tail ~dst:(block_dst block_var))
+            | Linear_static dps ->
+                let bind_list start lambdas k =
+                  (* TODO optimization: no binding for variables and constants *)
+                  let bindings =
+                    lambdas |> List.mapi (fun i lam ->
+                      (Ident.create_local ("arg" ^ string_of_int (start+i))),
+                      lam)
+                  in
+                  let body = k (List.map fst bindings) in
+                  List.fold_right (fun (v,lam) body ->
+                    Llet(Strict, Pgenval, v, lam, body)
+                  ) bindings body
+                in
+                let vars = List.map (fun v -> Lvar v) in
+                bind_list 1 before @@ fun vbefore ->
+                bind_list (List.length before) after @@ fun vafter ->
+                dps ~tail ~dst ~delayed:(fun t ->
+                  delayed (k flag (plug_args (vars vbefore) t (vars vafter))))
+          );
         }
 
   and choice_prim ctx prim primargs loc =
