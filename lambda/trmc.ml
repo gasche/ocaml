@@ -316,6 +316,7 @@ module Choice = struct
     dps : 'a Dps.t;
     direct : unit -> 'a;
     has_tmc_calls : bool;
+    benefits_from_dps: bool;
   }
   (**
      An ['a Choice.t] represents code that may be written
@@ -330,25 +331,31 @@ module Choice = struct
        is available), we should produce the fallback code from
        [direct].
 
-       (Note: [direct] is also a function (on [unit]) to ensure that any
-       effects performed during code production will only happen once we
-       do know that we want to produce the direct-style code.)
+      (Note: [direct] is also a function (on [unit]) to ensure that any
+      effects performed during code production will only happen once we
+      do know that we want to produce the direct-style code.)
 
      - [has_tmc_calls] is true when there are TMC opportunities
        in the subterm -- if some calls are in tail-modulo-cons
        position and are rewritten into tailcalls in the [dps] version.
+
+     - [benefits_from_dps] is true when the [dps] calls strictly more
+       TMC functions than the [direct] version. See the
+       {!choice_makeblock} case.
    *)
 
   let return (v : lambda) : lambda t = {
     dps = Dps.return v;
     direct = (fun () -> v);
     has_tmc_calls = false;
+    benefits_from_dps = false;
   }
 
   let map f s = {
       dps = Dps.map f s.dps;
       direct = (fun () -> f (s.direct ()));
       has_tmc_calls = s.has_tmc_calls;
+      benefits_from_dps = s.benefits_from_dps;
   }
 
   let direct (c : lambda t) : lambda =
@@ -361,12 +368,14 @@ module Choice = struct
     dps = Dps.pair c1.dps c2.dps;
     direct = (fun () -> (c1.direct (), c2.direct ()));
     has_tmc_calls = c1.has_tmc_calls || c2.has_tmc_calls;
+    benefits_from_dps = c1.benefits_from_dps || c2.benefits_from_dps;
   }
 
   let unit = {
     dps = Dps.unit;
     direct = (fun () -> ());
     has_tmc_calls = false;
+    benefits_from_dps = false;
   }
 
   let (let+) c f = map f c
@@ -543,6 +552,7 @@ let rec choice ctx t =
                      });
             direct = (fun () -> Lapply apply);
             has_tmc_calls = true;
+            benefits_from_dps = true;
           }
       | _nontail -> raise No_tmc
     with No_tmc -> Choice.return (Lapply apply)
@@ -581,10 +591,19 @@ let rec choice ctx t =
         } in
         {
           Choice.direct = (fun () ->
-            let_block_in @@ fun block_var ->
-            Lsequence(Dps.run choice.dps ~tail:false ~dst:(block_dst block_var),
-                      Lvar block_var)
+            if not choice.benefits_from_dps then
+              k flag (plug_args before (Choice.direct choice) after)
+            else
+              let_block_in @@ fun block_var ->
+              Lsequence(Dps.run choice.dps ~tail:false ~dst:(block_dst block_var),
+                        Lvar block_var)
           );
+          benefits_from_dps =
+            (* Whether or not the caller provides a destination,
+               we can always provide a destination to our settable
+               subterm, so the number of TMC sub-calls is identical
+               in the [direct] and [dps] versions. *)
+            false;
           has_tmc_calls = choice.has_tmc_calls;
           dps = Linear_static (fun ~tail ~dst ~delayed ->
             match choice.dps with
