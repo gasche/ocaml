@@ -307,6 +307,7 @@ module Choice = struct
     direct : unit -> 'a;
     has_tmc_calls : bool;
     is_linear : bool;
+    benefits_from_dps: bool;
   }
   (**
      An ['a Choice.t] represents code that may be written
@@ -321,9 +322,9 @@ module Choice = struct
        is available), we should produce the fallback code from
        [direct].
 
-       (Note: [direct] is also a function (on [unit]) to ensure that any
-       effects performed during code production will only happen once we
-       do know that we want to produce the direct-style code.)
+      (Note: [direct] is also a function (on [unit]) to ensure that any
+      effects performed during code production will only happen once we
+      do know that we want to produce the direct-style code.)
 
      - [has_tmc_calls] is true when there are TMC opportunities
        in the subterm -- if some calls are in tail-modulo-cons
@@ -332,6 +333,10 @@ module Choice = struct
      - [is_linear] is true when function makes a single use of its
        destination. If [false], calling the [dps] version with
        delayed constructors will cause code duplication.
+
+     - [benefits_from_dps] is true when the [dps] calls strictly more
+       TMC functions than the [direct] version. See the
+       {!choice_makeblock} case.
    *)
 
   let ensures_linear (c : lambda t) : lambda t =
@@ -350,6 +355,7 @@ module Choice = struct
     direct = (fun () -> v);
     has_tmc_calls = false;
     is_linear = true;
+    benefits_from_dps = false;
   }
 
   let map f s = {
@@ -357,6 +363,7 @@ module Choice = struct
     direct = (fun () -> f (s.direct ()));
     has_tmc_calls = s.has_tmc_calls;
     is_linear = s.is_linear;
+    benefits_from_dps = s.benefits_from_dps;
   }
   (** Apply function [f] to the transformed term. *)
 
@@ -373,14 +380,16 @@ module Choice = struct
       c1.has_tmc_calls || c2.has_tmc_calls;
     is_linear =
       false;
+    benefits_from_dps =
+      c1.benefits_from_dps || c2.benefits_from_dps;
   }
 
   let unit = {
     dps = Dps.unit;
     direct = (fun () -> ());
     has_tmc_calls = false;
-    is_linear =
-      false;
+    is_linear = false;
+    benefits_from_dps = false;
   }
 
   module Syntax = struct
@@ -554,6 +563,7 @@ let rec choice ctx t =
             direct = (fun () -> Lapply apply);
             has_tmc_calls = true;
             is_linear = true;
+            benefits_from_dps = true;
           }
       | _nontail -> raise No_tmc
     with No_tmc -> Choice.return (Lapply apply)
@@ -582,9 +592,18 @@ let rec choice ctx t =
         assert choice.has_tmc_calls;
         {
           Choice.direct = (fun () ->
-            Constr.with_placeholder con @@ fun block_dst block ->
-            Lsequence(Choice.dps choice ~tail:false ~dst:block_dst,
-                      block));
+            if not choice.benefits_from_dps then
+              Constr.apply con (Choice.direct choice)
+            else
+              Constr.with_placeholder con @@ fun block_dst block ->
+              Lsequence(Choice.dps choice ~tail:false ~dst:block_dst,
+                        block));
+          benefits_from_dps =
+            (* Whether or not the caller provides a destination,
+               we can always provide a destination to our settable
+               subterm, so the number of TMC sub-calls is identical
+               in the [direct] and [dps] versions. *)
+            false;
           dps = (fun ~tail ~dst ~delayed ->
             let block_id = List.length delayed in
             Constr.delay_impure ~block_id con @@ fun con ->
