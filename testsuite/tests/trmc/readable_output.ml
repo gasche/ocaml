@@ -87,12 +87,12 @@ let[@tail_mod_cons] rec trip = function
         (if param
           (let
             (x =a (field 0 param)
-             arg1 = (makeblock 0 (*,int) x 0)
-             arg1 = (makeblock 0 (*,int) x 1)
+             arg_before_0 = (makeblock 0 (*,int) x 0)
+             arg_before_0 = (makeblock 0 (*,int) x 1)
              block = (makemutable 0 (makeblock 0 (*,int) x 2) 0))
             (seq
               (setfield_ptr(heap-init)_computed dst offset
-                (makeblock 0 arg1 (makeblock 0 arg1 block)))
+                (makeblock 0 arg_before_0 (makeblock 0 arg_before_0 block)))
               (apply trip_dps block 1 (field 1 param) tailcall)))
           (setfield_ptr(heap-init)_computed dst offset 0))))
   (apply (field 1 (global Toploop!)) "trip" trip))
@@ -121,11 +121,11 @@ let[@tail_mod_cons] rec effects f = function
         (if param
           (let
             (*match* =a (field 0 param)
-             arg1 = (apply f (field 0 *match*))
+             arg_before_0 = (apply f (field 0 *match*))
              block = (makemutable 0 (apply f (field 1 *match*)) 0))
             (seq
               (setfield_ptr(heap-init)_computed dst offset
-                (makeblock 0 arg1 block))
+                (makeblock 0 arg_before_0 block))
               (apply effects_dps block 1 f (field 1 param) tailcall)))
           (setfield_ptr(heap-init)_computed dst offset 0))))
   (apply (field 1 (global Toploop!)) "effects" effects))
@@ -199,12 +199,12 @@ type 'a stream = { hd : 'a; tl : unit -> 'a stream; }
       (function dst offset[int] f xs n[int] tail_mod_cons
         (if (== n 0) (setfield_ptr(heap-init)_computed dst offset 0)
           (let
-            (arg1 = (apply f 0)
+            (arg_before_0 = (apply f 0)
              v = (apply f (makeblock 0 (field 0 xs)))
              block = (makemutable 0 v 0))
             (seq
               (setfield_ptr(heap-init)_computed dst offset
-                (makeblock 0 arg1 block))
+                (makeblock 0 arg_before_0 block))
               (apply smap_stutter_dps block 1 f (apply (field 1 xs) 0)
                 (- n 1) tailcall))))))
   (apply (field 1 (global Toploop!)) "smap_stutter" smap_stutter))
