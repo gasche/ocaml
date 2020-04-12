@@ -23,7 +23,7 @@ open Lambda
 val pure_module : module_expr -> let_kind
 
 val transl_exp: expression -> lambda
-val transl_apply: ?should_be_tailcall:bool
+val transl_apply: ?tailcall:tailcall_attribute
                   -> ?inlined:inline_attribute
                   -> ?specialised:specialise_attribute
                   -> lambda -> (arg_label * expression option) list

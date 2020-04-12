@@ -256,7 +256,7 @@ and transl_exp0 e =
       in
       if extra_args = [] then lam
       else begin
-        let should_be_tailcall, funct =
+        let tailcall, funct =
           Translattribute.get_tailcall_attribute funct
         in
         let inlined, funct =
@@ -267,11 +267,11 @@ and transl_exp0 e =
         in
         let e = { e with exp_desc = Texp_apply(funct, oargs) } in
         event_after e
-          (transl_apply ~should_be_tailcall ~inlined ~specialised
+          (transl_apply ~tailcall ~inlined ~specialised
              lam extra_args e.exp_loc)
       end
   | Texp_apply(funct, oargs) ->
-      let should_be_tailcall, funct =
+      let tailcall, funct =
         Translattribute.get_tailcall_attribute funct
       in
       let inlined, funct =
@@ -282,7 +282,7 @@ and transl_exp0 e =
       in
       let e = { e with exp_desc = Texp_apply(funct, oargs) } in
       event_after e
-        (transl_apply ~should_be_tailcall ~inlined ~specialised
+        (transl_apply ~tailcall ~inlined ~specialised
            (transl_exp funct) oargs e.exp_loc)
   | Texp_match(arg, pat_expr_list, partial) ->
       transl_match e arg pat_expr_list partial
@@ -433,7 +433,7 @@ and transl_exp0 e =
       in
       event_after e lam
   | Texp_new (cl, {Location.loc=loc}, _) ->
-      Lapply{ap_should_be_tailcall=false;
+      Lapply{ap_tailcall=Default_tailcall;
              ap_loc=loc;
              ap_func=
                Lprim(Pfield 0, [transl_class_path loc e.exp_env cl], loc);
@@ -452,7 +452,7 @@ and transl_exp0 e =
       let self = transl_value_path e.exp_loc e.exp_env path_self in
       let cpy = Ident.create_local "copy" in
       Llet(Strict, Pgenval, cpy,
-           Lapply{ap_should_be_tailcall=false;
+           Lapply{ap_tailcall=Default_tailcall;
                   ap_loc=Location.none;
                   ap_func=Translobj.oo_prim "copy";
                   ap_args=[self];
@@ -616,7 +616,7 @@ and transl_tupled_cases patl_expr_list =
   List.map (fun (patl, guard, expr) -> (patl, transl_guard guard expr))
     patl_expr_list
 
-and transl_apply ?(should_be_tailcall=false) ?(inlined = Default_inline)
+and transl_apply ?(tailcall=Default_tailcall) ?(inlined = Default_inline)
       ?(specialised = Default_specialise) lam sargs loc =
   let lapply funct args =
     match funct with
@@ -627,7 +627,7 @@ and transl_apply ?(should_be_tailcall=false) ?(inlined = Default_inline)
     | Lapply ap ->
         Lapply {ap with ap_args = ap.ap_args @ args; ap_loc = loc}
     | lexp ->
-        Lapply {ap_should_be_tailcall=should_be_tailcall;
+        Lapply {ap_tailcall=tailcall;
                 ap_loc=loc;
                 ap_func=lexp;
                 ap_args=args;
@@ -988,7 +988,7 @@ and transl_letop loc env let_ ands param case partial =
         let exp = transl_exp and_.bop_exp in
         let lam =
           bind Strict right_id exp
-            (Lapply{ap_should_be_tailcall = false;
+            (Lapply{ap_tailcall = Default_tailcall;
                     ap_loc = and_.bop_loc;
                     ap_func = op;
                     ap_args=[Lvar left_id; Lvar right_id];
@@ -1014,7 +1014,7 @@ and transl_letop loc env let_ ands param case partial =
     let loc = case.c_rhs.exp_loc in
     Lfunction{kind; params; return; body; attr; loc}
   in
-  Lapply{ap_should_be_tailcall = false;
+  Lapply{ap_tailcall = Default_tailcall;
          ap_loc = loc;
          ap_func = op;
          ap_args=[exp; func];
