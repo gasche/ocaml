@@ -5,4 +5,4 @@ contact_links:
     about: This is the best place to start with questions about using OCaml.
   - name: opam Package Repository
     url: https://github.com/ocaml/opam-repository/issues
-    about: Virtually all OCaml packages are available on the opam repository - please report packaging issues there.
+    about: Virtually all OCaml packages are available in the opam repository - please report packaging issues there.
