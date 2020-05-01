@@ -247,6 +247,38 @@ CheckNoChangesMessage () {
   fi
 }
 
+Dune () {
+  cat<<EOF
+------------------------------------------------------------------------
+There is a non-official Dune build system for a fragment of the
+compiler codebase. It is very useful to get a valid Merlin file to
+work on the compiler. This test checks that this fragment still
+builds correctly with Dune.
+
+The test may break if you change the compiler Makefiles, and the dune
+configuration is out of date. You are of course welcome to update it,
+but you may also notify @trefis and not fix it. This will not block
+your PR from being merged -- for now compiler developers do not want
+to impose Dune compatibility as a prerequisite for all PRs.
+
+Dune builds the codebase using an older released version of the
+compiler.  If the build fails because you are using a feature of the
+language that was introduced since the last release, please consider
+not doing this, and rewriting your patch to be compilable with an
+earlier release. If you merge your patch using a non-released language
+feature, it will break Merlin support for everyone.
+
+If you see this failure message because someone else broke the Dune
+build in trunk, it is unrelated to your PR, you should notify @trefis
+so that we disable the check for now -- until it gets fixed.
+------------------------------------------------------------------------
+EOF
+    dune --version
+    configure_flags="" # nothing specific to configure for now
+    ./configure $configure_flags
+    dune build @libs
+}
+
 CheckManual () {
       cat<<EOF
 --------------------------------------------------------------------------
@@ -382,6 +414,8 @@ changes)
     esac;;
 manual)
     CheckManual;;
+dune)
+   Dune;;
 tests)
     case $TRAVIS_EVENT_TYPE in
         pull_request) CheckTestsuiteModified;;

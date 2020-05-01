@@ -58,6 +58,14 @@ matrix:
   - env: CI_KIND=changes
   - env: CI_KIND=manual
   - env: CI_KIND=check-typo
+  - env: CI_KIND=dune OCAML_VERSION=4.10
+    # note: OCAML_VERSION is the one Dune uses to build,
+    # not the compiler being built.
+    install:
+    - test -e .travis-ocaml.sh || wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/master/.travis-ocaml.sh
+    - bash -ex .travis-ocaml.sh
+    - opam install dune
+    - eval $(opam config env)
 #  - env: CI_KIND=tests
 #  allow_failures:
 #  - env: CI_KIND=tests
