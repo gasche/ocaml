@@ -2497,17 +2497,14 @@ let rec list_as_pat = function
   | [ pat ] -> pat
   | pat :: rem -> { pat with pat_desc = Tpat_or (pat, list_as_pat rem, None) }
 
-let complete_pats_constrs = function
-  | p :: _ as pats ->
-      (* We (indirectly) call this function
-         from [combine_constructor], and nowhere else.
-         So we know patterns have been fully simplified. *)
-      let p_simple = match (Patterns.General.view p).pat_desc with
-        | #Patterns.Simple.view as simple -> { p with pat_desc = simple }
-        | _ -> invalid_arg "complete_pats_constrs" in
-      let tag_of_pat p = (get_key_constr p).cstr_tag in
-      List.map (pat_of_constr p)
-        (complete_constrs p_simple (List.map tag_of_pat pats))
+let complete_pats_constrs : constructor_description pattern_data list -> pattern list = function
+  | constr :: _ as constrs ->
+      let tag_of_constr constr =
+        constr.pat_desc.cstr_tag in
+      let pat_of_constr cstr =
+        Patterns.Head.(to_omega_pattern { constr with pat_desc = Construct cstr }) in
+      List.map pat_of_constr
+        (complete_constrs constr (List.map tag_of_constr constrs))
   | _ -> assert false
 
 (*
@@ -2530,7 +2527,7 @@ let mk_failaction_neg partial ctx def =
   | Total -> (None, Jumps.empty)
 
 (* In line with the article and simpler than before *)
-let mk_failaction_pos partial seen ctx defs =
+let mk_failaction_pos partial (seen : constructor_description pattern_data list) ctx defs =
   if dbg then (
     Format.eprintf "**POS**\n";
     Default_environment.pp defs;
@@ -2725,7 +2722,10 @@ let combine_constructor loc arg pat_env cstr partial ctx def
         if sig_complete then
           (None, [], Jumps.empty)
         else
-          mk_failaction_pos partial pats ctx def
+          let constrs =
+            List.map2 (fun (constr, _act) p -> { p with pat_desc = constr })
+              descr_lambda_list pats in
+          mk_failaction_pos partial constrs ctx def
       in
       let descr_lambda_list = fails @ descr_lambda_list in
       let consts, nonconsts = split_cases (List.map tag_lambda descr_lambda_list) in
