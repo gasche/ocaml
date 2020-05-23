@@ -1318,17 +1318,31 @@ and exhaust_single_row ext p ps n =
      matches: if A and B are the only two constructors, this is the
      best way to make a non-fragile distinction between "all As" and
      "at least one B".
+
+     Note: in the actual output we use
+       counter-example(p) :: omegas
+       omega :: counter-examples(ps)
+     with (omega ::) instead of (p ::) in the second row. This
+     generates more compact counter-examples, and in fact it does not
+     lose precision thanks to our ordering of counter-examples: we
+     only show [omega] after all [counter-example(p)] counter-examples
+     have been shown, so at this point [omega] and [p] are equivalent.
+
+     (This order is different from the non-single-row order which
+      always shows the default group last. On the examples we looked
+      at, making this different choice here improves the choice of
+      counter-example.)
   *)
-  List.to_seq [Some p; None] |> Seq.flat_map
+  List.to_seq [None; Some p] |> Seq.flat_map
     (function
-      | Some p ->
-          let sub_witnesses = exhaust ext [ps] (n - 1) in
-          Seq.map (fun row -> p :: row) sub_witnesses
       | None ->
           (* note: calling [exhaust] recursively of p would
              result in an infinite loop in the case n=1 *)
           let p_witnesses = specialize_and_exhaust ext [[p]] 1 in
           Seq.map (fun p_row -> p_row @ omegas (n - 1)) p_witnesses
+      | Some _ ->
+          let sub_witnesses = exhaust ext [ps] (n - 1) in
+          Seq.map (fun row -> omega :: row) sub_witnesses
     )
 
 and specialize_and_exhaust ext pss n =

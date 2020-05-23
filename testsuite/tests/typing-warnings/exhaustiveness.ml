@@ -123,7 +123,7 @@ Line 1, characters 8-47:
             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Warning 8: this pattern-matching is not exhaustive.
 Here is an example of a case that is not matched:
-{left=Box 0; right=Box 0}
+{left=Box 1; right=Box _}
 val f : int box pair -> unit = <fun>
 |}]
 
@@ -375,7 +375,7 @@ Lines 20-22, characters 45-49:
 22 | | (A|B), (A|B), (A|B), A (*missing B here*) -> ()
 Warning 8: this pattern-matching is not exhaustive.
 Here is an example of a case that is not matched:
-((A|B), (A|B), (A|B), B)
+(_, _, _, B)
 module Single_row_optim :
   sig type t = A | B val non_exhaustive : t * t * t * t -> unit end
 |}]
