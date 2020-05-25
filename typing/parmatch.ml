@@ -2287,10 +2287,7 @@ let simplify_head_amb_pat head_bound_variables varsets ~add_column p ps k =
     | `Alias (p,x,_) ->
       simpl (Ident.Set.add x head_bound_variables) varsets p ps k
     | `Var (x, _) ->
-      let rest_of_the_row =
-        { row = ps; varsets = Ident.Set.add x head_bound_variables :: varsets; }
-      in
-      add_column (Patterns.Head.deconstruct Patterns.Simple.omega) rest_of_the_row k
+      simpl (Ident.Set.add x head_bound_variables) varsets Patterns.omega ps k
     | `Or (p1,p2,_) ->
       simpl head_bound_variables varsets p1 ps
         (simpl head_bound_variables varsets p2 ps k)
