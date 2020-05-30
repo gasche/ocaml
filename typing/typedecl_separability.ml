@@ -503,7 +503,15 @@ let check_type
     | (Tunivar(_)         , _      ) -> empty
     (* Type constructor case. *)
     | (Tconstr(path,tys,_), m      ) ->
-        let msig = (Env.find_type path env).type_separability in
+        let msig =
+          match Env.find_type path env with
+          | decl -> decl.type_separability
+          | exception Not_found ->
+              (* This may happen if some .cmi files are missing
+                 -- see similar comment in Ctype.immediacy.
+                 In this case we assume the worst. *)
+              List.map (fun _ -> Deepsep) tys
+        in
         let on_param context (ty, m_param) =
           let hyps = match m_param with
             | Ind -> Hyps.guard hyps
