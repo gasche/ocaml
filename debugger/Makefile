@@ -41,11 +41,16 @@ INCLUDES=$(addprefix -I ,$(DIRECTORIES))
 compiler_modules := $(ROOTDIR)/toplevel/genprintval
 
 debugger_modules := \
-  int64ops primitives unix_tools debugger_config parameters debugger_lexer \
-  input_handling question debugcom exec source pos checkpoints events \
-  program_loading symbols breakpoints trap_barrier history printval \
-  show_source time_travel program_management frames eval \
-  show_information loadprinter debugger_parser command_line main
+  ocamldebug_int64ops ocamldebug_primitives ocamldebug_unix_tools \
+  ocamldebug_config ocamldebug_parameters ocamldebug_lexer \
+  ocamldebug_input_handling ocamldebug_question ocamldebug_debugcom \
+  ocamldebug_exec ocamldebug_source ocamldebug_pos ocamldebug_checkpoints \
+  ocamldebug_events ocamldebug_program_loading ocamldebug_symbols \
+  ocamldebug_breakpoints ocamldebug_trap_barrier ocamldebug_history \
+  ocamldebug_printval ocamldebug_show_source ocamldebug_time_travel \
+  ocamldebug_program_management ocamldebug_frames ocamldebug_eval \
+  ocamldebug_show_information ocamldebug_loadprinter  \
+  ocamldebug_parser ocamldebug_command_line ocamldebug_main
 
 all_modules := $(compiler_modules) $(debugger_modules)
 
@@ -79,16 +84,16 @@ depend: beforedepend
 	$(CAMLDEP) $(DEPFLAGS) $(DEPINCLUDES) *.mli *.ml \
 	| sed -e 's,$(UNIXDIR)/,$$(UNIXDIR)/,' > .depend
 
-debugger_lexer.ml: debugger_lexer.mll
+ocamldebug_lexer.ml: ocamldebug_lexer.mll
 	$(CAMLLEX) $(OCAMLLEX_FLAGS) $<
 clean::
-	rm -f debugger_lexer.ml
-beforedepend:: debugger_lexer.ml
+	rm -f ocamldebug_lexer.ml
+beforedepend:: ocamldebug_lexer.ml
 
-debugger_parser.ml debugger_parser.mli: debugger_parser.mly
-	$(CAMLYACC) debugger_parser.mly
+ocamldebug_parser.ml ocamldebug_parser.mli: ocamldebug_parser.mly
+	$(CAMLYACC) ocamldebug_parser.mly
 clean::
-	rm -f debugger_parser.ml debugger_parser.mli
-beforedepend:: debugger_parser.ml debugger_parser.mli
+	rm -f ocamldebug_parser.ml ocamldebug_parser.mli
+beforedepend:: ocamldebug_parser.ml ocamldebug_parser.mli
 
 include .depend
