@@ -24,4 +24,4 @@ val show_current_event : formatter -> unit
 val show_current_frame : formatter -> bool -> unit
 
 (* Display short information about one frame. *)
-val show_one_frame : int -> formatter -> Ocamldebug_events.code_event -> unit
+val show_one_frame : int -> formatter -> Events.code_event -> unit

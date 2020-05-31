@@ -14,23 +14,18 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Ocamldebug_input_handling
-open Ocamldebug_question
-open Ocamldebug_command_line
-open Ocamldebug_config
-open Ocamldebug_checkpoints
-open Ocamldebug_time_travel
-open Ocamldebug_parameters
-open Ocamldebug_program_management
-open Ocamldebug_frames
-open Ocamldebug_show_information
+open Input_handling
+open Question
+open Command_line
+open Debugger_config
+open Checkpoints
+open Time_travel
+open Parameters
+open Program_management
+open Frames
+open Show_information
 open Format
-open Ocamldebug_primitives
-
-module Exec = Ocamldebug_exec
-module Loadprinter = Ocamldebug_loadprinter
-module Parameters = Ocamldebug_parameters
-module Unix_tools = Ocamldebug_unix_tools
+open Primitives
 
 let line_buffer = Lexing.from_function read_user_input
 

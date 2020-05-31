@@ -25,13 +25,13 @@ val breakpoints_count : unit -> int
 
 (* Breakpoint number -> code_event. *)
 type breakpoint_id = int
-val breakpoints : (breakpoint_id * Ocamldebug_events.code_event) list ref
+val breakpoints : (breakpoint_id * Events.code_event) list ref
 
 (* Is there a breakpoint at `pc' ? *)
-val breakpoint_at_pc : Ocamldebug_debugcom.pc -> bool
+val breakpoint_at_pc : Debugcom.pc -> bool
 
 (* List of breakpoints at `pc'. *)
-val breakpoints_at_pc : Ocamldebug_debugcom.pc -> breakpoint_id list
+val breakpoints_at_pc : Debugcom.pc -> breakpoint_id list
 
 (*** Set and remove breakpoints ***)
 
@@ -43,7 +43,7 @@ val update_breakpoints : unit -> unit
 val execute_without_breakpoints : (unit -> unit) -> unit
 
 (* Insert a new breakpoint in lists. *)
-val new_breakpoint : Ocamldebug_events.code_event -> unit
+val new_breakpoint : Events.code_event -> unit
 
 (* Remove a breakpoint from lists. *)
 val remove_breakpoint : breakpoint_id -> unit
@@ -53,8 +53,8 @@ val remove_all_breakpoints : unit -> unit
 (*** Temporary breakpoints. ***)
 
 (* Temporary breakpoint position. *)
-val temporary_breakpoint_position : Ocamldebug_debugcom.pc option ref
+val temporary_breakpoint_position : Debugcom.pc option ref
 
 (* Execute `funct' with a breakpoint added at `pc'. *)
 (* --- Used by `finish'. *)
-val exec_with_temporary_breakpoint : Ocamldebug_debugcom.pc -> (unit -> unit) -> unit
+val exec_with_temporary_breakpoint : Debugcom.pc -> (unit -> unit) -> unit

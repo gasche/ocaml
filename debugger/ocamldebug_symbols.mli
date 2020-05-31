@@ -14,7 +14,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Ocamldebug_events
+open Events
 
 (* Modules used by the program. *)
 val modules : string list ref
@@ -45,13 +45,13 @@ val set_all_events : int -> unit
 
 (* Return event at given PC, or raise Not_found *)
 (* Can also return pseudo-event at beginning of functions *)
-val any_event_at_pc : Ocamldebug_debugcom.pc -> code_event
+val any_event_at_pc : Debugcom.pc -> code_event
 
 (* Return event at given PC, or raise Not_found *)
-val event_at_pc : Ocamldebug_debugcom.pc -> code_event
+val event_at_pc : Debugcom.pc -> code_event
 
 (* Set event at given PC *)
-val set_event_at_pc : Ocamldebug_debugcom.pc -> unit
+val set_event_at_pc : Debugcom.pc -> unit
 
 (* List the events in `module'. *)
 val events_in_module : string -> int * Instruct.debug_event list

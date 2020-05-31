@@ -16,14 +16,12 @@
 
 (* Low-level communication with the debuggee *)
 
-open Ocamldebug_int64ops
-open Ocamldebug_primitives
-
-module Input_handling = Ocamldebug_input_handling
+open Int64ops
+open Primitives
 
 (* The current connection with the debuggee *)
 
-let conn = ref Ocamldebug_primitives.std_io
+let conn = ref Primitives.std_io
 
 (* Set which process the debugger follows on fork. *)
 

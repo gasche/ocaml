@@ -16,42 +16,34 @@
 
 (************************ Reading and executing commands ***************)
 
-open Ocamldebug_int64ops
+open Int64ops
 open Format
 open Instruct
 open Unix
-open Ocamldebug_config
+open Debugger_config
 open Types
-open Ocamldebug_primitives
-open Ocamldebug_unix_tools
-open Ocamldebug_parser
-open Ocamldebug_parser_aux
-open Ocamldebug_lexer
-open Ocamldebug_input_handling
-open Ocamldebug_question
-open Ocamldebug_debugcom
-open Ocamldebug_program_loading
-open Ocamldebug_program_management
+open Primitives
+open Unix_tools
+open Parser
+open Parser_aux
+open Lexer
+open Input_handling
+open Question
+open Debugcom
+open Program_loading
+open Program_management
 open Lexing
-open Ocamldebug_parameters
-open Ocamldebug_show_source
-open Ocamldebug_show_information
-open Ocamldebug_time_travel
-open Ocamldebug_events
-open Ocamldebug_symbols
-open Ocamldebug_source
-open Ocamldebug_breakpoints
-open Ocamldebug_checkpoints
-open Ocamldebug_frames
-open Ocamldebug_printval
-
-module Eval = Ocamldebug_eval
-module Events = Ocamldebug_events
-module History = Ocamldebug_history
-module Lexer = Ocamldebug_lexer
-module Loadprinter = Ocamldebug_loadprinter
-module Pos = Ocamldebug_pos
-module Unix_tools = Ocamldebug_unix_tools
+open Parameters
+open Show_source
+open Show_information
+open Time_travel
+open Events
+open Symbols
+open Source
+open Breakpoints
+open Checkpoints
+open Frames
+open Printval
 
 (** Instructions, variables and infos lists. **)
 type dbg_instruction =
@@ -250,15 +242,15 @@ let instr_env _ppf lexbuf =
         let value =
           String.sub cmdarg (eqpos + 1) (String.length cmdarg - eqpos - 1)
         in
-        Ocamldebug_config.environment :=
-          (name, value) :: List.remove_assoc name !Ocamldebug_config.environment
+        Debugger_config.environment :=
+          (name, value) :: List.remove_assoc name !Debugger_config.environment
       with Not_found ->
         eprintf "Environment variable must be in name=value format\n%!"
     end
   else
     List.iter
       (fun (vvar, vval) -> printf "%s=%s\n%!" vvar vval)
-      (List.rev !Ocamldebug_config.environment)
+      (List.rev !Debugger_config.environment)
 
 let instr_pwd ppf lexbuf =
   eol lexbuf;
@@ -270,7 +262,7 @@ let instr_dir ppf lexbuf =
       if yes_or_no "Reinitialize directory list" then begin
         Load_path.init !default_load_path;
         Envaux.reset_cache ();
-        Hashtbl.clear Ocamldebug_config.load_path_for;
+        Hashtbl.clear Debugger_config.load_path_for;
         flush_buffer_list ()
         end
       end
@@ -289,7 +281,7 @@ let instr_dir ppf lexbuf =
       (fun mdl dirs ->
          fprintf ppf "@[<2>Source directories for %s: %a@]@." mdl print_dirs
                  dirs)
-      Ocamldebug_config.load_path_for
+      Debugger_config.load_path_for
 
 let instr_kill _ppf lexbuf =
   eol lexbuf;

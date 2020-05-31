@@ -45,7 +45,7 @@ type follow_fork_mode =
   | Fork_parent
 
 (* Set the current connection with the debuggee *)
-val set_current_connection : Ocamldebug_primitives.io_channel -> unit
+val set_current_connection : Primitives.io_channel -> unit
 
 (* Put an event at given pc *)
 val set_event : pc -> unit
@@ -63,10 +63,10 @@ val do_checkpoint : unit -> checkpoint_report
 val do_go : int64 -> report
 
 (* Tell given process to terminate *)
-val stop :  Ocamldebug_primitives.io_channel -> unit
+val stop :  Primitives.io_channel -> unit
 
 (* Tell given process to wait for its children *)
-val wait_child : Ocamldebug_primitives.io_channel -> unit
+val wait_child : Primitives.io_channel -> unit
 
 (* Move to initial frame (that of current function). *)
 (* Return stack position and current pc *)

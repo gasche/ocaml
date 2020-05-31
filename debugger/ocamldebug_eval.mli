@@ -15,12 +15,12 @@
 (**************************************************************************)
 
 open Types
-open Ocamldebug_parser_aux
+open Parser_aux
 open Format
 
 val expression :
-    Ocamldebug_events.code_event option -> Env.t -> expression ->
-    Ocamldebug_debugcom.Remote_value.t * type_expr
+    Events.code_event option -> Env.t -> expression ->
+    Debugcom.Remote_value.t * type_expr
 
 type error =
   | Unbound_identifier of Ident.t

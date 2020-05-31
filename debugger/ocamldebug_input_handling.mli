@@ -16,7 +16,7 @@
 
 (***************************** Input control ***************************)
 
-open Ocamldebug_primitives
+open Primitives
 
 (*** Actives files. ***)
 

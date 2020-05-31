@@ -16,7 +16,7 @@
 
 (**************************** Configuration file ***********************)
 
-open Ocamldebug_int64ops
+open Int64ops
 
 exception Toplevel
 

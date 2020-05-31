@@ -14,10 +14,10 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Ocamldebug_int64ops
-open Ocamldebug_checkpoints
-open Ocamldebug_primitives
-open Ocamldebug_config
+open Int64ops
+open Checkpoints
+open Primitives
+open Debugger_config
 
 let history = ref ([] : int64 list)
 

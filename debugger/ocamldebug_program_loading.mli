@@ -31,5 +31,5 @@ val loading_modes : (string * launching_function) list
 val set_launching_function : launching_function -> unit
 
 (** Connection **)
-val connection : Ocamldebug_primitives.io_channel ref
+val connection : Primitives.io_channel ref
 val connection_opened : bool ref

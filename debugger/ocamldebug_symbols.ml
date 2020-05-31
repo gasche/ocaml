@@ -17,14 +17,11 @@
 (* Handling of symbol tables (globals and events) *)
 
 open Instruct
-open Ocamldebug_config (* Toplevel *)
-open Ocamldebug_program_loading
-open Ocamldebug_debugcom
-open Ocamldebug_events
+open Debugger_config (* Toplevel *)
+open Program_loading
+open Debugcom
+open Events
 module String = Misc.Stdlib.String
-
-module Checkpoints = Ocamldebug_checkpoints
-module Events = Ocamldebug_events
 
 let modules =
   ref ([] : string list)

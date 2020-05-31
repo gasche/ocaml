@@ -13,9 +13,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Ocamldebug_input_handling
-open Ocamldebug_primitives
-module Lexer = Ocamldebug_lexer
+open Input_handling
+open Primitives
 
 (* Ask user a yes or no question. *)
 let yes_or_no message =

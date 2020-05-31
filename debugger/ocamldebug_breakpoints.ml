@@ -16,16 +16,11 @@
 
 (******************************* Breakpoints ***************************)
 
-open Ocamldebug_checkpoints
-open Ocamldebug_debugcom
+open Checkpoints
+open Debugcom
 open Instruct
-open Ocamldebug_events
+open Events
 open Printf
-
-module Exec = Ocamldebug_exec
-module Parameters = Ocamldebug_parameters
-module Pos = Ocamldebug_pos
-module Symbols = Ocamldebug_symbols
 
 (*** Debugging. ***)
 let debug_breakpoints = ref false
@@ -125,7 +120,7 @@ let update_breakpoints () =
 (* Execute given function with no breakpoint in current checkpoint. *)
 (* --- `goto' runs faster this way (does not stop on each breakpoint). *)
 let execute_without_breakpoints f =
-  Misc.protect_refs [Misc.R (Ocamldebug_config.break_on_load, false);
+  Misc.protect_refs [Misc.R (Debugger_config.break_on_load, false);
                      Misc.R (current_version, 0);
                      Misc.R (positions, []);
                      Misc.R (breakpoints, []);

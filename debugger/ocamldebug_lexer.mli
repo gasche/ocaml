@@ -17,6 +17,6 @@
 exception Int_overflow
 
 val line: Lexing.lexbuf -> string
-val lexeme: Lexing.lexbuf -> Ocamldebug_parser.token
-val argument: Lexing.lexbuf -> Ocamldebug_parser.token
-val line_argument: Lexing.lexbuf -> Ocamldebug_parser.token
+val lexeme: Lexing.lexbuf -> Parser.token
+val argument: Lexing.lexbuf -> Parser.token
+val line_argument: Lexing.lexbuf -> Parser.token

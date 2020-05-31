@@ -17,10 +17,8 @@
 (* To print values *)
 
 open Format
-open Ocamldebug_parser_aux
+open Parser_aux
 open Types
-
-module Debugcom = Ocamldebug_debugcom
 
 (* To name printed and ellipsed values *)
 

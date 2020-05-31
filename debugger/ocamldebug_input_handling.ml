@@ -17,9 +17,7 @@
 (**************************** Input control ****************************)
 
 open Unix
-open Ocamldebug_primitives
-
-module Parameters = Ocamldebug_parameters
+open Primitives
 
 (*** Actives files. ***)
 

@@ -16,9 +16,9 @@
 
 (*************************** Checkpoints *******************************)
 
-open Ocamldebug_int64ops
-open Ocamldebug_debugcom
-open Ocamldebug_primitives
+open Int64ops
+open Debugcom
+open Primitives
 
 (*** A type for checkpoints. ***)
 

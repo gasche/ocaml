@@ -16,22 +16,18 @@
 
 (**************************** Time travel ******************************)
 
-open Ocamldebug_int64ops
+open Int64ops
 open Instruct
-open Ocamldebug_events
-open Ocamldebug_debugcom
-open Ocamldebug_primitives
-open Ocamldebug_checkpoints
-open Ocamldebug_breakpoints
-open Ocamldebug_trap_barrier
-open Ocamldebug_input_handling
-open Ocamldebug_config
-open Ocamldebug_program_loading
-open Ocamldebug_question
-
-module Exec = Ocamldebug_exec
-module Input_handling = Ocamldebug_input_handling
-module Symbols = Ocamldebug_symbols
+open Events
+open Debugcom
+open Primitives
+open Checkpoints
+open Breakpoints
+open Trap_barrier
+open Input_handling
+open Debugger_config
+open Program_loading
+open Question
 
 exception Current_checkpoint_lost
 exception Current_checkpoint_lost_start_at of int64 * int64

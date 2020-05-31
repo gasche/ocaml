@@ -30,7 +30,7 @@ LINKFLAGS=-linkall -I $(UNIXDIR) -I $(DYNLINKDIR)
 YACCFLAGS=
 CAMLLEX=$(BEST_OCAMLLEX)
 CAMLDEP=$(BEST_OCAMLDEP)
-DEPFLAGS=-slash
+DEPFLAGS=-slash -map ocamldebug_map.mli
 DEPINCLUDES=$(INCLUDES)
 
 DIRECTORIES=$(UNIXDIR) $(DYNLINKDIR) $(addprefix $(ROOTDIR)/,\
@@ -74,14 +74,21 @@ clean::
 .SUFFIXES:
 .SUFFIXES: .ml .cmo .mli .cmi
 
-.ml.cmo:
-	$(CAMLC) -c $(COMPFLAGS) $<
+ocamldebug_map.cmi: ocamldebug_map.mli
+	$(CAMLC) -c -no-alias-deps $<
 
-.mli.cmi:
-	$(CAMLC) -c $(COMPFLAGS) $<
+.ml.cmo: ocamldebug_map.cmi
+	$(CAMLC) -c $(COMPFLAGS) -open Ocamldebug_map $<
+
+.mli.cmi: ocamldebug_map.cmi
+	$(CAMLC) -c $(COMPFLAGS) -open Ocamldebug_map $<
 
 depend: beforedepend
-	$(CAMLDEP) $(DEPFLAGS) $(DEPINCLUDES) *.mli *.ml \
+# we need -as-map in the camldep invokation because ocamldebug_map.mli
+# is one of the *.mli files; if we don't use -as-map here, it gets
+# listed and depends on all other .cmi, which create cyclic
+# dependencies.
+	$(CAMLDEP) $(DEPFLAGS) $(DEPINCLUDES) -open Ocamldebug_map -as-map *.mli *.ml \
 	| sed -e 's,$(UNIXDIR)/,$$(UNIXDIR)/,' > .depend
 
 ocamldebug_lexer.ml: ocamldebug_lexer.mll

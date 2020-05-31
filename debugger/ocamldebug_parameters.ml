@@ -16,7 +16,7 @@
 
 (* Miscellaneous parameters *)
 
-open Ocamldebug_config
+open Debugger_config
 
 let program_name = ref ""
 let socket_name = ref ""

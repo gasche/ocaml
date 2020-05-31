@@ -17,12 +17,9 @@
 (* Program loading *)
 
 open Unix
-open Ocamldebug_config
-open Ocamldebug_parameters
-open Ocamldebug_input_handling
-
-module Primitives = Ocamldebug_primitives
-module Unix_tools = Ocamldebug_unix_tools
+open Debugger_config
+open Parameters
+open Input_handling
 
 (*** Debugging. ***)
 
@@ -44,7 +41,7 @@ let get_unix_environment () =
   let f (vname, vvalue) =
     Printf.sprintf "%s=%s " vname (Filename.quote vvalue)
   in
-  String.concat "" (List.map f !Ocamldebug_config.environment)
+  String.concat "" (List.map f !Debugger_config.environment)
 ;;
 
 (* Notes:
@@ -76,7 +73,7 @@ let get_win32_environment () =
   let f (vname, vvalue) =
     Printf.sprintf "set %s=%s&" vname (quote_for_windows_shell vvalue)
   in
-  String.concat "" (List.map f !Ocamldebug_config.environment)
+  String.concat "" (List.map f !Debugger_config.environment)
 
 (* A generic function for launching the program *)
 let generic_exec_unix cmdline = function () ->

@@ -16,7 +16,7 @@
 
 {
 
-open Ocamldebug_parser
+open Parser
 
 exception Int_overflow
 

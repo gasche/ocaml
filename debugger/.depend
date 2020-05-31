@@ -2,6 +2,7 @@ ocamldebug_breakpoints.cmo : \
     ocamldebug_symbols.cmi \
     ocamldebug_pos.cmi \
     ocamldebug_parameters.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_exec.cmi \
     ocamldebug_events.cmi \
     ocamldebug_debugcom.cmi \
@@ -14,6 +15,7 @@ ocamldebug_breakpoints.cmx : \
     ocamldebug_symbols.cmx \
     ocamldebug_pos.cmx \
     ocamldebug_parameters.cmx \
+    ocamldebug_map.cmi \
     ocamldebug_exec.cmx \
     ocamldebug_events.cmx \
     ocamldebug_debugcom.cmx \
@@ -23,20 +25,24 @@ ocamldebug_breakpoints.cmx : \
     ../bytecomp/instruct.cmx \
     ocamldebug_breakpoints.cmi
 ocamldebug_breakpoints.cmi : \
+    ocamldebug_map.cmi \
     ocamldebug_events.cmi \
     ocamldebug_debugcom.cmi
 ocamldebug_checkpoints.cmo : \
     ocamldebug_primitives.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_int64ops.cmi \
     ocamldebug_debugcom.cmi \
     ocamldebug_checkpoints.cmi
 ocamldebug_checkpoints.cmx : \
     ocamldebug_primitives.cmx \
+    ocamldebug_map.cmi \
     ocamldebug_int64ops.cmx \
     ocamldebug_debugcom.cmx \
     ocamldebug_checkpoints.cmi
 ocamldebug_checkpoints.cmi : \
     ocamldebug_primitives.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_debugcom.cmi
 ocamldebug_command_line.cmo : \
     $(UNIXDIR)/unix.cmi \
@@ -56,6 +62,7 @@ ocamldebug_command_line.cmo : \
     ocamldebug_parser_aux.cmi \
     ocamldebug_parser.cmi \
     ocamldebug_parameters.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_loadprinter.cmi \
     ocamldebug_lexer.cmi \
     ocamldebug_int64ops.cmi \
@@ -94,6 +101,7 @@ ocamldebug_command_line.cmx : \
     ocamldebug_parser_aux.cmi \
     ocamldebug_parser.cmx \
     ocamldebug_parameters.cmx \
+    ocamldebug_map.cmi \
     ocamldebug_loadprinter.cmx \
     ocamldebug_lexer.cmx \
     ocamldebug_int64ops.cmx \
@@ -114,16 +122,21 @@ ocamldebug_command_line.cmx : \
     ../typing/env.cmx \
     ../typing/ctype.cmx \
     ocamldebug_command_line.cmi
-ocamldebug_command_line.cmi :
+ocamldebug_command_line.cmi : \
+    ocamldebug_map.cmi
 ocamldebug_config.cmo : \
+    ocamldebug_map.cmi \
     ocamldebug_int64ops.cmi \
     ocamldebug_config.cmi
 ocamldebug_config.cmx : \
+    ocamldebug_map.cmi \
     ocamldebug_int64ops.cmx \
     ocamldebug_config.cmi
-ocamldebug_config.cmi :
+ocamldebug_config.cmi : \
+    ocamldebug_map.cmi
 ocamldebug_debugcom.cmo : \
     ocamldebug_primitives.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_int64ops.cmi \
     ocamldebug_input_handling.cmi \
     ../utils/misc.cmi \
@@ -131,6 +144,7 @@ ocamldebug_debugcom.cmo : \
     ocamldebug_debugcom.cmi
 ocamldebug_debugcom.cmx : \
     ocamldebug_primitives.cmx \
+    ocamldebug_map.cmi \
     ocamldebug_int64ops.cmx \
     ocamldebug_input_handling.cmx \
     ../utils/misc.cmx \
@@ -138,7 +152,21 @@ ocamldebug_debugcom.cmx : \
     ocamldebug_debugcom.cmi
 ocamldebug_debugcom.cmi : \
     ocamldebug_primitives.cmi \
+    ocamldebug_map.cmi \
     ../bytecomp/instruct.cmi
+ocamldebug_debugger_config.cmo : \
+    ocamldebug_map.cmi \
+    ocamldebug_int64ops.cmi \
+    ocamldebug_debugger_config.cmi
+ocamldebug_debugger_config.cmx : \
+    ocamldebug_map.cmi \
+    ocamldebug_int64ops.cmx \
+    ocamldebug_debugger_config.cmi
+ocamldebug_debugger_config.cmi : \
+    ocamldebug_map.cmi
+ocamldebug_debugger_lexer.cmi : \
+    ocamldebug_parser.cmi \
+    ocamldebug_map.cmi
 ocamldebug_eval.cmo : \
     ../typing/types.cmi \
     ../bytecomp/symtable.cmi \
@@ -148,6 +176,7 @@ ocamldebug_eval.cmo : \
     ../typing/path.cmi \
     ocamldebug_printval.cmi \
     ocamldebug_parser_aux.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_frames.cmi \
     ocamldebug_events.cmi \
     ocamldebug_debugcom.cmi \
@@ -168,6 +197,7 @@ ocamldebug_eval.cmx : \
     ../typing/path.cmx \
     ocamldebug_printval.cmx \
     ocamldebug_parser_aux.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_frames.cmx \
     ocamldebug_events.cmx \
     ocamldebug_debugcom.cmx \
@@ -183,28 +213,36 @@ ocamldebug_eval.cmi : \
     ../typing/types.cmi \
     ../typing/path.cmi \
     ocamldebug_parser_aux.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_events.cmi \
     ocamldebug_debugcom.cmi \
     ../parsing/longident.cmi \
     ../typing/ident.cmi \
     ../typing/env.cmi
 ocamldebug_events.cmo : \
+    ocamldebug_map.cmi \
     ../parsing/location.cmi \
     ../bytecomp/instruct.cmi \
     ocamldebug_events.cmi
 ocamldebug_events.cmx : \
+    ocamldebug_map.cmi \
     ../parsing/location.cmx \
     ../bytecomp/instruct.cmx \
     ocamldebug_events.cmi
 ocamldebug_events.cmi : \
+    ocamldebug_map.cmi \
     ../bytecomp/instruct.cmi
 ocamldebug_exec.cmo : \
+    ocamldebug_map.cmi \
     ocamldebug_exec.cmi
 ocamldebug_exec.cmx : \
+    ocamldebug_map.cmi \
     ocamldebug_exec.cmi
-ocamldebug_exec.cmi :
+ocamldebug_exec.cmi : \
+    ocamldebug_map.cmi
 ocamldebug_frames.cmo : \
     ocamldebug_symbols.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_events.cmi \
     ocamldebug_debugcom.cmi \
     ../utils/misc.cmi \
@@ -212,51 +250,65 @@ ocamldebug_frames.cmo : \
     ocamldebug_frames.cmi
 ocamldebug_frames.cmx : \
     ocamldebug_symbols.cmx \
+    ocamldebug_map.cmi \
     ocamldebug_events.cmx \
     ocamldebug_debugcom.cmx \
     ../utils/misc.cmx \
     ../bytecomp/instruct.cmx \
     ocamldebug_frames.cmi
 ocamldebug_frames.cmi : \
+    ocamldebug_map.cmi \
     ocamldebug_events.cmi
 ocamldebug_history.cmo : \
     ocamldebug_primitives.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_int64ops.cmi \
     ocamldebug_config.cmi \
     ocamldebug_checkpoints.cmi \
     ocamldebug_history.cmi
 ocamldebug_history.cmx : \
     ocamldebug_primitives.cmx \
+    ocamldebug_map.cmi \
     ocamldebug_int64ops.cmx \
     ocamldebug_config.cmx \
     ocamldebug_checkpoints.cmx \
     ocamldebug_history.cmi
-ocamldebug_history.cmi :
+ocamldebug_history.cmi : \
+    ocamldebug_map.cmi
 ocamldebug_input_handling.cmo : \
     $(UNIXDIR)/unix.cmi \
     ocamldebug_primitives.cmi \
     ocamldebug_parameters.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_input_handling.cmi
 ocamldebug_input_handling.cmx : \
     $(UNIXDIR)/unix.cmx \
     ocamldebug_primitives.cmx \
     ocamldebug_parameters.cmx \
+    ocamldebug_map.cmi \
     ocamldebug_input_handling.cmi
 ocamldebug_input_handling.cmi : \
-    ocamldebug_primitives.cmi
+    ocamldebug_primitives.cmi \
+    ocamldebug_map.cmi
 ocamldebug_int64ops.cmo : \
+    ocamldebug_map.cmi \
     ocamldebug_int64ops.cmi
 ocamldebug_int64ops.cmx : \
+    ocamldebug_map.cmi \
     ocamldebug_int64ops.cmi
-ocamldebug_int64ops.cmi :
+ocamldebug_int64ops.cmi : \
+    ocamldebug_map.cmi
 ocamldebug_lexer.cmo : \
     ocamldebug_parser.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_lexer.cmi
 ocamldebug_lexer.cmx : \
     ocamldebug_parser.cmx \
+    ocamldebug_map.cmi \
     ocamldebug_lexer.cmi
 ocamldebug_lexer.cmi : \
-    ocamldebug_parser.cmi
+    ocamldebug_parser.cmi \
+    ocamldebug_map.cmi
 ocamldebug_loadprinter.cmo : \
     ../typing/types.cmi \
     ../bytecomp/symtable.cmi \
@@ -264,6 +316,7 @@ ocamldebug_loadprinter.cmo : \
     ../typing/path.cmi \
     ocamldebug_printval.cmi \
     ocamldebug_parameters.cmi \
+    ocamldebug_map.cmi \
     ../utils/misc.cmi \
     ../parsing/longident.cmi \
     ../utils/load_path.cmi \
@@ -279,6 +332,7 @@ ocamldebug_loadprinter.cmx : \
     ../typing/path.cmx \
     ocamldebug_printval.cmx \
     ocamldebug_parameters.cmx \
+    ocamldebug_map.cmi \
     ../utils/misc.cmx \
     ../parsing/longident.cmx \
     ../utils/load_path.cmx \
@@ -288,6 +342,7 @@ ocamldebug_loadprinter.cmx : \
     ../typing/ctype.cmx \
     ocamldebug_loadprinter.cmi
 ocamldebug_loadprinter.cmi : \
+    ocamldebug_map.cmi \
     ../parsing/longident.cmi \
     ../otherlibs/dynlink/dynlink.cmi
 ocamldebug_main.cmo : \
@@ -300,6 +355,7 @@ ocamldebug_main.cmo : \
     ocamldebug_program_management.cmi \
     ocamldebug_primitives.cmi \
     ocamldebug_parameters.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_loadprinter.cmi \
     ocamldebug_input_handling.cmi \
     ocamldebug_frames.cmi \
@@ -322,6 +378,7 @@ ocamldebug_main.cmx : \
     ocamldebug_program_management.cmx \
     ocamldebug_primitives.cmx \
     ocamldebug_parameters.cmx \
+    ocamldebug_map.cmi \
     ocamldebug_loadprinter.cmx \
     ocamldebug_input_handling.cmx \
     ocamldebug_frames.cmx \
@@ -334,21 +391,27 @@ ocamldebug_main.cmx : \
     ../utils/config.cmx \
     ../file_formats/cmi_format.cmx \
     ../utils/clflags.cmx
+ocamldebug_map.cmi : \
+    ocamldebug_map.cmi
 ocamldebug_parameters.cmo : \
+    ocamldebug_map.cmi \
     ocamldebug_config.cmi \
     ../utils/load_path.cmi \
     ../typing/envaux.cmi \
     ../utils/config.cmi \
     ocamldebug_parameters.cmi
 ocamldebug_parameters.cmx : \
+    ocamldebug_map.cmi \
     ocamldebug_config.cmx \
     ../utils/load_path.cmx \
     ../typing/envaux.cmx \
     ../utils/config.cmx \
     ocamldebug_parameters.cmi
-ocamldebug_parameters.cmi :
+ocamldebug_parameters.cmi : \
+    ocamldebug_map.cmi
 ocamldebug_parser.cmo : \
     ocamldebug_parser_aux.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_int64ops.cmi \
     ocamldebug_input_handling.cmi \
     ocamldebug_debugcom.cmi \
@@ -356,6 +419,7 @@ ocamldebug_parser.cmo : \
     ocamldebug_parser.cmi
 ocamldebug_parser.cmx : \
     ocamldebug_parser_aux.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_int64ops.cmx \
     ocamldebug_input_handling.cmx \
     ocamldebug_debugcom.cmx \
@@ -363,42 +427,61 @@ ocamldebug_parser.cmx : \
     ocamldebug_parser.cmi
 ocamldebug_parser.cmi : \
     ocamldebug_parser_aux.cmi \
+    ocamldebug_map.cmi \
     ../parsing/longident.cmi
 ocamldebug_parser_aux.cmi : \
+    ocamldebug_map.cmi \
     ocamldebug_debugcom.cmi \
     ../parsing/longident.cmi
 ocamldebug_pattern_matching.cmo : \
     ../typing/typedtree.cmi \
+    ocamldebug_parser_aux.cmi \
+    ocamldebug_map.cmi \
+    ocamldebug_debugcom.cmi \
+    ocamldebug_config.cmi \
     ../utils/misc.cmi \
     ../typing/ctype.cmi \
     ocamldebug_pattern_matching.cmi
 ocamldebug_pattern_matching.cmx : \
     ../typing/typedtree.cmx \
+    ocamldebug_parser_aux.cmi \
+    ocamldebug_map.cmi \
+    ocamldebug_debugcom.cmx \
+    ocamldebug_config.cmx \
     ../utils/misc.cmx \
     ../typing/ctype.cmx \
     ocamldebug_pattern_matching.cmi
 ocamldebug_pattern_matching.cmi : \
-    ../typing/typedtree.cmi
+    ../typing/typedtree.cmi \
+    ocamldebug_parser_aux.cmi \
+    ocamldebug_map.cmi \
+    ocamldebug_debugcom.cmi
 ocamldebug_pos.cmo : \
+    ocamldebug_map.cmi \
     ocamldebug_events.cmi \
     ../parsing/location.cmi \
     ../bytecomp/instruct.cmi \
     ocamldebug_pos.cmi
 ocamldebug_pos.cmx : \
+    ocamldebug_map.cmi \
     ocamldebug_events.cmx \
     ../parsing/location.cmx \
     ../bytecomp/instruct.cmx \
     ocamldebug_pos.cmi
 ocamldebug_pos.cmi : \
+    ocamldebug_map.cmi \
     ocamldebug_events.cmi
 ocamldebug_primitives.cmo : \
     $(UNIXDIR)/unix.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_primitives.cmi
 ocamldebug_primitives.cmx : \
     $(UNIXDIR)/unix.cmx \
+    ocamldebug_map.cmi \
     ocamldebug_primitives.cmi
 ocamldebug_primitives.cmi : \
-    $(UNIXDIR)/unix.cmi
+    $(UNIXDIR)/unix.cmi \
+    ocamldebug_map.cmi
 ocamldebug_printval.cmo : \
     ../typing/types.cmi \
     ../bytecomp/symtable.cmi \
@@ -406,6 +489,7 @@ ocamldebug_printval.cmo : \
     ../typing/outcometree.cmi \
     ../typing/oprint.cmi \
     ocamldebug_parser_aux.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_debugcom.cmi \
     ../toplevel/genprintval.cmi \
     ../typing/env.cmi \
@@ -417,6 +501,7 @@ ocamldebug_printval.cmx : \
     ../typing/outcometree.cmi \
     ../typing/oprint.cmx \
     ocamldebug_parser_aux.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_debugcom.cmx \
     ../toplevel/genprintval.cmx \
     ../typing/env.cmx \
@@ -425,6 +510,7 @@ ocamldebug_printval.cmi : \
     ../typing/types.cmi \
     ../typing/path.cmi \
     ocamldebug_parser_aux.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_debugcom.cmi \
     ../typing/env.cmi
 ocamldebug_program_loading.cmo : \
@@ -432,6 +518,7 @@ ocamldebug_program_loading.cmo : \
     ocamldebug_unix_tools.cmi \
     ocamldebug_primitives.cmi \
     ocamldebug_parameters.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_input_handling.cmi \
     ocamldebug_config.cmi \
     ocamldebug_program_loading.cmi
@@ -440,11 +527,13 @@ ocamldebug_program_loading.cmx : \
     ocamldebug_unix_tools.cmx \
     ocamldebug_primitives.cmx \
     ocamldebug_parameters.cmx \
+    ocamldebug_map.cmi \
     ocamldebug_input_handling.cmx \
     ocamldebug_config.cmx \
     ocamldebug_program_loading.cmi
 ocamldebug_program_loading.cmi : \
-    ocamldebug_primitives.cmi
+    ocamldebug_primitives.cmi \
+    ocamldebug_map.cmi
 ocamldebug_program_management.cmo : \
     $(UNIXDIR)/unix.cmi \
     ocamldebug_unix_tools.cmi \
@@ -454,6 +543,7 @@ ocamldebug_program_management.cmo : \
     ocamldebug_program_loading.cmi \
     ocamldebug_primitives.cmi \
     ocamldebug_parameters.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_int64ops.cmi \
     ocamldebug_input_handling.cmi \
     ocamldebug_history.cmi \
@@ -471,6 +561,7 @@ ocamldebug_program_management.cmx : \
     ocamldebug_program_loading.cmx \
     ocamldebug_primitives.cmx \
     ocamldebug_parameters.cmx \
+    ocamldebug_map.cmi \
     ocamldebug_int64ops.cmx \
     ocamldebug_input_handling.cmx \
     ocamldebug_history.cmx \
@@ -479,24 +570,29 @@ ocamldebug_program_management.cmx : \
     ../utils/load_path.cmx \
     ../typing/envaux.cmx \
     ocamldebug_program_management.cmi
-ocamldebug_program_management.cmi :
+ocamldebug_program_management.cmi : \
+    ocamldebug_map.cmi
 ocamldebug_question.cmo : \
     ocamldebug_primitives.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_lexer.cmi \
     ocamldebug_input_handling.cmi \
     ocamldebug_question.cmi
 ocamldebug_question.cmx : \
     ocamldebug_primitives.cmx \
+    ocamldebug_map.cmi \
     ocamldebug_lexer.cmx \
     ocamldebug_input_handling.cmx \
     ocamldebug_question.cmi
-ocamldebug_question.cmi :
+ocamldebug_question.cmi : \
+    ocamldebug_map.cmi
 ocamldebug_show_information.cmo : \
     ocamldebug_symbols.cmi \
     ocamldebug_source.cmi \
     ocamldebug_show_source.cmi \
     ocamldebug_printval.cmi \
     ocamldebug_parameters.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_frames.cmi \
     ocamldebug_events.cmi \
     ocamldebug_debugcom.cmi \
@@ -511,6 +607,7 @@ ocamldebug_show_information.cmx : \
     ocamldebug_show_source.cmx \
     ocamldebug_printval.cmx \
     ocamldebug_parameters.cmx \
+    ocamldebug_map.cmi \
     ocamldebug_frames.cmx \
     ocamldebug_events.cmx \
     ocamldebug_debugcom.cmx \
@@ -520,11 +617,13 @@ ocamldebug_show_information.cmx : \
     ../bytecomp/instruct.cmx \
     ocamldebug_show_information.cmi
 ocamldebug_show_information.cmi : \
+    ocamldebug_map.cmi \
     ocamldebug_events.cmi
 ocamldebug_show_source.cmo : \
     ocamldebug_source.cmi \
     ocamldebug_primitives.cmi \
     ocamldebug_parameters.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_events.cmi \
     ocamldebug_config.cmi \
     ../parsing/location.cmi \
@@ -534,29 +633,35 @@ ocamldebug_show_source.cmx : \
     ocamldebug_source.cmx \
     ocamldebug_primitives.cmx \
     ocamldebug_parameters.cmx \
+    ocamldebug_map.cmi \
     ocamldebug_events.cmx \
     ocamldebug_config.cmx \
     ../parsing/location.cmx \
     ../bytecomp/instruct.cmx \
     ocamldebug_show_source.cmi
 ocamldebug_show_source.cmi : \
+    ocamldebug_map.cmi \
     ../bytecomp/instruct.cmi
 ocamldebug_source.cmo : \
     ocamldebug_primitives.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_config.cmi \
     ../utils/misc.cmi \
     ../utils/load_path.cmi \
     ocamldebug_source.cmi
 ocamldebug_source.cmx : \
     ocamldebug_primitives.cmx \
+    ocamldebug_map.cmi \
     ocamldebug_config.cmx \
     ../utils/misc.cmx \
     ../utils/load_path.cmx \
     ocamldebug_source.cmi
-ocamldebug_source.cmi :
+ocamldebug_source.cmi : \
+    ocamldebug_map.cmi
 ocamldebug_symbols.cmo : \
     ../bytecomp/symtable.cmi \
     ocamldebug_program_loading.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_events.cmi \
     ocamldebug_debugcom.cmi \
     ocamldebug_config.cmi \
@@ -568,6 +673,7 @@ ocamldebug_symbols.cmo : \
 ocamldebug_symbols.cmx : \
     ../bytecomp/symtable.cmx \
     ocamldebug_program_loading.cmx \
+    ocamldebug_map.cmi \
     ocamldebug_events.cmx \
     ocamldebug_debugcom.cmx \
     ocamldebug_config.cmx \
@@ -577,6 +683,7 @@ ocamldebug_symbols.cmx : \
     ../bytecomp/bytesections.cmx \
     ocamldebug_symbols.cmi
 ocamldebug_symbols.cmi : \
+    ocamldebug_map.cmi \
     ocamldebug_events.cmi \
     ocamldebug_debugcom.cmi \
     ../bytecomp/instruct.cmi
@@ -586,6 +693,7 @@ ocamldebug_time_travel.cmo : \
     ocamldebug_question.cmi \
     ocamldebug_program_loading.cmi \
     ocamldebug_primitives.cmi \
+    ocamldebug_map.cmi \
     ocamldebug_int64ops.cmi \
     ocamldebug_input_handling.cmi \
     ocamldebug_exec.cmi \
@@ -603,6 +711,7 @@ ocamldebug_time_travel.cmx : \
     ocamldebug_question.cmx \
     ocamldebug_program_loading.cmx \
     ocamldebug_primitives.cmx \
+    ocamldebug_map.cmi \
     ocamldebug_int64ops.cmx \
     ocamldebug_input_handling.cmx \
     ocamldebug_exec.cmx \
@@ -615,25 +724,32 @@ ocamldebug_time_travel.cmx : \
     ../bytecomp/instruct.cmx \
     ocamldebug_time_travel.cmi
 ocamldebug_time_travel.cmi : \
-    ocamldebug_primitives.cmi
+    ocamldebug_primitives.cmi \
+    ocamldebug_map.cmi
 ocamldebug_trap_barrier.cmo : \
+    ocamldebug_map.cmi \
     ocamldebug_exec.cmi \
     ocamldebug_debugcom.cmi \
     ocamldebug_checkpoints.cmi \
     ocamldebug_trap_barrier.cmi
 ocamldebug_trap_barrier.cmx : \
+    ocamldebug_map.cmi \
     ocamldebug_exec.cmx \
     ocamldebug_debugcom.cmx \
     ocamldebug_checkpoints.cmx \
     ocamldebug_trap_barrier.cmi
-ocamldebug_trap_barrier.cmi :
+ocamldebug_trap_barrier.cmi : \
+    ocamldebug_map.cmi
 ocamldebug_unix_tools.cmo : \
     $(UNIXDIR)/unix.cmi \
+    ocamldebug_map.cmi \
     ../utils/misc.cmi \
     ocamldebug_unix_tools.cmi
 ocamldebug_unix_tools.cmx : \
     $(UNIXDIR)/unix.cmx \
+    ocamldebug_map.cmi \
     ../utils/misc.cmx \
     ocamldebug_unix_tools.cmi
 ocamldebug_unix_tools.cmi : \
-    $(UNIXDIR)/unix.cmi
+    $(UNIXDIR)/unix.cmi \
+    ocamldebug_map.cmi

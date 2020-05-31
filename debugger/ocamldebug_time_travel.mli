@@ -16,7 +16,7 @@
 
 (**************************** Time travel ******************************)
 
-open Ocamldebug_primitives
+open Primitives
 
 exception Current_checkpoint_lost
 exception Current_checkpoint_lost_start_at of int64 * int64

@@ -16,11 +16,11 @@
 
 %{
 
-open Ocamldebug_int64ops
-open Ocamldebug_input_handling
+open Int64ops
+open Input_handling
 open Longident
-open Ocamldebug_parser_aux
-open Ocamldebug_debugcom
+open Parser_aux
+open Debugcom
 
 %}
 

@@ -16,21 +16,16 @@
 
 (* Manage the loading of the program *)
 
-open Ocamldebug_int64ops
+open Int64ops
 open Unix
-open Ocamldebug_unix_tools
-open Ocamldebug_config
-open Ocamldebug_primitives
-open Ocamldebug_parameters
-open Ocamldebug_input_handling
-open Ocamldebug_question
-open Ocamldebug_program_loading
-open Ocamldebug_time_travel
-
-module Breakpoints = Ocamldebug_breakpoints
-module History = Ocamldebug_history
-module Input_handling = Ocamldebug_input_handling
-module Symbols = Ocamldebug_symbols
+open Unix_tools
+open Debugger_config
+open Primitives
+open Parameters
+open Input_handling
+open Question
+open Program_loading
+open Time_travel
 
 (*** Connection opening and control. ***)
 

@@ -19,9 +19,6 @@ open Misc
 open Longident
 open Types
 
-module Parameters = Ocamldebug_parameters
-module Printval = Ocamldebug_printval
-
 (* Error report *)
 
 type error =

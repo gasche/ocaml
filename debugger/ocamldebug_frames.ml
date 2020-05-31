@@ -17,11 +17,9 @@
 (***************************** Frames **********************************)
 
 open Instruct
-open Ocamldebug_debugcom
-open Ocamldebug_events
-open Ocamldebug_symbols
-
-module Events = Ocamldebug_events
+open Debugcom
+open Events
+open Symbols
 
 (* Current frame number *)
 let current_frame = ref 0

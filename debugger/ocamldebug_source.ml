@@ -17,7 +17,7 @@
 (************************ Source management ****************************)
 
 open Misc
-open Ocamldebug_primitives
+open Primitives
 
 let source_extensions = [".ml"]
 
@@ -39,7 +39,7 @@ let source_of_module pos mdle =
           dirs
         else
           acc)
-      Ocamldebug_config.load_path_for
+      Debugger_config.load_path_for
       (Load_path.get_paths ()) in
   let fname = pos.Lexing.pos_fname in
   if fname = "" then

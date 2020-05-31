@@ -16,7 +16,7 @@
 
 (****************************** Frames *********************************)
 
-open Ocamldebug_events
+open Events
 
 (* Current frame number *)
 val current_frame : int ref

@@ -14,14 +14,12 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Ocamldebug_config
+open Debugger_config
 open Instruct
-open Ocamldebug_parameters
-open Ocamldebug_primitives
+open Parameters
+open Primitives
 open Printf
-open Ocamldebug_source
-
-module Events = Ocamldebug_events
+open Source
 
 (* Print a line; return the beginning of the next line *)
 let print_line buffer line_number start point before =

@@ -16,7 +16,7 @@
 open Instruct
 open Lexing
 open Location
-open Ocamldebug_events
+open Events
 
 let get_desc ev =
   let loc = ev.ev_ev.ev_loc in
