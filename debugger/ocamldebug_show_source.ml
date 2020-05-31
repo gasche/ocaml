@@ -21,7 +21,6 @@ open Ocamldebug_primitives
 open Printf
 open Ocamldebug_source
 
-module Events = Ocamldebug_events
 
 (* Print a line; return the beginning of the next line *)
 let print_line buffer line_number start point before =

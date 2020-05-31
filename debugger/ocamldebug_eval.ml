@@ -21,9 +21,6 @@ open Types
 open Ocamldebug_parser_aux
 open Ocamldebug_events
 
-module Debugcom = Ocamldebug_debugcom
-module Frames = Ocamldebug_frames
-module Printval = Ocamldebug_printval
 
 type error =
     Unbound_identifier of Ident.t

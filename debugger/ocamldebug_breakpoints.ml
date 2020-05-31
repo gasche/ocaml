@@ -22,10 +22,6 @@ open Instruct
 open Ocamldebug_events
 open Printf
 
-module Exec = Ocamldebug_exec
-module Parameters = Ocamldebug_parameters
-module Pos = Ocamldebug_pos
-module Symbols = Ocamldebug_symbols
 
 (*** Debugging. ***)
 let debug_breakpoints = ref false

@@ -19,7 +19,6 @@
 open Ocamldebug_int64ops
 open Ocamldebug_primitives
 
-module Input_handling = Ocamldebug_input_handling
 
 (* The current connection with the debuggee *)
 

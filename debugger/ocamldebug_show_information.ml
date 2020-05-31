@@ -26,11 +26,6 @@ open Ocamldebug_show_source
 open Ocamldebug_breakpoints
 open Ocamldebug_parameters
 
-module Debugcom = Ocamldebug_debugcom
-module Events = Ocamldebug_events
-module Parameters = Ocamldebug_parameters
-module Printval = Ocamldebug_printval
-module Symbols = Ocamldebug_symbols
 
 (* Display information about the current event. *)
 let show_current_event ppf =

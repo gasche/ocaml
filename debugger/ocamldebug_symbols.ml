@@ -23,8 +23,6 @@ open Ocamldebug_debugcom
 open Ocamldebug_events
 module String = Misc.Stdlib.String
 
-module Checkpoints = Ocamldebug_checkpoints
-module Events = Ocamldebug_events
 
 let modules =
   ref ([] : string list)

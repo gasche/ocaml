@@ -21,7 +21,6 @@ open Ocamldebug_debugcom
 open Ocamldebug_events
 open Ocamldebug_symbols
 
-module Events = Ocamldebug_events
 
 (* Current frame number *)
 let current_frame = ref 0

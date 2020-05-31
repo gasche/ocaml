@@ -29,9 +29,6 @@ open Ocamldebug_config
 open Ocamldebug_program_loading
 open Ocamldebug_question
 
-module Exec = Ocamldebug_exec
-module Input_handling = Ocamldebug_input_handling
-module Symbols = Ocamldebug_symbols
 
 exception Current_checkpoint_lost
 exception Current_checkpoint_lost_start_at of int64 * int64

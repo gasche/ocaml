@@ -19,7 +19,6 @@
 open Ocamldebug_debugcom
 open Ocamldebug_checkpoints
 
-module Exec = Ocamldebug_exec
 
 let current_trap_barrier = ref 0
 

@@ -15,7 +15,6 @@
 
 open Ocamldebug_input_handling
 open Ocamldebug_primitives
-module Lexer = Ocamldebug_lexer
 
 (* Ask user a yes or no question. *)
 let yes_or_no message =

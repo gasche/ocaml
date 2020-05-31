@@ -27,10 +27,6 @@ open Ocamldebug_show_information
 open Format
 open Ocamldebug_primitives
 
-module Exec = Ocamldebug_exec
-module Loadprinter = Ocamldebug_loadprinter
-module Parameters = Ocamldebug_parameters
-module Unix_tools = Ocamldebug_unix_tools
 
 let line_buffer = Lexing.from_function read_user_input
 

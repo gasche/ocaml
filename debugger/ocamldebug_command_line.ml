@@ -45,13 +45,6 @@ open Ocamldebug_checkpoints
 open Ocamldebug_frames
 open Ocamldebug_printval
 
-module Eval = Ocamldebug_eval
-module Events = Ocamldebug_events
-module History = Ocamldebug_history
-module Lexer = Ocamldebug_lexer
-module Loadprinter = Ocamldebug_loadprinter
-module Pos = Ocamldebug_pos
-module Unix_tools = Ocamldebug_unix_tools
 
 (** Instructions, variables and infos lists. **)
 type dbg_instruction =

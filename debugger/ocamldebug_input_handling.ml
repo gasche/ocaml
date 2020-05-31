@@ -19,7 +19,6 @@
 open Unix
 open Ocamldebug_primitives
 
-module Parameters = Ocamldebug_parameters
 
 (*** Actives files. ***)
 

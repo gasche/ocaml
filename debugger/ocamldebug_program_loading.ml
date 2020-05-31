@@ -21,8 +21,6 @@ open Ocamldebug_config
 open Ocamldebug_parameters
 open Ocamldebug_input_handling
 
-module Primitives = Ocamldebug_primitives
-module Unix_tools = Ocamldebug_unix_tools
 
 (*** Debugging. ***)
 
