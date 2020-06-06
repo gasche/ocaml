@@ -19,7 +19,7 @@ Working version
 
 ### Internal/compiler-libs changes:
 
-- #9650: keep refactoring the pattern-matching compiler
+- #9650, #9651: keep refactoring the pattern-matching compiler
   (Gabriel Scherer, review by Thomas Refis)
 
 ### Build system:
