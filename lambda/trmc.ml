@@ -814,6 +814,13 @@ and traverse_binding ctx (var, def) =
   | Some lfun ->
   let special = Ident.Map.find var ctx.specialized in
   let fun_choice = choice ctx lfun.body in
+  begin match fun_choice with
+  | Choice.Set _ -> ()
+  | Choice.Return _ ->
+      Location.prerr_warning
+        (Debuginfo.Scoped_location.to_location lfun.loc)
+        Warnings.Unused_trmc_attribute;
+  end;
   let direct =
     Lfunction { lfun with body = Choice.direct fun_choice } in
   let dps =
