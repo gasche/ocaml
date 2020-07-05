@@ -471,6 +471,8 @@ let apply_tailcall_attribute ppf = function
   | Default_tailcall -> ()
   | Should_be_tailcall ->
     fprintf ppf " tailcall"
+  | Should_not_be_tailcall ->
+    fprintf ppf " tailcall(false)"
 
 let apply_inlined_attribute ppf = function
   | Default_inline -> ()
