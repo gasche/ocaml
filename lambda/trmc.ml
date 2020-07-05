@@ -811,6 +811,12 @@ and traverse_binding ctx (var, def) =
   | Some lfun ->
   let cand = Ident.Map.find var ctx.candidates in
   let cand_choice = choice ctx lfun.body in
+  begin match cand_choice with
+  | Choice.Set _ -> ()
+  | Choice.Return _ ->
+      Location.prerr_warning lfun.loc
+        Warnings.Unused_trmc_attribute;
+  end;
   let direct =
     Lfunction { lfun with body = Choice.direct cand_choice } in
   let dps =
