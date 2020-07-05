@@ -77,7 +77,7 @@ type t =
   | Eliminated_optional_arguments of string list (* 48 *)
   | No_cmi_file of string * string option   (* 49 *)
   | Bad_docstring of bool                   (* 50 *)
-  | Expect_tailcall                         (* 51 *)
+  | Expect_tailcall of bool                 (* 51 *)
   | Fragile_literal_pattern                 (* 52 *)
   | Misplaced_attribute of string           (* 53 *)
   | Duplicated_attribute of string          (* 54 *)

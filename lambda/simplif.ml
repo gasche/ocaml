@@ -607,20 +607,24 @@ let rec emit_tail_infos is_tail lambda =
   | Lvar _ -> ()
   | Lconst _ -> ()
   | Lapply ap ->
-      begin match ap.ap_tailcall with
-      | Default_tailcall -> ()
-      | Should_be_tailcall ->
-          (* Note: is_tail does not take backend-specific logic into
-             account (maximum number of parameters, etc.)  so it may
-             over-approximate tail-callness.
+      begin
+        (* Note: is_tail does not take backend-specific logic into
+           account (maximum number of parameters, etc.)  so it may
+           over-approximate tail-callness.
 
-             Trying to do something more fine-grained would result in
-             different warnings depending on whether the native or
-             bytecode compiler is used. *)
-          if not is_tail
-          && Warnings.is_active Warnings.Expect_tailcall
-          then Location.prerr_warning (to_location ap.ap_loc)
-                 Warnings.Expect_tailcall;
+           Trying to do something more fine-grained would result in
+           different warnings depending on whether the native or
+           bytecode compiler is used. *)
+        let maybe_warn ~is_tail ~expect_tail =
+          if is_tail <> expect_tail then
+            Location.prerr_warning (to_location ap.ap_loc)
+              (Warnings.Expect_tailcall expect_tail) in
+        match ap.ap_tailcall with
+        | Default_tailcall -> ()
+        | Should_be_tailcall ->
+            maybe_warn ~is_tail ~expect_tail:true
+        | Should_not_be_tailcall ->
+            maybe_warn ~is_tail ~expect_tail:false
       end;
       emit_tail_infos false ap.ap_func;
       list_emit_tail_infos false ap.ap_args
@@ -886,6 +890,6 @@ let simplify_lambda lam =
     |> simplify_exits
     |> simplify_lets
   in
-  if !Clflags.annotations || Warnings.is_active Warnings.Expect_tailcall
+  if !Clflags.annotations || Warnings.is_active (Warnings.Expect_tailcall true)
     then emit_tail_infos true lam;
   lam
