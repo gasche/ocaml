@@ -213,7 +213,8 @@ type structured_constant =
   | Const_immstring of string
 
 type tailcall_attribute =
-  | Should_be_tailcall (* [@tailcall] *)
+  | Should_be_tailcall (* [@tailcall] or [@tailcall true] *)
+  | Should_not_be_tailcall (* [@tailcall false] *)
   | Default_tailcall (* no [@tailcall] attribute *)
 
 type inline_attribute =
