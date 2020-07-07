@@ -3727,7 +3727,9 @@ let do_for_multiple_match ~scopes loc paraml pat_act_list partial =
       | Total -> (-1, Default_environment.empty)
     in
     let loc = Scoped_location.of_location ~scopes loc in
-    let arg = Lprim (Pmakeblock (0, Immutable, None), paraml, loc) in
+    let arg = Lprim (Pmakeblock (0, Immutable, None),
+                     List.map (fun id -> Lvar id) paraml,
+                     loc) in
     ( raise_num,
       arg,
       { cases = List.map (fun (pat, act) -> ([ pat ], act)) pat_act_list;
@@ -3737,11 +3739,8 @@ let do_for_multiple_match ~scopes loc paraml pat_act_list partial =
   in
   try
     let next, nexts = split_and_precompile ~arg pm1 in
-    let size = List.length paraml
-    and idl = List.map (function
-      | Lvar id -> id
-      | _ -> Ident.create_local "*match*") paraml in
-    let args = List.map (fun id -> (Lvar id, Alias)) idl in
+    let size = List.length paraml in
+    let args = List.map (fun id -> (Lvar id, Alias)) paraml in
     let flat_next = flatten_precompiled size args next
     and flat_nexts =
       List.map (fun (e, pm) -> (e, flatten_precompiled size args pm)) nexts
@@ -3750,33 +3749,20 @@ let do_for_multiple_match ~scopes loc paraml pat_act_list partial =
       comp_match_handlers (compile_flattened ~scopes repr) partial
         (Context.start size) flat_next flat_nexts
     in
-    List.fold_right2 (bind Strict) idl paraml
-      ( match partial with
-      | Partial ->
-          check_total total lam raise_num (partial_function ~scopes loc)
-      | Total ->
-          assert (Jumps.is_empty total);
-          lam
-      )
+    match partial with
+    | Partial ->
+        check_total total lam raise_num (partial_function ~scopes loc)
+    | Total ->
+        assert (Jumps.is_empty total);
+        lam
   with Unused -> assert false
 
-(* ; partial_function loc () *)
-
-(* PR#4828: Believe it or not, the 'paraml' argument below
-   may not be side effect free. *)
-
-let param_to_var param =
-  match param with
-  | Lvar v -> (v, None)
-  | _ -> (Ident.create_local "*match*", Some param)
-
-let bind_opt (v, eo) k =
-  match eo with
-  | None -> k
-  | Some e -> Lambda.bind Strict v e k
-
 let for_multiple_match ~scopes loc paraml pat_act_list partial =
-  let v_paraml = List.map param_to_var paraml in
-  let paraml = List.map (fun (v, _) -> Lvar v) v_paraml in
-  List.fold_right bind_opt v_paraml
-    (do_for_multiple_match ~scopes loc paraml pat_act_list partial)
+  (* PR#4828: Believe it or not, the 'paraml' argument
+     may not be side effect free. *)
+  let idl = List.map (function
+    | Lvar id -> id
+    | _ -> Ident.create_local "*match*") paraml in
+  (* Lambda.bind is a no-op if the two identifiers are equal *)
+  List.fold_right2 (Lambda.bind Strict) idl paraml
+    (do_for_multiple_match ~scopes loc idl pat_act_list partial)
