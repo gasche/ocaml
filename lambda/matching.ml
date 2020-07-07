@@ -3391,7 +3391,7 @@ let check_total total lambda i handler_fun =
   else
     Lstaticcatch (lambda, (i, []), handler_fun ())
 
-let compile_matching ~scopes repr handler_fun arg pat_act_list partial =
+let compile_matching ~scopes compile_fun handler_fun repr partial ctx arg pat_act_list =
   let partial = check_partial pat_act_list partial in
   match partial with
   | Partial -> (
@@ -3405,10 +3405,9 @@ let compile_matching ~scopes repr handler_fun arg pat_act_list partial =
       in
       try
         let lambda, total =
-          compile_match ~scopes repr partial (Context.start 1) pm in
+          compile_fun ~scopes repr partial ctx pm in
         check_total total lambda raise_num handler_fun
       with Unused -> assert false
-      (* ; handler_fun() *)
     )
   | Total ->
       let pm =
@@ -3418,7 +3417,7 @@ let compile_matching ~scopes repr handler_fun arg pat_act_list partial =
         }
       in
       let lambda, total =
-        compile_match ~scopes repr partial (Context.start 1) pm in
+        compile_fun ~scopes repr partial ctx pm in
       assert (Jumps.is_empty total);
       lambda
 
@@ -3447,18 +3446,20 @@ let partial_function ~scopes loc () =
       sloc )
 
 let for_function ~scopes loc repr param pat_act_list partial =
-  let f () = partial_function ~scopes loc () in
-  compile_matching ~scopes repr f param pat_act_list partial
+  compile_matching ~scopes compile_match
+    (partial_function ~scopes loc)
+    repr partial (Context.start 1) param pat_act_list
 
 (* In the following two cases, exhaustiveness info is not available! *)
 let for_trywith ~scopes param pat_act_list =
-  compile_matching ~scopes None
+  compile_matching ~scopes compile_match
     (fun () -> Lprim (Praise Raise_reraise, [ param ], Loc_unknown))
-    param pat_act_list Partial
+    None Partial (Context.start 1) param pat_act_list
 
 let simple_for_let ~scopes loc param pat body =
-  compile_matching ~scopes None (partial_function ~scopes loc)
-    param [ (pat, body) ] Partial
+  compile_matching ~scopes compile_match
+    (partial_function ~scopes loc)
+    None Partial (Context.start 1) param [ (pat, body) ]
 
 (* Optimize binding of immediate tuples
 
@@ -3723,42 +3724,18 @@ let do_for_multiple_match ~scopes loc paraml pat_act_list partial =
            List.map (fun id -> Lvar id) paraml,
            loc)
   in
-  let partial = check_partial pat_act_list partial in
-  let raise_num, arg, pm1 =
-    let raise_num, default =
-      match partial with
-      | Partial ->
-          let raise_num = next_raise_count () in
-          ( raise_num,
-            Default_environment.(cons [ [ Patterns.omega ] ] raise_num empty)
-          )
-      | Total -> (-1, Default_environment.empty)
+  let compile_multiple_match ~scopes repr partial ctx pm1 =
+    let next, nexts = split_and_precompile ~arg pm1 in
+    let flat_next = flatten_precompiled size args next
+    and flat_nexts =
+      List.map (fun (e, pm) -> (e, flatten_precompiled size args pm)) nexts
     in
-    ( raise_num,
-      arg,
-      { cases = List.map (fun (pat, act) -> ([ pat ], act)) pat_act_list;
-        args = [ (arg, Strict) ];
-        default
-      } )
+    comp_match_handlers (compile_flattened ~scopes repr) partial
+      ctx flat_next flat_nexts
   in
-  try
-    let ctx = Context.start size in
-    let lam, total =
-      let next, nexts = split_and_precompile ~arg pm1 in
-      let flat_next = flatten_precompiled size args next
-      and flat_nexts =
-        List.map (fun (e, pm) -> (e, flatten_precompiled size args pm)) nexts
-      in
-      comp_match_handlers (compile_flattened ~scopes repr) partial
-        ctx flat_next flat_nexts
-    in
-    match partial with
-    | Partial ->
-        check_total total lam raise_num (partial_function ~scopes loc)
-    | Total ->
-        assert (Jumps.is_empty total);
-        lam
-  with Unused -> assert false
+  compile_matching ~scopes compile_multiple_match
+    (partial_function ~scopes loc)
+    repr partial (Context.start size) arg pat_act_list
 
 let for_multiple_match ~scopes loc paraml pat_act_list partial =
   (* PR#4828: Believe it or not, the 'paraml' argument
