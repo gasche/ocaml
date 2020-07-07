@@ -3715,6 +3715,14 @@ let compile_flattened ~scopes repr partial ctx pmh =
 
 let do_for_multiple_match ~scopes loc paraml pat_act_list partial =
   let repr = None in
+  let size = List.length paraml in
+  let args = List.map (fun id -> (Lvar id, Alias)) paraml in
+  let arg =
+    let loc = Scoped_location.of_location ~scopes loc in
+    Lprim (Pmakeblock (0, Immutable, None),
+           List.map (fun id -> Lvar id) paraml,
+           loc)
+  in
   let partial = check_partial pat_act_list partial in
   let raise_num, arg, pm1 =
     let raise_num, default =
@@ -3726,10 +3734,6 @@ let do_for_multiple_match ~scopes loc paraml pat_act_list partial =
           )
       | Total -> (-1, Default_environment.empty)
     in
-    let loc = Scoped_location.of_location ~scopes loc in
-    let arg = Lprim (Pmakeblock (0, Immutable, None),
-                     List.map (fun id -> Lvar id) paraml,
-                     loc) in
     ( raise_num,
       arg,
       { cases = List.map (fun (pat, act) -> ([ pat ], act)) pat_act_list;
@@ -3738,16 +3742,15 @@ let do_for_multiple_match ~scopes loc paraml pat_act_list partial =
       } )
   in
   try
-    let next, nexts = split_and_precompile ~arg pm1 in
-    let size = List.length paraml in
-    let args = List.map (fun id -> (Lvar id, Alias)) paraml in
-    let flat_next = flatten_precompiled size args next
-    and flat_nexts =
-      List.map (fun (e, pm) -> (e, flatten_precompiled size args pm)) nexts
-    in
+    let ctx = Context.start size in
     let lam, total =
+      let next, nexts = split_and_precompile ~arg pm1 in
+      let flat_next = flatten_precompiled size args next
+      and flat_nexts =
+        List.map (fun (e, pm) -> (e, flatten_precompiled size args pm)) nexts
+      in
       comp_match_handlers (compile_flattened ~scopes repr) partial
-        (Context.start size) flat_next flat_nexts
+        ctx flat_next flat_nexts
     in
     match partial with
     | Partial ->
