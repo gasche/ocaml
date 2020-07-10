@@ -594,11 +594,9 @@ let rec choice ctx t =
           let candidate =
             try Ident.Map.find f ctx.candidates
             with Not_found ->
-              (* TODO warn: tail-callness of the call is broken in
-                 the destination-passing-style version; either the function [f]
-                 should be marked as trmc-specializable at the callsite,
-                 or the user should add [@tailcall false] to clarify
-                 that they are aware of this limitation. *)
+              Location.prerr_warning
+                (Debuginfo.Scoped_location.to_location apply.ap_loc)
+                Warnings.Trmc_breaks_tailcall;
               raise No_trmc
           in
           Choice.Set {
