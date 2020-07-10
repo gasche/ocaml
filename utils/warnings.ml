@@ -92,9 +92,9 @@ type t =
   | Redefining_unit of string               (* 65 *)
   | Unused_open_bang of string              (* 66 *)
   | Unused_functor_parameter of string      (* 67 *)
-  | Invalid_tmc_attribute                   (* 68 *)
-  | Unused_tmc_attribute                    (* 69 *)
-  | Potential_tmc_call                      (* 70 *)
+  | Invalid_tmc_attribute                  (* 68 *)
+  | Unused_tmc_attribute                   (* 69 *)
+  | Tmc_breaks_tailcall                    (* 70 *)
 ;;
 
 (* If you remove a warning, leave a hole in the numbering.  NEVER change
@@ -175,7 +175,7 @@ let number = function
   | Unused_functor_parameter _ -> 67
   | Invalid_tmc_attribute -> 68
   | Unused_tmc_attribute -> 69
-  | Potential_tmc_call -> 70
+  | Tmc_breaks_tailcall -> 70
 ;;
 
 let last_warning_number = 70
@@ -399,7 +399,7 @@ let parse_options errflag s =
   current := {(!current) with error; active}
 
 (* If you change these, don't forget to change them in man/ocamlc.m *)
-let defaults_w = "+a-4-6-7-9-27-29-30-32..42-44-45-48-50-60-66-67-70";;
+let defaults_w = "+a-4-6-7-9-27-29-30-32..42-44-45-48-50-60-66-67";;
 let defaults_warn_error = "-a+31";;
 
 let () = parse_options false defaults_w;;
@@ -639,11 +639,16 @@ let message = function
          Hint: Did you mean 'type %s = unit'?" name
   | Unused_functor_parameter s -> "unused functor parameter " ^ s ^ "."
   | Invalid_tmc_attribute ->
-      "@tail_mod_cons attribute is only applicable on recursive function bindings"
+      "The @tail_mod_cons attribute is only applicable on recursive function bindings."
   | Unused_tmc_attribute ->
-      "this function is marked @tail_mod_cons but is never applied in TMC position"
-  | Potential_tmc_call ->
-      "this function is applied in TMC position"
+      "This function is marked @tail_mod_cons but is never applied in TMC position."
+  | Tmc_breaks_tailcall ->
+      "This call is in tail-modulo-cons position in a TMC function,\n\
+       but the function called is not itself specialized for TMC,\n\
+       so the call will not be in tail position in the transformed version.\n\
+       Please either mark the called function with the [@tail_mod_cons] attribute,\n\
+       or mark this call with the [@tailcall false] attribute to make its\n\
+       non-tailness explicit."
 ;;
 
 let nerrors = ref 0;;
@@ -789,9 +794,9 @@ let descriptions =
    65, "Type declaration defining a new '()' constructor.";
    66, "Unused open! statement.";
    67, "Unused functor parameter.";
-   68, "Warning on non-recursive functions with @trmc attribute";
-   69, "Unused @trmc attribute";
-   70, "Warning on functions which would benefit from a @trmc attribute";
+   68, "Warning on non-recursive functions with @tail_mod_cons attribute";
+   69, "Unused @tail_mod_cons attribute";
+   70, "Warning on functions which would benefit from a @tail_mod_cons attribute";
   ]
 ;;
 
