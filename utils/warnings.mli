@@ -96,7 +96,7 @@ type t =
   | Unused_functor_parameter of string      (* 67 *)
   | Invalid_tmc_attribute                   (* 68 *)
   | Unused_tmc_attribute                    (* 69 *)
-  | Potential_tmc_call                      (* 70 *)
+  | Tmc_breaks_tailcall                     (* 70 *)
 ;;
 
 type alert = {kind:string; message:string; def:loc; use:loc}
