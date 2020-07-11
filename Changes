@@ -191,6 +191,10 @@ Working version
   (Xavier Van de Woestyne, report by whitequark, review by Florian Angeletti
   and Gabriel Scherer)
 
+- #????: allow [@tailcall true] (equivalent to [@tailcall]) and
+  [@tailcall false] (warns if on a tailcall)
+  (Gabriel Scherer, review by ?)
+
 ### Internal/compiler-libs changes:
 
 - #9216: add Lambda.duplicate which refreshes bound identifiers
