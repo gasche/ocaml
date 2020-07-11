@@ -17,7 +17,7 @@ end
 Line 5, characters 4-34:
 5 |     Node (map f left, map f right)
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: [@tail_mod_cons]: this constructor application may be trmc-transformed
+Error: [@tail_mod_cons]: this constructor application may be TMC-transformed
        in several different ways. Please disambiguate by adding an explicit
        [@tailcall] attribute to the call that should be made tail-recursive,
        or a [@tailcall false] attribute on calls that should not be
