@@ -75,7 +75,7 @@ type t =
   | Eliminated_optional_arguments of string list (* 48 *)
   | No_cmi_file of string * string option   (* 49 *)
   | Bad_docstring of bool                   (* 50 *)
-  | Expect_tailcall                         (* 51 *)
+  | Expect_tailcall of bool                 (* 51 *)
   | Fragile_literal_pattern                 (* 52 *)
   | Misplaced_attribute of string           (* 53 *)
   | Duplicated_attribute of string          (* 54 *)
@@ -153,7 +153,7 @@ let number = function
   | Eliminated_optional_arguments _ -> 48
   | No_cmi_file _ -> 49
   | Bad_docstring _ -> 50
-  | Expect_tailcall -> 51
+  | Expect_tailcall _ -> 51
   | Fragile_literal_pattern -> 52
   | Misplaced_attribute _ -> 53
   | Duplicated_attribute _ -> 54
@@ -565,8 +565,9 @@ let message = function
   | Bad_docstring unattached ->
       if unattached then "unattached documentation comment (ignored)"
       else "ambiguous documentation comment"
-  | Expect_tailcall ->
-      Printf.sprintf "expected tailcall"
+  | Expect_tailcall b ->
+      Printf.sprintf "expected %s"
+        (if b then "tailcall" else "non-tailcall")
   | Fragile_literal_pattern ->
       Printf.sprintf
         "Code should not depend on the actual values of\n\
