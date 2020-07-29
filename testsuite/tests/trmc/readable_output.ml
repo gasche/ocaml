@@ -18,7 +18,9 @@ let[@tail_mod_cons] rec map f = function
     map_dps
       (function dst offset[int] f param tail_mod_cons
         (if param
-          (let (block = (makemutable 0 (apply f (field 0 param)) 0))
+          (let
+            (arg_before_0 = (apply f (field 0 param))
+             block = (makemutable 0 arg_before_0 0))
             (seq (setfield_ptr(heap-init)_computed dst offset block)
               (apply map_dps block 1 f (field 1 param) tailcall)))
           (setfield_ptr(heap-init)_computed dst offset 0))))
@@ -54,7 +56,8 @@ let[@tail_mod_cons] rec rec_map f = function
         (if param
           (let
             (*match* =a (field 0 param)
-             block = (makemutable 0 (apply f (field 0 *match*)) 0))
+             arg_before_0 = (apply f (field 0 *match*))
+             block = (makemutable 0 arg_before_0 0))
             (seq
               (setfield_ptr(heap-init)_computed dst offset
                 (makeblock 0 block))
@@ -89,7 +92,8 @@ let[@tail_mod_cons] rec trip = function
             (x =a (field 0 param)
              arg_before_0 = (makeblock 0 (*,int) x 0)
              arg_before_0 = (makeblock 0 (*,int) x 1)
-             block = (makemutable 0 (makeblock 0 (*,int) x 2) 0))
+             arg_before_0 = (makeblock 0 (*,int) x 2)
+             block = (makemutable 0 arg_before_0 0))
             (seq
               (setfield_ptr(heap-init)_computed dst offset
                 (makeblock 0 arg_before_0 (makeblock 0 arg_before_0 block)))
@@ -122,7 +126,8 @@ let[@tail_mod_cons] rec effects f = function
           (let
             (*match* =a (field 0 param)
              arg_before_0 = (apply f (field 0 *match*))
-             block = (makemutable 0 (apply f (field 1 *match*)) 0))
+             arg_before_0 = (apply f (field 1 *match*))
+             block = (makemutable 0 arg_before_0 0))
             (seq
               (setfield_ptr(heap-init)_computed dst offset
                 (makeblock 0 arg_before_0 block))
@@ -154,12 +159,13 @@ let[@tail_mod_cons] rec map_stutter f xs =
            0)))
     map_stutter_dps
       (function dst offset[int] f xs tail_mod_cons
-        (let (block = (makemutable 0 (apply f 0) 0))
+        (let
+          (arg_before_0 = (apply f 0) block = (makemutable 0 arg_before_0 0))
           (seq (setfield_ptr(heap-init)_computed dst offset block)
             (if xs
               (let
-                (block =
-                   (makemutable 0 (apply f (makeblock 0 (field 0 xs))) 0))
+                (arg_before_0 = (apply f (makeblock 0 (field 0 xs)))
+                 block = (makemutable 0 arg_before_0 0))
                 (seq (setfield_ptr(heap-init)_computed block 1 block)
                   (apply map_stutter_dps block 1 f (field 1 xs) tailcall)))
               (setfield_ptr(heap-init)_computed block 1 0))))))
