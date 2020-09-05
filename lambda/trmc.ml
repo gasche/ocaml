@@ -124,8 +124,8 @@ module Constr = struct
       bar_with_tmc_inside] for example), and we want to preserve the
       evaluation order of the other arguments of the constructor.  So we bind
       them before proceeding, unless they are obviously side-effect free. *)
-  let delay_impure : t -> (t -> lambda) -> lambda =
-    let bind_list name lambdas k =
+  let delay_impure : block_id:int -> t -> (t -> lambda) -> lambda =
+    let bind_list ~block_id ~arg_offset lambdas k =
       let can_be_delayed =
         (* Note that the delayed subterms will be used
            exactly once in the linear-static subterm. So
@@ -139,7 +139,8 @@ module Constr = struct
         |> List.mapi (fun i lam ->
             if can_be_delayed lam then (None, lam)
             else begin
-              let v = Ident.create_local (Printf.sprintf "arg_%s_%d" name i) in
+              let v = Ident.create_local
+                  (Printf.sprintf "block%d_arg%d" block_id (arg_offset + i)) in
               (Some (v, lam), Lvar v)
             end)
         |> List.split in
@@ -149,9 +150,10 @@ module Constr = struct
           | None -> body
           | Some (v, lam) -> Llet(Strict, Pgenval, v, lam, body)
         ) bindings body in
-    fun con body ->
-    bind_list "before" con.before @@ fun vbefore ->
-    bind_list "after" con.after @@ fun vafter ->
+    fun ~block_id con body ->
+    bind_list ~block_id ~arg_offset:0 con.before @@ fun vbefore ->
+    let arg_offset = List.length con.before + 1 in
+    bind_list ~block_id ~arg_offset con.after @@ fun vafter ->
     body { con with before = vbefore; after = vafter }
 end
 
@@ -652,7 +654,8 @@ let rec choice ctx t =
               Lsequence(Choice.dps choice ~tail:false ~dst:block_dst,
                         block));
           dps = (fun ~tail ~dst ~delayed ->
-            Constr.delay_impure con @@ fun con ->
+            let block_id = List.length delayed in
+            Constr.delay_impure ~block_id con @@ fun con ->
             choice.dps ~tail ~dst ~delayed:(con :: delayed));
           has_tmc_calls =
             (* [choice] must have TMC calls, because that is what the
