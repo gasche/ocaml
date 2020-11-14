@@ -950,6 +950,9 @@ end = struct
     | Class_type -> names.class_types
 
   let check cl t loc id (info : info) =
+    Format.eprintf "@[check %s %a@]@."
+      (Sig_component_kind.to_string cl)
+      Ident.print id;
     let to_be_removed = t.to_be_removed in
     match info with
     | `Substituted_away s ->
@@ -1005,6 +1008,9 @@ end = struct
       | Sig_class (id, _, _, _) -> Class, id
       | Sig_class_type (id, _, _, _) -> Class_type, id
     in
+    Format.eprintf "@[check_sig_item %s %a@]@."
+      (Sig_component_kind.to_string component_kind)
+      Ident.print id;
     let info =
       match info with
       | None -> `Shadowable (id, loc)
@@ -1023,7 +1029,7 @@ end = struct
      [Cannot_hide_id].
   *)
   let simplify env t sg =
-    Format.eprintf "[@simplify@]@.";
+    Format.eprintf "@[simplify@]@.";
     let to_remove = t.to_be_removed in
     let ids_to_remove =
       Ident.Map.fold (fun id (kind,  _, _) lst ->
