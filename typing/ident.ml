@@ -51,7 +51,6 @@ let name = function
   | Scoped { name; _ }
   | Global name
   | Predef { name; _ } -> name
-
 let rename = function
   | Local { name; stamp = _ }
   | Scoped { name; stamp = _; scope = _ } ->

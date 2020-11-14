@@ -952,6 +952,8 @@ end = struct
         | Some (`Shadowable (shadowed_id, shadowed_loc)) ->
             Hashtbl.replace tbl name bound_info;
             let reason = Shadowed_by (id, loc) in
+            Format.eprintf "@[check: %a shadowed by %a@]@."
+              Ident.print shadowed_id Ident.print id;
             to_be_removed.hide <-
               Ident.Map.add shadowed_id (cl, shadowed_loc, reason)
                 to_be_removed.hide
@@ -1013,8 +1015,8 @@ end = struct
      If some reference cannot be removed, then we error out with
      [Cannot_hide_id].
   *)
-
   let simplify env t sg =
+    Format.eprintf "[@simplify@]@.";
     let to_remove = t.to_be_removed in
     let ids_to_remove =
       Ident.Map.fold (fun id (kind,  _, _) lst ->
@@ -1036,9 +1038,11 @@ end = struct
         | Sig_class (id, c, _, _) -> Class, id, c.cty_loc
         | Sig_class_type (id, ct, _, _) -> Class_type, id, ct.clty_loc
       in
+      Format.eprintf "@[user_id %a (%s)@]@." Ident.print user_id (Sig_component_kind.to_string user_kind);
       if Ident.Map.mem user_id to_remove.hide then
-        sg
+        (Format.eprintf "@[to_remove@]@."; sg)
       else begin
+        Format.eprintf "@[kept@]@.";
         let component =
           if to_remove.subst == Subst.identity then
             component
@@ -1051,6 +1055,7 @@ end = struct
           | ids ->
             try Mtype.nondep_sig_item env ids component with
             | Ctype.Nondep_cannot_erase removed_item_id ->
+              Format.eprintf "@[cannot_erase@]@.";
               let (removed_item_kind, removed_item_loc, reason) =
                 Ident.Map.find removed_item_id to_remove.hide
               in
