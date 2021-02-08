@@ -47,7 +47,7 @@ let arg_mem b {arch; typ=_; idx; scale; base; sym; displ} =
     | None -> ()
     | Some base -> print_reg b string_of_register base
     end;
-    if base != None || scale <> 1 then Buffer.add_char b ',';
+    if base <> None || scale <> 1 then Buffer.add_char b ',';
     print_reg b string_of_register idx;
     if scale <> 1 then bprintf b ",%s" (Int.to_string scale);
     Buffer.add_char b ')'
