@@ -168,14 +168,14 @@ int caml_startup_aux(int pooling)
   caml_verb_gc = 0x3F;
 #endif
   caml_parse_ocamlrunparam();
-  if (caml_cleanup_on_exit)
-    pooling = 1;
+  if (pooling)
+    caml_cleanup_on_exit = 1;
 
 #ifdef DEBUG
   caml_gc_message(-1, "### OCaml runtime: debug mode ###\n");
 #endif
 
-  if (pooling)
+  if (caml_cleanup_on_exit)
     caml_stat_create_pool();
 
   /* caml_stat_alloc* functions are available after this point */

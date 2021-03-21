@@ -80,8 +80,9 @@ Working version
 
 - #10304: Fix a crash in the instrumented runtime in pooled mode, and
    fix some leaks in the normal runtime in pooled mode or when calling
-   caml_startup* several times.
-  (Guillaume Munch-Maccagnoni, review by )
+   caml_startup* several times. In addition, properly free up memory
+   on shutdown after starting with `caml_startup_pooled`.
+  (Guillaume Munch-Maccagnoni, review by Gabriel Scherer)
 
 ### Code generation and optimizations:
 
