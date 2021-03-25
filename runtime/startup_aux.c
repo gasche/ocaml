@@ -150,18 +150,32 @@ static int startup_count = 0;
 /* Has the runtime been shut down already? */
 static int shutdown_happened = 0;
 
-int caml_startup_aux(int pooling)
+int caml_startup_needed()
 {
   if (shutdown_happened == 1)
     caml_fatal_error("caml_startup was called after the runtime "
                      "was shut down with caml_shutdown");
 
-  /* Second and subsequent calls are ignored,
+  /* Second and subsequent startups are ignored,
      since the runtime has already started */
   startup_count++;
-  if (startup_count > 1)
-    return 0;
+  return (startup_count == 1);
+}
 
+
+int caml_shutdown_needed()
+{
+  if (startup_count <= 0)
+    caml_fatal_error("a call to caml_shutdown has no "
+                     "corresponding call to caml_startup");
+
+  /* Do nothing unless it's the last call remaining */
+  startup_count--;
+  return (startup_count == 0);
+}
+
+void caml_startup_aux(int pooling)
+{
   /* Determine options */
 #ifdef DEBUG
   caml_verb_gc = 0x3F;
@@ -196,8 +210,6 @@ int caml_startup_aux(int pooling)
   caml_init_backtrace();
   caml_record_backtrace(Val_int(record_backtrace));
   init_atom_table();
-
-  return 1;
 }
 
 static void call_registered_value(char* name)
@@ -209,13 +221,7 @@ static void call_registered_value(char* name)
 
 CAMLexport void caml_shutdown(void)
 {
-  if (startup_count <= 0)
-    caml_fatal_error("a call to caml_shutdown has no "
-                     "corresponding call to caml_startup");
-
-  /* Do nothing unless it's the last call remaining */
-  startup_count--;
-  if (startup_count > 0)
+  if (!caml_shutdown_needed())
     return;
 
   call_registered_value("Pervasives.do_at_exit");

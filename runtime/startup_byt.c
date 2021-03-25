@@ -459,10 +459,11 @@ CAMLexport void caml_main(char_os **argv)
   char_os * shared_lib_path, * shared_libs;
   char_os * exe_name, * proc_self_exe;
 
-  if (!caml_startup_aux(0)) {
-    /* startup was already done once */
-    return;
+  if (!caml_startup_needed()) {
+      return;
   }
+
+  caml_startup_aux(0);
 
   caml_ext_table_init(&caml_shared_libs_path, 8);
 
@@ -582,10 +583,11 @@ CAMLexport value caml_startup_code_exn(
   char_os * cds_file;
   char_os * exe_name;
 
-  if (!caml_startup_aux(pooling)) {
-    /* startup was already done once */
+  if (!caml_startup_needed()) {
     return Val_unit;
   }
+
+  caml_startup_aux(pooling);
 
   cds_file = caml_secure_getenv(T("CAML_DEBUG_FILE"));
   if (cds_file != NULL) {

@@ -103,10 +103,11 @@ value caml_startup_common(char_os **argv, int pooling)
   char_os * exe_name, * proc_self_exe;
   char tos;
 
-  if (!caml_startup_aux(pooling)) {
-    /* startup was already done once */
+  if (!caml_startup_needed()) {
     return Val_unit;
   }
+
+  caml_startup_aux(pooling);
 
   caml_init_frame_descriptors();
   Caml_state->top_of_stack = &tos;

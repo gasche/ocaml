@@ -27,10 +27,12 @@ extern uintnat caml_init_max_stack_wsz;
 extern uintnat caml_trace_level;
 extern int caml_cleanup_on_exit;
 
+/* Returns 0 if the runtime is already initialized. */
+extern int caml_startup_needed();
+
 /* Common entry point to caml_startup.
-   Returns 0 if the runtime is already initialized.
    If [pooling] is 1, [caml_stat_*] functions will be backed by a pool. */
-extern int caml_startup_aux (int pooling);
+extern void caml_startup_aux (int pooling);
 
 #endif /* CAML_INTERNALS */
 
