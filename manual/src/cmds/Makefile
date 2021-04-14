@@ -28,7 +28,7 @@ all: $(FILES)
 	mv $*.texquote_error.tex $@
 
 warnings-help.etex: ../warnings-help.etex
-	sed 's/@/\\@/g' $< > $@
+	cp $< $@
 
 
 .PHONY: clean
