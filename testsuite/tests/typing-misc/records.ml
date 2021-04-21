@@ -241,8 +241,12 @@ Line 1, characters 0-31:
 1 | type wrong_type = d = {x:float}
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Error: This variant or record definition does not match that of type d
-       1. An extra field, x, is provided in the original definition.
-       2. Fields have different names, y and x.
+       1. Fields do not match:
+         x : int;
+       is not compatible with:
+         x : float;
+       The types are not equal.
+       2. An extra field, y, is provided in the original definition.
 |}]
 
 type mono = {foo:int}

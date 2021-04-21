@@ -96,8 +96,12 @@ Line 1, characters 0-32:
 1 | type wrong_type = d = X of float
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Error: This variant or record definition does not match that of type d
-       1. An extra constructor, X, is provided in the original definition.
-       2. Constructors have different names, Y and X.
+       1. Constructors do not match:
+         X of int
+       is not compatible with:
+         X of float
+       The types are not equal.
+       2. An extra constructor, Y, is provided in the original definition.
 |}]
 
 type mono = Foo of float
