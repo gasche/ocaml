@@ -242,3 +242,8 @@ let labels_of_type ty_path decl =
       label_descrs (newgenconstr ty_path decl.type_params)
         labels rep decl.type_private
   | Type_variant _ | Type_abstract | Type_open -> []
+
+let () =
+  Env.Datarepr.extension_descr := extension_descr;
+  Env.Datarepr.labels_of_type := labels_of_type;
+  Env.Datarepr.constructors_of_type := constructors_of_type;

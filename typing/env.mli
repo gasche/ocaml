@@ -446,6 +446,20 @@ val print_longident: (Format.formatter -> Longident.t -> unit) ref
 (* Forward declaration to break mutual recursion with Printtyp. *)
 val print_path: (Format.formatter -> Path.t -> unit) ref
 
+(* Forward declarations to break mutual recursion with Datarepr *)
+module Datarepr : sig
+  val extension_descr :
+    (current_unit:string -> Path.t -> extension_constructor ->
+     constructor_description) ref
+
+  val labels_of_type :
+    (Path.t -> type_declaration ->
+     (Ident.t * label_description) list) ref
+
+  val constructors_of_type :
+    (current_unit:string -> Path.t -> type_declaration ->
+     (Ident.t * constructor_description) list) ref
+end
 
 (** Folds *)
 

@@ -750,6 +750,24 @@ let strengthen =
   ref ((fun ~aliasable:_ _env _mty _path -> assert false) :
          aliasable:bool -> t -> module_type -> Path.t -> module_type)
 
+module Datarepr = struct
+  (* to be filled by Datarepr *)
+  let extension_descr =
+    ref ((fun ~current_unit:_ _ _ -> assert false) :
+           current_unit:string -> Path.t -> extension_constructor ->
+         constructor_description)
+
+  let labels_of_type =
+    ref ((fun _ _ -> assert false) :
+           Path.t -> type_declaration ->
+         (Ident.t * label_description) list)
+
+  let constructors_of_type =
+    ref ((fun ~current_unit:_ _ _ -> assert false) :
+           current_unit:string -> Path.t -> type_declaration ->
+         (Ident.t * constructor_description) list)
+end
+
 let md md_type =
   {md_type; md_attributes=[]; md_loc=Location.none
   ;md_uid = Uid.internal_not_actually_unique}
@@ -1083,7 +1101,7 @@ let find_ident_label id env =
 let type_of_cstr path = function
   | {cstr_inlined = Some decl; _} ->
       let labels =
-        List.map snd (Datarepr.labels_of_type path decl)
+        List.map snd (!Datarepr.labels_of_type path decl)
       in
       begin match decl.type_kind with
       | Type_record (_, repr) ->
@@ -1673,7 +1691,7 @@ let rec components_of_module_maker
               match decl.type_kind with
               | Type_variant _ ->
                   let cstrs = List.map snd
-                    (Datarepr.constructors_of_type path final_decl
+                    (!Datarepr.constructors_of_type path final_decl
                         ~current_unit:(get_unit_name ()))
                   in
                   List.iter
@@ -1688,7 +1706,7 @@ let rec components_of_module_maker
                  Type_variant cstrs
               | Type_record (_, repr) ->
                   let lbls = List.map snd
-                    (Datarepr.labels_of_type path final_decl)
+                    (!Datarepr.labels_of_type path final_decl)
                   in
                   List.iter
                     (fun descr ->
@@ -1708,7 +1726,7 @@ let rec components_of_module_maker
         | Sig_typext(id, ext, _, _) ->
             let ext' = Subst.extension_constructor sub ext in
             let descr =
-              Datarepr.extension_descr ~current_unit:(get_unit_name ()) path
+              !Datarepr.extension_descr ~current_unit:(get_unit_name ()) path
                 ext'
             in
             let addr = next_address () in
@@ -1841,7 +1859,7 @@ and store_type ~check id info env =
   let descrs, env =
     match info.type_kind with
     | Type_variant _ ->
-        let constructors = Datarepr.constructors_of_type path info
+        let constructors = !Datarepr.constructors_of_type path info
                             ~current_unit:(get_unit_name ())
         in
         if check && not loc.Location.loc_ghost &&
@@ -1880,7 +1898,7 @@ and store_type ~check id info env =
               constructors env.constrs;
         }
     | Type_record (_, repr) ->
-        let labels = Datarepr.labels_of_type path info in
+        let labels = !Datarepr.labels_of_type path info in
         if check && not loc.Location.loc_ghost &&
           Warnings.is_active (Warnings.Unused_field ("", Unused))
         then begin
@@ -1937,7 +1955,7 @@ and store_type_infos id info env =
 and store_extension ~check ~rebind id addr ext env =
   let loc = ext.ext_loc in
   let cstr =
-    Datarepr.extension_descr ~current_unit:(get_unit_name ()) (Pident id) ext
+    !Datarepr.extension_descr ~current_unit:(get_unit_name ()) (Pident id) ext
   in
   let cda = { cda_description = cstr; cda_address = Some addr } in
   if check && not loc.Location.loc_ghost &&
