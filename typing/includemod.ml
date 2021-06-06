@@ -797,32 +797,41 @@ let compunit env ~mark impl_name impl_sig intf_name intf_sig =
  *)
 
 module Functor_inclusion_diff = struct
-  open Diffing
+  module Diffable = struct
+    type left = Types.functor_parameter
+    type right = left
+    type eq = Typedtree.module_coercion
+    type diff = (Types.functor_parameter, unit) Error.functor_param_symptom
 
-  let param_name = function
+    type change = (left, right, eq, diff) Diffing.change
+    type patch = change list
+
+    let param_name = function
       | Named(x,_) -> x
       | Unit -> None
 
-  let weight = function
-    | Insert _ -> 10
-    | Delete _ -> 10
-    | Change _ -> 10
-    | Keep (param1, param2, _) -> begin
-        match param_name param1, param_name param2 with
-        | None, None
-          -> 0
-        | Some n1, Some n2
-          when String.equal (Ident.name n1) (Ident.name n2)
-          -> 0
-        | Some _, Some _ -> 1
-        | Some _,  None | None, Some _ -> 1
-      end
+    let weight =
+      let open Diffing in
+      function
+      | Insert _ -> 10
+      | Delete _ -> 10
+      | Change _ -> 10
+      | Keep (param1, param2, _) -> begin
+          match param_name param1, param_name param2 with
+          | None, None
+            -> 0
+          | Some n1, Some n2
+            when String.equal (Ident.name n1) (Ident.name n2)
+            -> 0
+          | Some _, Some _ -> 1
+          | Some _,  None | None, Some _ -> 1
+        end
 
-  type state = {
-    res: module_type option;
-    env: Env.t;
-    subst: Subst.t;
-  }
+    type state = {
+      res: module_type option;
+      env: Env.t;
+      subst: Subst.t;
+    }
 
   let keep_expansible_param = function
     | Mty_ident _ | Mty_alias _ as mty -> Some mty
@@ -839,16 +848,18 @@ module Functor_inclusion_diff = struct
 
   let expand_params state  =
     match lookup_expansion state with
-    | None -> state, [||]
-    | Some (res, expansion) -> { state with res }, expansion
+    | None -> state, None, None
+    | Some (res, expansion) -> { state with res }, Some expansion, None
 
-  let update d st = match d with
+  let update d st =
+    let open Diffing in
+    match d with
     | Insert (Unit | Named (None,_))
     | Delete (Unit | Named (None,_))
     | Keep (Unit,_,_)
     | Keep (_,Unit,_)
     | Change (_,(Unit | Named (None,_)), _) ->
-        st, [||]
+        st, None, None
     | Insert (Named (Some id, arg))
     | Delete (Named (Some id, arg))
     | Change (Unit, Named (Some id, arg), _) ->
@@ -865,100 +876,115 @@ module Functor_inclusion_diff = struct
             expand_params { st with env; subst }
         | None, Some id2 ->
             let env = Env.add_module id2 Mp_present arg' st.env in
-            { st with env }, [||]
+            { st with env }, None, None
         | Some id1, None ->
             let env = Env.add_module id1 Mp_present arg' st.env in
             expand_params { st with env }
         | None, None ->
-            st, [||]
+            st, None, None
       end
 
-  let diff env (l1,res1) (l2,_) =
-    let update = Diffing.With_left_extensions update in
-    let test st mty1 mty2 =
-      let loc = Location.none in
-      let res, _, _ =
-        functor_param ~loc st.env ~mark:Mark_neither st.subst mty1 mty2
-      in
-      res
+  let test st mty1 mty2 =
+    let loc = Location.none in
+    let res, _, _ =
+      functor_param ~loc st.env ~mark:Mark_neither st.subst mty1 mty2
     in
+    res
+
+  end
+
+  module Diff = Diffing.Make(Diffable)
+
+  let diff env (l1,res1) (l2,_) =
     let param1 = Array.of_list l1 in
     let param2 = Array.of_list l2 in
     let state =
-      { env; subst = Subst.identity; res = keep_expansible_param res1}
+      Diffable.{ env; subst = Subst.identity; res = keep_expansible_param res1}
     in
-    Diffing.variadic_diff ~weight ~test ~update state param1 param2
-
+    Diff.diff state param1 param2
 end
 
 module Functor_app_diff = struct
-  module I = Functor_inclusion_diff
+  module I = Functor_inclusion_diff.Diffable
   open Diffing
 
-  let weight = function
-    | Insert _ -> 10
-    | Delete _ -> 10
-    | Change _ -> 10
-    | Keep (param1, param2, _) ->
-        (* We assign a small penalty to named arguments with
-           non-matching names *)
-        begin
-          let desc1 : Error.functor_arg_descr = fst param1 in
-          match desc1, I.param_name param2 with
-          | (Unit | Anonymous) , None
-            -> 0
-          | Named (Path.Pident n1), Some n2
-            when String.equal (Ident.name n1) (Ident.name n2)
-            -> 0
-          | Named _, Some _ -> 1
-          | Named _,  None | (Unit | Anonymous), Some _ -> 1
+  module Diffable = struct
+    type left = Error.functor_arg_descr * Types.module_type
+    type right = Types.functor_parameter
+
+    type eq = Typedtree.module_coercion
+    type diff = (Error.functor_arg_descr, unit) Error.functor_param_symptom
+
+    type change = (left, right, eq, diff) Diffing.change
+    type patch = change list
+
+    type state = I.state
+
+    let weight = function
+      | Insert _ -> 10
+      | Delete _ -> 10
+      | Change _ -> 10
+      | Keep (param1, param2, _) ->
+          (* We assign a small penalty to named arguments with
+             non-matching names *)
+          begin
+            let desc1 : Error.functor_arg_descr = fst param1 in
+            match desc1, I.param_name param2 with
+            | (Unit | Anonymous) , None
+              -> 0
+            | Named (Path.Pident n1), Some n2
+              when String.equal (Ident.name n1) (Ident.name n2)
+              -> 0
+            | Named _, Some _ -> 1
+            | Named _,  None | (Unit | Anonymous), Some _ -> 1
+          end
+
+    let expand_params st =
+      let state, left, right = I.expand_params st in
+      state, right, left
+
+    let update (d: change) (st:state) =
+      let open Error in
+      match d with
+      | Insert _
+      | Delete _
+      | Keep ((Unit,_),_,_)
+      | Keep (_,Unit,_)
+      | Change (_,(Unit | Named (None,_)), _ )
+      | Change ((Unit,_), Named (Some _, _), _) ->
+          st, None, None
+      | Keep ((Named arg,  _mty) , Named (param_name, _param), _)
+      | Change ((Named arg, _mty), Named (param_name, _param), _) ->
+          begin match param_name with
+          | Some param ->
+              let res =
+                Option.map (fun res ->
+                    let scope = Ctype.create_scope () in
+                    let subst = Subst.add_module param arg Subst.identity in
+                    Subst.modtype (Rescope scope) subst res
+                  )
+                  st.res
+              in
+              let subst = Subst.add_module param arg st.subst in
+              expand_params { st with subst; res }
+          | None ->
+              st, None, None
+          end
+      | Keep ((Anonymous, mty) , Named (param_name, _param), _)
+      | Change ((Anonymous, mty), Named (param_name, _param), _) -> begin
+          begin match param_name with
+          | Some param ->
+              let mty' = Subst.modtype Keep st.subst mty in
+              let env =
+                Env.add_module ~arg:true param Mp_present mty' st.env in
+              let res =
+                Option.map (Mtype.nondep_supertype env [param]) st.res in
+              expand_params { st with env; res}
+          | None ->
+              st, None, None
+          end
         end
 
-  let update (d: (_,Types.functor_parameter,_,_) change) (st:I.state) =
-    let open Error in
-    match d with
-    | Insert _
-    | Delete _
-    | Keep ((Unit,_),_,_)
-    | Keep (_,Unit,_)
-    | Change (_,(Unit | Named (None,_)), _ )
-    | Change ((Unit,_), Named (Some _, _), _) ->
-        st, [||]
-    | Keep ((Named arg,  _mty) , Named (param_name, _param), _)
-    | Change ((Named arg, _mty), Named (param_name, _param), _) ->
-        begin match param_name with
-        | Some param ->
-            let res =
-              Option.map (fun res ->
-                  let scope = Ctype.create_scope () in
-                  let subst = Subst.add_module param arg Subst.identity in
-                  Subst.modtype (Rescope scope) subst res
-                )
-                st.res
-            in
-            let subst = Subst.add_module param arg st.subst in
-            I.expand_params { st with subst; res }
-        | None ->
-            st, [||]
-        end
-    | Keep ((Anonymous, mty) , Named (param_name, _param), _)
-    | Change ((Anonymous, mty), Named (param_name, _param), _) -> begin
-        begin match param_name with
-        | Some param ->
-            let mty' = Subst.modtype Keep st.subst mty in
-            let env =
-              Env.add_module ~arg:true param Mp_present mty' st.env in
-            let res =
-              Option.map (Mtype.nondep_supertype env [param]) st.res in
-            I.expand_params { st with env; res}
-        | None ->
-            st, [||]
-        end
-      end
-
-  let diff env ~f ~args =
-    let params, res = retrieve_functor_params env f in
-    let update = Diffing.With_right_extensions update in
     let test (state:I.state) (arg,arg_mty) param =
       let loc = Location.none in
       let res = match (arg:Error.functor_arg_descr), param with
@@ -974,13 +1000,18 @@ module Functor_app_diff = struct
             | Ok _ as x -> x
       in
       res
-    in
+  end
+
+  module Diff = Diffing.Make(Diffable)
+
+  let diff env ~f ~args =
+    let params, res = retrieve_functor_params env f in
     let args = Array.of_list args in
     let params = Array.of_list params in
     let state : I.state =
       { env; subst = Subst.identity; res = I.keep_expansible_param res }
     in
-    Diffing.variadic_diff ~weight ~test ~update state args params
+    Diff.diff state args params
 
 end
 

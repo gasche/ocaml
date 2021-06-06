@@ -221,7 +221,7 @@ module Functor_inclusion_diff: sig
            Types.functor_parameter list * Types.module_type ->
            (Types.functor_parameter, Types.functor_parameter,
             Typedtree.module_coercion,
-            (Types.functor_parameter, 'c) Error.functor_param_symptom)
+            (Types.functor_parameter, unit) Error.functor_param_symptom)
            Diffing.patch
 end
 
@@ -232,6 +232,6 @@ module Functor_app_diff: sig
     args:(Error.functor_arg_descr * Types.module_type) list ->
     (Error.functor_arg_descr * Types.module_type,
      Types.functor_parameter, Typedtree.module_coercion,
-     (Error.functor_arg_descr, 'a) Error.functor_param_symptom)
+     (Error.functor_arg_descr, unit) Error.functor_param_symptom)
       Diffing.patch
 end

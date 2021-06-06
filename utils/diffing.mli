@@ -66,54 +66,7 @@ type ('left, 'right, 'eq, 'diff) change =
   | Keep of 'left * 'right * 'eq
   | Change of 'left * 'right * 'diff
 
-
-val map :
-  ('l1 -> 'l2) -> ('r1 -> 'r2) ->
-  ('l1, 'r1, 'eq, 'diff) change ->
-  ('l2, 'r2, 'eq, 'diff) change
-
-(** A patch is an ordered list of changes. *)
-type ('l, 'r, 'eq, 'diff) patch = ('l, 'r, 'eq, 'diff) change list
-
-(** [diff ~weight ~test ~update state l r] computes
-    the diff between [l] and [r], using the initial state [state].
-    - [test st xl xr] tests if the elements [xl] and [xr] are
-      compatible ([Ok]) or not ([Error]).
-    - [weight ch] returns the weight of the change [ch].
-      Used to find the smallest patch.
-    - [update ch st] returns the new state after applying a change.
-*)
-val diff :
-  weight:(('l, 'r, 'eq, 'diff) change -> int) ->
-  test:('state -> 'l -> 'r -> ('eq, 'diff) result) ->
-  update:(('l, 'r, 'eq, 'diff) change -> 'state -> 'state) ->
-  'state -> 'l array -> 'r array -> ('l, 'r, 'eq, 'diff) patch
-
-(** {1 Variadic diffing}
-
-    Variadic diffing allows to expand the lists being diffed during diffing.
-*)
-
-type ('l, 'r, 'e, 'd, 'state) update =
-  | Without_extensions of (('l,'r,'e,'d) change -> 'state -> 'state)
-  | With_left_extensions of
-      (('l,'r,'e,'d) change -> 'state -> 'state * 'l array)
-  | With_right_extensions of
-      (('l,'r,'e,'d) change -> 'state -> 'state * 'r array)
-
-(** [variadic_diff ~weight ~test ~update state l r] behaves as [diff]
-    with the following difference:
-    - [update] must now be an {!update} which indicates in which direction
-      the expansion takes place.
-*)
-val variadic_diff :
-  weight:(('l, 'r, 'eq, 'diff) change -> int) ->
-  test:('state -> 'l -> 'r -> ('eq, 'diff) result) ->
-  update:('l, 'r, 'eq, 'diff, 'state) update ->
-  'state -> 'l array -> 'r array -> ('l, 'r, 'eq, 'diff) patch
-
-
-val default_weight : _ change -> int
+type ('left, 'right, 'eq, 'diff) patch = ('left, 'right, 'eq, 'diff) change list
 
 (** Printing default function *)
 type change_kind =
@@ -126,4 +79,36 @@ val classify: _ change -> change_kind
 val prefix: Format.formatter -> (int * change_kind) -> unit
 val style: change_kind -> Misc.Color.style list
 
-(** Enriched analysis in presence of keys *)
+module type Diffable = sig
+  type left
+  type right
+
+  type eq
+  type diff
+
+  (** The type of potential changes on a list. *)
+  type nonrec change = (left, right, eq, diff) change
+
+  (** A patch is an ordered list of changes. *)
+  type patch = change list
+
+  val weight : change -> int
+
+  type state
+
+  (** [test st xl xr] tests if the elements [xl] and [xr] are
+      compatible ([Ok]) or not ([Error]). *)
+  val test : state -> left -> right -> (eq, diff) result
+
+  (** [update change state] return the new state after applying a change.
+
+     We support variadic diffing: dynamically extending the lists to
+     diff depending on the placement choices for a prefix of the
+     input. This is done by returning (optional) extensions for the
+     left or right input array. *)
+  val update : change -> state -> state * left array option * right array option
+end
+
+module Make (T : Diffable) : sig
+  val diff : T.state -> T.left array -> T.right array -> T.patch
+end
