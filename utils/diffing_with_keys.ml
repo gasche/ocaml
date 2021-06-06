@@ -20,12 +20,12 @@ let pos (x,_) = x
 let data (_,x) = x
 let mk_pos pos data = pos, data
 
-type ('a,'b) mismatch =
+type ('a,'tdiff) mismatch =
   | Name of {pos:int; got:string; expected:string; types_match:bool}
-  | Type of {pos:int; got:'a; expected:'a; reason:'b}
+  | Type of {pos:int; got:'a; expected:'a; reason:'tdiff}
 
-type ('a,'b) change =
-  | Change of ('a,'b) mismatch
+type ('a,'tdiff) change =
+  | Change of ('a,'tdiff) mismatch
   | Swap of { pos: int * int; first: string; last: string }
   | Move of {name:string; got:int; expected:int}
   | Insert of {pos:int; insert:'a}
@@ -62,14 +62,18 @@ type ('a,'state) partial_edge =
   | Right of int * 'state * 'a
   | Both of 'state * 'a * 'a
 
-let edge key state x y =
+let edge (type a state) (key : a -> string) (state : state) (x : a with_pos) (y : a with_pos)
+  : Swap.key * ((a with_pos) * (a with_pos), state) partial_edge
+=
   let kx, ky = key (data x), key (data y) in
   if kx <= ky then
     (kx,ky), Left (pos x, state, (x,y))
   else
     (ky,kx), Right(pos x,state, (x,y))
 
-let add_edge ex ey = match ex, ey with
+let add_edge (type a state) (ex : (a, state) partial_edge) (ey : (a, state) partial_edge option)
+  : (a, state) partial_edge option
+= match ex, ey with
   | ex, None -> Some ex
   | Left (lpos, lstate, l), Some Right (rpos, rstate,r)
   | Right (rpos, rstate,r), Some Left (lpos, lstate, l) ->
@@ -78,8 +82,24 @@ let add_edge ex ey = match ex, ey with
   | Both _ as b, _ | _, Some (Both _ as b)  -> Some b
   | l, _ -> Some l
 
-let exchanges ~update ~key state changes =
-  let add (state,(swaps,moves)) d =
+type ('a, 'state) swaps = ('a with_pos * 'a with_pos, 'state) partial_edge Swap.t
+type ('a, 'state) moves = ('a with_pos, 'state) partial_edge Move.t
+
+type ('a, 'eq, 'diff, 'state) update =
+  ('a with_pos, 'a with_pos, 'eq, 'diff) Diffing.change -> 'state -> 'state
+type ('a, 'eq, 'diff, 'state) test =
+  'state -> 'a with_pos -> 'a with_pos -> ('eq, 'diff) result
+
+let exchanges (type a eq diff state)
+    ~(update : (a, eq, diff, state) update)
+    ~(key : a -> string)
+    (state : state)
+    (changes : (a with_pos, a with_pos, eq, diff) Diffing.change list)
+  : state * ((a, state) swaps * (a, state) moves)
+=
+  let add (state,
+           ((swaps : (a, state) swaps),
+            (moves : (a, state) moves))) d =
     update d state,
     match d with
     | Diffing.Change (x,y,_) ->
@@ -97,7 +117,13 @@ let exchanges ~update ~key state changes =
   List.fold_left add (state,(Swap.empty,Move.empty)) changes
 
 
-let swap key test swaps x y =
+let swap (type a state eq diff)
+    ~(key : a -> string)
+    ~(test : (a, eq, diff, state) test)
+    (swaps : (a, state) swaps)
+    (x : a with_pos) (y : a with_pos)
+  : (string with_pos * string with_pos) option
+=
   let kx, ky = key (data x), key (data y) in
   let key = if kx <= ky then kx, ky else ky, kx in
   match Swap.find_opt key swaps with
@@ -108,7 +134,13 @@ let swap key test swaps x y =
           Some (mk_pos (pos ll) kx, mk_pos (pos rl) ky)
       | Error _, _ | _, Error _ -> None
 
-let move key test moves x =
+let move (type a eq diff tdiff state)
+    ~(key : a -> string)
+    ~(test : (a, eq, diff, state) test)
+    (moves : (a, state) moves)
+    (x : a with_pos)
+  : (a, tdiff) change option
+=
   let name = key (data x) in
   match Move.find_opt name moves with
   | None | Some (Left _ | Right _)-> None
@@ -118,22 +150,29 @@ let move key test moves x =
           Some (Move {name; got=pos got; expected=pos expected})
       | Error _ -> None
 
-let refine ~key ~update ~test state patch =
+let refine (type a eq state tdiff)
+    ~(key : a -> string)
+    ~(update : (a, eq, (a, tdiff) mismatch, state) update)
+    ~(test : (a, eq, (a, tdiff) mismatch, state) test)
+    (state : state)
+    (patch : (a with_pos, a with_pos, eq, (a, tdiff) mismatch) Diffing.change list)
+  : (a, tdiff) change list
+=
   let _, (swaps, moves) = exchanges ~key ~update state patch in
   let filter = function
     | Diffing.Keep _ -> None
     | Diffing.Insert x ->
-        begin match move key test moves x with
+        begin match move ~key ~test moves x with
         | Some _ as move -> move
         | None -> Some (Insert {pos=pos x;insert=data x})
         end
     | Diffing.Delete x ->
-        begin match move key test moves x with
+        begin match move ~key ~test moves x with
         | Some _ -> None
         | None -> Some (Delete {pos=pos x;delete=data x})
         end
     | Diffing.Change(x,y, reason) ->
-        match swap key test swaps x y with
+        match swap ~key ~test swaps x y with
         | Some ((pos1,first),(pos2,last)) ->
             if pos x = pos1 then
               Some (Swap { pos = pos1, pos2; first; last})

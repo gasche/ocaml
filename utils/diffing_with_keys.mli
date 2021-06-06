@@ -32,12 +32,12 @@
 type 'a with_pos = int * 'a
 val with_pos: 'a list -> 'a with_pos list
 
-type ('a,'b) mismatch =
+type ('a, 'tdiff) mismatch =
   | Name of {pos:int; got:string; expected:string; types_match:bool}
-  | Type of {pos:int; got:'a; expected:'a; reason:'b}
+  | Type of {pos:int; got:'a; expected:'a; reason:'tdiff}
 
-type ('a,'b) change =
-  | Change of ('a,'b) mismatch
+type ('a, 'tdiff) change =
+  | Change of ('a, 'tdiff) mismatch
   | Swap of { pos: int * int; first: string; last: string }
   | Move of {name:string; got:int; expected:int}
   | Insert of {pos:int; insert:'a}
@@ -46,9 +46,9 @@ type ('a,'b) change =
 val refine:
   key:('a -> string) ->
   update:('ch -> 'state -> 'state) ->
-  test:('state -> 'a with_pos -> 'a with_pos -> (_, _) result) ->
+  test:('state -> 'a with_pos -> 'a with_pos -> (unit,  ('a, 'tdiff) mismatch) result) ->
   'state ->
-  (('a with_pos,'a with_pos,_,('a,'b) mismatch) Diffing.change as 'ch) list ->
-  ('a, 'b) change list
+  (('a with_pos,'a with_pos, unit, ('a, 'tdiff) mismatch) Diffing.change as 'ch) list ->
+  ('a, 'tdiff) change list
 
 val prefix: Format.formatter -> ('a,'b) change -> unit

@@ -545,7 +545,7 @@ module Variant_diffing = struct
               cd1.cd_res cd2.cd_res cd1.cd_args cd2.cd_args with
       | Some reason ->
           Error (Diffing_with_keys.Type {pos; got=cd1; expected=cd2; reason})
-      | None -> Ok (Ident.name cd1.cd_id)
+      | None -> Ok ()
 
   let diffing loc env params1 params2 cstrs_1 cstrs_2 =
     let test = test loc env params1 params2 in
