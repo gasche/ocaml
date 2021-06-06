@@ -135,7 +135,8 @@ type label_mismatch =
   | Mutability of position
 
 type record_change =
-  (Types.label_declaration, label_mismatch) Diffing_with_keys.change
+  (Types.label_declaration, Types.label_declaration, label_mismatch)
+    Diffing_with_keys.change
 
 type record_mismatch =
   | Label_mismatch of record_change list
@@ -167,7 +168,7 @@ type private_object_mismatch =
   | Types of Env.t * Errortrace.comparison Errortrace.t
 
 type variant_change =
-  (Types.constructor_declaration, constructor_mismatch)
+  (Types.constructor_declaration, Types.constructor_declaration, constructor_mismatch)
     Diffing_with_keys.change
 
 type type_mismatch =
@@ -415,7 +416,9 @@ module Record_diffing = struct
         if t.types_match then 10 else 15
     | Diffing.Change _ -> 10
 
-  let key (x: Types.label_declaration) = Ident.name x.ld_id
+  let name (x: Types.label_declaration) = Ident.name x.ld_id
+  let key = (name, name)
+
   let diffing loc env params1 params2 cstrs_1 cstrs_2 =
     let test = test loc env in
     let cstrs_1 = Diffing_with_keys.with_pos cstrs_1 in
@@ -558,7 +561,8 @@ module Variant_diffing = struct
       (Array.of_list cstrs_1)
       (Array.of_list cstrs_2)
     in
-    let key (x:Types.constructor_declaration) = Ident.name x.cd_id in
+    let name (x:Types.constructor_declaration) = Ident.name x.cd_id in
+    let key = (name, name) in
     Diffing_with_keys.refine ~key ~update ~test () raw
 
   let compare ~loc env params1 params2 l r =

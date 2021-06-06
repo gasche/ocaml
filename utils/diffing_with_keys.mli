@@ -32,23 +32,25 @@
 type 'a with_pos = int * 'a
 val with_pos: 'a list -> 'a with_pos list
 
-type ('a, 'tdiff) mismatch =
+type ('l, 'r, 'tdiff) mismatch =
   | Name of {pos:int; got:string; expected:string; types_match:bool}
-  | Type of {pos:int; got:'a; expected:'a; reason:'tdiff}
+  | Type of {pos:int; got:'l; expected:'r; reason:'tdiff}
 
-type ('a, 'tdiff) change =
-  | Change of ('a, 'tdiff) mismatch
-  | Swap of { pos: int * int; first: string; last: string }
+type ('l, 'r, 'tdiff) change =
+  | Change of ('l, 'r, 'tdiff) mismatch
+  | Swap of {pos: int * int; first: string; last: string}
   | Move of {name:string; got:int; expected:int}
-  | Insert of {pos:int; insert:'a}
-  | Delete of {pos:int; delete:'a}
+  | Delete of {pos:int; delete:'l}
+  | Insert of {pos:int; insert:'r}
+
+type ('l, 'r) keys = ('l -> string) * ('r -> string)
 
 val refine:
-  key:('a -> string) ->
+  key:(('l, 'r) keys) ->
   update:('ch -> 'state -> 'state) ->
-  test:('state -> 'a with_pos -> 'a with_pos -> (unit,  ('a, 'tdiff) mismatch) result) ->
+  test:('state -> 'l with_pos -> 'r with_pos -> (unit, ('l, 'r, 'tdiff) mismatch) result) ->
   'state ->
-  (('a with_pos,'a with_pos, unit, ('a, 'tdiff) mismatch) Diffing.change as 'ch) list ->
-  ('a, 'tdiff) change list
+  (('l with_pos, 'r with_pos, unit, ('l, 'r, 'tdiff) mismatch) Diffing.change as 'ch) list ->
+  ('l, 'r, 'tdiff) change list
 
-val prefix: Format.formatter -> ('a,'b) change -> unit
+val prefix: Format.formatter -> ('l, 'r, 'tdiff) change -> unit
