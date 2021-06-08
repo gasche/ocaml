@@ -136,7 +136,7 @@ type label_mismatch =
 
 type record_change =
   (Types.label_declaration, Types.label_declaration, label_mismatch)
-    Diffing_with_keys.change
+    Diffing_with_keys.keyed_change
 
 type record_mismatch =
   | Label_mismatch of record_change list
@@ -169,7 +169,7 @@ type private_object_mismatch =
 
 type variant_change =
   (Types.constructor_declaration, Types.constructor_declaration, constructor_mismatch)
-    Diffing_with_keys.change
+    Diffing_with_keys.keyed_change
 
 type type_mismatch =
   | Arity
@@ -377,17 +377,25 @@ module Record_diffing = struct
         end
 
   module Diffable (E : sig val env : Env.t end) = struct
-    type left = int * Types.label_declaration
+    type left = Types.label_declaration
     type right = left
+
+    type keyed_left = left Diffing_with_keys.with_pos
+    type keyed_right = keyed_left
+
     type eq = unit
-    type diff =
-      (Types.label_declaration, Types.label_declaration, label_mismatch)
-        Diffing_with_keys.mismatch
-    type change = (left, right, eq, diff) Diffing.change
+    type tdiff = label_mismatch
+    type diff = (left, right, tdiff) Diffing_with_keys.mismatch
+
+    type change = (keyed_left, keyed_right, eq, diff) Diffing.change
     type patch = change list
+
+    type keyed_change = (left, right, tdiff) Diffing_with_keys.keyed_change
+    type keyed_patch = keyed_change list
+
     type state = type_expr list * type_expr list
 
-    let simple_update (d: change) (params1,params2 as st : state) : state =
+    let update (d: change) (params1,params2 as st : state) : state =
       match d with
       | Insert _ | Change _ | Delete _ -> st
       | Keep (x,y,_) ->
@@ -395,9 +403,7 @@ module Record_diffing = struct
              (in inline records) *)
           (snd x).ld_type::params1, (snd y).ld_type::params2
 
-    let update d st = simple_update d st, None, None
-
-    let test (params1, params2 : state) (pos, lbl1: left) (_, lbl2: right)
+    let test (params1, params2 : state) (pos, lbl1: keyed_left) (_, lbl2: keyed_right)
       : (eq, diff) result
     =
       let open E in
@@ -427,18 +433,15 @@ module Record_diffing = struct
       | Diffing.Change _ -> 10
 
     let name (x: Types.label_declaration) = Ident.name x.ld_id
-    let key = (name, name)
+    let key_left, key_right = name, name
   end
 
   let diffing _loc env params1 params2 cstrs_1 cstrs_2 =
     let module Diffable = Diffable(struct let env = env end) in
-    let module Diff = Diffing.Make(Diffable) in
-    let cstrs_1 = Diffing_with_keys.with_pos cstrs_1 |> Array.of_list in
-    let cstrs_2 = Diffing_with_keys.with_pos cstrs_2 |> Array.of_list in
-    let raw = Diff.diff (params1, params2) cstrs_1 cstrs_2 in
-    Diffable.(
-      Diffing_with_keys.refine ~key ~update:simple_update ~test
-        (params1,params2) raw)
+    let module Diff = Diffing_with_keys.Make(Diffable) in
+    let cstrs_1 = cstrs_1 |> Array.of_list in
+    let cstrs_2 = cstrs_2 |> Array.of_list in
+    Diff.diff (params1, params2) cstrs_1 cstrs_2
 
   let compare ~loc env params1 params2 l r =
     if equal ~loc env params1 params2 l r then
@@ -528,18 +531,25 @@ module Variant_diffing = struct
       end) cstrs1 cstrs2
 
   module Diffable (E : sig val loc : Warnings.loc val env : Env.t end) = struct
-    type left = int * Types.constructor_declaration
+    type left = Types.constructor_declaration
     type right = left
+
+    type keyed_left = left Diffing_with_keys.with_pos
+    type keyed_right = keyed_left
+
     type eq = unit
-    type diff =
-      (Types.constructor_declaration, Types.constructor_declaration, constructor_mismatch)
-        Diffing_with_keys.mismatch
-    type change = (left, right, eq, diff) Diffing.change
+    type tdiff = constructor_mismatch
+    type diff = (left, right, tdiff) Diffing_with_keys.mismatch
+
+    type change = (keyed_left, keyed_right, eq, diff) Diffing.change
     type patch = change list
+
+    type keyed_change = (left, right, tdiff) Diffing_with_keys.keyed_change
+    type keyed_patch = keyed_change list
+
     type state = type_expr list * type_expr list
 
-    let simple_update _d st = st
-    let update _d st = simple_update _d st, None, None
+    let update _d st = st
 
     let weight = function
       | Diffing.Insert _ -> 10
@@ -549,7 +559,10 @@ module Variant_diffing = struct
           if t.types_match then 10 else 15
       | Diffing.Change _ -> 10
 
-    let test (params1, params2) (pos, cd1 : left) (_, cd2 : right) =
+    let name (x:Types.constructor_declaration) = Ident.name x.cd_id
+    let key_left, key_right = name, name
+
+    let test (params1, params2) (pos, cd1 : keyed_left) (_, cd2 : keyed_right) =
       let open E in
       let name1, name2 = Ident.name cd1.cd_id, Ident.name cd2.cd_id in
       if  name1 <> name2 then
@@ -571,13 +584,10 @@ module Variant_diffing = struct
 
   let diffing loc env params1 params2 cstrs_1 cstrs_2 =
     let module Diffable = Diffable(struct let loc = loc let env = env end) in
-    let module Diff = Diffing.Make(Diffable) in
-    let cstrs_1 = Diffing_with_keys.with_pos cstrs_1 |> Array.of_list in
-    let cstrs_2 = Diffing_with_keys.with_pos cstrs_2 |> Array.of_list in
-    let raw = Diff.diff (params1, params2) cstrs_1 cstrs_2 in
-    let name (x:Types.constructor_declaration) = Ident.name x.cd_id in
-    let key = (name, name) in
-    Diffable.(Diffing_with_keys.refine ~key ~update:simple_update ~test (params1, params2) raw)
+    let module Diff = Diffing_with_keys.Make(Diffable) in
+    let cstrs_1 = cstrs_1 |> Array.of_list in
+    let cstrs_2 = cstrs_2 |> Array.of_list in
+    Diff.diff (params1, params2) cstrs_1 cstrs_2
 
   let compare ~loc env params1 params2 l r =
     if equal ~loc env params1 params2 l r then

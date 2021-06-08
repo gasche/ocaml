@@ -30,27 +30,45 @@
 *)
 
 type 'a with_pos = int * 'a
-val with_pos: 'a list -> 'a with_pos list
 
 type ('l, 'r, 'tdiff) mismatch =
   | Name of {pos:int; got:string; expected:string; types_match:bool}
   | Type of {pos:int; got:'l; expected:'r; reason:'tdiff}
 
-type ('l, 'r, 'tdiff) change =
+type ('l, 'r, 'tdiff) keyed_change =
   | Change of ('l, 'r, 'tdiff) mismatch
   | Swap of {pos: int * int; first: string; last: string}
   | Move of {name:string; got:int; expected:int}
   | Delete of {pos:int; delete:'l}
   | Insert of {pos:int; insert:'r}
 
-type ('l, 'r) keys = ('l -> string) * ('r -> string)
+module type Diffable_with_keys = sig
+  type tdiff
 
-val refine:
-  key:(('l, 'r) keys) ->
-  update:('ch -> 'state -> 'state) ->
-  test:('state -> 'l with_pos -> 'r with_pos -> (unit, ('l, 'r, 'tdiff) mismatch) result) ->
-  'state ->
-  (('l with_pos, 'r with_pos, unit, ('l, 'r, 'tdiff) mismatch) Diffing.change as 'ch) list ->
-  ('l, 'r, 'tdiff) change list
+  type left
+  type right
 
-val prefix: Format.formatter -> ('l, 'r, 'tdiff) change -> unit
+  type keyed_left = left with_pos
+  type keyed_right = right with_pos
+
+  include (Diffing.Diffable with
+    type left := keyed_left
+    and type right := keyed_right
+    and type diff = (left, right, tdiff) mismatch
+  )
+
+  (* diffing-with-keys does not support variadic diffing *)
+  val update : change -> state -> state
+
+  val key_left : left -> string
+  val key_right : right -> string
+  type nonrec keyed_change = (left, right, tdiff) keyed_change
+  type keyed_patch = keyed_change list
+end
+
+module Make (T : Diffable_with_keys) : sig
+  open T
+  val diff : state -> left array -> right array -> keyed_patch
+end
+
+val prefix: Format.formatter -> ('l, 'r, 'tdiff) keyed_change -> unit
