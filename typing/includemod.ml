@@ -848,8 +848,8 @@ module Functor_inclusion_diff = struct
 
   let expand_params state  =
     match lookup_expansion state with
-    | None -> state, None, None
-    | Some (res, expansion) -> { state with res }, Some expansion, None
+    | None -> state, None
+    | Some (res, expansion) -> { state with res }, Some expansion
 
   let update d st =
     let open Diffing in
@@ -859,7 +859,7 @@ module Functor_inclusion_diff = struct
     | Keep (Unit,_,_)
     | Keep (_,Unit,_)
     | Change (_,(Unit | Named (None,_)), _) ->
-        st, None, None
+        st, None
     | Insert (Named (Some id, arg))
     | Delete (Named (Some id, arg))
     | Change (Unit, Named (Some id, arg), _) ->
@@ -876,12 +876,12 @@ module Functor_inclusion_diff = struct
             expand_params { st with env; subst }
         | None, Some id2 ->
             let env = Env.add_module id2 Mp_present arg' st.env in
-            { st with env }, None, None
+            { st with env }, None
         | Some id1, None ->
             let env = Env.add_module id1 Mp_present arg' st.env in
             expand_params { st with env }
         | None, None ->
-            st, None, None
+            st, None
       end
 
   let test st mty1 mty2 =
@@ -893,7 +893,7 @@ module Functor_inclusion_diff = struct
 
   end
 
-  module Diff = Diffing.Make(Diffable)
+  module Diff = Diffing.MakeVariadicLeft(Diffable)
 
   let diff env (l1,res1) (l2,_) =
     let param1 = Array.of_list l1 in
@@ -939,9 +939,7 @@ module Functor_app_diff = struct
             | Named _,  None | (Unit | Anonymous), Some _ -> 1
           end
 
-    let expand_params st =
-      let state, left, right = I.expand_params st in
-      state, right, left
+    let expand_params st = I.expand_params st
 
     let update (d: change) (st:state) =
       let open Error in
@@ -952,7 +950,7 @@ module Functor_app_diff = struct
       | Keep (_,Unit,_)
       | Change (_,(Unit | Named (None,_)), _ )
       | Change ((Unit,_), Named (Some _, _), _) ->
-          st, None, None
+          st, None
       | Keep ((Named arg,  _mty) , Named (param_name, _param), _)
       | Change ((Named arg, _mty), Named (param_name, _param), _) ->
           begin match param_name with
@@ -968,7 +966,7 @@ module Functor_app_diff = struct
               let subst = Subst.add_module param arg st.subst in
               expand_params { st with subst; res }
           | None ->
-              st, None, None
+              st, None
           end
       | Keep ((Anonymous, mty) , Named (param_name, _param), _)
       | Change ((Anonymous, mty), Named (param_name, _param), _) -> begin
@@ -981,7 +979,7 @@ module Functor_app_diff = struct
                 Option.map (Mtype.nondep_supertype env [param]) st.res in
               expand_params { st with env; res}
           | None ->
-              st, None, None
+              st, None
           end
         end
 
@@ -1002,7 +1000,7 @@ module Functor_app_diff = struct
       res
   end
 
-  module Diff = Diffing.Make(Diffable)
+  module Diff = Diffing.MakeVariadicRight(Diffable)
 
   let diff env ~f ~args =
     let params, res = retrieve_functor_params env f in

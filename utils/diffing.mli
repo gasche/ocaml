@@ -79,7 +79,7 @@ val classify: _ change -> change_kind
 val prefix: Format.formatter -> (int * change_kind) -> unit
 val style: change_kind -> Misc.Color.style list
 
-module type Diffable = sig
+module type DiffableBase = sig
   type left
   type right
 
@@ -99,16 +99,34 @@ module type Diffable = sig
   (** [test st xl xr] tests if the elements [xl] and [xr] are
       compatible ([Ok]) or not ([Error]). *)
   val test : state -> left -> right -> (eq, diff) result
-
-  (** [update change state] return the new state after applying a change.
-
-     We support variadic diffing: dynamically extending the lists to
-     diff depending on the placement choices for a prefix of the
-     input. This is done by returning (optional) extensions for the
-     left or right input array. *)
-  val update : change -> state -> state * left array option * right array option
 end
 
+module type Diffable = sig
+  include DiffableBase
+
+  (** [update d st] returns the new state after applying a change. *)
+  val update : change -> state -> state
+end
 module Make (T : Diffable) : sig
+  val diff : T.state -> T.left array -> T.right array -> T.patch
+end
+
+(** We also support variadic diffing: dynamically extending the lists to
+    diff depending on the placement choices for a prefix of the
+    input. This is done by returning (optional) extensions for the
+    left or right input array. *)
+module type DiffableVariadicLeft = sig
+  include DiffableBase
+  val update : change -> state -> state * left array option
+end
+module MakeVariadicLeft (T : DiffableVariadicLeft) : sig
+  val diff : T.state -> T.left array -> T.right array -> T.patch
+end
+
+module type DiffableVariadicRight = sig
+  include DiffableBase
+  val update : change -> state -> state * right array option
+end
+module MakeVariadicRight (T : DiffableVariadicRight) : sig
   val diff : T.state -> T.left array -> T.right array -> T.patch
 end

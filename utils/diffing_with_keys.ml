@@ -195,7 +195,6 @@ module Make (T : Diffable_with_keys) = struct
         include T
         type left = keyed_left
         type right = keyed_right
-        let update d st = update d st, None, None
       end)
     in
     Diff.diff state (with_pos line) (with_pos column)

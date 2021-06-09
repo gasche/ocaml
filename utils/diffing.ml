@@ -40,7 +40,7 @@ type ('left, 'right, 'eq, 'diff) change =
 
 type ('left, 'right, 'eq, 'diff) patch = ('left, 'right, 'eq, 'diff) change list
 
-module type Diffable = sig
+module type DiffableBase = sig
   type left
   type right
 
@@ -60,17 +60,14 @@ module type Diffable = sig
   (** [test st xl xr] tests if the elements [xl] and [xr] are
       compatible ([Ok]) or not ([Error]). *)
   val test : state -> left -> right -> (eq, diff) result
+end
 
-  (** [update change state] return the new state after applying a change.
-
-     We support variadic diffing: dynamically extending the lists to
-     diff depending on the placement choices for a prefix of the
-     input. This is done by returning (optional) extensions for the
-     left or right input array. *)
+module type DiffableVariadic = sig
+  include DiffableBase
   val update : change -> state -> state * left array option * right array option
 end
 
-module Make (T : Diffable) = struct
+module MakeVariadic (T : DiffableVariadic) = struct
   open T
 
   type full_state = {
@@ -377,7 +374,36 @@ module Make (T : Diffable) = struct
     { state; line; column }
     |> compute_matrix
     |> construct_patch
-  end
+end
+
+module type Diffable = sig
+  include DiffableBase
+  val update : change -> state -> state
+end
+module Make (T : Diffable) = MakeVariadic(struct
+    include T
+    let update d st = T.update d st, None, None
+end)
+
+module type DiffableVariadicLeft = sig
+  include DiffableBase
+  val update : change -> state -> state * left array option
+end
+module MakeVariadicLeft (T : DiffableVariadicLeft) = MakeVariadic(struct
+    include T
+    let update d st =
+      let (st, le) = T.update d st in st, le, None
+end)
+
+module type DiffableVariadicRight = sig
+  include DiffableBase
+  val update : change -> state -> state * right array option
+end
+module MakeVariadicRight (T : DiffableVariadicRight) = MakeVariadic(struct
+    include T
+    let update d st =
+      let (st, ri) = T.update d st in st, None, ri
+end)
 
 type change_kind =
   | Deletion
