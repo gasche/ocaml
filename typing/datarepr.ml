@@ -20,6 +20,11 @@ open Asttypes
 open Types
 open Btype
 
+type error =
+  | Multiple_args_unboxed_constructor of Ident.t
+
+exception Error of Location.t * error
+
 (* Simplified version of Ctype.free_vars *)
 let free_vars ?(param=false) ty =
   let ret = ref TypeSet.empty in
@@ -94,6 +99,7 @@ let constructor_args ~current_unit priv cd_args cd_res path rep =
 
 let constructor_descrs ~current_unit ty_path decl cstrs rep =
   let ty_res = newgenconstr ty_path decl.type_params in
+  let variant_unboxed = Builtin_attributes.has_unboxed decl.type_attributes in
   let num_consts = ref 0 and num_nonconsts = ref 0 in
   List.iter
     (fun {cd_args; _} ->
@@ -107,18 +113,23 @@ let constructor_descrs ~current_unit ty_path decl cstrs rep =
           | Some ty_res' -> ty_res'
           | None -> ty_res
         in
+        (* A constructor is unboxed if the whole declaration has the
+           [@@unboxed] attr, or if it has the [@unboxed] attr *)
+        let cstr_is_unboxed = variant_unboxed ||
+                              Builtin_attributes.has_unboxed cd_attributes
+        in
         let (tag, descr_rem) =
-          match cd_args, rep with
-          | _, Variant_unboxed ->
-            assert (rem = []);
-            failwith "TODO"
-            (* (Cstr_unboxed, []) *)
-          | Cstr_tuple [], Variant_regular ->
-             (Cstr_constant idx_const,
-              describe_constructors (idx_const+1) idx_nonconst rem)
-          | _, Variant_regular  ->
-             (Cstr_block idx_nonconst,
-              describe_constructors idx_const (idx_nonconst+1) rem) in
+          match cstr_is_unboxed, cd_args with
+          | true, Cstr_tuple [ty]
+          | true, Cstr_record [{ld_type=ty; _}] ->
+              (Cstr_unboxed {unboxed_ty = ty; unboxed_shape = ref None},
+               describe_constructors idx_const idx_nonconst rem)
+          | true, _ ->
+              raise (Error (cd_loc, Multiple_args_unboxed_constructor cd_id))
+          | false, Cstr_tuple [] -> (Cstr_constant idx_const,
+                   describe_constructors (idx_const+1) idx_nonconst rem)
+          | false, _ -> (Cstr_block idx_nonconst,
+                   describe_constructors idx_const (idx_nonconst+1) rem) in
         let cstr_name = Ident.name cd_id in
         let existentials, cstr_args, cstr_inlined =
           let representation =
