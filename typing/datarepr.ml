@@ -111,7 +111,8 @@ let constructor_descrs ~current_unit ty_path decl cstrs rep =
           match cd_args, rep with
           | _, Variant_unboxed ->
             assert (rem = []);
-            (Cstr_unboxed, [])
+            failwith "TODO"
+            (* (Cstr_unboxed, []) *)
           | Cstr_tuple [], Variant_regular ->
              (Cstr_constant idx_const,
               describe_constructors (idx_const+1) idx_nonconst rem)
@@ -218,7 +219,8 @@ let rec find_constr tag num_const num_nonconst = function
       then c
       else find_constr tag (num_const + 1) num_nonconst rem
   | c :: rem ->
-      if tag = Cstr_block num_nonconst || tag = Cstr_unboxed
+      if tag = Cstr_block num_nonconst (* || tag = Cstr_unboxed [] *)
+      (* XXX changes needed in the check above *)
       then c
       else find_constr tag num_const (num_nonconst + 1) rem
 
