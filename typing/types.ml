@@ -417,18 +417,38 @@ type constructor_description =
 and constructor_tag =
     Cstr_constant of int                (* Constant constructor (an int) *)
   | Cstr_block of int                   (* Regular constructor (a block) *)
-  | Cstr_unboxed                        (* Constructor of an unboxed type *)
+  | Cstr_unboxed of unboxed_data        (* Constructor of an unboxed type *)
   | Cstr_extension of Path.t * bool     (* Extension constructor
                                            true if a constant false if a block*)
+and unboxed_data =
+  { unboxed_ty: type_expr;
+    unboxed_shape: head_shape option ref;
+  }
+
+and head_shape =
+  { head_imm : imm shape;               (* set of immediates the head can be *)
+    head_blocks : tag shape;            (* set of tags the head can have *)
+  }
+
+and 'a shape =
+  (* TODO add some comment *)
+  | Shape_set of 'a list
+  | Shape_any
+
+and imm = int
+and tag = int
 
 let equal_tag t1 t2 =
   match (t1, t2) with
   | Cstr_constant i1, Cstr_constant i2 -> i2 = i1
   | Cstr_block i1, Cstr_block i2 -> i2 = i1
-  | Cstr_unboxed, Cstr_unboxed -> true
+  | Cstr_unboxed c1, Cstr_unboxed c2 ->
+      (* Possible tags of different unboxed constructors are disjoint,
+         so in particular their types must be different. *)
+      c1.unboxed_shape == c2.unboxed_shape
   | Cstr_extension (path1, b1), Cstr_extension (path2, b2) ->
       Path.same path1 path2 && b1 = b2
-  | (Cstr_constant _|Cstr_block _|Cstr_unboxed|Cstr_extension _), _ -> false
+  | (Cstr_constant _|Cstr_block _|Cstr_unboxed _|Cstr_extension _), _ -> false
 
 let may_equal_constr c1 c2 =
   c1.cstr_arity = c2.cstr_arity

@@ -592,12 +592,29 @@ type constructor_description =
     cstr_uid: Uid.t;
    }
 
-and constructor_tag =
+ and constructor_tag =
     Cstr_constant of int                (* Constant constructor (an int) *)
   | Cstr_block of int                   (* Regular constructor (a block) *)
-  | Cstr_unboxed                        (* Constructor of an unboxed type *)
+  | Cstr_unboxed of unboxed_data        (* Constructor of an unboxed type *)
   | Cstr_extension of Path.t * bool     (* Extension constructor
                                            true if a constant false if a block*)
+and unboxed_data =
+  { unboxed_ty: type_expr;
+    unboxed_shape: head_shape option ref;
+  }
+
+and head_shape =
+  { head_imm : imm shape;               (* set of immediates the head can be *)
+    head_blocks : tag shape;            (* set of tags the head can have *)
+  }
+
+and 'a shape =
+  (* TODO add some comment *)
+  | Shape_set of 'a list
+  | Shape_any
+
+and imm = int
+and tag = int
 
 (* Constructors are the same *)
 val equal_tag :  constructor_tag -> constructor_tag -> bool
