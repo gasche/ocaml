@@ -29,7 +29,10 @@ module Head_shape : sig
 
   type t = Types.head_shape
 
-  val check_typedecl : Env.t -> Ident.t * Types.type_declaration -> unit
+  val check_typedecl : Env.t -> Path.t * Types.type_declaration -> unit
+
+  val max_val_of_cstr_descr : Env.t -> constructor_description ->
+                              int bound * int bound
 
   val get : Env.t -> Types.unboxed_data -> head_shape
 
