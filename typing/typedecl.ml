@@ -980,7 +980,10 @@ let transl_type_decl env rec_flag sdecl_list =
   (* Check re-exportation *)
   List.iter2 (check_abbrev final_env) sdecl_list decls;
   (* Check head shape conflicts *)
-  List.iter (Typedecl_unboxed.Head_shape.check_typedecl final_env) decls;
+  List.iter (fun (id, decl) ->
+    let path = Path.Pident id in
+    Typedecl_unboxed.Head_shape.check_typedecl final_env (path, decl)
+  ) decls;
   (* Keep original declaration *)
   let final_decls =
     List.map2

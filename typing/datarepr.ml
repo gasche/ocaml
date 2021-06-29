@@ -107,6 +107,14 @@ let constructor_descrs ~current_unit ty_path decl cstrs rep =
       else if cd_args = Cstr_tuple [] then incr num_consts
       else incr num_nonconsts;
     ) cstrs;
+  let variant_data =
+    {
+      vd_consts = !num_consts;
+      vd_nonconsts = !num_nonconsts;
+      vd_unboxed = !num_unboxed;
+      vd_max_values = None;
+    }
+  in
   let rec describe_constructors idx_const idx_nonconst = function
       [] -> []
     | {cd_id; cd_args; cd_res; cd_loc; cd_attributes; cd_uid} :: rem ->
@@ -149,9 +157,7 @@ let constructor_descrs ~current_unit ty_path decl cstrs rep =
             cstr_args;
             cstr_arity = List.length cstr_args;
             cstr_tag = tag;
-            cstr_consts = !num_consts;
-            cstr_nonconsts = !num_nonconsts;
-            cstr_unboxed = !num_unboxed;
+            cstr_variants = variant_data;
             cstr_private = decl.type_private;
             cstr_generalized = cd_res <> None;
             cstr_loc = cd_loc;
@@ -172,16 +178,22 @@ let extension_descr ~current_unit path_ext ext =
     constructor_args ~current_unit ext.ext_private ext.ext_args ext.ext_ret_type
       path_ext (Record_extension path_ext)
   in
+  let variant_data =
+    {
+      vd_consts = -1;
+      vd_nonconsts = -1;
+      vd_unboxed = -1;
+      vd_max_values = None;
+    }
+  in
     { cstr_name = Path.last path_ext;
       cstr_res = ty_res;
       cstr_existentials = existentials;
       cstr_args;
       cstr_arity = List.length cstr_args;
       cstr_tag = Cstr_extension(path_ext, cstr_args = []);
-      cstr_consts = -1;
-      cstr_nonconsts = -1;
+      cstr_variants = variant_data;
       cstr_private = ext.ext_private;
-      cstr_unboxed = -1;
       cstr_generalized = ext.ext_ret_type <> None;
       cstr_loc = ext.ext_loc;
       cstr_attributes = ext.ext_attributes;

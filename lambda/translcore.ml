@@ -103,7 +103,8 @@ let rec trivial_pat pat =
     Tpat_var _
   | Tpat_any -> true
   | Tpat_construct (_, cd, [], _) ->
-      not cd.cstr_generalized && cd.cstr_consts = 1 && cd.cstr_nonconsts = 0
+      let vd = cd.cstr_variants in
+      not cd.cstr_generalized && vd.vd_consts = 1 && vd.vd_nonconsts = 0
   | Tpat_tuple patl ->
       List.for_all trivial_pat patl
   | _ -> false

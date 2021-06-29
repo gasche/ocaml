@@ -97,9 +97,9 @@ module Head_shape = struct
       pp_shape head_imm
       pp_shape head_blocks
 
-  let any = { head_imm = Shape_any; head_blocks = Shape_any }
+  let any_shape = { head_imm = Shape_any; head_blocks = Shape_any }
 
-  let none = { head_imm = Shape_set []; head_blocks = Shape_set [] }
+  let empty_shape = { head_imm = Shape_set []; head_blocks = Shape_set [] }
 
   let block_shape tags =
     { head_imm = Shape_set []; head_blocks = Shape_set tags }
@@ -186,9 +186,10 @@ module Head_shape = struct
   | _ -> ty
 
   let rec of_type env ty callstack_map =
+    (* TODO : try the Ctype.expand_head_opt version here *)
     check_annotated ty callstack_map;
     match get_desc ty with
-    | Tvar _ | Tunivar _ -> any
+    | Tvar _ | Tunivar _ -> any_shape
     | Tconstr (p, args, _abbrev) ->
         begin match match_primitive_type p with
         | Some Int -> { head_imm = Shape_any; head_blocks = Shape_set [] }
@@ -200,7 +201,7 @@ module Head_shape = struct
               (if Config.flat_float_array then [0]
                else [0; Obj.double_array_tag])
         | Some Floatarray -> block_shape [Obj.double_array_tag]
-        | Some Lazy -> any
+        | Some Lazy -> any_shape
           (* Lazy values can 'shortcut' the lazy block, and thus have many
              different tags. When Config.flat_float_array, they
              cannot be floats, so we might want to refine that if there
@@ -218,13 +219,14 @@ module Head_shape = struct
                  %a appears unboxed at the head of its own definition."
                 Path.print p
             else match Env.find_type_descrs p env, Env.find_type p env with
-            | exception Not_found -> any
+            | exception Not_found -> any_shape
             | descr, decl ->
                 of_typedescr env descr decl ~args callstack_map
                   (Callstack.visit p head_callstack)
         end
     | Ttuple _ -> block_shape [0]
-    | Tarrow _ | Tpackage _ | Tobject _ | Tnil | Tvariant _ -> (* XXX *) any
+    | Tarrow _ | Tpackage _ | Tobject _ | Tnil | Tvariant _ -> (* XXX *)
+        any_shape
     | Tlink _ | Tsubst _ | Tpoly _ | Tfield _ ->
         assert false
 
@@ -248,7 +250,7 @@ module Head_shape = struct
     match ty_descr with
     | Type_abstract ->
        begin match ty_decl.type_manifest with
-       | None -> any
+       | None -> any_shape
        | Some ty -> of_type_with_params ty
        end
     | Type_record (_, Record_regular) -> block_shape [0]
@@ -259,14 +261,16 @@ module Head_shape = struct
         | _ -> assert false
         end
     | Type_record (_, Record_inlined _)
-    | Type_record (_, Record_extension _) -> assert false
+    | Type_record (_, Record_extension _) -> failwith "TODO"
     | Type_open -> block_shape [0]
-    | Type_variant ([],_) -> none
+    | Type_variant ([],_) -> empty_shape
     | Type_variant ((fst_descr :: _) as cstr_descrs,_) ->
+        (* we compute the shape of all boxed constructors, then the shapes of
+           each unboxed constructors *)
+        let num_consts = fst_descr.cstr_variants.vd_consts in
+        let num_nonconsts = fst_descr.cstr_variants.vd_nonconsts in
         (* the head shape of boxed constructors is equivalent to the nb of
            constant constructors and the nb of non constant constructors *)
-        let num_consts = fst_descr.cstr_consts in
-        let num_nonconsts = fst_descr.cstr_nonconsts in
         let boxed_shape = cstrs_shape ~num_consts ~num_nonconsts in
         let unboxed_shapes = List.filter_map
           (fun descr ->
@@ -277,7 +281,7 @@ module Head_shape = struct
           ) cstr_descrs
         in
         (* now checking that the unboxed constructors are compatible with the
-           base head shape of boxed constructors *)
+           shape of boxed constructors *)
         List.fold_left disjoint_union boxed_shape unboxed_shapes
 
   let get env {unboxed_ty; unboxed_shape} =
@@ -292,8 +296,7 @@ module Head_shape = struct
 
   let fill_cache env unboxed_data = ignore (get env unboxed_data)
 
-  let check_typedecl env (id,decl) =
-    let path = Path.Pident id in
+  let check ~print env (path,decl) =
     match Env.find_type_descrs path env with
     | exception Not_found -> failwith "XXX"
     | Type_variant (cstrs, _repr) -> begin
@@ -307,16 +310,39 @@ module Head_shape = struct
           let ty = Btype.newgenty (Tconstr (path, params, ref Mnil)) in
           let callstack_map = Callstack.fill ty [] in
           let shape = of_type env ty callstack_map in
-          if !Clflags.dump_headshape then
+          let bound_of_shape = function
+            | Shape_set l -> Types.Max (List.fold_left max 0 l)
+            | Shape_any -> Types.Unbounded
+          in
+          match cstrs with
+            | [] -> ()
+            | cstr :: _ -> begin
+                let vd = cstr.cstr_variants in
+                let imm_bound = bound_of_shape shape.head_imm in
+                let tag_bound = bound_of_shape shape.head_blocks in
+                vd.vd_max_values <- Some (imm_bound, tag_bound)
+              end;
+          if print && !Clflags.dump_headshape then
             Format.fprintf Format.err_formatter "SHAPE(%a) %a@."
-              Ident.print id
+              Path.print path
               pp shape
           end
         with Conflict ->
-          if !Clflags.dump_headshape then
+          if print && !Clflags.dump_headshape then
             Format.fprintf Format.err_formatter "SHAPE(%a) CONFLICT@."
-              Ident.print id
+              Path.print path
       end
     | _ -> ()
 
+  let check_typedecl env (id,decl) = check ~print:true env (id,decl)
+
+  let max_val_of_cstr_descr env cstr =
+    let variant_path = match get_desc cstr.cstr_res with
+      | Tconstr (p, _, _) -> p
+      | _ -> assert false (* XXX *)
+    in
+    let variant_decl = Env.find_type variant_path env in
+    check ~print:false env (variant_path,variant_decl);
+    let variant = cstr.cstr_variants in
+    Option.get variant.vd_max_values
 end

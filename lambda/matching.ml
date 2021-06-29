@@ -2770,7 +2770,7 @@ module Cases = struct
     }
 end
 
-let split_cases tag_lambda_list =
+let split_cases pat_env tag_lambda_list =
   let rec split_rec = function
     | [] -> Cases.empty
     | (cstr_tag, act) :: rem -> (
@@ -2778,12 +2778,9 @@ let split_cases tag_lambda_list =
         match cstr_tag with
         | Cstr_constant n -> Cases.add_const n act cases
         | Cstr_block n -> Cases.add_nonconst n act cases
-        | Cstr_unboxed {unboxed_shape; _} ->
+        | Cstr_unboxed cache ->
             let head_shape =
-              match !unboxed_shape with
-              | None ->
-                  invalid_arg "Matching.split_cases: missing head shape"
-              | Some shape -> shape
+              Typedecl_unboxed.Head_shape.get pat_env cache
             in
             let cases =
               match head_shape.head_imm with
@@ -2867,8 +2864,9 @@ let combine_constructor loc arg pat_env cstr partial ctx def
       (lambda1, Jumps.union local_jumps total1)
   | _ ->
       (* Regular concrete type *)
+      let vd = cstr.cstr_variants in
       let ncases = List.length descr_lambda_list
-      and nconstrs = cstr.cstr_consts + cstr.cstr_nonconsts in
+      and nconstrs = vd.vd_consts + vd.vd_nonconsts + vd.vd_unboxed in
       let sig_complete = ncases = nconstrs in
       let fail_opt, fails, local_jumps =
         if sig_complete then
@@ -2884,9 +2882,10 @@ let combine_constructor loc arg pat_env cstr partial ctx def
         match (fail_opt, same_actions descr_lambda_list) with
         | None, Some act -> act (* Identical actions, no failure *)
         | _ -> (
-            let cases = split_cases (List.map tag_lambda descr_lambda_list) in
+            let cases = split_cases pat_env
+              (List.map tag_lambda descr_lambda_list) in
             match
-              (cstr.cstr_consts, cstr.cstr_nonconsts, cases)
+              (vd.vd_consts, vd.vd_nonconsts, cases)
             with
             | 1, 1, { consts = [ (0, act1) ]; nonconsts = [ (0, act2) ] }
                 (* Typically, match on lists, will avoid isint primitive in that
@@ -2926,10 +2925,10 @@ let combine_constructor loc arg pat_env cstr partial ctx def
                 in
                 let single_nonconst_act =
                   single_action
-                    cases.any_nonconst cases.nonconsts cstr.cstr_nonconsts in
+                    cases.any_nonconst cases.nonconsts vd.vd_nonconsts in
                 let single_const_act =
                   single_action
-                    cases.any_const cases.consts cstr.cstr_consts in
+                    cases.any_const cases.consts vd.vd_consts in
                 let test_isint const_act nonconst_act =
                   Lifthenelse
                     ( Lprim (Pisint, [ arg ], loc), const_act, nonconst_act )
@@ -2960,11 +2959,27 @@ let combine_constructor loc arg pat_env cstr partial ctx def
                       | Some fail_act, Some a ->
                           Some (test_isint a fail_act)
                     in
-                    (* FIXME: are the use of cstr_(non,)consts here correct? *)
+                    let numconsts, numblocks =
+                      let bounds = match vd.vd_max_values with
+                        | Some bounds -> bounds
+                        | None ->
+                          (* The values are not filled e.g in case a type is
+                             imported from a foreign cmi interface; we need to
+                             recompute them here *)
+                          if vd.vd_unboxed = 0 then
+                            Max vd.vd_consts, Max vd.vd_nonconsts
+                          else
+                            Typedecl_unboxed.Head_shape.max_val_of_cstr_descr
+                              pat_env cstr
+                      in match bounds with
+                        | Max imm, Max tag -> imm, tag
+                        | Unbounded, _ | _, Unbounded ->
+                            invalid_arg "Matching.combine_constructors"
+                    in
                     let sw =
-                      { sw_numconsts = cstr.cstr_consts;
+                      { sw_numconsts = numconsts + 1;
                         sw_consts = cases.consts;
-                        sw_numblocks = cstr.cstr_nonconsts;
+                        sw_numblocks = numblocks + 1;
                         sw_blocks = cases.nonconsts;
                         sw_failaction = fail_opt
                       }
@@ -2993,7 +3008,8 @@ let call_switcher_variant_constr loc fail arg int_lambda_list =
       Lprim (Pfield 0, [ arg ], loc),
       call_switcher loc fail (Lvar v) min_int max_int int_lambda_list )
 
-let combine_variant loc row arg partial ctx def (tag_lambda_list, total1, _pats)
+let combine_variant loc row arg pat_env partial ctx def
+                    (tag_lambda_list, total1, _pats)
     =
   let row = Btype.row_repr row in
   let num_constr = ref 0 in
@@ -3026,7 +3042,7 @@ let combine_variant loc row arg partial ctx def (tag_lambda_list, total1, _pats)
       mk_failaction_neg partial ctx def
   in
   let Cases.{consts; nonconsts; any_const; any_nonconst} =
-    split_cases tag_lambda_list in
+    split_cases pat_env tag_lambda_list in
   (* We assume there are no unboxed constructors for polymorphic variants *)
   assert (any_const = None);
   assert (any_nonconst = None);
@@ -3413,7 +3429,7 @@ and do_compile_matching ~scopes repr partial ctx pmh =
           compile_test
             (compile_match ~scopes repr partial)
             partial (divide_variant ~scopes !row)
-            (combine_variant ploc !row arg partial)
+            (combine_variant ploc !row arg ph.pat_env partial)
             ctx pm
     )
   | PmVar { inside = pmh } ->
