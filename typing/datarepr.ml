@@ -100,11 +100,13 @@ let constructor_args ~current_unit priv cd_args cd_res path rep =
 let constructor_descrs ~current_unit ty_path decl cstrs rep =
   let ty_res = newgenconstr ty_path decl.type_params in
   let variant_unboxed = Builtin_attributes.has_unboxed decl.type_attributes in
-  let num_consts = ref 0 and num_nonconsts = ref 0 in
+  let num_consts = ref 0 and num_nonconsts = ref 0 and num_unboxed = ref 0 in
   List.iter
-    (fun {cd_args; _} ->
-      if cd_args = Cstr_tuple [] then incr num_consts else incr num_nonconsts)
-    cstrs;
+    (fun {cd_args; cd_attributes; _} ->
+      if Builtin_attributes.has_unboxed cd_attributes then incr num_unboxed
+      else if cd_args = Cstr_tuple [] then incr num_consts
+      else incr num_nonconsts;
+    ) cstrs;
   let rec describe_constructors idx_const idx_nonconst = function
       [] -> []
     | {cd_id; cd_args; cd_res; cd_loc; cd_attributes; cd_uid} :: rem ->
@@ -149,6 +151,7 @@ let constructor_descrs ~current_unit ty_path decl cstrs rep =
             cstr_tag = tag;
             cstr_consts = !num_consts;
             cstr_nonconsts = !num_nonconsts;
+            cstr_unboxed = !num_unboxed;
             cstr_private = decl.type_private;
             cstr_generalized = cd_res <> None;
             cstr_loc = cd_loc;
@@ -178,6 +181,7 @@ let extension_descr ~current_unit path_ext ext =
       cstr_consts = -1;
       cstr_nonconsts = -1;
       cstr_private = ext.ext_private;
+      cstr_unboxed = -1;
       cstr_generalized = ext.ext_ret_type <> None;
       cstr_loc = ext.ext_loc;
       cstr_attributes = ext.ext_attributes;

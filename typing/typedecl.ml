@@ -979,6 +979,8 @@ let transl_type_decl env rec_flag sdecl_list =
   let final_env = add_types_to_env decls env in
   (* Check re-exportation *)
   List.iter2 (check_abbrev final_env) sdecl_list decls;
+  (* Check head shape conflicts *)
+  List.iter (Typedecl_unboxed.Head_shape.check_typedecl final_env) decls;
   (* Keep original declaration *)
   let final_decls =
     List.map2

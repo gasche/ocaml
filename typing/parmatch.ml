@@ -749,7 +749,8 @@ let full_match closing env =  match env with
   match discr.pat_desc with
   | Any -> assert false
   | Construct { cstr_tag = Cstr_extension _ ; _ } -> false
-  | Construct c -> List.length env = c.cstr_consts + c.cstr_nonconsts
+  | Construct c ->
+      List.length env = c.cstr_consts + c.cstr_nonconsts + c.cstr_unboxed
   | Variant { type_row; _ } ->
       let fields =
         List.map
