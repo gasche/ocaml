@@ -311,7 +311,7 @@ module Head_shape = struct
             | Shape_any -> Types.Unbounded
           in
           match cstrs with
-            | [] -> invalid_arg "Head_shape.check_typedecl"
+            | [] -> ()
             | cstr :: _ -> begin
                 let vd = cstr.cstr_variants in
                 let imm_bound = bound_of_shape shape.head_imm in
