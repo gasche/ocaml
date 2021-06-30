@@ -1,4 +1,9 @@
 (* TEST
+   * setup-ocamlc.byte-build-env
+   ** ocamlc.byte
+   *** check-ocamlc.byte-output
+   **** run
+   ***** check-program-output
 *)
 
 module A = struct
