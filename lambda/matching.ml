@@ -2892,12 +2892,12 @@ let combine_constructor loc arg pat_env cstr partial ctx def
               case *)
             | 1, 0, { consts = [ (0, act1) ]; any_nonconst = Some act2 } ->
                 Lifthenelse (arg, act2, act1)
-            | n, 0, { any_const; nonconsts = []; any_nonconst = None } ->
+            | n, 0, { consts; any_const; nonconsts=[]; any_nonconst=None } ->
                 (* The type defines constant constructors only *)
                begin match any_const with
                | Some act -> act
                | None ->
-                  call_switcher loc fail_opt arg 0 (n - 1) cases.consts
+                  call_switcher loc fail_opt arg 0 (n - 1) consts
                end
             | n, _, _ -> (
                 let single_action any_case cases complete_case_count =
