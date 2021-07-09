@@ -2864,9 +2864,9 @@ let combine_constructor loc arg pat_env cstr partial ctx def
       (lambda1, Jumps.union local_jumps total1)
   | _ ->
       (* Regular concrete type *)
-      let vd = cstr.cstr_variants in
       let ncases = List.length descr_lambda_list
-      and nconstrs = vd.vd_consts + vd.vd_nonconsts + vd.vd_unboxed in
+      and nconstrs =
+        cstr.cstr_consts + cstr.cstr_nonconsts + cstr.cstr_unboxed in
       let sig_complete = ncases = nconstrs in
       let fail_opt, fails, local_jumps =
         if sig_complete then
@@ -2885,7 +2885,7 @@ let combine_constructor loc arg pat_env cstr partial ctx def
             let cases = split_cases pat_env
               (List.map tag_lambda descr_lambda_list) in
             match
-              (vd.vd_consts, vd.vd_nonconsts, cases)
+              (cstr.cstr_consts, cstr.cstr_nonconsts, cases)
             with
             | 1, 1, { consts = [ (0, act1) ]; nonconsts = [ (0, act2) ] }
                 (* Typically, match on lists, will avoid isint primitive in that
@@ -2908,27 +2908,24 @@ let combine_constructor loc arg pat_env cstr partial ctx def
                   | _, Some a, _ -> Some a
                   | None, None, nonconsts -> same_actions nonconsts
                   | Some _, None, cases ->
-                    (* FIXME: today cstr.cstr_{non,}consts does not count
-                       unboxed constructors so it cannot be correctly used
-                       to decide exhaustiveness.
-
-                       TODO: have a version of cstr_nonconsts that counts
-                       not the number of different constructors, but the number
-                       of possible head tags (in the non-any case); then we can
-                       in fact compare this number to the length of the list
-                       -- given that split_cases will expand several-tag
-                       constructors into several list items. *)
-                      if List.length cases = complete_case_count then
-                        same_actions cases
-                      else
-                        None
+                      match complete_case_count with
+                      | Some count ->
+                        if List.length cases = count then
+                          same_actions cases
+                        else
+                          None
+                      | None -> assert false
                 in
                 let single_nonconst_act =
-                  single_action
-                    cases.any_nonconst cases.nonconsts vd.vd_nonconsts in
+                  let numnonconsts =
+                    Typedecl.cstr_unboxed_numnonconsts pat_env cstr in
+                  single_action cases.any_nonconst cases.nonconsts numnonconsts
+                in
                 let single_const_act =
-                  single_action
-                    cases.any_const cases.consts vd.vd_consts in
+                  let numconsts =
+                    Typedecl.cstr_unboxed_numconsts pat_env cstr in
+                  single_action cases.any_const cases.consts numconsts
+                in
                 let test_isint const_act nonconst_act =
                   Lifthenelse
                     ( Lprim (Pisint, [ arg ], loc), const_act, nonconst_act )
@@ -2959,27 +2956,20 @@ let combine_constructor loc arg pat_env cstr partial ctx def
                       | Some fail_act, Some a ->
                           Some (test_isint a fail_act)
                     in
-                    let numconsts, numblocks =
-                      let bounds = match vd.vd_max_values with
-                        | Some bounds -> bounds
-                        | None ->
-                          (* The values are not filled e.g in case a type is
-                             imported from a foreign cmi interface; we need to
-                             recompute them here *)
-                          if vd.vd_unboxed = 0 then
-                            Max vd.vd_consts, Max vd.vd_nonconsts
-                          else
-                            Typedecl_unboxed.Head_shape.max_val_of_cstr_descr
-                              pat_env cstr
-                      in match bounds with
-                        | Max imm, Max tag -> imm, tag
-                        | Unbounded, _ | _, Unbounded ->
-                            invalid_arg "Matching.combine_constructors"
+                    let sw_numconsts =
+                      match Typedecl.cstr_max_imm_value pat_env cstr with
+                      | Some n -> n + 1
+                      | None -> 1 (* XXX *)
+                    in
+                    let sw_numblocks =
+                      match Typedecl.cstr_max_block_tag pat_env cstr with
+                      | Some n -> n + 1
+                      | None -> invalid_arg "Matching.combine_constructors"
                     in
                     let sw =
-                      { sw_numconsts = numconsts + 1;
+                      { sw_numconsts;
                         sw_consts = cases.consts;
-                        sw_numblocks = numblocks + 1;
+                        sw_numblocks;
                         sw_blocks = cases.nonconsts;
                         sw_failaction = fail_opt
                       }

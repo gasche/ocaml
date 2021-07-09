@@ -31,10 +31,12 @@ module Head_shape : sig
 
   val check_typedecl : Env.t -> Path.t * Types.type_declaration -> unit
 
-  val max_val_of_cstr_descr : Env.t -> constructor_description ->
-                              int bound * int bound
-
+  (* Functions to process Cstr_unboxed cache *)
   val get : Env.t -> Types.unboxed_data -> head_shape
 
   val fill_cache : Env.t -> Types.unboxed_data -> unit
+
+  val of_type : Env.t -> Path.t -> t
+
+  val variant_data_of_shape : t -> Types.variant_data
 end

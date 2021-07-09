@@ -31,3 +31,9 @@ module B = struct
 end
 
 let () = B.test ()
+
+module C = struct
+  type t = I of int [@unboxed] | C1 of unit | C2 of unit
+
+  let f = function I i -> i | C1 () -> 0 | C2 () -> 1
+end

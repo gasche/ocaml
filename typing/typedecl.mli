@@ -108,3 +108,11 @@ type error =
 exception Error of Location.t * error
 
 val report_error: formatter -> error -> unit
+
+val cstr_max_block_tag : Env.t -> constructor_description -> int option
+
+val cstr_max_imm_value : Env.t -> constructor_description -> int option
+
+val cstr_unboxed_numconsts : Env.t -> constructor_description -> int option
+
+val cstr_unboxed_numnonconsts : Env.t -> constructor_description -> int option

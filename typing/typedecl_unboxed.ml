@@ -267,8 +267,8 @@ module Head_shape = struct
     | Type_variant ((fst_descr :: _) as cstr_descrs,_) ->
         (* we compute the shape of all boxed constructors, then the shapes of
            each unboxed constructors *)
-        let num_consts = fst_descr.cstr_variants.vd_consts in
-        let num_nonconsts = fst_descr.cstr_variants.vd_nonconsts in
+        let num_consts = fst_descr.cstr_consts in
+        let num_nonconsts = fst_descr.cstr_nonconsts in
         (* the head shape of boxed constructors is equivalent to the nb of
            constant constructors and the nb of non constant constructors *)
         let boxed_shape = cstrs_shape ~num_consts ~num_nonconsts in
@@ -296,6 +296,22 @@ module Head_shape = struct
 
   let fill_cache env unboxed_data = ignore (get env unboxed_data)
 
+  let variant_data_of_shape shape =
+    let bound_of_shape = function
+      | Shape_set l -> Some (List.fold_left max 0 l)
+      | Shape_any -> None
+    in
+    let num_of_shape = function
+      | Shape_set l -> Some (List.length l)
+      | Shape_any -> None
+    in
+    {
+      vd_max_imm_value = bound_of_shape shape.head_imm;
+      vd_max_block_tag = bound_of_shape shape.head_blocks;
+      vd_unboxed_numconsts = num_of_shape shape.head_imm;
+      vd_unboxed_numnonconsts = num_of_shape shape.head_blocks;
+    }
+
   let check ~print env (path,decl) =
     match Env.find_type_descrs path env with
     | exception Not_found -> failwith "XXX"
@@ -310,18 +326,11 @@ module Head_shape = struct
           let ty = Btype.newgenty (Tconstr (path, params, ref Mnil)) in
           let callstack_map = Callstack.fill ty [] in
           let shape = of_type env ty callstack_map in
-          let bound_of_shape = function
-            | Shape_set l -> Types.Max (List.fold_left max 0 l)
-            | Shape_any -> Types.Unbounded
-          in
+          (* Fill the variant data *)
           match cstrs with
             | [] -> ()
-            | cstr :: _ -> begin
-                let vd = cstr.cstr_variants in
-                let imm_bound = bound_of_shape shape.head_imm in
-                let tag_bound = bound_of_shape shape.head_blocks in
-                vd.vd_max_values <- Some (imm_bound, tag_bound)
-              end;
+            | cstr :: _ ->
+                cstr.cstr_variant := Some (variant_data_of_shape shape);
           if print && !Clflags.dump_headshape then
             Format.fprintf Format.err_formatter "SHAPE(%a) %a@."
               Path.print path
@@ -336,13 +345,9 @@ module Head_shape = struct
 
   let check_typedecl env (id,decl) = check ~print:true env (id,decl)
 
-  let max_val_of_cstr_descr env cstr =
-    let variant_path = match get_desc cstr.cstr_res with
-      | Tconstr (p, _, _) -> p
-      | _ -> assert false (* XXX *)
-    in
-    let variant_decl = Env.find_type variant_path env in
-    check ~print:false env (variant_path,variant_decl);
-    let variant = cstr.cstr_variants in
-    Option.get variant.vd_max_values
+  let of_type env path =
+    let decl = Env.find_type path env in
+    let ty = Btype.newgenty (Tconstr (path, decl.type_params, ref Mnil)) in
+    let callstacks = Callstack.fill ty [] in
+    of_type env ty callstacks
 end

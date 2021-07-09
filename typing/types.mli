@@ -582,7 +582,11 @@ type constructor_description =
     cstr_args: type_expr list;          (* Type of the arguments *)
     cstr_arity: int;                    (* Number of arguments *)
     cstr_tag: constructor_tag;          (* Tag for heap blocks *)
-    cstr_variants: variant_data;        (* Datatype-related information *)
+    cstr_consts: int;                   (* Number of constant constructors *)
+    cstr_nonconsts: int;                (* Number of non-const constructors *)
+    cstr_unboxed: int;                  (* Number of unboxed constructors *)
+    cstr_variant: variant_data option ref;
+                                        (* Variant type related data *)
     cstr_generalized: bool;             (* Constrained return type? *)
     cstr_private: private_flag;         (* Read-only constructor? *)
     cstr_loc: Location.t;
@@ -590,17 +594,6 @@ type constructor_description =
     cstr_inlined: type_declaration option;
     cstr_uid: Uid.t;
    }
-
- and variant_data =
-  { vd_consts: int;                     (* Number of constant constructors *)
-    vd_nonconsts: int;                  (* Number of non-const constructors *)
-    vd_unboxed: int;                    (* Number of unboxed constructors *)
-    mutable vd_max_values: (int bound * int bound) option;
-    (* Maximum immediate value and block tags taking into account unboxed
-       constructors (only available after head-shape analysis) *)
-  }
-
-and 'a bound = Unbounded | Max of 'a
 
 and constructor_tag =
     Cstr_constant of int                (* Constant constructor (an int) *)
@@ -625,6 +618,13 @@ and 'a shape =
 
 and imm = int
 and tag = int
+
+and variant_data =
+  { vd_max_block_tag: int option;
+    vd_max_imm_value: int option;
+    vd_unboxed_numconsts: int option;
+    vd_unboxed_numnonconsts: int option;
+  }
 
 (* Constructors are the same *)
 val equal_tag :  constructor_tag -> constructor_tag -> bool
