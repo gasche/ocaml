@@ -407,8 +407,9 @@ type constructor_description =
     cstr_consts: int;                   (* Number of constant constructors *)
     cstr_nonconsts: int;                (* Number of non-const constructors *)
     cstr_unboxed: int;                  (* Number of unboxed constructors *)
-    cstr_variant: variant_data option ref;
-                                        (* Variant type related data *)
+    cstr_unboxed_type_data: unboxed_type_data option ref;
+                                        (* Type-global data that depends
+                                           on unboxing / head-shape information. *)
     cstr_generalized: bool;             (* Constrained return type? *)
     cstr_private: private_flag;         (* Read-only constructor? *)
     cstr_loc: Location.t;
@@ -441,11 +442,11 @@ and 'a shape =
 and imm = int
 and tag = int
 
-and variant_data =
-  { vd_max_block_tag: int option;
-    vd_max_imm_value: int option;
-    vd_unboxed_numconsts: int option;
-    vd_unboxed_numnonconsts: int option;
+and unboxed_type_data =
+  { utd_max_imm_value: int option;
+    utd_max_block_tag: int option;
+    utd_unboxed_numconsts: int option;
+    utd_unboxed_numnonconsts: int option;
   }
 
 let equal_tag t1 t2 =

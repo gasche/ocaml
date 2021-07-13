@@ -34,9 +34,7 @@ module Head_shape : sig
   (* Functions to process Cstr_unboxed cache *)
   val get : Env.t -> Types.unboxed_data -> head_shape
 
-  val fill_cache : Env.t -> Types.unboxed_data -> unit
-
   val of_type : Env.t -> Path.t -> t
 
-  val variant_data_of_shape : t -> Types.variant_data
+  val unboxed_type_data_of_shape : t -> Types.unboxed_type_data
 end

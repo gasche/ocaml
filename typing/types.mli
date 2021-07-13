@@ -582,49 +582,115 @@ type constructor_description =
     cstr_args: type_expr list;          (* Type of the arguments *)
     cstr_arity: int;                    (* Number of arguments *)
     cstr_tag: constructor_tag;          (* Tag for heap blocks *)
+
+    (* The following group of fields store information not on this constructor,
+       but on all constructors of the variant, for pattern-matching compilation
+       purposes. *)
     cstr_consts: int;                   (* Number of constant constructors *)
     cstr_nonconsts: int;                (* Number of non-const constructors *)
     cstr_unboxed: int;                  (* Number of unboxed constructors *)
-    cstr_variant: variant_data option ref;
-                                        (* Variant type related data *)
+    cstr_unboxed_type_data: unboxed_type_data option ref;
+    (* This mutable reference is shared among all
+       constructor_description for the same type, and depends on its
+       head shape. It is computed "later" (when a type environment
+       is available) by Typedecl.get_unboxed_type_data. *)
+
     cstr_generalized: bool;             (* Constrained return type? *)
     cstr_private: private_flag;         (* Read-only constructor? *)
     cstr_loc: Location.t;
     cstr_attributes: Parsetree.attributes;
     cstr_inlined: type_declaration option;
     cstr_uid: Uid.t;
-   }
+  }
 
 and constructor_tag =
     Cstr_constant of int                (* Constant constructor (an int) *)
   | Cstr_block of int                   (* Regular constructor (a block) *)
-  | Cstr_unboxed of unboxed_data        (* Constructor of an unboxed type *)
+  | Cstr_unboxed of unboxed_data        (* Unboxed constructor *)
   | Cstr_extension of Path.t * bool     (* Extension constructor
                                            true if a constant false if a block*)
 and unboxed_data =
-  { unboxed_ty: type_expr;
-    unboxed_shape: head_shape option ref;
+  { unboxed_ty: type_expr;              (* type of the constructor parameter *)
+    unboxed_shape:
+      head_shape option ref;
+    (* The head-shape information is not available at type-declaration
+       construction time. It is computed later, from the type
+       environment, see Typedecl_unboxed.Head_Shape.get; either at
+       tpe-declaration checking time or (for types imported from
+       a .cmi) at first query of the information by the
+       pattern-matching compiler. *)
   }
 
+(* Over-approximation of the possible values of a type,
+   used to verify and compile unboxed head constructors.
+
+   We represent the "head" of the values: their value if
+   it is an immediate, or their tag if is a block.
+   A head "shape" is a set of possible heads.
+*)
 and head_shape =
   { head_imm : imm shape;               (* set of immediates the head can be *)
     head_blocks : tag shape;            (* set of tags the head can have *)
   }
 
+(* A description of a set of ['a] elements. *)
 and 'a shape =
-  (* TODO add some comment *)
-  | Shape_set of 'a list
-  | Shape_any
+  | Shape_set of 'a list                (* An element among a finite list. *)
+  | Shape_any                           (* Any element (Top/Unknown). *)
 
 and imm = int
 and tag = int
 
-and variant_data =
-  { vd_max_block_tag: int option;
-    vd_max_imm_value: int option;
-    vd_unboxed_numconsts: int option;
-    vd_unboxed_numnonconsts: int option;
+(* Type-global data that depends on unboxing / head-shape information.
+
+   Note: the fields below should not be accessed directly, but through
+   the helper functions in Typedecl
+
+     cstr_max_block_tag : Env.t -> constructor_description -> Types.tag option
+     cstr_max_imm_value : Env.t -> constructor_description -> Types.imm option
+     cstr_unboxed_numconsts : Env.t -> constructor_description -> int option
+     cstr_unboxed_numnonconsts : Env.t -> constructor_description -> int option
+
+   which take care of caching the [unboxed_type_data] field.
+*)
+and unboxed_type_data =
+  { utd_max_imm_value: int option;
+    (* The maximal immediate value at this type after unboxing;
+       None is used in the Shape_any case -- any immediate can occur.*)
+
+    utd_max_block_tag: int option;
+    (* The maximal block tag at this type after unboxing;
+       None is used in the Shape_any case -- any tag can occur.*)
+
+    utd_unboxed_numconsts: int option;
+    (* The number of constant constructors after unboxing. *)
+
+    utd_unboxed_numnonconsts: int option;
+    (* The number of non-constant constructors after unboxing. *)
   }
+(*
+   Consider for example
+
+     type t =
+       | Int of int [@unboxed]
+       | List of t list
+       | Str of string [@unboxed
+
+   After unboxing, the representations of values at this type may be:
+   - any immediate value (coming from Int)
+   - a block of tag 0 (for List)
+   - a string value of tag String_tag (252)
+
+   We have: {
+     utd_max_imm_value = None;
+     utd_max_block_tag = Some 252;
+     utd_unboxed_numconsts = None;
+     utd_unboxed_numnonconsts = Some 2;
+   }
+
+   This information is needed by lambda/matching.ml to compile switches
+   on these constructors.
+*)
 
 (* Constructors are the same *)
 val equal_tag :  constructor_tag -> constructor_tag -> bool

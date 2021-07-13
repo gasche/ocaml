@@ -109,9 +109,10 @@ exception Error of Location.t * error
 
 val report_error: formatter -> error -> unit
 
-val cstr_max_block_tag : Env.t -> constructor_description -> int option
+(* See [unboxed_type_data] in types.mli *)
+val cstr_max_imm_value : Env.t -> constructor_description -> Types.imm option
 
-val cstr_max_imm_value : Env.t -> constructor_description -> int option
+val cstr_max_block_tag : Env.t -> constructor_description -> Types.tag option
 
 val cstr_unboxed_numconsts : Env.t -> constructor_description -> int option
 

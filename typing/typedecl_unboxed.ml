@@ -296,7 +296,7 @@ module Head_shape = struct
 
   let fill_cache env unboxed_data = ignore (get env unboxed_data)
 
-  let variant_data_of_shape shape =
+  let unboxed_type_data_of_shape shape =
     let bound_of_shape = function
       | Shape_set l -> Some (List.fold_left max 0 l)
       | Shape_any -> None
@@ -306,10 +306,10 @@ module Head_shape = struct
       | Shape_any -> None
     in
     {
-      vd_max_imm_value = bound_of_shape shape.head_imm;
-      vd_max_block_tag = bound_of_shape shape.head_blocks;
-      vd_unboxed_numconsts = num_of_shape shape.head_imm;
-      vd_unboxed_numnonconsts = num_of_shape shape.head_blocks;
+      utd_max_imm_value = bound_of_shape shape.head_imm;
+      utd_max_block_tag = bound_of_shape shape.head_blocks;
+      utd_unboxed_numconsts = num_of_shape shape.head_imm;
+      utd_unboxed_numnonconsts = num_of_shape shape.head_blocks;
     }
 
   let check ~print env (path,decl) =
@@ -330,7 +330,8 @@ module Head_shape = struct
           match cstrs with
             | [] -> ()
             | cstr :: _ ->
-                cstr.cstr_variant := Some (variant_data_of_shape shape);
+                cstr.cstr_unboxed_type_data :=
+                  Some (unboxed_type_data_of_shape shape);
           if print && !Clflags.dump_headshape then
             Format.fprintf Format.err_formatter "SHAPE(%a) %a@."
               Path.print path

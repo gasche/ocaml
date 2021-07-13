@@ -1925,27 +1925,27 @@ let () =
         None
     )
 
-let get_variant_data env cstr_desc =
-  match !(cstr_desc.cstr_variant) with
+let get_unboxed_type_data env cstr_desc =
+  match !(cstr_desc.cstr_unboxed_type_data) with
   | Some data-> data
   | None ->
       let open Typedecl_unboxed in
-      let variant_data =
+      let unboxed_type_data =
         let path = Btype.cstr_type_path cstr_desc in
         let shape = Head_shape.of_type env path in
-        Head_shape.variant_data_of_shape shape
+        Head_shape.unboxed_type_data_of_shape shape
       in
-      cstr_desc.cstr_variant := Some variant_data;
-      variant_data
+      cstr_desc.cstr_unboxed_type_data := Some unboxed_type_data;
+      unboxed_type_data
 
 let cstr_max_block_tag env cstr_desc =
-  (get_variant_data env cstr_desc).vd_max_block_tag
+  (get_unboxed_type_data env cstr_desc).utd_max_block_tag
 
 let cstr_max_imm_value env cstr_desc =
-  (get_variant_data env cstr_desc).vd_max_imm_value
+  (get_unboxed_type_data env cstr_desc).utd_max_imm_value
 
 let cstr_unboxed_numconsts env cstr_desc =
-  (get_variant_data env cstr_desc).vd_unboxed_numconsts
+  (get_unboxed_type_data env cstr_desc).utd_unboxed_numconsts
 
 let cstr_unboxed_numnonconsts env cstr_desc =
-  (get_variant_data env cstr_desc).vd_unboxed_numnonconsts
+  (get_unboxed_type_data env cstr_desc).utd_unboxed_numnonconsts

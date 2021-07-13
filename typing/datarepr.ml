@@ -107,8 +107,8 @@ let constructor_descrs ~current_unit ty_path decl cstrs rep =
       else if cd_args = Cstr_tuple [] then incr num_consts
       else incr num_nonconsts;
     ) cstrs;
-  (* Variant data is shared among constructors of the same variant type *)
-  let variant_data = ref None in
+  (* Unboxed type data is shared among constructors of the same variant type *)
+  let unboxed_type_data = ref None in
   let rec describe_constructors idx_const idx_nonconst = function
       [] -> []
     | {cd_id; cd_args; cd_res; cd_loc; cd_attributes; cd_uid} :: rem ->
@@ -154,7 +154,7 @@ let constructor_descrs ~current_unit ty_path decl cstrs rep =
             cstr_consts = !num_consts;
             cstr_nonconsts = !num_nonconsts;
             cstr_unboxed = !num_unboxed;
-            cstr_variant = variant_data;
+            cstr_unboxed_type_data = unboxed_type_data;
             cstr_private = decl.type_private;
             cstr_generalized = cd_res <> None;
             cstr_loc = cd_loc;
@@ -184,7 +184,7 @@ let extension_descr ~current_unit path_ext ext =
       cstr_consts = -1;
       cstr_nonconsts = -1;
       cstr_unboxed = -1;
-      cstr_variant = ref None;
+      cstr_unboxed_type_data = ref None;
       cstr_private = ext.ext_private;
       cstr_generalized = ext.ext_ret_type <> None;
       cstr_loc = ext.ext_loc;
