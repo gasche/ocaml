@@ -3006,7 +3006,28 @@ let combine_constructor loc arg pat_env cstr partial ctx def
                     in
                     let sw_numblocks =
                       match Typedecl.cstr_max_block_tag pat_env cstr with
-                      | Some n -> n + 1
+                      | Some n ->
+                          n + 1
+                      (* Remark: in presence of constructor unboxing,
+                         some block tags may be above
+                         Obj.last_non_constant_constructor_tag (245):
+
+                           type t =
+                             | Unit of unit (* tag 0 *)
+                             | Bool of bool (* tag 1 *)
+                             | String of string [@unboxed] (* tag String_tag = 252 *)
+
+                         With the native-code compiler, the Switcher
+                         will cluster the cases into two dense clusters
+                         and generate good code. But in bytecode, the compiler
+                         will always produce a single Switch instruction,
+                         generating a switch of around 256 cases, which is wasteful.
+
+                         We are not sure how to generate better code
+                         -- for example, generating a test for tags above 245
+                         may duplicate the computation of the value tag.
+                      *)
+
                       | None ->
                           (* single_nonconst_act is None, so there must be at least
                              two distinct non-constant actions,
