@@ -2964,7 +2964,7 @@ let combine_constructor loc arg pat_env cstr partial ctx def
                     let sw_numblocks =
                       match Typedecl.cstr_max_block_tag pat_env cstr with
                       | Some n -> n + 1
-                      | None -> invalid_arg "Matching.combine_constructors"
+                      | None -> assert false
                     in
                     let sw =
                       { sw_numconsts;
