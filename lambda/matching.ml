@@ -2944,7 +2944,8 @@ let combine_constructor loc arg pat_env cstr partial ctx def
                   | _, Some a, _ -> Some a
                   | None, None, nonconsts -> same_actions nonconsts
                   | Some _, None, cases ->
-                      (* if any_case is None, complete_case_count must be Some *)
+                      (* if any_case is None, complete_case_count
+                         must be Some *)
                       let count = Option.get complete_case_count in
                       if List.length cases = count then
                         same_actions cases
@@ -2974,8 +2975,8 @@ let combine_constructor loc arg pat_env cstr partial ctx def
                    better code than a switch in some cases, but for tests on
                    non-constant constructors we prefer to always emit a switch,
                    as bytecode implements this sophisticated instruction. *)
-                match single_nonconst_act with
-                | Some nonconst_act ->
+                match single_nonconst_act, cases.any_const with
+                | Some nonconst_act, _ ->
                    (* Note: we already checked that not all actions are
                       identical, so the constant-constructor actions cannot
                       be empty. *)
@@ -2985,24 +2986,18 @@ let combine_constructor loc arg pat_env cstr partial ctx def
                      | None ->
                         call_switcher loc fail_opt arg 0 (n - 1) cases.consts
                    in test_isint int_actions nonconst_act
-                | None ->
-                    let fail_opt =
-                      match fail_opt, cases.any_const with
-                      | None, None -> None
-                      | Some a, None
-                      | None, Some a ->
-                          Some a
-                      | Some fail_act, Some a ->
-                          Some (test_isint a fail_act)
-                    in
-                    (* Switch is a low-level control-flow construct that must handle
-                       an interval of contiguous values (on both domains); [sw_numconsts]
-                       and [sw_numblocks] correspond to the size of this interval,
-                       from 0 to the maximum head value + 1. *)
+                | None, None ->
+                    (* Switch is a low-level control-flow construct that must
+                       handle an interval of contiguous values (on
+                       both domains); [sw_numconsts] and [sw_numblocks]
+                       correspond to the size of this interval, from 0 to the
+                       maximum head value + 1. *)
                     let sw_numconsts =
                       match Typedecl.cstr_max_imm_value pat_env cstr with
                       | Some n -> n + 1
-                      | None -> 1 (* XXX TODO *)
+                      | None ->
+                          (* cases.any_const is None *)
+                          assert false
                     in
                     let sw_numblocks =
                       match Typedecl.cstr_max_block_tag pat_env cstr with
@@ -3015,34 +3010,39 @@ let combine_constructor loc arg pat_env cstr partial ctx def
                            type t =
                              | Unit of unit (* tag 0 *)
                              | Bool of bool (* tag 1 *)
-                             | String of string [@unboxed] (* tag String_tag = 252 *)
+                             | String of string [@unboxed]
+                                            (* tag String_tag = 252 *)
 
                          With the native-code compiler, the Switcher
                          will cluster the cases into two dense clusters
                          and generate good code. But in bytecode, the compiler
                          will always produce a single Switch instruction,
-                         generating a switch of around 256 cases, which is wasteful.
+                         generating a switch of around 256 cases, which is
+                         wasteful.
 
                          We are not sure how to generate better code
                          -- for example, generating a test for tags above 245
                          may duplicate the computation of the value tag.
 
-                         TODO: try the following strategy: here (in this function),
-                         if we detect that max_block_tag is above 245, generate either
+                         TODO: try the following strategy: here (in
+                         this function), if we detect that max_block_tag is
+                         above 245, generate either
 
                            if isint v then
-                             <switch on (constant values of) v using call_switcher>
+                             <switch on (constant values of) v
+                                using call_switcher>
                            else let n = Obj.tag v in
                              <switch on n using call_switcher>
 
-                         This should generate slower bytecode, but much more compact bytecode.
-                         (slower: typically 2-4 instructions executed instead of 1)
-                         (more compact: typically ~10 integers instead of ~256)
+                         This should generate slower bytecode, but much more
+                         compact bytecode. (slower: typically 2-4 instructions
+                         executed instead of 1) (more compact: typically
+                         ~10 integers instead of ~256)
                       *)
 
                       | None ->
-                          (* single_nonconst_act is None, so there must be at least
-                             two distinct non-constant actions,
+                          (* single_nonconst_act is None, so there must be at
+                             least two distinct non-constant actions,
                              any_nonconst is impossible. *)
                           assert false
                     in
@@ -3057,6 +3057,27 @@ let combine_constructor loc arg pat_env cstr partial ctx def
                     let hs, sw = share_actions_sw sw in
                     let sw = reintroduce_fail sw in
                     hs (Lswitch (arg, sw, loc))
+                | None, Some const_act ->
+                    (* Generate a switch on nonconst_act under a Pisint test
+                       to handle the any_const action *)
+                    let sw_numblocks =
+                      match Typedecl.cstr_max_block_tag pat_env cstr with
+                      | Some n -> n + 1
+                      | None -> assert false (* same as above *)
+                    in
+                    let nonconst_act =
+                      Lswitch
+                        ( arg,
+                          { sw_numconsts = 0;
+                            sw_consts = [];
+                            sw_numblocks;
+                            sw_blocks = cases.nonconsts;
+                            sw_failaction = fail_opt;
+                          },
+                          loc
+                        )
+                    in
+                    test_isint const_act nonconst_act
               )
           )
       in
