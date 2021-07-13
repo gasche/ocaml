@@ -2734,6 +2734,25 @@ let combine_constant loc arg cst partial ctx def
   in
   (lambda1, Jumps.union local_jumps total)
 
+
+(* The [split_cases] function below is in charge of taking a shallow
+   pattern-matching on a variant type, and splitting the corresponding
+   constructor+action pairs into  constant constructor cases and
+   non-constant constructor cases.
+
+   In the presence of unboxed constructors:
+
+   - A matching on a single source-level unboxed constructor may turn
+     into several cases, one for each possible head of the constructor
+     parameter.
+
+   - If the head shape of an unboxed constructor contains Shape_any
+     (for immediate values or block tags), it must be compiled
+     specially.
+
+   The Cases.t datastructure tracks such [any_const] or [any_nonconst]
+   actions. Note that if [any_const] is Some, then [consts] must be empty.
+*)
 module Cases = struct
   type t = {
     consts: (int * lambda) list;
@@ -2820,6 +2839,16 @@ let split_extension_cases tag_lambda_list =
   in
   split_rec tag_lambda_list
 
+let split_variant_cases pat_env tag_lambda_list =
+  let Cases.{consts; nonconsts; any_const; any_nonconst} =
+    split_cases pat_env tag_lambda_list in
+  (* We assume there are no unboxed constructors
+     for polymorphic variants *)
+  assert (any_const = None);
+  assert (any_nonconst = None);
+  (consts, nonconsts)
+
+
 let combine_constructor loc arg pat_env cstr partial ctx def
     (descr_lambda_list, total1, pats) =
   let tag_lambda (cstr, act) = (cstr.cstr_tag, act) in
@@ -2888,9 +2917,9 @@ let combine_constructor loc arg pat_env cstr partial ctx def
               (cstr.cstr_consts, cstr.cstr_nonconsts, cases)
             with
             | 1, 1, { consts = [ (0, act1) ]; nonconsts = [ (0, act2) ] }
-                (* Typically, match on lists, will avoid isint primitive in that
-              case *)
             | 1, 0, { consts = [ (0, act1) ]; any_nonconst = Some act2 } ->
+                (* Typically, match on lists, will avoid isint primitive in that
+                   case *)
                 Lifthenelse (arg, act2, act1)
             | n, 0, { consts; any_const; nonconsts=[]; any_nonconst=None } ->
                 (* The type defines constant constructors only *)
@@ -2902,29 +2931,39 @@ let combine_constructor loc arg pat_env cstr partial ctx def
             | n, _, _ -> (
                 let single_action any_case cases complete_case_count =
                   (* = Some act when all actions are the same,
-                     either on constant or non-constant domain *)
+                     either on constant or non-constant domain.
+
+                     [any_case] is either [any_const] or
+                     [any_nonconst]; it is None if all values of this
+                     domain are accepted. In this case
+                     complete_case_count is also None, otherwise it
+                     must be the total number of heads at this domain.
+                  *)
                   match (fail_opt, any_case, cases) with
                   | Some a, None, []
                   | _, Some a, _ -> Some a
                   | None, None, nonconsts -> same_actions nonconsts
                   | Some _, None, cases ->
-                      match complete_case_count with
-                      | Some count ->
-                        if List.length cases = count then
-                          same_actions cases
-                        else
-                          None
-                      | None -> assert false
+                      (* if any_case is None, complete_case_count must be Some *)
+                      let count = Option.get complete_case_count in
+                      if List.length cases = count then
+                        same_actions cases
+                      else
+                        None
+                in
+                (* [numconsts] and [numnonconsts] count the number
+                   of valid head constructors at this type in the domain
+                   (only constant constructors, or only
+                   non-constant constructors). *)
+                let single_const_act =
+                  let numconsts =
+                    Typedecl.cstr_unboxed_numconsts pat_env cstr in
+                  single_action cases.any_const cases.consts numconsts
                 in
                 let single_nonconst_act =
                   let numnonconsts =
                     Typedecl.cstr_unboxed_numnonconsts pat_env cstr in
                   single_action cases.any_nonconst cases.nonconsts numnonconsts
-                in
-                let single_const_act =
-                  let numconsts =
-                    Typedecl.cstr_unboxed_numconsts pat_env cstr in
-                  single_action cases.any_const cases.consts numconsts
                 in
                 let test_isint const_act nonconst_act =
                   Lifthenelse
@@ -2956,15 +2995,23 @@ let combine_constructor loc arg pat_env cstr partial ctx def
                       | Some fail_act, Some a ->
                           Some (test_isint a fail_act)
                     in
+                    (* Switch is a low-level control-flow construct that must handle
+                       an interval of contiguous values (on both domains); [sw_numconsts]
+                       and [sw_numblocks] correspond to the size of this interval,
+                       from 0 to the maximum head value + 1. *)
                     let sw_numconsts =
                       match Typedecl.cstr_max_imm_value pat_env cstr with
                       | Some n -> n + 1
-                      | None -> 1 (* XXX *)
+                      | None -> 1 (* XXX TODO *)
                     in
                     let sw_numblocks =
                       match Typedecl.cstr_max_block_tag pat_env cstr with
                       | Some n -> n + 1
-                      | None -> assert false
+                      | None ->
+                          (* single_nonconst_act is None, so there must be at least
+                             two distinct non-constant actions,
+                             any_nonconst is impossible. *)
+                          assert false
                     in
                     let sw =
                       { sw_numconsts;
@@ -3031,11 +3078,8 @@ let combine_variant loc row arg pat_env partial ctx def
     else
       mk_failaction_neg partial ctx def
   in
-  let Cases.{consts; nonconsts; any_const; any_nonconst} =
-    split_cases pat_env tag_lambda_list in
-  (* We assume there are no unboxed constructors for polymorphic variants *)
-  assert (any_const = None);
-  assert (any_nonconst = None);
+  let (consts, nonconsts) =
+    split_variant_cases pat_env tag_lambda_list in
   let lambda1 =
     match (fail, one_action) with
     | None, Some act -> act
