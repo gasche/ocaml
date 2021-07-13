@@ -81,6 +81,8 @@ let match_primitive_type p =
 module Head_shape = struct
 
   exception Conflict
+  (* TODO: add more information to be able to display proper
+     error messages. *)
 
   type t = head_shape
 
@@ -156,7 +158,7 @@ module Head_shape = struct
     let fill ty callstack = extend TypeMap.empty ty callstack
   end
 
-  (* Useful to interactively debug 'of_type' below. *)
+  (* Useful to interactively debug 'of_type_expr' below. *)
   let _print_annotations ty callstack_map =
     Format.eprintf "@[CALLSTACK(%a): @["
       Printtyp.type_expr ty;
@@ -185,7 +187,7 @@ module Head_shape = struct
   | Tpoly (t, _) -> t
   | _ -> ty
 
-  let rec of_type env ty callstack_map =
+  let rec of_type_expr env ty callstack_map =
     (* TODO : try the Ctype.expand_head_opt version here *)
     check_annotated ty callstack_map;
     match get_desc ty with
@@ -233,7 +235,7 @@ module Head_shape = struct
 
   and of_typedescr env ty_descr ty_decl ~args
                    callstack_map new_callstack =
-    let of_type_with_params ty =
+    let of_type_expr_with_params ty =
       (* We instantiate the formal type variables with the
          type expression parameters at use site.
 
@@ -245,19 +247,19 @@ module Head_shape = struct
       let ty = Ctype.apply env params ty args in
       let callstack_map =
         Callstack.extend callstack_map ty new_callstack in
-      of_type env ty callstack_map
+      of_type_expr env ty callstack_map
     in
     match ty_descr with
     | Type_abstract ->
        begin match ty_decl.type_manifest with
        | None -> any_shape
-       | Some ty -> of_type_with_params ty
+       | Some ty -> of_type_expr_with_params ty
        end
     | Type_record (_, Record_regular) -> block_shape [0]
     | Type_record (_, Record_float) -> block_shape [Obj.double_array_tag]
     | Type_record (fields, Record_unboxed _) ->
         begin match fields with
-        | [{lbl_arg = ty; _}] -> of_type_with_params ty
+        | [{lbl_arg = ty; _}] -> of_type_expr_with_params ty
         | _ -> assert false
         end
     | Type_record (_, Record_inlined _)
@@ -277,24 +279,70 @@ module Head_shape = struct
             match descr.cstr_tag with
             | Cstr_constant _ | Cstr_block _ | Cstr_extension _ -> None
             | Cstr_unboxed {unboxed_ty; _}->
-                Some (of_type_with_params unboxed_ty)
+                Some (of_type_expr_with_params unboxed_ty)
           ) cstr_descrs
         in
         (* now checking that the unboxed constructors are compatible with the
            shape of boxed constructors *)
         List.fold_left disjoint_union boxed_shape unboxed_shapes
 
-  let get env {unboxed_ty; unboxed_shape} =
+  (* Remark on the life cycle of [unboxed_shape] information.
+
+     The [cstr_tag] data that contains [unboxed_shape] is created
+     un-initialized by Datarepr, when entering a type declaration
+     inside the current typing environment. We cannot compute the
+     head-shape at this point: Env depends on Datarepr, so Datarepr
+     functions cannot depend on Env.t.
+
+     Type declarations coming from the user code are "checked" after
+     being entered in the environment by the Typedecl module; at this
+     point the [check_typedecl] function below is called, and the
+     [unboxed_shape] information for their unboxed constructors is
+     computed and cached at this point. Conflicts are turned into
+     proper user-facing errors.
+
+     However, the environment can also be extended by type
+     declarations coming from other compilation units (signatures in
+     .cmi files), and the head-shape information is not present or
+     computed at this point -- we are still within Env, and cannot
+     call [of_type] below without creating cyclic dependencies. Note
+     that these type-declarations have already been checked when
+     compiling their own module, so they must not contain head-shape
+     conflicts. In this case a type declaration can leave the
+     type-checking phase with its [head_shape] field still
+     un-initialized.
+
+     When compiling variant constructors in pattern-matching, we need
+     the head-shape information again. It is obtained by calling the
+     [get] function below, which will re-compute and cache this
+     information if the [unboxed_shape] field is still
+     un-initialized. The typing environment used for computation at
+     this point is the [pat_env] environment of the pattern-matching,
+     which we assume is an extension of the environment used at
+     variant constructor declaration time.
+
+     Error handling: [check_typedecl] handles Conflict exceptions by
+     showing a proper error to the user -- the error is in the user
+     code. On the other hand, [get] and [of_type] must never see
+     a shape conflict, as we assume the only un-initialized
+     [unboxed_shape] fields come from already-checked imported
+     declarations. If a conflict arises in those functions, it is
+     a programming error in the compiler codebase: a type declaration
+     has somehow been entered in the environment without being
+     validated by [check_typedecl] first.
+  *)
+  let fill_and_get env {unboxed_ty; unboxed_shape} =
     match !unboxed_shape with
     | Some shape -> shape
     | None ->
         let ty = ty_of_poly unboxed_ty in
         let callstacks = Callstack.fill ty [] in
-        let shape = of_type env ty callstacks in
+        let shape = of_type_expr env ty callstacks in
         unboxed_shape := Some shape;
         shape
 
-  let fill_cache env unboxed_data = ignore (get env unboxed_data)
+  let fill_cache env unboxed_cache =
+    ignore (fill_and_get env unboxed_cache)
 
   let unboxed_type_data_of_shape shape =
     let bound_of_shape = function
@@ -312,7 +360,7 @@ module Head_shape = struct
       utd_unboxed_numnonconsts = num_of_shape shape.head_blocks;
     }
 
-  let check ~print env (path,decl) =
+  let check_typedecl env (path,decl) =
     match Env.find_type_descrs path env with
     | exception Not_found -> failwith "XXX"
     | Type_variant (cstrs, _repr) -> begin
@@ -325,30 +373,41 @@ module Head_shape = struct
           let params = decl.type_params in
           let ty = Btype.newgenty (Tconstr (path, params, ref Mnil)) in
           let callstack_map = Callstack.fill ty [] in
-          let shape = of_type env ty callstack_map in
+          let shape = of_type_expr env ty callstack_map in
           (* Fill the variant data *)
           match cstrs with
             | [] -> ()
             | cstr :: _ ->
                 cstr.cstr_unboxed_type_data :=
                   Some (unboxed_type_data_of_shape shape);
-          if print && !Clflags.dump_headshape then
+          if !Clflags.dump_headshape then
+            (* TODO improve the printing to something nicer. *)
             Format.fprintf Format.err_formatter "SHAPE(%a) %a@."
               Path.print path
               pp shape
           end
         with Conflict ->
-          if print && !Clflags.dump_headshape then
+          (* TODO raise a fatal error with a registered printer,
+             instead of what is below. *)
+          if !Clflags.dump_headshape then
             Format.fprintf Format.err_formatter "SHAPE(%a) CONFLICT@."
               Path.print path
       end
     | _ -> ()
 
-  let check_typedecl env (id,decl) = check ~print:true env (id,decl)
+  let get env unboxed_data =
+    match fill_and_get env unboxed_data with
+    | exception Conflict ->
+        Misc.fatal_error
+          "Head_shape.get: check_typedecl should have run first."
+    | shape -> shape
 
   let of_type env path =
     let decl = Env.find_type path env in
     let ty = Btype.newgenty (Tconstr (path, decl.type_params, ref Mnil)) in
     let callstacks = Callstack.fill ty [] in
-    of_type env ty callstacks
+    try of_type_expr env ty callstacks
+    with Conflict ->
+        Misc.fatal_error
+          "Head_shape.of_type: check_typedecl should have run first."
 end

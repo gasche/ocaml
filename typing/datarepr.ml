@@ -20,6 +20,7 @@ open Asttypes
 open Types
 open Btype
 
+(* TODO: register an error printer for this type. *)
 type error =
   | Multiple_args_unboxed_constructor of Ident.t
 
