@@ -101,13 +101,14 @@ let constructor_descrs ~current_unit ty_path decl cstrs rep =
   let ty_res = newgenconstr ty_path decl.type_params in
   let variant_unboxed = Builtin_attributes.has_unboxed decl.type_attributes in
   let num_consts = ref 0 and num_nonconsts = ref 0 and num_unboxed = ref 0 in
-  let variant_data = ref None in
   List.iter
     (fun {cd_args; cd_attributes; _} ->
       if Builtin_attributes.has_unboxed cd_attributes then incr num_unboxed
       else if cd_args = Cstr_tuple [] then incr num_consts
       else incr num_nonconsts;
     ) cstrs;
+  (* Variant data is shared among constructors of the same variant type *)
+  let variant_data = ref None in
   let rec describe_constructors idx_const idx_nonconst = function
       [] -> []
     | {cd_id; cd_args; cd_res; cd_loc; cd_attributes; cd_uid} :: rem ->
