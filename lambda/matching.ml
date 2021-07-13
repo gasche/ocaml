@@ -3026,6 +3026,18 @@ let combine_constructor loc arg pat_env cstr partial ctx def
                          We are not sure how to generate better code
                          -- for example, generating a test for tags above 245
                          may duplicate the computation of the value tag.
+
+                         TODO: try the following strategy: here (in this function),
+                         if we detect that max_block_tag is above 245, generate either
+
+                           if isint v then
+                             <switch on (constant values of) v using call_switcher>
+                           else let n = Obj.tag v in
+                             <switch on n using call_switcher>
+
+                         This should generate slower bytecode, but much more compact bytecode.
+                         (slower: typically 2-4 instructions executed instead of 1)
+                         (more compact: typically ~10 integers instead of ~256)
                       *)
 
                       | None ->
