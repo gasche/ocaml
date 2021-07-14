@@ -2970,28 +2970,102 @@ let combine_constructor loc arg pat_env cstr partial ctx def
                   Lifthenelse
                     ( Lprim (Pisint, [ arg ], loc), const_act, nonconst_act )
                 in
-                (* Remark: for constant constructors we can generate
+                (* We check specifically for single_nonconst_act, not for
+                   single_const_act: for constant constructors we can generate
                    better code than a switch in some cases, but for tests on
                    non-constant constructors we prefer to always emit a switch,
                    as bytecode implements this sophisticated instruction. *)
-                match single_const_act, single_nonconst_act with
-                | Some const_act, Some nonconst_act ->
-                    test_isint const_act nonconst_act
-                | None, Some nonconst_act ->
-                    let const_act =
-                      (* Note: we already checked that not all actions are the same,
-                         so cases.consts cannot be empty. *)
-                      call_switcher loc fail_opt arg 0 (n - 1) cases.consts in
-                    test_isint const_act nonconst_act
-                | Some const_act, None ->
+                match single_nonconst_act, cases.any_const with
+                | Some nonconst_act, _ ->
+                   (* Note: we already checked that not all actions are
+                      identical, so the constant-constructor actions cannot
+                      be empty. *)
+                   let int_actions =
+                     match single_const_act with
+                     | Some const_act -> const_act
+                     | None ->
+                        call_switcher loc fail_opt arg 0 (n - 1) cases.consts
+                   in test_isint int_actions nonconst_act
+                | None, None ->
+                    (* Switch is a low-level control-flow construct that must
+                       handle an interval of contiguous values (on
+                       both domains); [sw_numconsts] and [sw_numblocks]
+                       correspond to the size of this interval, from 0 to the
+                       maximum head value + 1. *)
+                    let sw_numconsts =
+                      match Typedecl.cstr_max_imm_value pat_env cstr with
+                      | Some n -> n + 1
+                      | None ->
+                          (* cases.any_const is None *)
+                          assert false
+                    in
+                    let sw_numblocks =
+                      match Typedecl.cstr_max_block_tag pat_env cstr with
+                      | Some n ->
+                          n + 1
+                      (* Remark: in presence of constructor unboxing,
+                         some block tags may be above
+                         Obj.last_non_constant_constructor_tag (245):
+
+                           type t =
+                             | Unit of unit (* tag 0 *)
+                             | Bool of bool (* tag 1 *)
+                             | String of string [@unboxed]
+                                            (* tag String_tag = 252 *)
+
+                         With the native-code compiler, the Switcher
+                         will cluster the cases into two dense clusters
+                         and generate good code. But in bytecode, the compiler
+                         will always produce a single Switch instruction,
+                         generating a switch of around 256 cases, which is
+                         wasteful.
+
+                         We are not sure how to generate better code
+                         -- for example, generating a test for tags above 245
+                         may duplicate the computation of the value tag.
+
+                         TODO: try the following strategy: here (in
+                         this function), if we detect that max_block_tag is
+                         above 245, generate either
+
+                           if isint v then
+                             <switch on (constant values of) v
+                                using call_switcher>
+                           else let n = Obj.tag v in
+                             <switch on n using call_switcher>
+
+                         This should generate slower bytecode, but much more
+                         compact bytecode. (slower: typically 2-4 instructions
+                         executed instead of 1) (more compact: typically
+                         ~10 integers instead of ~256)
+                      *)
+
+                      | None ->
+                          (* single_nonconst_act is None, so there must be at
+                             least two distinct non-constant actions,
+                             any_nonconst is impossible. *)
+                          assert false
+                    in
+                    let sw =
+                      { sw_numconsts;
+                        sw_consts = cases.consts;
+                        sw_numblocks;
+                        sw_blocks = cases.nonconsts;
+                        sw_failaction = fail_opt
+                      }
+                    in
+                    let hs, sw = share_actions_sw sw in
+                    let sw = reintroduce_fail sw in
+                    hs (Lswitch (arg, sw, loc))
+                | None, Some const_act ->
+                    (* Generate a switch on nonconst_act under a Pisint test
+                       to handle the any_const action *)
+                    let sw_numblocks =
+                      match Typedecl.cstr_max_block_tag pat_env cstr with
+                      | Some n -> n + 1
+                      | None -> assert false (* same as above *)
+                    in
                     let nonconst_act =
-                      let max_block_tag =
-                        Typedecl.cstr_max_block_tag pat_env cstr in
-                      let sw_numblocks =
-                        (* if single_const_act is None,
-                           then any_const must be None, so
-                           cstr_max_block_tag is Some. *)
-                        Option.get max_block_tag + 1 in
                       Lswitch
                         ( arg,
                           { sw_numconsts = 0;
@@ -3004,67 +3078,6 @@ let combine_constructor loc arg pat_env cstr partial ctx def
                         )
                     in
                     test_isint const_act nonconst_act
-                | None, None ->
-                    (* Switch is a low-level control-flow construct that must
-                       handle an interval of contiguous values (on
-                       both domains); [sw_numconsts] and [sw_numblocks]
-                       correspond to the size of this interval, from 0 to the
-                       maximum head value + 1. *)
-                    let max_imm_value =
-                      Typedecl.cstr_max_imm_value pat_env cstr in
-                    let max_block_tag =
-                      Typedecl.cstr_max_block_tag pat_env cstr in
-                    let sw_numconsts =
-                      Option.get max_imm_value + 1 in
-                    let sw_numblocks =
-                      Option.get max_block_tag + 1 in
-                    (* Remark: in presence of constructor unboxing,
-                       some block tags may be above
-                       Obj.last_non_constant_constructor_tag (245):
-
-                         type t =
-                           | Unit of unit (* tag 0 *)
-                           | Bool of bool (* tag 1 *)
-                           | String of string [@unboxed]
-                                          (* tag String_tag = 252 *)
-
-                       With the native-code compiler, the Switcher
-                       will cluster the cases into two dense clusters
-                       and generate good code. But in bytecode, the compiler
-                       will always produce a single Switch instruction,
-                       generating a switch of around 256 cases, which is
-                       wasteful.
-
-                       We are not sure how to generate better code
-                       -- for example, generating a test for tags above 245
-                       may duplicate the computation of the value tag.
-
-                       TODO: try the following strategy: here (in
-                       this function), if we detect that max_block_tag is
-                       above 245, generate either
-
-                         if isint v then
-                           <switch on (constant values of) v
-                              using call_switcher>
-                         else let n = Obj.tag v in
-                           <switch on n using call_switcher>
-
-                       This should generate slower bytecode, but much more
-                       compact bytecode. (slower: typically 2-4 instructions
-                       executed instead of 1) (more compact: typically
-                       ~10 integers instead of ~256)
-                    *)
-                    let sw =
-                      { sw_numconsts;
-                        sw_consts = cases.consts;
-                        sw_numblocks;
-                        sw_blocks = cases.nonconsts;
-                        sw_failaction = fail_opt
-                      }
-                    in
-                    let hs, sw = share_actions_sw sw in
-                    let sw = reintroduce_fail sw in
-                    hs (Lswitch (arg, sw, loc))
               )
           )
       in
