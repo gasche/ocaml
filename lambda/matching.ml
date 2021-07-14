@@ -2821,19 +2821,44 @@ let combine_constructor loc arg pat_env cstr partial ctx def
       let descr_lambda_list = fails @ descr_lambda_list in
       let consts, nonconsts =
         split_cases (List.map tag_lambda descr_lambda_list) in
+      (* Our duty below is to generate code, for matching on a list of
+         constructor+action cases, that is good for both bytecode and
+         native-code compilation. (Optimizations that only work well
+         for one backend should be done in the backend.)
+
+         The [Lswitch] construct is generally an excellent choice, as
+         it generates a single instruction in bytecode, and can be
+         turned into efficient, simpler control-flow constructs in
+         native-code. (The lambda/switch.ml module is precisely
+         responsible for efficiently compiling switches to simpler
+         tests.)
+
+         Some additional optimizations make sense here when they let
+         us generate better code, including in bytecode: the generated
+         code should still fit in one bytecode instruction or less. *)
       let lambda1 =
         match (fail_opt, same_actions descr_lambda_list) with
-        | None, Some act -> act (* Identical actions, no failure *)
+        | None, Some act ->
+            (* Identical actions, no failure: 0 control-flow instructions. *)
+            act
         | _ -> (
             match
               (cstr.cstr_consts, cstr.cstr_nonconsts, consts, nonconsts)
             with
             | 1, 1, [ (0, act1) ], [ (0, act2) ] ->
-                (* Typically, match on lists, will avoid isint primitive in that
-              case *)
+                (* If there is a single action on both sides and 0 is
+                   the only possible constant value, we can test (v = 0)
+                   instead of (isint v), which gives nicer code --
+                   still one bytecode instruction.
+
+                   This case is very frequent as it corresponds to
+                   matching on lists and options. *)
                 Lifthenelse (arg, act2, act1)
             | n, 0, _, [] ->
-                (* The type defines constant constructors only *)
+                (* The matched type defines constant constructors only.
+                   (typically the constant cases are dense, so
+                   call_switcher will generate a Lswitch, still one
+                   instruction.) *)
                 call_switcher loc fail_opt arg 0 (n - 1) consts
             | n, _, _, _ -> (
                 let act0 =
@@ -2849,13 +2874,14 @@ let combine_constructor loc arg pat_env cstr partial ctx def
                 in
                 match act0 with
                 | Some act ->
+                    (* This case deviates from our policy,
+                       by typically generating three bytecode instructions. *)
                     Lifthenelse
                       ( Lprim (Pisint, [ arg ], loc),
                         call_switcher loc fail_opt arg 0 (n - 1) consts,
                         act )
                 | None ->
-                    (* Emit a switch, as bytecode implements this sophisticated
-                      instruction *)
+                    (* In the general case, emit a switch. *)
                     let sw =
                       { sw_numconsts = cstr.cstr_consts;
                         sw_consts = consts;
