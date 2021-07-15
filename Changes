@@ -72,6 +72,9 @@ Working version
   Types
   (Nicolas Chataing, review by Jacques Garrigue)
 
+- #????: refactor the compilation of the 'switch' construct
+  (Gabriel Scherer, review by ???)
+
 ### Build system:
 
 ### Bug fixes:
