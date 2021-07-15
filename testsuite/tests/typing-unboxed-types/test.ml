@@ -94,14 +94,19 @@ Error: This type cannot be unboxed because
 (* let rec must be rejected *)
 type t10 = A of t10 [@@ocaml.unboxed];;
 [%%expect{|
-type t10 = A of t10 [@@unboxed]
+Line 1, characters 0-37:
+1 | type t10 = A of t10 [@@ocaml.unboxed];;
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error: Cyclic type expansion during [@unboxed] verification.
+       t10/188[22] appears unboxed at the head of its own definition.
 |}];;
 let rec x = A x;;
 [%%expect{|
-Line 1, characters 12-15:
+Line 1, characters 14-15:
 1 | let rec x = A x;;
-                ^^^
-Error: This kind of expression is not allowed as right-hand side of `let rec'
+                  ^
+Error: This expression has type t1 but an expression was expected of type
+         string
 |}];;
 
 (* Representation mismatch between module and signature must be rejected *)
@@ -260,17 +265,29 @@ in assert (f x = L 3.14);;
 (* Check for a potential infinite loop in the typing algorithm. *)
 type 'a t12 = M of 'a t12 [@@ocaml.unboxed];;
 [%%expect{|
-type 'a t12 = M of 'a t12 [@@unboxed]
+Line 1, characters 0-43:
+1 | type 'a t12 = M of 'a t12 [@@ocaml.unboxed];;
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error: Cyclic type expansion during [@unboxed] verification.
+       t12/553[43] appears unboxed at the head of its own definition.
 |}];;
 let f (a : int t12 array) = a.(0);;
 [%%expect{|
-val f : int t12 array -> int t12 = <fun>
+Line 1, characters 15-18:
+1 | let f (a : int t12 array) = a.(0);;
+                   ^^^
+Error: Unbound type constructor t12
+Hint: Did you mean t1, t11 or t2?
 |}];;
 
 (* Check for another possible loop *)
 type t13 = A : _ t12 -> t13 [@@ocaml.unboxed];;
 [%%expect{|
-type t13 = A : 'a t12 -> t13 [@@unboxed]
+Line 1, characters 17-20:
+1 | type t13 = A : _ t12 -> t13 [@@ocaml.unboxed];;
+                     ^^^
+Error: Unbound type constructor t12
+Hint: Did you mean t1, t11, t13 or t2?
 |}];;
 
 

@@ -979,6 +979,11 @@ let transl_type_decl env rec_flag sdecl_list =
   let final_env = add_types_to_env decls env in
   (* Check re-exportation *)
   List.iter2 (check_abbrev final_env) sdecl_list decls;
+  (* Check head shape conflicts *)
+  List.iter (fun (id, decl) ->
+    let path = Path.Pident id in
+    Typedecl_unboxed.Head_shape.check_typedecl final_env (path, decl)
+  ) decls;
   (* Keep original declaration *)
   let final_decls =
     List.map2
@@ -1919,3 +1924,28 @@ let () =
       | _ ->
         None
     )
+
+let get_unboxed_type_data env cstr_desc =
+  match !(cstr_desc.cstr_unboxed_type_data) with
+  | Some data-> data
+  | None ->
+      let open Typedecl_unboxed in
+      let unboxed_type_data =
+        let path = Btype.cstr_type_path cstr_desc in
+        let shape = Head_shape.of_type env path in
+        Head_shape.unboxed_type_data_of_shape shape
+      in
+      cstr_desc.cstr_unboxed_type_data := Some unboxed_type_data;
+      unboxed_type_data
+
+let cstr_max_block_tag env cstr_desc =
+  (get_unboxed_type_data env cstr_desc).utd_max_block_tag
+
+let cstr_max_imm_value env cstr_desc =
+  (get_unboxed_type_data env cstr_desc).utd_max_imm_value
+
+let cstr_unboxed_numconsts env cstr_desc =
+  (get_unboxed_type_data env cstr_desc).utd_unboxed_numconsts
+
+let cstr_unboxed_numnonconsts env cstr_desc =
+  (get_unboxed_type_data env cstr_desc).utd_unboxed_numnonconsts
