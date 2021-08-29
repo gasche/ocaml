@@ -229,15 +229,11 @@ and we expand it to a switch without unboxed constructors, to be compiled by the
 | Cstr_block 252 -> act2
 ```
 
-This is the general idea, but in fact we need slightly more sophistication to deal with `(Imm, _)` or `(Block, _)` shapes. Instead of a list of clauses, we represent a switch as a product structure which may contain:
-- an action for all immediates (the `any_const` action)
-- or a list of specific actions for some immediates
-- an action for all blocks (the `any_nonconst` action)
-- or a list of specific actions for some block tags
+This is the general idea, but in fact we need slightly more sophistication to deal with `(Imm, _)` or `(Block, _)` shapes. We change the definition of clauses to contain both:
+- either a list of specific actions for some immediates, or an "any" action for all immediates, and
+- either a list of specific actions for some block tags, or an "any" action for all blocks
 
-TODO: writing this explanation, I really have the impression that we should try again to use a sum type to clarify that we either have `any` or some immediates. This makes `split_cases` harder to write, but the consumer easier to read, and the consumer is more important here -- it is the subtle piece of code that does the pattern-matching compilation of those switches.
-
-The code that lowers switches into `Lifthenelse` or `Lswitch` has to be adapted to deal with this new structure. If We changed the code in such a way that it should be easy to check that, in absence of unboxed constructors, the code generated is the same as it was previously. (The cost of this approach is that sometimes the code is more verbose / less regular than it could be if written from scratch, accepting some changes in compilation.)
+The code that lowers switches into `Lifthenelse` or `Lswitch` has to be adapted to deal with this new structure. We tried to make it possible/easy to check that, in absence of unboxed constructors, the code generated is the same as it was previously. (The cost of this approach is that sometimes the code is more verbose / less regular than it could be if written from scratch, accepting some changes in compilation.)
 
 Remark: To emit `Lswitch` instructions, the compiler needs to know of the range of possible immediate values and tags (when we don't have `any_{const,nonconst}` actions). More precisely, we want the maximal possible immediate constructor and block tag at this type (minimal values are always assumed to be 0).
 
