@@ -191,9 +191,9 @@ and imm = int
 and tag = int
 ```
 
-TODO: turn Imm and Tag into one-constructor types
-
 This definition is found in typing/types.mli: https://github.com/gasche/ocaml/blob/head_shape/typing/types.mli#L624-L642
+
+Remark: we tried turning `imm` and `tag` into single-constructor variants for more safety, but this proved very cumbersome as many auxiliary functions happily process either sorts of tags to compute numeric aggregates.
 
 Remark: in practice we don't know of any use type in OCaml that contains the `(Block, _)` shape without also allowing `(Imm, _)`. (So we could do without `(Block, _)` and have two tops, "any immediate" or "any value whatsoever") No type describes "any block but not immediates". Allowing it in the compiler implementation makes the code more regular, and it could come handy in the future (if we wanted, say, to assign shapes to Cmm-level types) or for weird FFI projects.
 
