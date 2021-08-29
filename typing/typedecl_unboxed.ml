@@ -187,6 +187,23 @@ module Head_shape = struct
   | Tpoly (t, _) -> t
   | _ -> ty
 
+  let of_primitive_type = function
+    | Int -> { head_imm = Shape_any; head_blocks = Shape_set [] }
+    | Float -> block_shape [Obj.double_tag]
+    | String
+    | Bytes -> block_shape [Obj.string_tag]
+    | Array ->
+        block_shape
+          (if Config.flat_float_array then [0]
+           else [0; Obj.double_array_tag])
+    | Floatarray -> block_shape [Obj.double_array_tag]
+    | Lazy -> any_shape
+    (* Lazy values can 'shortcut' the lazy block, and thus have many
+       different tags. When Config.flat_float_array, they
+       cannot be floats, so we might want to refine that if there
+       are strong use-cases. *)
+    | Custom -> block_shape [Obj.custom_tag]
+
   let rec of_type_expr env ty callstack_map =
     (* TODO : try the Ctype.expand_head_opt version here *)
     check_annotated ty callstack_map;
@@ -194,21 +211,7 @@ module Head_shape = struct
     | Tvar _ | Tunivar _ -> any_shape
     | Tconstr (p, args, _abbrev) ->
         begin match match_primitive_type p with
-        | Some Int -> { head_imm = Shape_any; head_blocks = Shape_set [] }
-        | Some Float -> block_shape [Obj.double_tag]
-        | Some String
-        | Some Bytes -> block_shape [Obj.string_tag]
-        | Some Array ->
-            block_shape
-              (if Config.flat_float_array then [0]
-               else [0; Obj.double_array_tag])
-        | Some Floatarray -> block_shape [Obj.double_array_tag]
-        | Some Lazy -> any_shape
-          (* Lazy values can 'shortcut' the lazy block, and thus have many
-             different tags. When Config.flat_float_array, they
-             cannot be floats, so we might want to refine that if there
-             are strong use-cases. *)
-        | Some Custom -> block_shape [Obj.custom_tag]
+        | Some prim_type -> of_primitive_type prim_type
         | None ->
             let head_callstack = Callstack.head callstack_map ty in
             if Callstack.visited p head_callstack then
