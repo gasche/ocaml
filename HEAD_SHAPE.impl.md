@@ -212,11 +212,13 @@ It is unsound in presence of the flat-float-array optimization to have types tha
 type t = Float of float [@unboxed] | Other
 ```
 
-The simplest possible idea to solve this is to give `float` the "top" shape (instead of Double_tag), which should reject all such definitions. (But the error message will be disappointing.)
+One possibility to fix this:
+- extend the domain of shapes, in addition to "imm" and "block" we add a "poison" domain, which is a single bit (true/false), which indicates whether the type is separated (poison=false) or non-separateed (poison-true)
+- when taking the disjoint union of two shapes, compute the "poison" bit (take the disjunction of the two poison bits, and also set to 'true' if the resulting domain contains 'Obj.double_tag' and anything else)
+- existential variables of GADT constructors do not get the current "top" shape (poison=false), but a "poisoned top" with poison=true.
+- if a type declaration has a poisoned final shape, reject the declaration
 
-A more elaborate fix to this issue is to add to the head shape a boolean flag, "separated". A "separated" shape guarantees that it is the over-approximation of a separable type, while a non-separated shape may be the shape of a non-separated type. So for example we have a "Separated Top" value (which can be inhabited by any value, but either contains float and nothing else or no floats) and a "Non-separated top" value (any value, possibly floats and other stuff at the same time). It may be possible to compute this bit simply by giving existential variables in GADTs the "non-separated top" shape, and then to reject all non-separated type declarations. This would allow removing the current separability-computation machinery, which could bring a substantial simplification of this corner of the type-checker.
-
-
+Question: would it be possible to just get rid of the current separability computation for type declarations, and use this shape analysis instead? (This would be a nice simplification to the type-checker coebase.) We could try this by implementing the 'poison' logic, disabling the 'separability' check, and running the separability testsuite.
 
 ## Future work
 
