@@ -150,6 +150,6 @@ Our intuition is that we could fine a "weakening" of our current specification t
 
 In other words: what amount of runtime type information should we require from OCaml implementations?
 
-At the limit, one extreme choice would be to only reason on the tag of variant constructors (constant or not), which are distinguishable from each other in any OCaml implementation, and not make any other assumption about head shapes (map all types except variants to the "top" shape). This would reject most unboxing definitions, leave maximal freedom for langauge implementations. Unfortunately this would also prevent the actually-interesting uses of the feature we know about, which mostly resolve around unboxing an `int`-carrying constructor.
+At the limit, one extreme choice would be to only reason on the tag of variant constructors (constant or not), which are distinguishable from each other in any OCaml implementation, and not make any other assumption about head shapes (map all types except variants to the "top" shape). This would reject most unboxing definitions, leave maximal freedom for language implementations. Unfortunately this would also prevent the actually-interesting uses of the feature we know about, which mostly resolve around unboxing an `int`-carrying constructor.
 
 This is an aspect of our design on which we need external feedback from people with a good taste for these matters. (cc @xavierleroy, @damiendoligez, @yallop, @stedolan, @lpw25, @let-def, etc.).
