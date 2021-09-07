@@ -6,7 +6,7 @@ This PR implements a variant of the "constructor unboxing" feature proposed by J
 
 The following is now accepted:
 
-```
+```ocaml
 type bignum =
   | Short of int [@unboxed] (* represented directly by an integer *)
   | Long of Gmp.t           (* Block of tag 0 (first non-unboxed constructor) *)
@@ -38,7 +38,7 @@ The main components required for this feature are:
 
 Representing head shapes by their set of possible values is not practical, as `(Imm, _)` (the shape of all immediate values) would be too large a set. Instead we use a representation with an explicit "any" value in either domains (for immediates or for tags):
 
-```
+```ocaml
 (* Over-approximation of the possible values of a type,
    used to verify and compile unboxed head constructors.
 
@@ -189,7 +189,7 @@ encountered in head position during reduction.
 
 Our cycle-detection algorithm will sometimes reject definitions that indeed are cyclic, but do admit a valid fixpoint:
 
-```
+```ocaml
 (* this bad declaration should be rejected *)
 type t = Loop of t [@unboxed] | Other
 (* because `Other` and `Loop Other` would have the same representation *)
