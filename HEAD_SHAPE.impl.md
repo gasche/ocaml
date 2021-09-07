@@ -213,12 +213,21 @@ type t = Float of float [@unboxed] | Other
 ```
 
 One possibility to fix this:
-- extend the domain of shapes, in addition to "imm" and "block" we add a "poison" domain, which is a single bit (true/false), which indicates whether the type is separated (poison=false) or non-separateed (poison-true)
-- when taking the disjoint union of two shapes, compute the "poison" bit (take the disjunction of the two poison bits, and also set to 'true' if the resulting domain contains 'Obj.double_tag' and anything else)
-- existential variables of GADT constructors do not get the current "top" shape (poison=false), but a "poisoned top" with poison=true.
-- if a type declaration has a poisoned final shape, reject the declaration
+- Extend the domain of shapes, in addition to "imm" and "block" we add a "separated" domain, which is a single bit (true/false), which indicates whether the set of values we approximate is separated.
+  (a set of OCaml values is "separated" if it contains either (1) only `float` values or (2) no `float` value.)
+- When taking the disjoint union of two shapes, compute the "separated" bit (take the conjunction of the two input bits, and also set to 'false' if the resulting domain contains both 'Obj.double_tag' and something else).
+- Existential variables of GADT constructors do not get the current "top" shape (separated=true), but a "non-separated top" with separated=false.
+- If a type declaration has a non-separated final shape, reject the declaration.
 
-Question: would it be possible to just get rid of the current separability computation for type declarations, and use this shape analysis instead? (This would be a nice simplification to the type-checker coebase.) We could try this by implementing the 'poison' logic, disabling the 'separability' check, and running the separability testsuite.
+Question: would it be possible to just get rid of the current separability computation for type declarations, and use this shape analysis instead? (This would be a nice simplification to the type-checker codebase.) We could try this by implementing this logic, disabling the pre-existing 'separability' check, and running the separability testsuite.
+
+Remark: without this extension, shapes have a natural denotational semantics, where each shape is interpreted by a set of OCaml values.
+
+    interp(s) = { v | head(v) ∈ s }
+
+With this extension, shapes can be interpreted as *sets of sets* of OCaml values:
+
+    interp(s) = { S | ∀v∈S, head(v) ∈ s  /\  s.separated <=> is_separated(S) }
 
 ## Future work
 
@@ -232,11 +241,25 @@ If a type definition is rejected due to shape conflict, it would be nice to give
 
 Finer-grained shape computations for GADTs: to compute the shape of a type `foo t` when `t` is a GADT, instead of taking the disjoint union of the shape of all constructors, we can filter only the constructors that are "compatible" with `foo` (we cannot prove that the types are disjoint). This is simple enough and gives good, interesting results in practice, but it also requires refining the termination-checking strategy for GADTs (in addition to the head type constructor, we need to track the set of compatible constructors for the particular expansion that was done). For now we punt on this by not doing any special handling of GADTs, even though it is less precise.
 
+
 ### Shape annotations on abstract types
 
 If an abstract type is meant to be defined through the FFI, the OCaml-side could come with an annotation restricting its shape from the pessimal default "{ (Imm, _); (Block, _) }" to the actual shape of FFI-produced values for this type. This requires blindly trusting the programmer, but this blind trust is the foundation of our FFI model already.
 
 Having shape annotations on abstract types means that shape-inclusion has to be checked when verifying that a type definition in a module matches a type declaration in its interface. (Currently we don't have any work there, because means of abstractions always either preserve the head shape or turn it into "top".)
+
+### Arity tracking
+
+Another information we could add to our "head shape" approximation is the size of the block. For example, in theory we could allow this:
+
+```ocaml
+type 'a pair = ('a * 'a)
+type 'a triple = ('a * 'a * 'a)
+
+type 'a t =
+  | Pair of 'a pair [@unboxed]     (* tag 0, size 2 *)
+  | Triple of 'a triple [@unboxed] (* tag 0, size 3 *)
+```
 
 ### Compilation strategy
 
