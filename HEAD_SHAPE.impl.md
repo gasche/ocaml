@@ -204,7 +204,7 @@ type t = Loop of t [@unboxed]
 It would be nice to put in the work to distinguish "good cycles" from "bad cycles" to avoid this small defect of the current strategy of rejecting *all* cycles.
 
 
-### TODO enforce "separability" of resulting types
+### Enforce "separability" of resulting types
 
 It is unsound in presence of the flat-float-array optimization to have types that contain both floating-point values and non-floating-point values. Our current approach does not enforce this, so it will allow this unsound definition:
 

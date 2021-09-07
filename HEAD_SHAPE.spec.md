@@ -131,9 +131,13 @@ A major difference is that the RFC#14 specification suggests renumbering constru
 (Note: @stedolan calls this aspect of RFC#14 "[conflating inlining and disjointness](https://github.com/ocaml/RFCs/pull/14#issuecomment-603867960)". We only deal with disjointness.)
 
 
-## TODO separability
+## separability
 
-TODO explain how our approach ensures separability of types (see still-TODO proposal in [HEAD_SHAPE.impl.md](HEAD_SHAPE.impl.md).
+When the compiler is in `flat-float-array` mode, soundness relies on the property that all OCaml types are "separated": they contain either (1) only `float` values, or (2) no `float` value. New forms of unboxing must preserve this property.
+
+We can track separatedness as part of the head-shape computation for unboxed type declaration, by adding to head-shape data a "separated" bit (see the details in [HEAD_SHAPE.impl.md](HEAD_SHAPE.impl.md)). We reject type declarations whose head-shape is not separated (when in `flat-float-array` mode).
+
+It may be that this tracking is precise enough to entirely replace the pre-existing "separability analysis" of the type-checker. We have not implemented it yet, and have not evaluated this possibility.
 
 
 ## Leftover question: how close to the compiler-distribution runtime should the specification be?
