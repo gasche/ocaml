@@ -185,6 +185,11 @@ fixed easily by keeping track of the set of type nodes we have already
 encountered in head position during reduction.
 
 
+### Handle unboxed constructors in `genprintval`
+
+`genprintval` performs type-directed pretty-printing of values (represented as `Obj.t`). For variants it accesses the tag to know which constructor to print, and how to print the argument(s). We need to adapt this code to deal with unboxed constructors: the constructor to print is the one whose head shape contains the head of the value being printed.
+
+
 ### Distinguish "good" from "bad" cycles
 
 Our cycle-detection algorithm will sometimes reject definitions that indeed are cyclic, but do admit a valid fixpoint:
