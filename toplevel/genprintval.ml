@@ -377,8 +377,10 @@ module Make(O : OBJ)(EVP : EVALPATH with type valu = O.t) = struct
                  Oval_constr (Oide_ident (Out_name.create "lazy"), [v])
                end
           | Tconstr(path, ty_list, _) -> begin
-              try
-                let decl = Env.find_type path env in
+              match Env.find_type path env with
+              | exception Not_found ->
+                  Oval_stuff "<abstr>"
+              | decl -> begin
                 match decl with
                 | {type_kind = Type_abstract; type_manifest = None} ->
                     Oval_stuff "<abstr>"
@@ -391,11 +393,7 @@ module Make(O : OBJ)(EVP : EVALPATH with type valu = O.t) = struct
                     tree_of_record depth env decl path ty_list obj lbl_list rep
                 | {type_kind = Type_open} ->
                     tree_of_extension path ty_list depth obj
-              with
-                Not_found ->                (* raised by Env.find_type *)
-                  Oval_stuff "<abstr>"
-              | Datarepr.Constr_not_found -> (* raised by find_constr_by_tag *)
-                  Oval_stuff "<unknown constructor>"
+                end
               end
           | Tvariant row ->
               let row = Btype.row_repr row in
@@ -441,35 +439,37 @@ module Make(O : OBJ)(EVP : EVALPATH with type valu = O.t) = struct
           else if O.is_block obj
           then Cstr_block(O.tag obj)
           else Cstr_constant(O.obj obj) in
-        let {cd_id;cd_args;cd_res} =
-          Datarepr.find_constr_by_tag tag constr_list in
-        let type_params =
-          match cd_res with
-            Some t ->
-              begin match get_desc t with
-                Tconstr (_,params,_) ->
-                  params
-              | _ -> assert false end
-          | None -> decl.type_params
-        in
-        begin
-          match cd_args with
-          | Cstr_tuple l ->
-              let ty_args =
-                instantiate_types env type_params ty_list l in
-              tree_of_constr_with_args (tree_of_constr env path)
-                (Ident.name cd_id) false 0 depth obj
-                ty_args unbx
-          | Cstr_record lbls ->
-              let r =
-                tree_of_record_fields depth
-                  env path type_params ty_list
-                  lbls 0 obj unbx
-              in
-              Oval_constr(tree_of_constr env path
-                            (Out_name.create (Ident.name cd_id)),
-                          [ r ])
-        end
+        match Datarepr.find_constr_by_tag tag constr_list with
+        | exception Datarepr.Constr_not_found -> (* raised by find_constr_by_tag *)
+            Oval_stuff "<unknown constructor>"
+        |  {cd_id;cd_args;cd_res} ->
+            let type_params =
+              match cd_res with
+               | Some t ->
+                  begin match get_desc t with
+                    Tconstr (_,params,_) ->
+                      params
+                  | _ -> assert false end
+              | None -> decl.type_params
+            in
+            begin
+              match cd_args with
+              | Cstr_tuple l ->
+                  let ty_args =
+                    instantiate_types env type_params ty_list l in
+                  tree_of_constr_with_args (tree_of_constr env path)
+                    (Ident.name cd_id) false 0 depth obj
+                    ty_args unbx
+              | Cstr_record lbls ->
+                  let r =
+                    tree_of_record_fields depth
+                      env path type_params ty_list
+                      lbls 0 obj unbx
+                  in
+                  Oval_constr(tree_of_constr env path
+                                (Out_name.create (Ident.name cd_id)),
+                              [ r ])
+            end
 
       and tree_of_record depth env decl path ty_list obj lbl_list rep =
         match check_depth depth obj ty with
