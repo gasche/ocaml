@@ -1420,11 +1420,13 @@ and tree_of_constructor_arguments = function
 and tree_of_constructor cd =
   let name = Ident.name cd.cd_id in
   let arg () = tree_of_constructor_arguments cd.cd_args in
+  let unboxed = Builtin_attributes.has_unboxed cd.cd_attributes in
   match cd.cd_res with
   | None -> {
       ocstr_name = name;
       ocstr_args = arg ();
       ocstr_return_type = None;
+      ocstr_unboxed = unboxed;
     }
   | Some res ->
       Names.with_local_names (fun () ->
@@ -1434,6 +1436,7 @@ and tree_of_constructor cd =
           ocstr_name = name;
           ocstr_args = args;
           ocstr_return_type = Some ret;
+          ocstr_unboxed = unboxed;
         })
 
 and tree_of_label l =
@@ -1523,6 +1526,7 @@ let extension_only_constructor id ppf ext =
       ocstr_name = name;
       ocstr_args = args;
       ocstr_return_type = ret;
+      ocstr_unboxed = false;
     }
 
 (* Print a value declaration *)

@@ -68,7 +68,11 @@ type t =
   | Proxy of t
 ;;
 [%%expect {|
-type t = Int of int | Str of string | Pair of t * t | Proxy of t
+type t =
+    Int of int [@unboxed]
+  | Str of string [@unboxed]
+  | Pair of t * t
+  | Proxy of t
 |}];;
 
 Int 42;;
