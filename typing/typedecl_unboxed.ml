@@ -78,6 +78,26 @@ let match_primitive_type p =
   ] in
   List.find_opt (fun (p', _) -> Path.same p p') tbl |> Option.map snd
 
+module Head = struct
+  type t =
+    | Imm of imm
+    | Block of tag
+
+  let of_val (obj : Obj.t) =
+    if Obj.is_block obj
+    then Block (Obj.tag obj)
+    else Imm (Obj.obj obj : int)
+
+  let mem head shape =
+    let mem h = function
+      | Shape_any -> true
+      | Shape_set hs -> List.mem h hs
+    in
+    match head with
+    | Imm n -> mem n shape.head_imm
+    | Block t -> mem t shape.head_blocks
+end
+
 module Head_shape = struct
 
   exception Conflict
@@ -102,6 +122,9 @@ module Head_shape = struct
   let any_shape = { head_imm = Shape_any; head_blocks = Shape_any }
 
   let empty_shape = { head_imm = Shape_set []; head_blocks = Shape_set [] }
+
+  let imm_shape vals =
+    { head_imm = Shape_set vals; head_blocks = Shape_set [] }
 
   let block_shape tags =
     { head_imm = Shape_set []; head_blocks = Shape_set tags }
@@ -346,6 +369,15 @@ module Head_shape = struct
 
   let fill_cache env unboxed_cache =
     ignore (fill_and_get env unboxed_cache)
+
+  let of_cstr env = function
+    | Cstr_constant n -> imm_shape [n]
+    | Cstr_block t -> block_shape [t]
+    | Cstr_unboxed data -> fill_and_get env data
+    | Cstr_extension (_t, constant) ->
+        if constant
+        then block_shape [Obj.object_tag]
+        else block_shape [0]
 
   let unboxed_type_data_of_shape shape =
     let bound_of_shape = function

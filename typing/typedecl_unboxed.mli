@@ -24,6 +24,18 @@ type t =
 (* for typeopt.ml *)
 val get_unboxed_type_representation: Env.t -> type_expr -> t
 
+module Head : sig
+  type t =
+    | Imm of imm
+    | Block of tag
+
+  val of_val : Obj.t -> t
+
+  val mem : t -> Types.head_shape -> bool
+  (** [mem head head_shape] checks whether the [head] is included
+      in the set of heads represented by the [head_shape] approximation. *)
+end
+
 module Head_shape : sig
   type t = Types.head_shape
 
@@ -45,6 +57,10 @@ module Head_shape : sig
   (** Returns the head shape information of variant type path,
       similarly to [get] above. *)
   val of_type : Env.t -> Path.t -> t
+
+  (** Returns the head shape information corresponding to the tag
+      of a datatype constructor. *)
+  val of_cstr : Env.t -> constructor_tag -> t
 
   val unboxed_type_data_of_shape : t -> Types.unboxed_type_data
 end
