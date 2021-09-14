@@ -39,6 +39,8 @@ end
 module Head_shape : sig
   type t = Types.head_shape
 
+  val pp : Format.formatter -> t -> unit
+
   (** Check a new type decalaration, that may be a variant type
       containing unboxed constructors, to verify that the unboxing
       requests respect the "disjointness" requirement of constructor
