@@ -431,18 +431,33 @@ module Make(O : OBJ)(EVP : EVALPATH with type valu = O.t) = struct
               Oval_stuff "<module>"
         end
 
-      and tree_of_variant depth env decl path ty_list obj constr_list rep =
+      and tree_of_variant depth env decl path ty_list obj constr_decl_list rep =
+        let constr_descr_list =
+          match Env.find_type_descrs path env with
+          | exception Not_found -> assert false
+          | Type_variant (constr_list, _) -> constr_list
+          | Type_abstract | Type_record _ | Type_open -> assert false
+        in
         let unbx = (rep = Variant_unboxed) in
-        let tag =
-          if unbx then (* XXX unboxing Cstr_unboxed [] *)
-            assert false
-          else if O.is_block obj
-          then Cstr_block(O.tag obj)
-          else Cstr_constant(O.obj obj) in
-        match Datarepr.find_constr_by_tag tag constr_list with
-        | exception Datarepr.Constr_not_found -> (* raised by find_constr_by_tag *)
+        let obj_head =
+          (* We cannot use Typedecl_unbodex.Head.of_val directly
+             as we are functorized over the implementation of Obj. *)
+          let module Head = Typedecl_unboxed.Head in
+          if O.is_block obj
+          then Head.Block (O.tag obj)
+          else Head.Imm (O.obj obj : int)
+        in
+        let cstr_info =
+          List.combine constr_decl_list constr_descr_list
+          |> List.find_opt (fun (_decl, descr) ->
+            let cstr_shape = Typedecl_unboxed.Head_shape.of_cstr env descr.cstr_tag in
+            Typedecl_unboxed.Head.mem obj_head cstr_shape
+          )
+        in
+        match cstr_info with
+        | None ->
             Oval_stuff "<unknown constructor>"
-        |  {cd_id;cd_args;cd_res} ->
+        | Some ({cd_id; cd_args; cd_res; _}, {cstr_tag; _}) ->
             let type_params =
               match cd_res with
                | Some t ->
@@ -451,6 +466,11 @@ module Make(O : OBJ)(EVP : EVALPATH with type valu = O.t) = struct
                       params
                   | _ -> assert false end
               | None -> decl.type_params
+            in
+            let unbx =
+              unbx || match cstr_tag with
+              | Cstr_unboxed _ -> true
+              | Cstr_constant _ | Cstr_block _ | Cstr_extension _ -> false
             in
             begin
               match cd_args with
