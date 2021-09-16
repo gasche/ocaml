@@ -135,9 +135,6 @@ The computation of the head shape is done in the functions `of_type_expr` and `o
 
 In particular, the definition of head shape on "base types" relies on a [`match_primitive`](https://github.com/gasche/ocaml/blob/head_shape/typing/typedecl_unboxed.ml#L65) function recognized a set of builtin type paths (we borrowed the logic from [Typeopt.classify](https://github.com/gasche/ocaml/blob/head_shape/typing/typeopt.ml#L75)).
 
-TODO: there is no special support for `Tarrow` for now, it returns `any_shape` instead of {Closure,Infix}. (Is it by explicit choice?)
-
-
 ### Storing unboxing information in type descriptions
 
 This, surprisingly, turned out to be the most difficult part of the PR to get right.

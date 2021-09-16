@@ -253,7 +253,8 @@ module Head_shape = struct
                   (Callstack.visit p head_callstack)
         end
     | Ttuple _ -> block_shape [0]
-    | Tarrow _ | Tpackage _ | Tobject _ | Tnil | Tvariant _ -> (* XXX *)
+    | Tarrow _ -> block_shape [Obj.closure_tag; Obj.infix_tag]
+    | Tpackage _ | Tobject _ | Tnil | Tvariant _ -> (* XXX *)
         any_shape
     | Tlink _ | Tsubst _ | Tpoly _ | Tfield _ ->
         assert false
