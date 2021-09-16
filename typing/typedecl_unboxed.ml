@@ -422,11 +422,16 @@ module Head_shape = struct
               pp shape
           end
         with Conflict ->
-          (* TODO raise a fatal error with a registered printer,
-             instead of what is below. *)
           if !Clflags.dump_headshape then
             Format.fprintf Format.err_formatter "SHAPE(%a) CONFLICT@."
-              Path.print path
+              Path.print path;
+          (* TODO raise a fatal error with a registered printer,
+             instead of what is below. *)
+          Location.raise_errorf ~loc:decl.type_loc
+            "%a"
+            Format.pp_print_text
+            "This declaration is invalid, some [@unboxed] annotations \
+             introduce overlapping representations."
       end
     | _ -> ()
 
