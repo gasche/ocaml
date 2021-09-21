@@ -20,14 +20,18 @@ Line 2, characters 12-19:
 Error: This kind of expression is not allowed as right-hand side of `let rec'
 |}];;
 
+(* Note: this declaration is currently rejected by the
+   termination criterion, but ideally we would want to allow it
+   as it is a case of benign cycle that can occur by revealing
+   an abstract type. See #10485. *)
 type r = A of r [@@unboxed]
 let rec y = A y;;
 [%%expect{|
-type r = A of r [@@unboxed]
-Line 2, characters 12-15:
-2 | let rec y = A y;;
-                ^^^
-Error: This kind of expression is not allowed as right-hand side of `let rec'
+Line 1, characters 0-27:
+1 | type r = A of r [@@unboxed]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error: Cyclic type expansion during [@unboxed] verification.
+       r/95[3] appears unboxed at the head of its own definition.
 |}];;
 
 (* This test is not allowed if 'a' is unboxed, but should be accepted

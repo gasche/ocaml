@@ -558,6 +558,7 @@ typing/datarepr.cmo : \
     typing/path.cmi \
     parsing/location.cmi \
     typing/ident.cmi \
+    parsing/builtin_attributes.cmi \
     typing/btype.cmi \
     parsing/asttypes.cmi \
     typing/datarepr.cmi
@@ -566,6 +567,7 @@ typing/datarepr.cmx : \
     typing/path.cmx \
     parsing/location.cmx \
     typing/ident.cmx \
+    parsing/builtin_attributes.cmx \
     typing/btype.cmx \
     parsing/asttypes.cmi \
     typing/datarepr.cmi
@@ -1543,18 +1545,31 @@ typing/typedecl_separability.cmi : \
     typing/env.cmi
 typing/typedecl_unboxed.cmo : \
     typing/types.cmi \
+    typing/printtyp.cmi \
     typing/predef.cmi \
+    typing/path.cmi \
+    parsing/location.cmi \
     typing/env.cmi \
     typing/ctype.cmi \
+    utils/config.cmi \
+    utils/clflags.cmi \
+    typing/btype.cmi \
     typing/typedecl_unboxed.cmi
 typing/typedecl_unboxed.cmx : \
     typing/types.cmx \
+    typing/printtyp.cmx \
     typing/predef.cmx \
+    typing/path.cmx \
+    parsing/location.cmx \
     typing/env.cmx \
     typing/ctype.cmx \
+    utils/config.cmx \
+    utils/clflags.cmx \
+    typing/btype.cmx \
     typing/typedecl_unboxed.cmi
 typing/typedecl_unboxed.cmi : \
     typing/types.cmi \
+    typing/path.cmi \
     typing/env.cmi
 typing/typedecl_variance.cmo : \
     typing/types.cmi \
@@ -3425,6 +3440,8 @@ lambda/matching.cmo : \
     typing/types.cmi \
     typing/typeopt.cmi \
     typing/typedtree.cmi \
+    typing/typedecl_unboxed.cmi \
+    typing/typedecl.cmi \
     lambda/switch.cmi \
     typing/printpat.cmi \
     lambda/printlambda.cmi \
@@ -3447,6 +3464,8 @@ lambda/matching.cmx : \
     typing/types.cmx \
     typing/typeopt.cmx \
     typing/typedtree.cmx \
+    typing/typedecl_unboxed.cmx \
+    typing/typedecl.cmx \
     lambda/switch.cmx \
     typing/printpat.cmx \
     lambda/printlambda.cmx \

@@ -495,6 +495,16 @@ let collect_functor_args mty =
   let l, rest = collect_functor_args [] mty in
   List.rev l, rest
 
+let constructor_of_extension_constructor
+    (ext : out_extension_constructor) : out_constructor
+=
+  {
+    ocstr_name = ext.oext_name;
+    ocstr_args = ext.oext_args;
+    ocstr_return_type = ext.oext_ret_type;
+    ocstr_unboxed = false;
+  }
+
 let split_anon_functor_arguments params =
   let rec uncollect_anonymous_suffix acc rest = match acc with
     | Some (None, mty_arg) :: acc ->
@@ -560,13 +570,13 @@ and print_out_signature ppf =
         match items with
             Osig_typext(ext, Oext_next) :: items ->
               gather_extensions
-                ((ext.oext_name, ext.oext_args, ext.oext_ret_type) :: acc)
+                (constructor_of_extension_constructor ext :: acc)
                 items
           | _ -> (List.rev acc, items)
       in
       let exts, items =
         gather_extensions
-          [(ext.oext_name, ext.oext_args, ext.oext_ret_type)]
+          [constructor_of_extension_constructor ext]
           items
       in
       let te =
@@ -592,7 +602,7 @@ and print_out_sig_item ppf =
         name !out_class_type clt
   | Osig_typext (ext, Oext_exception) ->
       fprintf ppf "@[<2>exception %a@]"
-        print_out_constr (ext.oext_name, ext.oext_args, ext.oext_ret_type)
+        print_out_constr (constructor_of_extension_constructor ext)
   | Osig_typext (ext, _es) ->
       print_out_extension_constructor ppf ext
   | Osig_modtype (name, Omty_abstract) ->
@@ -702,29 +712,43 @@ and print_out_type_decl kwd ppf td =
     print_immediate
     print_unboxed
 
-and print_out_constr ppf (name, tyl,ret_type_opt) =
+and print_out_constr ppf constr =
+  let {
+    ocstr_name = name;
+    ocstr_args = tyl;
+    ocstr_return_type = return_type;
+    ocstr_unboxed = unboxed;
+  } = constr in
   let name =
     match name with
     | "::" -> "(::)"   (* #7200 *)
     | s -> s
   in
-  match ret_type_opt with
+  let pp_unboxed ppf = function
+    | false -> ()
+    | true -> fprintf ppf "@ [@unboxed]"
+  in
+  match return_type with
   | None ->
       begin match tyl with
       | [] ->
           pp_print_string ppf name
       | _ ->
-          fprintf ppf "@[<2>%s of@ %a@]" name
+          fprintf ppf "@[<2>%s of@ %a%a@]" name
             (print_typlist print_simple_out_type " *") tyl
+            pp_unboxed unboxed
       end
   | Some ret_type ->
       begin match tyl with
       | [] ->
-          fprintf ppf "@[<2>%s :@ %a@]" name print_simple_out_type  ret_type
+          fprintf ppf "@[<2>%s :@ %a%a@]" name
+            print_simple_out_type ret_type
+            pp_unboxed unboxed
       | _ ->
-          fprintf ppf "@[<2>%s :@ %a -> %a@]" name
+          fprintf ppf "@[<2>%s :@ %a -> %a%a@]" name
             (print_typlist print_simple_out_type " *")
             tyl print_simple_out_type ret_type
+            pp_unboxed unboxed
       end
 
 and print_out_extension_constructor ppf ext =
@@ -745,7 +769,8 @@ and print_out_extension_constructor ppf ext =
   fprintf ppf "@[<hv 2>type %t +=%s@;<1 2>%a@]"
     print_extended_type
     (if ext.oext_private = Asttypes.Private then " private" else "")
-    print_out_constr (ext.oext_name, ext.oext_args, ext.oext_ret_type)
+    print_out_constr
+    (constructor_of_extension_constructor ext)
 
 and print_out_type_extension ppf te =
   let print_extended_type ppf =
@@ -795,13 +820,13 @@ let rec print_items ppf =
         match items with
             (Osig_typext(ext, Oext_next), None) :: items ->
               gather_extensions
-                ((ext.oext_name, ext.oext_args, ext.oext_ret_type) :: acc)
+                (constructor_of_extension_constructor ext :: acc)
                 items
           | _ -> (List.rev acc, items)
       in
       let exts, items =
         gather_extensions
-          [(ext.oext_name, ext.oext_args, ext.oext_ret_type)]
+          [constructor_of_extension_constructor ext]
           items
       in
       let te =

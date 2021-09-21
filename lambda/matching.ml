@@ -1777,7 +1777,7 @@ let get_expr_args_constr ~scopes head (arg, _mut) rem =
     | Cstr_constant _
     | Cstr_block _ ->
         make_field_accesses Alias 0 (cstr.cstr_arity - 1) rem
-    | Cstr_unboxed -> (arg, Alias) :: rem
+    | Cstr_unboxed _ -> (arg, Alias) :: rem
     | Cstr_extension _ -> make_field_accesses Alias 1 cstr.cstr_arity rem
 
 let divide_constructor ~scopes ctx pm =
@@ -2734,20 +2734,103 @@ let combine_constant loc arg cst partial ctx def
   in
   (lambda1, Jumps.union local_jumps total)
 
-let split_cases tag_lambda_list =
+
+(* The [split_cases] function below is in charge of taking a shallow
+   pattern-matching on a variant type, and splitting the corresponding
+   constructor+action pairs into  constant constructor cases and
+   non-constant constructor cases.
+
+   In the presence of unboxed constructors:
+
+   - A matching on a single source-level unboxed constructor may turn
+     into several cases, one for each possible head of the constructor
+     parameter.
+
+   - If the head shape of an unboxed constructor contains Shape_any
+     (for immediate values or block tags), it must be compiled
+     specially.
+
+   The Cases.t datastructure tracks such [any_const] or [any_nonconst]
+   actions. Note that if [any_const] is Some, then [consts] must be empty.
+*)
+module Cases = struct
+  type 'k domain_cases =
+    | Any of lambda
+    | Set of ('k * lambda) list
+
+  let add_case k act = function
+    | Any _ -> invalid_arg "Cases.add_case: Any"
+    | Set li -> Set ((k, act) :: li)
+
+  let add_any act = function
+    | Set [] -> Any act
+    | Any _ -> invalid_arg "Cases.add_any: already Any"
+    | Set (_ :: _) -> invalid_arg "Cases.add_any: Set (_ :: _)"
+
+  let sort_domain = function
+    | Any act -> Any act
+    | Set li -> Set (sort_int_lambda_list li)
+
+  type t = {
+    consts: imm domain_cases;
+    nonconsts: tag domain_cases;
+  }
+
+  let empty = {
+    consts = Set [];
+    nonconsts = Set [];
+  }
+
+  let add_const tag act cases =
+    { cases with consts = add_case tag act cases.consts }
+
+  let add_nonconst tag act cases =
+    { cases with nonconsts = add_case tag act cases.nonconsts }
+
+  let add_any_const act cases =
+    { cases with consts = add_any act cases.consts }
+
+  let add_any_nonconst act cases =
+    { cases with nonconsts = add_any act cases.nonconsts }
+
+  let sort cases = {
+    consts = sort_domain cases.consts;
+    nonconsts = sort_domain cases.nonconsts;
+  }
+end
+
+let split_cases pat_env tag_lambda_list =
   let rec split_rec = function
-    | [] -> ([], [])
+    | [] -> Cases.empty
     | (cstr_tag, act) :: rem -> (
-        let consts, nonconsts = split_rec rem in
+        let cases = split_rec rem in
         match cstr_tag with
-        | Cstr_constant n -> ((n, act) :: consts, nonconsts)
-        | Cstr_block n -> (consts, (n, act) :: nonconsts)
-        | Cstr_unboxed -> (consts, (0, act) :: nonconsts)
+        | Cstr_constant n -> Cases.add_const n act cases
+        | Cstr_block n -> Cases.add_nonconst n act cases
+        | Cstr_unboxed cache ->
+            let head_shape =
+              Typedecl_unboxed.Head_shape.get pat_env cache
+            in
+            let cases =
+              match head_shape.head_imm with
+              | Shape_set s ->
+                  List.fold_left
+                    (fun cases n -> Cases.add_const n act cases)
+                    cases s
+              | Shape_any -> Cases.add_any_const act cases
+            in
+            let cases =
+              match head_shape.head_blocks with
+              | Shape_set s ->
+                  List.fold_left
+                    (fun cases n -> Cases.add_nonconst n act cases)
+                    cases s
+              | Shape_any -> Cases.add_any_nonconst act cases
+            in cases
         | Cstr_extension _ -> assert false
       )
   in
-  let const, nonconst = split_rec tag_lambda_list in
-  (sort_int_lambda_list const, sort_int_lambda_list nonconst)
+  Cases.sort (split_rec tag_lambda_list)
 
 let split_extension_cases tag_lambda_list =
   let rec split_rec = function
@@ -2761,6 +2844,17 @@ let split_extension_cases tag_lambda_list =
       )
   in
   split_rec tag_lambda_list
+
+let split_variant_cases pat_env tag_lambda_list =
+  let Cases.{consts; nonconsts} =
+    split_cases pat_env tag_lambda_list in
+  match consts, nonconsts with
+  | Any _, _ | _, Any _ ->
+      (* We assume there are no unboxed constructors
+         for polymorphic variants *)
+      assert false
+  | Set consts, Set nonconsts ->
+      (consts, nonconsts)
 
 let combine_constructor loc arg pat_env cstr partial ctx def
     (descr_lambda_list, total1, pats) =
@@ -2807,7 +2901,8 @@ let combine_constructor loc arg pat_env cstr partial ctx def
   | _ ->
       (* Regular concrete type *)
       let ncases = List.length descr_lambda_list
-      and nconstrs = cstr.cstr_consts + cstr.cstr_nonconsts in
+      and nconstrs =
+        cstr.cstr_consts + cstr.cstr_nonconsts + cstr.cstr_unboxed in
       let sig_complete = ncases = nconstrs in
       let fail_opt, fails, local_jumps =
         if sig_complete then
@@ -2819,47 +2914,155 @@ let combine_constructor loc arg pat_env cstr partial ctx def
           mk_failaction_pos partial constrs ctx def
       in
       let descr_lambda_list = fails @ descr_lambda_list in
-      let consts, nonconsts =
-        split_cases (List.map tag_lambda descr_lambda_list) in
       let lambda1 =
         match (fail_opt, same_actions descr_lambda_list) with
         | None, Some act -> act (* Identical actions, no failure *)
         | _ -> (
+            let cases = split_cases pat_env
+              (List.map tag_lambda descr_lambda_list) in
             match
-              (cstr.cstr_consts, cstr.cstr_nonconsts, consts, nonconsts)
+              (cstr.cstr_consts, cstr.cstr_nonconsts, cases)
             with
-            | 1, 1, [ (0, act1) ], [ (0, act2) ] ->
+            | 1, 1, { consts = Set [ (0, act1) ]; nonconsts = (Set [ (0, act2) ]) }
+            | 1, 0, { consts = Set [ (0, act1) ]; nonconsts = Any act2 } ->
                 (* Typically, match on lists, will avoid isint primitive in that
-              case *)
+                   case *)
                 Lifthenelse (arg, act2, act1)
-            | n, 0, _, [] ->
+            | n, 0, { consts; nonconsts= Set []; } ->
                 (* The type defines constant constructors only *)
-                call_switcher loc fail_opt arg 0 (n - 1) consts
-            | n, _, _, _ -> (
-                let act0 =
-                  (* = Some act when all non-const constructors match to act *)
-                  match (fail_opt, nonconsts) with
-                  | Some a, [] -> Some a
-                  | Some _, _ ->
-                      if List.length nonconsts = cstr.cstr_nonconsts then
-                        same_actions nonconsts
+               begin match consts with
+               | Any act -> act
+               | Set consts ->
+                  call_switcher loc fail_opt arg 0 (n - 1) consts
+               end
+            | n, _, _ -> (
+                let single_action cases complete_case_count =
+                  (* = Some act when all actions are the same,
+                     either on constant or non-constant domain.
+
+                     [any_case] is either [any_const] or
+                     [any_nonconst]; it is None if all values of this
+                     domain are accepted. In this case
+                     complete_case_count is also None, otherwise it
+                     must be the total number of heads at this domain.
+                  *)
+                  let same_actions cases =
+                    match same_actions cases with
+                    | Some act -> Ok act
+                    | None -> Error cases
+                  in
+                  match (fail_opt, cases) with
+                  | Some act, Cases.Set []
+                  | _, Cases.Any act -> Ok act
+                  | None, Cases.Set cases ->
+                      same_actions cases
+                  | Some _, Cases.Set cases ->
+                      (* if any_case is None, complete_case_count
+                         must be Some *)
+                      let count = Option.get complete_case_count in
+                      if List.length cases = count then
+                        same_actions cases
                       else
-                        None
-                  | None, _ -> same_actions nonconsts
+                        Error cases
                 in
-                match act0 with
-                | Some act ->
-                    Lifthenelse
-                      ( Lprim (Pisint, [ arg ], loc),
-                        call_switcher loc fail_opt arg 0 (n - 1) consts,
-                        act )
-                | None ->
-                    (* Emit a switch, as bytecode implements this sophisticated
-                      instruction *)
+                (* [numconsts] and [numnonconsts] count the number
+                   of valid head constructors at this type in the domain
+                   (only constant constructors, or only
+                   non-constant constructors). *)
+                let single_const_act =
+                  let numconsts =
+                    Typedecl.cstr_unboxed_numconsts pat_env cstr in
+                  single_action cases.consts numconsts
+                in
+                let single_nonconst_act =
+                  let numnonconsts =
+                    Typedecl.cstr_unboxed_numnonconsts pat_env cstr in
+                  single_action cases.nonconsts numnonconsts
+                in
+                let test_isint const_act nonconst_act =
+                  Lifthenelse
+                    ( Lprim (Pisint, [ arg ], loc), const_act, nonconst_act )
+                in
+                (* We check specifically for single_nonconst_act, not for
+                   single_const_act: for constant constructors we can generate
+                   better code than a switch in some cases, but for tests on
+                   non-constant constructors we prefer to always emit a switch,
+                   as bytecode implements this sophisticated instruction. *)
+                match single_nonconst_act, cases.consts with
+                | Ok nonconst_act, _ ->
+                   (* Note: we already checked that not all actions are
+                      identical, so the constant-constructor actions cannot
+                      be empty. *)
+                   let int_actions =
+                     match single_const_act with
+                     | Ok const_act -> const_act
+                     | Error const_acts ->
+                        call_switcher loc fail_opt arg 0 (n - 1) const_acts
+                   in test_isint int_actions nonconst_act
+                | Error nonconsts, Set consts ->
+                    (* Switch is a low-level control-flow construct that must
+                       handle an interval of contiguous values (on
+                       both domains); [sw_numconsts] and [sw_numblocks]
+                       correspond to the size of this interval, from 0 to the
+                       maximum head value + 1. *)
+                    let sw_numconsts =
+                      match Typedecl.cstr_max_imm_value pat_env cstr with
+                      | Some n -> n + 1
+                      | None ->
+                          (* cases.any_const is None *)
+                          assert false
+                    in
+                    let sw_numblocks =
+                      match Typedecl.cstr_max_block_tag pat_env cstr with
+                      | Some n ->
+                          n + 1
+                      (* Remark: in presence of constructor unboxing,
+                         some block tags may be above
+                         Obj.last_non_constant_constructor_tag (245):
+
+                           type t =
+                             | Unit of unit (* tag 0 *)
+                             | Bool of bool (* tag 1 *)
+                             | String of string [@unboxed]
+                                            (* tag String_tag = 252 *)
+
+                         With the native-code compiler, the Switcher
+                         will cluster the cases into two dense clusters
+                         and generate good code. But in bytecode, the compiler
+                         will always produce a single Switch instruction,
+                         generating a switch of around 256 cases, which is
+                         wasteful.
+
+                         We are not sure how to generate better code
+                         -- for example, generating a test for tags above 245
+                         may duplicate the computation of the value tag.
+
+                         TODO: try the following strategy: here (in
+                         this function), if we detect that max_block_tag is
+                         above 245, generate either
+
+                           if isint v then
+                             <switch on (constant values of) v
+                                using call_switcher>
+                           else let n = Obj.tag v in
+                             <switch on n using call_switcher>
+
+                         This should generate slower bytecode, but much more
+                         compact bytecode. (slower: typically 2-4 instructions
+                         executed instead of 1) (more compact: typically
+                         ~10 integers instead of ~256)
+                      *)
+
+                      | None ->
+                          (* single_nonconst_act is None, so there must be at
+                             least two distinct non-constant actions,
+                             any_nonconst is impossible. *)
+                          assert false
+                    in
                     let sw =
-                      { sw_numconsts = cstr.cstr_consts;
+                      { sw_numconsts;
                         sw_consts = consts;
-                        sw_numblocks = cstr.cstr_nonconsts;
+                        sw_numblocks;
                         sw_blocks = nonconsts;
                         sw_failaction = fail_opt
                       }
@@ -2867,6 +3070,27 @@ let combine_constructor loc arg pat_env cstr partial ctx def
                     let hs, sw = share_actions_sw sw in
                     let sw = reintroduce_fail sw in
                     hs (Lswitch (arg, sw, loc))
+                | Error nonconsts, Any const_act ->
+                    (* Generate a switch on nonconst_act under a Pisint test
+                       to handle the any_const action *)
+                    let sw_numblocks =
+                      match Typedecl.cstr_max_block_tag pat_env cstr with
+                      | Some n -> n + 1
+                      | None -> assert false (* same as above *)
+                    in
+                    let nonconst_act =
+                      Lswitch
+                        ( arg,
+                          { sw_numconsts = 0;
+                            sw_consts = [];
+                            sw_numblocks;
+                            sw_blocks = nonconsts;
+                            sw_failaction = fail_opt;
+                          },
+                          loc
+                        )
+                    in
+                    test_isint const_act nonconst_act
               )
           )
       in
@@ -2888,7 +3112,8 @@ let call_switcher_variant_constr loc fail arg int_lambda_list =
       Lprim (Pfield 0, [ arg ], loc),
       call_switcher loc fail (Lvar v) min_int max_int int_lambda_list )
 
-let combine_variant loc row arg partial ctx def (tag_lambda_list, total1, _pats)
+let combine_variant loc row arg pat_env partial ctx def
+                    (tag_lambda_list, total1, _pats)
     =
   let row = Btype.row_repr row in
   let num_constr = ref 0 in
@@ -2920,7 +3145,8 @@ let combine_variant loc row arg partial ctx def (tag_lambda_list, total1, _pats)
     else
       mk_failaction_neg partial ctx def
   in
-  let consts, nonconsts = split_cases tag_lambda_list in
+  let (consts, nonconsts) =
+    split_variant_cases pat_env tag_lambda_list in
   let lambda1 =
     match (fail, one_action) with
     | None, Some act -> act
@@ -3304,7 +3530,7 @@ and do_compile_matching ~scopes repr partial ctx pmh =
           compile_test
             (compile_match ~scopes repr partial)
             partial (divide_variant ~scopes !row)
-            (combine_variant ploc !row arg partial)
+            (combine_variant ploc !row arg ph.pat_env partial)
             ctx pm
     )
   | PmVar { inside = pmh } ->

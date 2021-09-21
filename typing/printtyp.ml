@@ -1420,13 +1420,24 @@ and tree_of_constructor_arguments = function
 and tree_of_constructor cd =
   let name = Ident.name cd.cd_id in
   let arg () = tree_of_constructor_arguments cd.cd_args in
+  let unboxed = Builtin_attributes.has_unboxed cd.cd_attributes in
   match cd.cd_res with
-  | None -> (name, arg (), None)
+  | None -> {
+      ocstr_name = name;
+      ocstr_args = arg ();
+      ocstr_return_type = None;
+      ocstr_unboxed = unboxed;
+    }
   | Some res ->
       Names.with_local_names (fun () ->
         let ret = tree_of_typexp Type res in
         let args = arg () in
-        (name, args, Some ret))
+        {
+          ocstr_name = name;
+          ocstr_args = args;
+          ocstr_return_type = Some ret;
+          ocstr_unboxed = unboxed;
+        })
 
 and tree_of_label l =
   (Ident.name l.ld_id, l.ld_mutable = Mutable, tree_of_typexp Type l.ld_type)
@@ -1511,7 +1522,12 @@ let extension_only_constructor id ppf ext =
       ext.ext_ret_type
   in
   Format.fprintf ppf "@[<hv>%a@]"
-    !Oprint.out_constr (name, args, ret)
+    !Oprint.out_constr {
+      ocstr_name = name;
+      ocstr_args = args;
+      ocstr_return_type = ret;
+      ocstr_unboxed = false;
+    }
 
 (* Print a value declaration *)
 

@@ -744,7 +744,11 @@ Error: [@The native code version of the primitive is mandatory
 (* PR#7424 *)
 type 'a b = B of 'a b b [@@unboxed];;
 [%%expect{|
-type 'a b = B of 'a b b [@@unboxed]
+Line 1, characters 0-35:
+1 | type 'a b = B of 'a b b [@@unboxed];;
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error: Cyclic type expansion during [@unboxed] verification.
+       b/182[29] appears unboxed at the head of its own definition.
 |}]
 
 

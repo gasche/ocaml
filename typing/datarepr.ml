@@ -20,6 +20,12 @@ open Asttypes
 open Types
 open Btype
 
+(* TODO: register an error printer for this type. *)
+type error =
+  | Multiple_args_unboxed_constructor of Ident.t
+
+exception Error of Location.t * error
+
 (* Simplified version of Ctype.free_vars *)
 let free_vars ?(param=false) ty =
   let ret = ref TypeSet.empty in
@@ -94,11 +100,17 @@ let constructor_args ~current_unit priv cd_args cd_res path rep =
 
 let constructor_descrs ~current_unit ty_path decl cstrs rep =
   let ty_res = newgenconstr ty_path decl.type_params in
-  let num_consts = ref 0 and num_nonconsts = ref 0 in
+  let variant_unboxed = Builtin_attributes.has_unboxed decl.type_attributes in
+  let num_consts = ref 0 and num_nonconsts = ref 0 and num_unboxed = ref 0 in
   List.iter
-    (fun {cd_args; _} ->
-      if cd_args = Cstr_tuple [] then incr num_consts else incr num_nonconsts)
-    cstrs;
+    (fun {cd_args; cd_attributes; _} ->
+      if variant_unboxed || Builtin_attributes.has_unboxed cd_attributes
+        then incr num_unboxed
+      else if cd_args = Cstr_tuple [] then incr num_consts
+      else incr num_nonconsts;
+    ) cstrs;
+  (* Unboxed type data is shared among constructors of the same variant type *)
+  let unboxed_type_data = ref None in
   let rec describe_constructors idx_const idx_nonconst = function
       [] -> []
     | {cd_id; cd_args; cd_res; cd_loc; cd_attributes; cd_uid} :: rem ->
@@ -107,17 +119,23 @@ let constructor_descrs ~current_unit ty_path decl cstrs rep =
           | Some ty_res' -> ty_res'
           | None -> ty_res
         in
+        (* A constructor is unboxed if the whole declaration has the
+           [@@unboxed] attr, or if it has the [@unboxed] attr *)
+        let cstr_is_unboxed = variant_unboxed ||
+                              Builtin_attributes.has_unboxed cd_attributes
+        in
         let (tag, descr_rem) =
-          match cd_args, rep with
-          | _, Variant_unboxed ->
-            assert (rem = []);
-            (Cstr_unboxed, [])
-          | Cstr_tuple [], Variant_regular ->
-             (Cstr_constant idx_const,
-              describe_constructors (idx_const+1) idx_nonconst rem)
-          | _, Variant_regular  ->
-             (Cstr_block idx_nonconst,
-              describe_constructors idx_const (idx_nonconst+1) rem) in
+          match cstr_is_unboxed, cd_args with
+          | true, Cstr_tuple [ty]
+          | true, Cstr_record [{ld_type=ty; _}] ->
+              (Cstr_unboxed {unboxed_ty = ty; unboxed_shape = ref None},
+               describe_constructors idx_const idx_nonconst rem)
+          | true, _ ->
+              raise (Error (cd_loc, Multiple_args_unboxed_constructor cd_id))
+          | false, Cstr_tuple [] -> (Cstr_constant idx_const,
+                   describe_constructors (idx_const+1) idx_nonconst rem)
+          | false, _ -> (Cstr_block idx_nonconst,
+                   describe_constructors idx_const (idx_nonconst+1) rem) in
         let cstr_name = Ident.name cd_id in
         let existentials, cstr_args, cstr_inlined =
           let representation =
@@ -137,6 +155,8 @@ let constructor_descrs ~current_unit ty_path decl cstrs rep =
             cstr_tag = tag;
             cstr_consts = !num_consts;
             cstr_nonconsts = !num_nonconsts;
+            cstr_unboxed = !num_unboxed;
+            cstr_unboxed_type_data = unboxed_type_data;
             cstr_private = decl.type_private;
             cstr_generalized = cd_res <> None;
             cstr_loc = cd_loc;
@@ -165,6 +185,8 @@ let extension_descr ~current_unit path_ext ext =
       cstr_tag = Cstr_extension(path_ext, cstr_args = []);
       cstr_consts = -1;
       cstr_nonconsts = -1;
+      cstr_unboxed = -1;
+      cstr_unboxed_type_data = ref None;
       cstr_private = ext.ext_private;
       cstr_generalized = ext.ext_ret_type <> None;
       cstr_loc = ext.ext_loc;
@@ -218,7 +240,8 @@ let rec find_constr tag num_const num_nonconst = function
       then c
       else find_constr tag (num_const + 1) num_nonconst rem
   | c :: rem ->
-      if tag = Cstr_block num_nonconst || tag = Cstr_unboxed
+      if tag = Cstr_block num_nonconst (* || tag = Cstr_unboxed [] *)
+      (* XXX changes needed in the check above *)
       then c
       else find_constr tag num_const (num_nonconst + 1) rem
 

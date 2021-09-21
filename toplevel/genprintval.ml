@@ -377,73 +377,23 @@ module Make(O : OBJ)(EVP : EVALPATH with type valu = O.t) = struct
                  Oval_constr (Oide_ident (Out_name.create "lazy"), [v])
                end
           | Tconstr(path, ty_list, _) -> begin
-              try
-                let decl = Env.find_type path env in
+              match Env.find_type path env with
+              | exception Not_found ->
+                  Oval_stuff "<abstr>"
+              | decl -> begin
                 match decl with
                 | {type_kind = Type_abstract; type_manifest = None} ->
                     Oval_stuff "<abstr>"
                 | {type_kind = Type_abstract; type_manifest = Some body} ->
                     tree_of_val depth obj
                       (instantiate_type env decl.type_params ty_list body)
-                | {type_kind = Type_variant (constr_list,rep)} ->
-                    let unbx = (rep = Variant_unboxed) in
-                    let tag =
-                      if unbx then Cstr_unboxed
-                      else if O.is_block obj
-                      then Cstr_block(O.tag obj)
-                      else Cstr_constant(O.obj obj) in
-                    let {cd_id;cd_args;cd_res} =
-                      Datarepr.find_constr_by_tag tag constr_list in
-                    let type_params =
-                      match cd_res with
-                        Some t ->
-                          begin match get_desc t with
-                            Tconstr (_,params,_) ->
-                              params
-                          | _ -> assert false end
-                      | None -> decl.type_params
-                    in
-                    begin
-                      match cd_args with
-                      | Cstr_tuple l ->
-                          let ty_args =
-                            instantiate_types env type_params ty_list l in
-                          tree_of_constr_with_args (tree_of_constr env path)
-                            (Ident.name cd_id) false 0 depth obj
-                            ty_args unbx
-                      | Cstr_record lbls ->
-                          let r =
-                            tree_of_record_fields depth
-                              env path type_params ty_list
-                              lbls 0 obj unbx
-                          in
-                          Oval_constr(tree_of_constr env path
-                                        (Out_name.create (Ident.name cd_id)),
-                                      [ r ])
-                    end
+                | {type_kind = Type_variant (constr_list, rep)} ->
+                    tree_of_variant depth env decl path ty_list obj constr_list rep
                 | {type_kind = Type_record(lbl_list, rep)} ->
-                    begin match check_depth depth obj ty with
-                      Some x -> x
-                    | None ->
-                        let pos =
-                          match rep with
-                          | Record_extension _ -> 1
-                          | _ -> 0
-                        in
-                        let unbx =
-                          match rep with Record_unboxed _ -> true | _ -> false
-                        in
-                        tree_of_record_fields depth
-                          env path decl.type_params ty_list
-                          lbl_list pos obj unbx
-                    end
+                    tree_of_record depth env decl path ty_list obj lbl_list rep
                 | {type_kind = Type_open} ->
                     tree_of_extension path ty_list depth obj
-              with
-                Not_found ->                (* raised by Env.find_type *)
-                  Oval_stuff "<abstr>"
-              | Datarepr.Constr_not_found -> (* raised by find_constr_by_tag *)
-                  Oval_stuff "<unknown constructor>"
+                end
               end
           | Tvariant row ->
               let row = Btype.row_repr row in
@@ -480,6 +430,83 @@ module Make(O : OBJ)(EVP : EVALPATH with type valu = O.t) = struct
           | Tpackage _ ->
               Oval_stuff "<module>"
         end
+
+      and tree_of_variant depth env decl path ty_list obj constr_decl_list rep =
+        let constr_descr_list =
+          match Env.find_type_descrs path env with
+          | exception Not_found -> assert false
+          | Type_variant (constr_list, _) -> constr_list
+          | Type_abstract | Type_record _ | Type_open -> assert false
+        in
+        let unbx = (rep = Variant_unboxed) in
+        let obj_head =
+          (* We cannot use Typedecl_unbodex.Head.of_val directly
+             as we are functorized over the implementation of Obj. *)
+          let module Head = Typedecl_unboxed.Head in
+          if O.is_block obj
+          then Head.Block (O.tag obj)
+          else Head.Imm (O.obj obj : int)
+        in
+        let cstr_info =
+          List.combine constr_decl_list constr_descr_list
+          |> List.find_opt (fun (_decl, descr) ->
+            let cstr_shape = Typedecl_unboxed.Head_shape.of_cstr env descr.cstr_tag in
+            Typedecl_unboxed.Head.mem obj_head cstr_shape
+          )
+        in
+        match cstr_info with
+        | None ->
+            Oval_stuff "<unknown constructor>"
+        | Some ({cd_id; cd_args; cd_res; _}, {cstr_tag; _}) ->
+            let type_params =
+              match cd_res with
+               | Some t ->
+                  begin match get_desc t with
+                    Tconstr (_,params,_) ->
+                      params
+                  | _ -> assert false end
+              | None -> decl.type_params
+            in
+            let unbx =
+              unbx || match cstr_tag with
+              | Cstr_unboxed _ -> true
+              | Cstr_constant _ | Cstr_block _ | Cstr_extension _ -> false
+            in
+            begin
+              match cd_args with
+              | Cstr_tuple l ->
+                  let ty_args =
+                    instantiate_types env type_params ty_list l in
+                  tree_of_constr_with_args (tree_of_constr env path)
+                    (Ident.name cd_id) false 0 depth obj
+                    ty_args unbx
+              | Cstr_record lbls ->
+                  let r =
+                    tree_of_record_fields depth
+                      env path type_params ty_list
+                      lbls 0 obj unbx
+                  in
+                  Oval_constr(tree_of_constr env path
+                                (Out_name.create (Ident.name cd_id)),
+                              [ r ])
+            end
+
+      and tree_of_record depth env decl path ty_list obj lbl_list rep =
+        match check_depth depth obj ty with
+        | Some x -> x
+        | None ->
+            let pos =
+              match rep with
+              | Record_extension _ -> 1
+              | _ -> 0
+            in
+            let unbx =
+              match rep with Record_unboxed _ -> true | _ -> false
+            in
+            tree_of_record_fields depth
+              env path decl.type_params ty_list
+              lbl_list pos obj unbx
+
 
       and tree_of_record_fields depth env path type_params ty_list
           lbl_list pos obj unboxed =
