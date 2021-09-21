@@ -252,6 +252,7 @@ Error: Signature mismatch:
 (* Check interference with representation of float arrays. *)
 type t11 = L of float [@@ocaml.unboxed];;
 [%%expect{|
+t11/225[42] IS NOT SEPARABLE
 type t11 = L of float [@@unboxed]
 |}];;
 let x = Array.make 10 (L 3.14)   (* represented as a flat array *)
@@ -309,6 +310,25 @@ end = struct
   type u = { f1 : t; f2 : t }
 end;;
 [%%expect{|
+t/562[54] IS NOT SEPARABLE
+Lines 4-7, characters 6-3:
+4 | ......struct
+5 |   type t = A of float [@@ocaml.unboxed]
+6 |   type u = { f1 : t; f2 : t }
+7 | end..
+Error: Signature mismatch:
+       Modules do not match:
+         sig type t = A of float [@@unboxed] type u = { f1 : t; f2 : t; } end
+       is not included in
+         sig type t type u = { f1 : t; f2 : t; } end
+       Type declarations do not match:
+         type u = { f1 : t; f2 : t; }
+       is not included in
+         type u = { f1 : t; f2 : t; }
+       Their internal representations differ:
+       the first declaration uses unboxed float representation.
+|}, Principal{|
+t/562[55] IS NOT SEPARABLE
 Lines 4-7, characters 6-3:
 4 | ......struct
 5 |   type t = A of float [@@ocaml.unboxed]

@@ -631,6 +631,7 @@ and unboxed_data =
 and head_shape =
   { head_imm : imm shape;               (* set of immediates the head can be *)
     head_blocks : tag shape;            (* set of tags the head can have *)
+    head_separated : bool;              (* is the set of value separated? *)
   }
 
 (* A description of a set of ['a] elements. *)

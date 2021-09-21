@@ -114,26 +114,42 @@ module Head_shape = struct
             ~pp_sep:(fun ppf () -> Format.fprintf ppf "; ")
             Format.pp_print_int) l
 
-  let pp ppf {head_imm; head_blocks} =
-    Format.fprintf ppf "{head_imm = %a; head_blocks = %a}"
+  let pp ppf {head_imm; head_blocks; head_separated} =
+    Format.fprintf ppf "{head_imm = %a; head_blocks = %a; head_separated = %b}"
       pp_shape head_imm
       pp_shape head_blocks
+      head_separated
 
-  let any_shape = { head_imm = Shape_any; head_blocks = Shape_any }
+  let any_shape =
+    { head_imm = Shape_any; head_blocks = Shape_any; head_separated = false }
 
-  let empty_shape = { head_imm = Shape_set []; head_blocks = Shape_set [] }
+  let empty_shape =
+  {
+    head_imm = Shape_set [];
+    head_blocks = Shape_set [];
+    head_separated = true;
+  }
 
   let imm_shape vals =
-    { head_imm = Shape_set vals; head_blocks = Shape_set [] }
+  {
+    head_imm = Shape_set vals;
+    head_blocks = Shape_set [];
+    head_separated = true;
+  }
 
   let block_shape tags =
-    { head_imm = Shape_set []; head_blocks = Shape_set tags }
+    let head_separated =
+      List.for_all (fun x -> x = Obj.double_tag) tags ||
+      List.for_all (fun x -> x <> Obj.double_tag) tags
+    in
+    { head_imm = Shape_set []; head_blocks = Shape_set tags; head_separated }
 
   let cstrs_shape ~num_consts ~num_nonconsts =
     let int_list n = List.init n Fun.id in
     {
       head_imm = Shape_set (int_list num_consts);
-      head_blocks = Shape_set (int_list num_nonconsts)
+      head_blocks = Shape_set (int_list num_nonconsts);
+      head_separated = true;
     }
 
   let disjoint_union hd1 hd2 =
@@ -150,10 +166,23 @@ module Head_shape = struct
             else y :: (merge l1 yy)
         in Shape_set (merge l1 l2)
     in
-    {
-      head_imm = union hd1.head_imm hd2.head_imm;
-      head_blocks = union hd1.head_blocks hd2.head_blocks
-    }
+    let head_imm = union hd1.head_imm hd2.head_imm in
+    let head_blocks = union hd1.head_blocks hd2.head_blocks in
+    let head_separated =
+      hd1.head_separated &&
+      hd2.head_separated &&
+      match head_blocks with
+      | Shape_any -> false
+      | Shape_set tags ->
+          (
+            head_imm = Shape_set [] &&
+            List.for_all (fun x -> x = Obj.double_tag) tags
+          ) ||
+          (
+            List.for_all (fun x -> x <> Obj.double_tag) tags
+          )
+    in
+    { head_imm; head_blocks; head_separated }
 
   module Callstack = struct
     type t = Path.t list
@@ -211,7 +240,12 @@ module Head_shape = struct
   | _ -> ty
 
   let of_primitive_type = function
-    | Int -> { head_imm = Shape_any; head_blocks = Shape_set [] }
+    | Int ->
+        {
+          head_imm = Shape_any;
+          head_blocks = Shape_set [];
+          head_separated = true;
+         }
     | Float -> block_shape [Obj.double_tag]
     | String
     | Bytes -> block_shape [Obj.string_tag]
@@ -410,6 +444,9 @@ module Head_shape = struct
           let ty = Btype.newgenty (Tconstr (path, params, ref Mnil)) in
           let callstack_map = Callstack.fill ty [] in
           let shape = of_type_expr env ty callstack_map in
+          if Config.flat_float_array && not shape.head_separated then
+            Format.fprintf Format.err_formatter "%a IS NOT SEPARABLE@."
+              Path.print path;
           (* Fill the variant data *)
           match cstrs with
             | [] -> ()
