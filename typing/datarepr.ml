@@ -104,7 +104,8 @@ let constructor_descrs ~current_unit ty_path decl cstrs rep =
   let num_consts = ref 0 and num_nonconsts = ref 0 and num_unboxed = ref 0 in
   List.iter
     (fun {cd_args; cd_attributes; _} ->
-      if Builtin_attributes.has_unboxed cd_attributes then incr num_unboxed
+      if variant_unboxed || Builtin_attributes.has_unboxed cd_attributes
+        then incr num_unboxed
       else if cd_args = Cstr_tuple [] then incr num_consts
       else incr num_nonconsts;
     ) cstrs;
