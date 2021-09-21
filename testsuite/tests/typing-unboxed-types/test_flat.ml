@@ -34,6 +34,7 @@ Error: This type cannot be unboxed because
 type 'a s = S : 'a -> 'a s [@@unboxed];;
 type t = T : 'a s -> t [@@unboxed];;
 [%%expect{|
+s/93[4] IS NOT SEPARABLE
 type 'a s = S : 'a -> 'a s [@@unboxed]
 Line 2, characters 0-34:
 2 | type t = T : 'a s -> t [@@unboxed];;
@@ -48,6 +49,7 @@ Error: This type cannot be unboxed because
 type 'a s = S : 'a -> 'a option s [@@unboxed];;
 type t = T : 'a s -> t [@@unboxed];;
 [%%expect{|
+s/97[6] IS NOT SEPARABLE
 type 'a s = S : 'a -> 'a option s [@@unboxed]
 Line 2, characters 0-34:
 2 | type t = T : 'a s -> t [@@unboxed];;
@@ -86,6 +88,7 @@ Error: This type cannot be unboxed because
 (* accept *)
 type 'a s = S : (unit -> 'a) M.r -> 'a option s [@@unboxed];;
 [%%expect{|
+s/110[12] IS NOT SEPARABLE
 type 'a s = S : (unit -> 'a) M.r -> 'a option s [@@unboxed]
 |}];;
 
@@ -104,6 +107,7 @@ Error: This type cannot be unboxed because
 (* accept *)
 type 'a t = T : 'a s -> 'a t [@@unboxed];;
 [%%expect{|
+t/114[14] IS NOT SEPARABLE
 type 'a t = T : 'a s -> 'a t [@@unboxed]
 |}];;
 
@@ -118,6 +122,7 @@ end = struct
   let inj x = K x
 end;;
 [%%expect{|
+r/116[16] IS NOT SEPARABLE
 module N : sig type 'a r val inj : 'b -> (unit -> 'b) r end
 |}];;
 
@@ -136,6 +141,7 @@ Error: This type cannot be unboxed because
 (* accept *)
 type 'a s = S : (unit -> 'a) N.r -> 'a option s [@@unboxed];;
 [%%expect{|
+s/126[19] IS NOT SEPARABLE
 type 'a s = S : (unit -> 'a) N.r -> 'a option s [@@unboxed]
 |}];;
 
@@ -153,6 +159,7 @@ and _ t = T : 'a -> 'a s t
 type 'a s = S : 'a -> 'a s [@@unboxed];;
 type t = T : 'a s -> t [@@unboxed];;
 [%%expect{|
+s/132[21] IS NOT SEPARABLE
 type 'a s = S : 'a -> 'a s [@@unboxed]
 Line 2, characters 0-34:
 2 | type t = T : 'a s -> t [@@unboxed];;
@@ -167,6 +174,7 @@ Error: This type cannot be unboxed because
 type 'a s = S : 'a -> 'a option s [@@unboxed];;
 type t = T : 'a s -> t [@@unboxed];;
 [%%expect{|
+s/136[23] IS NOT SEPARABLE
 type 'a s = S : 'a -> 'a option s [@@unboxed]
 Line 2, characters 0-34:
 2 | type t = T : 'a s -> t [@@unboxed];;
@@ -204,6 +212,7 @@ Error: This type cannot be unboxed because
 
 type 'a s = S : (unit -> 'a) M.r -> 'a option s [@@unboxed];;
 [%%expect{|
+s/149[29] IS NOT SEPARABLE
 type 'a s = S : (unit -> 'a) M.r -> 'a option s [@@unboxed]
 |}];;
 
@@ -222,6 +231,7 @@ Error: This type cannot be unboxed because
 (* accept *)
 type 'a t = T : 'a s -> 'a t [@@unboxed];;
 [%%expect{|
+t/153[31] IS NOT SEPARABLE
 type 'a t = T : 'a s -> 'a t [@@unboxed]
 |}];;
 
@@ -253,6 +263,7 @@ and _ t = T : 'a -> 'a s t
 *)
 type (_, _) almost_eq = Almost_refl : 'a -> ('a, 'a) almost_eq [@@unboxed]
 [%%expect{|
+almost_eq/159[33] IS NOT SEPARABLE
 type (_, _) almost_eq = Almost_refl : 'a -> ('a, 'a) almost_eq [@@unboxed]
 |}];;
 
@@ -269,6 +280,7 @@ Error: This type cannot be unboxed because
 |}];;
 type valid2 = Any : (int, 'a) almost_eq -> valid2 [@@unboxed];;
 [%%expect{|
+valid2/163[35] IS NOT SEPARABLE
 type valid2 = Any : (int, 'a) almost_eq -> valid2 [@@unboxed]
 |}];;
 
@@ -307,6 +319,7 @@ type safe_again = Any : 'a stream -> safe_again
 type 'a id = Id of 'a [@@unboxed]
 type cycle = cycle id
 [%%expect{|
+id/173[41] IS NOT SEPARABLE
 type 'a id = Id of 'a [@@unboxed]
 Line 2, characters 0-21:
 2 | type cycle = cycle id

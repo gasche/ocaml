@@ -19,7 +19,11 @@ type t = A of int | B of float | C | D
 type t = A of int [@unboxed] | B;;
 [%%expect{|
 SHAPE(t/96[3]) CONFLICT
-type t = A of int [@unboxed] | B
+Line 1, characters 0-32:
+1 | type t = A of int [@unboxed] | B;;
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error: This declaration is invalid, some [@unboxed] annotations introduce
+       overlapping representations.
 |}];;
 
 type t = A of float [@unboxed] | B;;

@@ -7,13 +7,13 @@
 *)
 
 module A = struct
-  type t = A of int | B of float [@unboxed]
+  type t = A of int | B of string [@unboxed]
 
   let f = function A _ -> 0 | B _ -> 1
 
   let test () =
     assert (f (A 0) = 0);
-    assert (f (B 0.) = 1)
+    assert (f (B "0") = 1)
 end
 
 let () = A.test ()
