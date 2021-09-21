@@ -120,8 +120,41 @@ module Head_shape = struct
       pp_shape head_blocks
       head_separated
 
-  let any_shape =
-    { head_imm = Shape_any; head_blocks = Shape_any; head_separated = false }
+  let has_float ~blocks =
+    match blocks with
+    | Shape_any -> true
+    | Shape_set tags -> List.mem Obj.double_tag tags
+
+  let has_nonfloat ~imm ~blocks =
+    match imm with
+    | Shape_set (_ :: _)
+    | Shape_any -> true
+    | Shape_set [] ->
+        match blocks with
+        | Shape_any -> true
+        | Shape_set tags ->
+            List.exists (fun t -> t <> Obj.double_tag) tags
+
+  let separated ~imm ~blocks =
+    not (has_float ~blocks && has_nonfloat ~imm ~blocks)
+
+  let head_has_float hd =
+    has_float ~blocks:hd.head_blocks
+
+  let head_has_nonfloat hd =
+    has_nonfloat ~imm:hd.head_imm ~blocks:hd.head_blocks
+
+  let any_shape = {
+    head_imm = Shape_any;
+    head_blocks = Shape_any;
+    head_separated = true;
+  }
+
+  let _poison_shape = {
+    head_imm = Shape_any;
+    head_blocks = Shape_any;
+    head_separated = false;
+  }
 
   let empty_shape =
   {
@@ -138,18 +171,22 @@ module Head_shape = struct
   }
 
   let block_shape tags =
-    let head_separated =
-      List.for_all (fun x -> x = Obj.double_tag) tags ||
-      List.for_all (fun x -> x <> Obj.double_tag) tags
-    in
-    { head_imm = Shape_set []; head_blocks = Shape_set tags; head_separated }
+    let imm = Shape_set [] in
+    let blocks = Shape_set tags in
+    {
+      head_imm = imm;
+      head_blocks = blocks;
+      head_separated = separated ~imm ~blocks;
+    }
 
   let cstrs_shape ~num_consts ~num_nonconsts =
     let int_list n = List.init n Fun.id in
     {
       head_imm = Shape_set (int_list num_consts);
       head_blocks = Shape_set (int_list num_nonconsts);
-      head_separated = true;
+      head_separated =
+        (assert (num_nonconsts < Obj.double_tag);
+         true);
     }
 
   let disjoint_union hd1 hd2 =
@@ -171,16 +208,8 @@ module Head_shape = struct
     let head_separated =
       hd1.head_separated &&
       hd2.head_separated &&
-      match head_blocks with
-      | Shape_any -> false
-      | Shape_set tags ->
-          (
-            head_imm = Shape_set [] &&
-            List.for_all (fun x -> x = Obj.double_tag) tags
-          ) ||
-          (
-            List.for_all (fun x -> x <> Obj.double_tag) tags
-          )
+      not (head_has_float hd1 && head_has_nonfloat hd2) &&
+      not (head_has_float hd2 && head_has_nonfloat hd1)
     in
     { head_imm; head_blocks; head_separated }
 
@@ -265,7 +294,11 @@ module Head_shape = struct
     (* TODO : try the Ctype.expand_head_opt version here *)
     check_annotated ty callstack_map;
     match get_desc ty with
-    | Tvar _ | Tunivar _ -> any_shape
+    | Tvar _ | Tunivar _ ->
+        (* FIXME: variables that are universally quantified (including type parameters)
+           should get [any_shape] as here, but GADT variables that are existentially quantified
+           should get [poison_shape] instead -- they are not separated. *)
+        any_shape
     | Tconstr (p, args, _abbrev) ->
         begin match match_primitive_type p with
         | Some prim_type -> of_primitive_type prim_type
@@ -281,7 +314,12 @@ module Head_shape = struct
                  %a appears unboxed at the head of its own definition."
                 Path.print p
             else match Env.find_type_descrs p env, Env.find_type p env with
-            | exception Not_found -> any_shape
+            | exception Not_found ->
+                (* FIXME: if one of the parameters is non-separated, then
+                   this unknown type should be considered non-separated as well.
+                   (It may be a projection into this parameter.)
+                   This corresponds to the DeepSep case of the separability analysis. *)
+                any_shape
             | descr, decl ->
                 of_typedescr env descr decl ~args callstack_map
                   (Callstack.visit p head_callstack)

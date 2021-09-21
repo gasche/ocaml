@@ -296,11 +296,6 @@ type t14;;
 type t15 = A of t14 [@@ocaml.unboxed];;
 [%%expect{|
 type t14
-t15/560[52] IS NOT SEPARABLE
-type t15 = A of t14 [@@unboxed]
-|}, Principal{|
-type t14
-t15/560[53] IS NOT SEPARABLE
 type t15 = A of t14 [@@unboxed]
 |}];;
 
@@ -352,12 +347,6 @@ type 'a packed = T : ('a, _) t -> 'a packed [@@unboxed]
 [%%expect{|
 type 'a s
 type ('a, 'p) t = private 'a s
-packed/579[63] IS NOT SEPARABLE
-type 'a packed = T : ('a, 'b) t -> 'a packed [@@unboxed]
-|}, Principal{|
-type 'a s
-type ('a, 'p) t = private 'a s
-packed/579[64] IS NOT SEPARABLE
 type 'a packed = T : ('a, 'b) t -> 'a packed [@@unboxed]
 |}];;
 
@@ -378,11 +367,6 @@ type 'a t [@@immediate];;
 type u = U : 'a t -> u [@@unboxed];;
 [%%expect{|
 type 'a t [@@immediate]
-u/587[66] IS NOT SEPARABLE
-type u = U : 'a t -> u [@@unboxed]
-|}, Principal{|
-type 'a t [@@immediate]
-u/587[67] IS NOT SEPARABLE
 type u = U : 'a t -> u [@@unboxed]
 |}];;
 
@@ -391,13 +375,6 @@ type u = U : 'a t -> u [@@unboxed]
 type ('a, 'b) t = K : 'c -> (bool, 'c) t [@@unboxed]
 and t1 = T1 : (bool, int) t -> t1 [@@unboxed]
 [%%expect{|
-t/589[67] IS NOT SEPARABLE
-t1/590[67] IS NOT SEPARABLE
-type ('a, 'b) t = K : 'c -> (bool, 'c) t [@@unboxed]
-and t1 = T1 : (bool, int) t -> t1 [@@unboxed]
-|}, Principal{|
-t/589[68] IS NOT SEPARABLE
-t1/590[68] IS NOT SEPARABLE
 type ('a, 'b) t = K : 'c -> (bool, 'c) t [@@unboxed]
 and t1 = T1 : (bool, int) t -> t1 [@@unboxed]
 |}];;

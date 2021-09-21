@@ -45,8 +45,7 @@ and 'a u = 'a id
 and 'a id = Id of 'a [@unboxed];;
 [%%expect{|
 SHAPE(t/107[6]) {head_imm = Shape_any; head_blocks = Shape_set []; head_separated = true}
-id/109[6] IS NOT SEPARABLE
-SHAPE(id/109[6]) {head_imm = Shape_any; head_blocks = Shape_any; head_separated = false}
+SHAPE(id/109[6]) {head_imm = Shape_any; head_blocks = Shape_any; head_separated = true}
 type t = K of int u u [@unboxed]
 and 'a u = 'a id
 and 'a id = Id of 'a [@unboxed]
@@ -69,8 +68,7 @@ type t = A of { a : int; } [@unboxed]
 type ('a, 'r) u = 'r
 and 'a t = A of { body : 'r. ('a, 'r) u } [@unboxed];;
 [%%expect{|
-t/120[9] IS NOT SEPARABLE
-SHAPE(t/120[9]) {head_imm = Shape_any; head_blocks = Shape_any; head_separated = false}
+SHAPE(t/120[9]) {head_imm = Shape_any; head_blocks = Shape_any; head_separated = true}
 type ('a, 'r) u = 'r
 and 'a t = A of { body : 'r. ('a, 'r) u; } [@unboxed]
 |}];;
