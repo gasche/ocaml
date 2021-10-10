@@ -153,15 +153,24 @@ module Unboxed = struct
 
   let of_int n = Short n
 
+  let with_overflow = ref 0
+  let total_ops = ref 0
+
+  let () =
+    at_exit @@ fun () ->
+    Printf.printf "Overflow ratio: %f%%.\n%!"
+      (100. *. float !with_overflow /. float !total_ops)
+
   let add_unboxed a b =
+    incr total_ops;
     match a, b with
     | Short x, Short y ->
         let z = x + y in
         (* Overflow check -- Hacker's Delight, section 2.12 *)
         if (z lxor x) land (z lxor y) >= 0
         then Short z
-        else c_add a b
-    | _, _ -> c_add a b
+        else (incr with_overflow; c_add a b)
+    | _, _ -> (incr with_overflow; c_add a b)
 
   let fac n = factorial of_int add_unboxed n
 
