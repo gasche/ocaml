@@ -1423,6 +1423,28 @@ CAMLprim value ml_z_add(value arg1, value arg2)
   return ml_z_addsub(arg1, arg2, 0);
 }
 
+static inline value unbox(value arg) {
+    if (Is_long(arg)) return arg;
+    else return Field(arg, 0);
+}
+
+CAMLprim value box(value arg) {
+    if (Is_long(arg))
+        return arg;
+    else {
+        CAMLparam1(arg);
+        value ret;
+        ret = caml_alloc_small(1, 0);
+        Field(ret, 0) = arg;
+        CAMLreturn(ret);
+    }
+}
+
+CAMLprim value ml_z_add_boxcustom(value arg1, value arg2)
+{
+  return box(ml_z_addsub(unbox(arg1), unbox(arg2), 0));
+}
+
 CAMLprim value ml_z_sub(value arg1, value arg2)
 {
   Z_MARK_OP;

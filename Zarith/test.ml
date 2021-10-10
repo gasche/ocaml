@@ -92,14 +92,14 @@ end
 module Boxed = struct
   (* This is a naive, safe implementation of Zarith's fast-path logic,
      using an algebraic datatype to distinguish short from long integers. *)
-  type t
+  type gmp_t
 
-  external long_int: int -> t = "%identity"
-  external c_add: t -> t -> t = "ml_z_add"
+  external c_add: gmp_t -> gmp_t -> gmp_t = "ml_z_add"
+  external long_int : int -> gmp_t = "ml_z_of_int"
 
-  type boxed =
+  type t =
     | Short of int
-    | Long of t
+    | Long of gmp_t
 
   let of_int n = Short n
 
@@ -126,7 +126,7 @@ module Boxed = struct
 
   let fac n = factorial of_int add_boxed n
 
-  external c_format: string -> t -> string = "ml_z_format"
+  external c_format: string -> gmp_t -> string = "ml_z_format"
   let to_string = function
     | Short n -> string_of_int n
     | Long n -> c_format "%d" n
@@ -143,20 +143,15 @@ module Unboxed = struct
      (provided it only stores custom blocks, never immediate integers), but we have not
      implemented support for refining abstract type head-shapes, which would be required.
   *)
-  type t
+  type gmp_t
 
-  external long_int: int -> t = "%identity"
-  external c_add: t -> t -> t = "ml_z_add"
-
-  type boxed =
+  type t =
     | Short of int [@unboxed]
-    | Long of t
+    | Long of gmp_t
+
+  external c_add: t -> t -> t = "ml_z_add_boxcustom"
 
   let of_int n = Short n
-
-  let to_long = function
-    | Short x -> long_int x
-    | Long x -> x
 
   let add_unboxed a b =
     match a, b with
@@ -165,12 +160,12 @@ module Unboxed = struct
         (* Overflow check -- Hacker's Delight, section 2.12 *)
         if (z lxor x) land (z lxor y) >= 0
         then Short z
-        else Long (c_add (long_int x) (long_int y))
-    | _, _ -> Long (c_add (to_long a) (to_long b))
+        else c_add a b
+    | _, _ -> c_add a b
 
   let fac n = factorial of_int add_unboxed n
 
-  external c_format: string -> t -> string = "ml_z_format"
+  external c_format: string -> gmp_t -> string = "ml_z_format"
   let to_string = function
     | Short n -> string_of_int n
     | Long n -> c_format "%d" n

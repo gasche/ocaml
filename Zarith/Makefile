@@ -6,6 +6,7 @@ OCAMLOPT=$(OCAMLRUN) $(ROOTDIR)/ocamlopt $(STDFLAGS)
 
 BENCHS=wrong-int zarith unboxed boxed
 BENCH_SIZE ?= 20
+
 run: test.byte test.native
 	for bench in $(BENCHS); do\
 	  echo -e "\n\ntest.byte $$bench:";\
@@ -15,6 +16,9 @@ run: test.byte test.native
 	  echo -e "\n\ntest.native $$bench:";\
 	  time ./test.native $$bench $(BENCH_SIZE) 10_000_000;\
 	done
+
+run-with-overflow:
+	$(MAKE) run BENCH_SIZE=22
 
 ZARITH_FLAGS=-ccopt "-I$(ROOTDIR)/runtime -DHAS_GMP -O3 -Wall -Wextra" -cclib -lgmp
 
