@@ -107,7 +107,7 @@ transformation has an effect on evaluation order: the constructor
 argument that is transformed into tail-position will always be
 evaluated last. Consider the following example:
 
-\begin{caml_example*}{verbatim}
+\begin{caml_example*}{verbatim}[ok]
 type 'a two_headed_list =
   | Nil
   | Consnoc of 'a * 'a two_headed_list * 'a
