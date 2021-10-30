@@ -31,7 +31,7 @@ a position that is not a \emph{tail} position in the program, but
 within a datatype constructor application that is itself in
 \emph{tail} position. We say that those positions, that are composed
 of tail positions and constructor applications, are \emph{tail modulo
-  constructor} positions.
+constructor} positions.
 
 It is possible to rewrite programs such that \emph{tail modulo cons}
 positions become tail positions; after this transformation, the
@@ -56,7 +56,7 @@ List.length (map Fun.id (List.init 1_000_000 (fun i -> i)));;
 
 This transformation only improves calls in tail-modulo-cons position,
 it does not improve recursive calls that do not fit in this fragment:
-\begin{caml_example*}{verbatim}{warning}
+\begin{caml_example*}{verbatim}[warning=71]
 (* does *not* work: addition is not a data constructor *)
 let[@tail_mod_cons] rec length li =
   match li with
@@ -168,7 +168,7 @@ and binding = var * exp
 Consider a "map" function on variables. The direct definition has two
 recursive calls inside arguments of the "Let" constructor, so it gets
 rejected as ambiguous.
-\begin{caml_example*}{verbatim}{error}
+\begin{caml_example*}{verbatim}[error]
 let[@tail_mod_cons] rec map_vars f exp =
   match exp with
   | Var v -> Var (f v)
@@ -195,7 +195,7 @@ a bound on the nesting depth of "Let" constructs.
 
 One would also get an error when using conflicting annotations, asking
 for two of the constructor arguments to be put in tail position:
-\begin{caml_example*}{verbatim}{error}
+\begin{caml_example*}{verbatim}[error]
 let[@tail_mod_cons] rec map_vars f exp =
   match exp with
   | Var v -> Var (f v)
@@ -224,7 +224,7 @@ non-tail calls if they go from a tail-mod-cons to a non-tail-mod-cons
 function is surprising, and the transformation will warn about them.
 
 For example:
-\begin{caml_example*}{verbatim}{warning}
+\begin{caml_example*}{verbatim}[warning=71]
 let[@tail_mod_cons] rec flatten = function
 | [] -> []
 | xs :: xss ->
@@ -254,7 +254,7 @@ The same warning occurs when "append_flatten" is a non-tail-mod-cons
 function of the same recursive group; using the tail-mod-cons
 transformation is a property of individual functions, not whole
 recursive groups.
-\begin{caml_example*}{verbatim}{warning}
+\begin{caml_example*}{verbatim}[warning]
 let[@tail_mod_cons] rec flatten = function
 | [] -> []
 | xs :: xss ->
@@ -283,7 +283,7 @@ Non-recursive functions can also be marked "[@tail_mod_cons]"; this is
 typically useful for local bindings to recursive functions.
 
 Incorrect version:
-\begin{caml_example*}{verbatim}{warning}
+\begin{caml_example*}{verbatim}[warning]
 let[@tail_mod_cons] rec map_vars f exp =
   let self exp = map_vars f exp in
   match exp with
@@ -308,7 +308,7 @@ parameter (the transformation only works with calls to
 known functions).
 
 For example, consider a substitution function on binary trees:
-\begin{caml_example*}{verbatim}{warning}
+\begin{caml_example*}{verbatim}[warning]
 type 'a tree = Leaf of 'a | Node of 'a tree * 'a tree
 
 let[@tail_mod_cons rec bind (f : 'a -> 'a tree) (t : 'a tree) : 'a tree =
@@ -484,7 +484,7 @@ can be tail-mod-cons-optimized or not, you can use the "[@tailcall]"
 annotation on the called function, which will warn if the
 transformation is not possible.
 
-\begin{caml_example*}{verbatim}{warning}
+\begin{caml_example*}{verbatim}[warning=51]
 let rec map (f, li) =
   match li with
   | [] -> []
