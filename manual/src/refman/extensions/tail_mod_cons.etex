@@ -325,7 +325,7 @@ they realize this call to "f v" is not, in fact, in tail position, by
 using "(f[@tailcall false]) v".
 
 \begin{caml_example*}{verbatim}
-let[@tail_mod_cons rec bind (f : 'a -> 'a tree) (t : 'a tree) : 'a tree =
+let[@tail_mod_cons] rec bind (f : 'a -> 'a tree) (t : 'a tree) : 'a tree =
   match t with
   | Leaf v -> (f[@tailcall false]) v
   | Node (left, right) -> Node (bind f left, (bind[@tailcall]) f right)
