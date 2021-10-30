@@ -38,7 +38,7 @@ positions become tail positions; after this transformation, the
 implementation of "map" above becomes \emph{tail-recursive}, in the
 sense that it only consumes a constant amount of stack space. The
 OCaml compiler implements this transformation on demand, using the
-"[@tail_mod_cons]" or "[@ocaml.tail_mod_cons]" attribute on the
+"[\@tail_mod_cons]" or "[\@ocaml.tail_mod_cons]" attribute on the
 function to transform.
 
 \begin{caml_example*}{verbatim}
@@ -64,7 +64,7 @@ let[@tail_mod_cons] rec length li =
   | _ :: xs -> 1 + length li
 \end{caml_example*}
 
-It is of course possible to use the "[@tail_mod_cons]" transformation
+It is of course possible to use the "[\@tail_mod_cons]" transformation
 on programs that contain some recursive calls in tail-modulo-cons
 position, and some calls in other, arbitrary positions. Only the tail
 calls and tail-modulo-cons calls will happen in constant stack space.
@@ -77,9 +77,9 @@ ambiguous situation.
 
 We expect it to be used mostly by advanced OCaml users needing to get
 some guarantees on the stack-consumption behavior of their
-programs. Our recommendation is to use the "[@tailcall]" annotation on
+programs. Our recommendation is to use the "[\@tailcall]" annotation on
 all callsites that should not consume any stack
-space. "[@tail_mod_cons]" extends the set of programs on which calls
+space. "[\@tail_mod_cons]" extends the set of programs on which calls
 can be annotated to be tail, helping establish stack-consumption
 guarantees in more cases.
 
@@ -107,7 +107,7 @@ transformation has an effect on evaluation order: the constructor
 argument that is transformed into tail-position will always be
 evaluated last. Consider the following example:
 
-\begin{caml_example*}{verbatim}[ok]
+\begin{caml_example*}{verbatim}
 type 'a two_headed_list =
   | Nil
   | Consnoc of 'a * 'a two_headed_list * 'a
@@ -118,7 +118,7 @@ let[@tail_mod_cons] rec map f = function
     Consnoc (f front, map f body, f rear)
 \end{caml_example*}
 
-Due to the "[@tail_mod_cons]" transformation, the calls to "f front"
+Due to the "[\@tail_mod_cons]" transformation, the calls to "f front"
 and "f rear" will be evaluated before "map f body". In particular,
 this is likely to be different from the evaluation order of the
 un-annotated version. (The evaluation order of constructor arguments
@@ -176,7 +176,7 @@ let[@tail_mod_cons] rec map_vars f exp =
     Let ((f v, map_vars f def), map_vars f body)
 \end{caml_example*}
 
-To disambiguate, the user should add a "[@tailcall]" attribute to the
+To disambiguate, the user should add a "[\@tailcall]" attribute to the
 recursive call that they want to see in tail position:
 \begin{caml_example*}{verbatim}
 let[@tail_mod_cons] rec map_vars f exp =
@@ -235,7 +235,7 @@ let[@tail_mod_cons] rec flatten = function
     in append_flatten xs xss
 \end{caml_example*}
 Here the "append_flatten" helper is not annotated with
-"[@tail_mod_cons]", so the calls "append_flatten xs xss" and "flatten
+"[\@tail_mod_cons]", so the calls "append_flatten xs xss" and "flatten
 xss" will \emph{not} be tail calls. The right fix here is to mark
 "append_flatten" to be tail-mod-cons.
 
@@ -279,7 +279,7 @@ and[@tail_mod_cons] append_flatten xs xss =
   | x :: xs -> x :: append_flatten xs xss
 \end{caml_example*}
 
-Non-recursive functions can also be marked "[@tail_mod_cons]"; this is
+Non-recursive functions can also be marked "[\@tail_mod_cons]"; this is
 typically useful for local bindings to recursive functions.
 
 Incorrect version:
@@ -409,7 +409,7 @@ let[@tail_mod_cons] rec flatten li =
 The call to "append_flatten", which syntactically appears in tail
 position, gets transformed differently whether the function has
 a destination-passing-style version available -- depending on whether
-it is itself marked "[@tail_mod_cons]":
+it is itself marked "[\@tail_mod_cons]":
 \begin{verbatim}
 (* if append_flatten_dps exists *)
 and flatten_dps li dst i =
@@ -475,12 +475,12 @@ of building a tuples. Other calls, either indirect calls or calls
 passing a more complex tuple value ("let t = (a, b, c) in f t") are
 compiled as ``inexact'' calls that go through a wrapper.
 
-The "[@tail_mod_cons]" transformation supports tupled functions, but
+The "[\@tail_mod_cons]" transformation supports tupled functions, but
 will only optimize ``exact'' calls in tail position; direct calls to
 something else than a tuple literal will not become tail calls. The
 user can manually unpack a tuple to force a call to be ``exact'': "let
 (x, y, z) = t in f (x, y, z)". If there is any doubt of whether a call
-can be tail-mod-cons-optimized or not, you can use the "[@tailcall]"
+can be tail-mod-cons-optimized or not, you can use the "[\@tailcall]"
 annotation on the called function, which will warn if the
 transformation is not possible.
 
