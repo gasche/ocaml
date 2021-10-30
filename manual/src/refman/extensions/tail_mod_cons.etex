@@ -300,7 +300,6 @@ let[@tail_mod_cons] rec map_vars f exp =
   | Var v -> Var (f v)
   | Let ((v, def), body) ->
     Let ((f v, self def), (self[@tailcall]) body)
-    
 \end{caml_example*}
 
 In other cases, there is no benefit in making the called function
@@ -325,6 +324,8 @@ they realize this call to "f v" is not, in fact, in tail position, by
 using "(f[@tailcall false]) v".
 
 \begin{caml_example*}{verbatim}
+type 'a tree = Leaf of 'a | Node of 'a tree * 'a tree
+
 let[@tail_mod_cons] rec bind (f : 'a -> 'a tree) (t : 'a tree) : 'a tree =
   match t with
   | Leaf v -> (f[@tailcall false]) v
