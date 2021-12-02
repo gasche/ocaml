@@ -218,18 +218,30 @@ module Make_reduce(Params : sig
   val read_unit_shape : unit_name:string -> t option
   val find_shape : env -> Ident.t -> t
 end) = struct
+  type strategy = Weak | Strong
+  type local_env = t Ident.tbl
+
   type env = {
     fuel: int ref;
     global_env: Params.env;
-    local_env: t Ident.tbl;
+    local_env: local_env;
+    memo_table: (strategy * local_env * t, t) Hashtbl.t;
   }
-
-  type strategy = Weak | Strong
 
   let bind env var shape =
     { env with local_env = Ident.add var shape env.local_env }
 
-  let rec reduce_ strategy ({fuel; global_env; local_env} as env) t =
+  let rec reduce_ strategy env t =
+    let {fuel = _; global_env = _; local_env; memo_table} = env in
+    let memo_key = (strategy, local_env, t) in
+    match Hashtbl.find memo_table memo_key with
+    | result -> result
+    | exception Not_found ->
+        let result = reduce__ strategy env t in
+        Hashtbl.replace memo_table memo_key result;
+        result
+
+  and reduce__ strategy ({fuel; global_env; local_env; _} as env) t =
     let reduce env t = reduce_ strategy env t in
     if !fuel < 0 then
       t
@@ -294,8 +306,9 @@ end) = struct
 
   let reduce global_env t =
     let fuel = ref Params.fuel in
+    let memo_table = Hashtbl.create 42 in
     let local_env = Ident.empty in
-    reduce_ Strong { fuel; global_env; local_env } t
+    reduce_ Strong { fuel; global_env; memo_table; local_env } t
 end
 
 module Local_reduce =
