@@ -173,6 +173,11 @@ let print fmt =
   in
   Format.fprintf fmt"@[%a@]@;" aux
 
+let improve_uid uid t =
+  match t.uid with
+  | Some _ -> t
+  | None -> { t with uid }
+
 let fresh_var ?(name="shape-var") uid =
   let var = Ident.create_local name in
   var, { uid = Some uid; desc = Var var }
@@ -219,10 +224,13 @@ end) = struct
     local_env: t Ident.tbl;
   }
 
+  type strategy = Weak | Strong
+
   let bind env var shape =
     { env with local_env = Ident.add var shape env.local_env }
 
-  let rec reduce ({fuel; global_env; local_env} as env) t =
+  let rec reduce_ strategy ({fuel; global_env; local_env} as env) t =
+    let reduce env t = reduce_ strategy env t in
     if !fuel < 0 then
       t
     else
@@ -233,31 +241,52 @@ end) = struct
           | None -> t
           end
       | App(f, arg) ->
-          let f = reduce env f in
-          let arg = reduce env arg in
+          let f = reduce_ Weak env f in
+          let arg = reduce_ Strong env arg in
           begin match f.desc with
           | Abs(var, body) ->
+              (* we only add Strong normal forms
+                 to the environment. *)
               reduce (bind env var arg) body
+              |> improve_uid t.uid
           | _ ->
               { t with desc = App(f, arg) }
           end
       | Proj(str, item) ->
-          let r = proj ?uid:t.uid (reduce env str) item in
-          if r = t
-          then t
-          else reduce env r
+          let str = reduce env str in
+          let nored = { t with desc = Proj(str, item) } in
+          begin match str.desc with
+          | Struct items ->
+              begin match Item.Map.find item items with
+              | exception Not_found -> nored
+              | item -> item
+              end
+          | _ -> nored
+          end
       | Abs(var, body) ->
-          { t with desc = Abs(var, body) }
+          begin match strategy with
+          | Weak -> t
+          | Strong ->
+              let env = bind env var { uid = None; desc = Var var } in
+              let vbody = reduce env body in
+              { t with desc = Abs(var, vbody) }
+          end
       | Var id ->
           begin match Ident.find_same id local_env with
-          | def -> def
+          | def ->
+              if def.desc = Var id then t else def (* already in Strong normal form *)
           | exception Not_found ->
           match Params.find_shape global_env id with
-          | res when res <> t ->
-              decr fuel;
-              reduce env res
-          | _ (* res = t *) | exception Not_found ->
-          { t with desc = Leaf } (* avoid loops. *)
+          | res ->
+              if res = t then
+                (* reducing here would loop forever *)
+                t
+              else begin
+                decr fuel;
+                reduce env res
+              end
+          | exception Not_found ->
+              t
           end
       | Leaf -> t
       | Struct m ->
@@ -266,7 +295,7 @@ end) = struct
   let reduce global_env t =
     let fuel = ref Params.fuel in
     let local_env = Ident.empty in
-    reduce { fuel; global_env; local_env } t
+    reduce_ Strong { fuel; global_env; local_env } t
 end
 
 module Local_reduce =
