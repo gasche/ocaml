@@ -264,6 +264,8 @@ end) = struct
               reduce (bind env var arg) body
               |> improve_uid t.uid
           | _ ->
+              (* If f is well-typed at a function type, its Weak
+                 normal forms are either Abs or a Strong normal form. *)
               { t with desc = App(f, arg) }
           end
       | Proj(str, item) ->
