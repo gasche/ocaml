@@ -269,15 +269,18 @@ end) = struct
               { t with desc = App(f, arg) }
           end
       | Proj(str, item) ->
-          let str = reduce env str in
+          let str = reduce_ Weak env str in
           let nored = { t with desc = Proj(str, item) } in
           begin match str.desc with
           | Struct items ->
               begin match Item.Map.find item items with
               | exception Not_found -> nored
-              | item -> item
+              | item -> reduce env item
               end
-          | _ -> nored
+          | _ ->
+              (* If [str] is well-typed at a function type, its Weak
+                 normal forms are either Abs or a Strong normal form. *)
+              nored
           end
       | Abs(var, body) ->
           begin match strategy with
@@ -306,7 +309,11 @@ end) = struct
           end
       | Leaf -> t
       | Struct m ->
-          { t with desc = Struct (Item.Map.map (reduce env) m) }
+          begin match strategy with
+          | Weak -> t
+          | Strong ->
+              { t with desc = Struct (Item.Map.map (reduce env) m) }
+          end
 
   let reduce global_env t =
     let fuel = ref Params.fuel in
