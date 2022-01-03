@@ -74,6 +74,7 @@ val fold_name: (t -> 'a -> 'b -> 'b) -> 'a tbl -> 'b -> 'b
 val fold_all: (t -> 'a -> 'b -> 'b) -> 'a tbl -> 'b -> 'b
 val iter: (t -> 'a -> unit) -> 'a tbl -> unit
 val remove: t -> 'a tbl -> 'a tbl
+val compare_tbl: ('a -> 'a -> int) -> 'a tbl -> 'a tbl -> int
 
 (* Idents for sharing keys *)
 

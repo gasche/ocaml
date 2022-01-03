@@ -303,6 +303,38 @@ let rec fold_data f d accu =
 let fold_all f tbl accu =
   fold_aux (fun k -> fold_data f (Some k)) [] accu tbl
 
+type 'a enumeration =
+  | End
+  | More of 'a data * 'a tbl * 'a enumeration
+
+let rec cons_enum tbl e =
+  match tbl with
+  | Empty -> e
+  | Node (l, v, r, _) -> cons_enum l (More (v, r, e))
+
+let compare_tbl cmp tbl1 tbl2 =
+  let rec compare_aux cmp e1 e2 =
+    match e1, e2 with
+    | End, End -> 0
+    | End, _ -> -1
+    | _, End -> 1
+    | More (v1, r1, e1), More (v2, r2, e2) ->
+        let c = compare_data cmp v1 v2 in
+        if c <> 0 then c else
+        compare_aux cmp (cons_enum r1 e1) (cons_enum r2 e2)
+  and compare_data cmp v1 v2 =
+    let c = compare v1.ident v2.ident in
+    if c <> 0 then c else
+    let c = cmp v1.data v2.data in
+    if c <> 0 then c else
+    match v1.previous, v2.previous with
+    | None, None -> 0
+    | None, _ -> -1
+    | _, None -> 1
+    | Some prev1, Some prev2 -> compare_data cmp prev1 prev2
+  in
+  compare_aux cmp (cons_enum tbl1 End) (cons_enum tbl2 End)
+
 (* let keys tbl = fold_name (fun k _ accu -> k::accu) tbl [] *)
 
 let rec iter f = function
