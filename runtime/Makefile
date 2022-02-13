@@ -20,7 +20,7 @@ include $(ROOTDIR)/Makefile.common
 # Lists of source files
 
 BYTECODE_C_SOURCES := $(addsuffix .c, \
-  interp misc fix_code startup_aux startup_byt major_gc \
+  interp misc fix_code startup_aux startup_byt gc_stats major_gc \
   minor_gc memory alloc roots globroots fail_byt signals \
   printexc backtrace_byt backtrace compare ints eventlog \
   floats str array io extern intern hash sys meta parsing gc_ctrl md5 obj \
@@ -30,7 +30,7 @@ BYTECODE_C_SOURCES := $(addsuffix .c, \
   skiplist lf_skiplist codefrag prng)
 
 NATIVE_C_SOURCES := $(addsuffix .c, \
-  startup_aux startup_nat main fail_nat roots signals \
+  startup_aux startup_nat main fail_nat roots signals gc_stats \
   signals_nat misc major_gc minor_gc memory alloc compare ints \
   floats str array io extern intern hash sys parsing gc_ctrl eventlog md5 obj \
   lexing $(UNIX_OR_WIN32) printexc callback weak finalise custom \
