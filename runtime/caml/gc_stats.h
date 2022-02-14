@@ -57,6 +57,7 @@ struct alloc_stats {
   uint64_t promoted_words;
   uint64_t major_words;
   uint64_t minor_collections;
+  uint64_t major_collections;
   uint64_t forced_major_collections;
 };
 void caml_accum_alloc_stats(struct alloc_stats* acc, const struct alloc_stats* s);

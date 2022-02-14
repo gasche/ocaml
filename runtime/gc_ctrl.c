@@ -55,17 +55,15 @@ CAMLprim value caml_gc_quick_stat(value v)
   CAMLlocal1 (res);
 
   /* get a copy of these before allocating anything... */
-  intnat majcoll;
   struct gc_stats s;
   caml_compute_gc_stats(&s);
-  majcoll = Caml_state->stat_major_collections;
 
   res = caml_alloc_tuple (17);
   Store_field (res, 0, caml_copy_double ((double)s.alloc_stats.minor_words));
   Store_field (res, 1, caml_copy_double ((double)s.alloc_stats.promoted_words));
   Store_field (res, 2, caml_copy_double ((double)s.alloc_stats.major_words));
   Store_field (res, 3, Val_long (s.alloc_stats.minor_collections));
-  Store_field (res, 4, Val_long (majcoll));
+  Store_field (res, 4, Val_long (s.alloc_stats.major_collections));
   Store_field (res, 5, Val_long (
     s.heap_stats.pool_words + s.heap_stats.large_words));
   Store_field (res, 6, Val_long (0));

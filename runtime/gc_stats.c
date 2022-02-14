@@ -51,6 +51,7 @@ void caml_accum_alloc_stats(struct alloc_stats* acc, const struct alloc_stats* s
   acc->promoted_words += s->promoted_words;
   acc->major_words += s->major_words;
   acc->minor_collections += s->minor_collections;
+  acc->major_collections += s->major_collections;
   acc->forced_major_collections += s->forced_major_collections;
 }
 
@@ -62,6 +63,7 @@ void caml_collect_alloc_stats_sample(
   sample->promoted_words = local->stat_promoted_words;
   sample->major_words = local->stat_major_words;
   sample->minor_collections = local->stat_minor_collections;
+  sample->major_collections = local->stat_major_collections;
   sample->forced_major_collections = local->stat_forced_major_collections;
 }
 
