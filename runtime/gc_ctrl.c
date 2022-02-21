@@ -48,7 +48,8 @@ extern uintnat caml_allocation_policy;    /*        see freelist.c */
 extern uintnat caml_custom_major_ratio;   /* see custom.c */
 extern uintnat caml_custom_minor_ratio;   /* see custom.c */
 extern uintnat caml_custom_minor_max_bsz; /* see custom.c */
-extern uintnat caml_minor_heap_max_wsz;   /* see domain.c */
+extern uintnat caml_max_domains; /* see domain.c */
+extern uintnat caml_minor_heap_max_wsz; /* see domain.c */
 
 CAMLprim value caml_gc_quick_stat(value v)
 {
@@ -126,7 +127,7 @@ CAMLprim value caml_gc_get(value v)
   CAMLparam0 ();   /* v is ignored */
   CAMLlocal1 (res);
 
-  res = caml_alloc_tuple (11);
+  res = caml_alloc_tuple (12);
   Store_field (res, 0, Val_long (Caml_state->minor_heap_wsz));  /* s */
   Store_field (res, 2, Val_long (caml_percent_free));           /* o */
   Store_field (res, 3, Val_long (caml_params->verb_gc));        /* v */
@@ -134,6 +135,7 @@ CAMLprim value caml_gc_get(value v)
   Store_field (res, 8, Val_long (caml_custom_major_ratio));     /* M */
   Store_field (res, 9, Val_long (caml_custom_minor_ratio));     /* m */
   Store_field (res, 10, Val_long (caml_custom_minor_max_bsz));  /* n */
+  Store_field (res, 11, Val_long (caml_max_domains));  /* n */
   CAMLreturn (res);
 }
 
@@ -159,6 +161,7 @@ CAMLprim value caml_gc_set(value v)
   uintnat newpf;
   uintnat newminwsz;
   uintnat new_custom_maj, new_custom_min, new_custom_sz;
+  uintnat new_max_domains;
   CAML_EV_BEGIN(EV_EXPLICIT_GC_SET);
 
 
@@ -191,26 +194,32 @@ CAMLprim value caml_gc_set(value v)
     if (new_custom_sz != caml_custom_minor_max_bsz){
       caml_custom_minor_max_bsz = new_custom_sz;
       caml_gc_message (0x20, "New custom minor size limit: %"
-                       ARCH_INTNAT_PRINTF_FORMAT "u%%\n",
+                       ARCH_INTNAT_PRINTF_FORMAT "u\n",
                        caml_custom_minor_max_bsz);
     }
   }
 
-  /* Minor heap size comes last because it will trigger a minor collection
-     (thus invalidating [v]) and it can raise [Out_of_memory]. */
+  /* Minor heap size and max_domains comes last because they will
+     trigger a minor collection (thus invalidating [v]) and it can
+     raise [Out_of_memory]. */
+  new_max_domains = Long_val (Field(v, 11));
   newminwsz = caml_norm_minor_heap_size (Long_val (Field (v, 0)));
 
-  if (newminwsz != Caml_state->minor_heap_wsz) {
-    caml_gc_message (0x20, "New minor heap size: %"
-                     ARCH_INTNAT_PRINTF_FORMAT "uk words\n", newminwsz / 1024);
+  if (newminwsz > caml_minor_heap_max_wsz
+      || new_max_domains != caml_max_domains) {
+    if (newminwsz > caml_minor_heap_max_wsz) {
+      caml_gc_log ("Update minor heap max: %"
+                   ARCH_SIZET_PRINTF_FORMAT "uk words", newminwsz / 1024);
+    }
+    if (new_max_domains != caml_max_domains) {
+      caml_gc_message (0x20, "Update max domains: %"
+                       ARCH_INTNAT_PRINTF_FORMAT "u\n", new_max_domains);
+    }
+    caml_update_minor_heap_max_and_max_domains(newminwsz, new_max_domains);
   }
 
-  if (newminwsz > caml_minor_heap_max_wsz) {
-    caml_gc_log ("update minor heap max: %"
-                 ARCH_SIZET_PRINTF_FORMAT "uk words", newminwsz / 1024);
-    caml_update_minor_heap_max(newminwsz);
-  }
   CAMLassert(newminwsz <= caml_minor_heap_max_wsz);
+  CAMLassert(new_max_domains == caml_max_domains);
   if (newminwsz != Caml_state->minor_heap_wsz) {
     caml_gc_log ("current minor heap size: %"
                  ARCH_SIZET_PRINTF_FORMAT "uk words",
@@ -319,6 +328,7 @@ CAMLprim value caml_get_minor_free (value v)
 
 void caml_init_gc (void)
 {
+  caml_max_domains = caml_params->max_domains;
   caml_minor_heap_max_wsz = caml_params->init_minor_heap_wsz;
 
   caml_max_stack_size = caml_params->init_max_stack_wsz;

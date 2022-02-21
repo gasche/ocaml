@@ -107,7 +107,7 @@ void caml_orphan_alloc_stats(caml_domain_state *domain) {
    domain-local stats, accessed without synchronization and only
    updated ("sampled") during stop-the-world events -- each minor
    collection, and on domain termination. */
-static struct gc_stats sampled_gc_stats[Max_domains];
+static struct gc_stats sampled_gc_stats[Hard_max_domains];
 
 /* Update the sampled stats for the given domain. */
 void caml_collect_gc_stats_sample(caml_domain_state* domain)
@@ -133,7 +133,7 @@ void caml_compute_gc_stats(struct gc_stats* buf)
   caml_accum_orphan_heap_stats(&buf->heap_stats);
   caml_accum_orphan_alloc_stats(&buf->alloc_stats);
 
-  for (i=0; i<Max_domains; i++) {
+  for (i=0; i<Hard_max_domains; i++) {
     /* For allocation stats, we use the live stats of the current domain
        and the sampled stats of other domains.
 

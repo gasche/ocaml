@@ -96,8 +96,8 @@ struct caml_thread_table {
   st_thread_id tick_thread_id;
 };
 
-/* thread_table instance, up to Max_domains */
-static struct caml_thread_table thread_table[Max_domains];
+/* thread_table instance, up to caml_max_domains */
+static struct caml_thread_table thread_table[Hard_max_domains];
 
 /* the "head" of the circular list of thread descriptors for this domain */
 #define All_threads thread_table[Caml_state->id].all_threads
@@ -326,7 +326,7 @@ static void caml_thread_reinitialize(void)
 
 CAMLprim value caml_thread_join(value th);
 
-/* This hook is run when a domain shuts down (see domains.c).
+/* This hook is run when a domain shuts down (see domain.c).
 
    When a domain shuts down, the state must be cleared to allow proper reuse of
    the domain slot the next time a domain is started on this slot. If a program

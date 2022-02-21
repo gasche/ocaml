@@ -238,12 +238,11 @@ typedef uint64_t uintnat;
    total size of live objects. */
 #define Percent_free_def 120
 
-/* Maximum number of domains */
-#ifdef ARCH_SIXTYFOUR
-#define Max_domains 128
-#else
-#define Max_domains 16
-#endif
+/* Default number of provisioned domains */
+#define Max_domains_def 16
+
+/* Hard maximum of domains */
+#define Hard_max_domains 4096
 
 /* Default setting for the major GC slice smoothing window: 1
    (i.e. no smoothing)

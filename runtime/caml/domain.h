@@ -37,7 +37,8 @@ extern "C" {
 
 asize_t caml_norm_minor_heap_size (intnat);
 int caml_reallocate_minor_heap(asize_t);
-void caml_update_minor_heap_max(uintnat minor_heap_wsz);
+void caml_update_minor_heap_max_and_max_domains(uintnat minor_heap_wsz,
+  uintnat max_domains);
 
 /* is there a STW interrupt queued that needs servicing */
 int caml_incoming_interrupts_queued(void);
@@ -63,6 +64,7 @@ CAMLextern void (*caml_domain_external_interrupt_hook)(void);
 CAMLextern void caml_init_domains(uintnat minor_heap_wsz);
 CAMLextern void caml_init_domain_self(int);
 
+CAMLextern uintnat caml_max_domains;
 CAMLextern uintnat caml_minor_heap_max_wsz;
 
 CAMLextern atomic_uintnat caml_num_domains_running;

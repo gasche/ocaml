@@ -16,6 +16,7 @@ let rec set_gc l =
     let g1 = Gc.get() in
       Gc.set { g1 with
         minor_heap_size = ((l mod 4) + 1) * (1 lsl 18);
+        max_domains = ((l mod 2) + 1) * 32;
       };
       set_gc (l + 1)
 

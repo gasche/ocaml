@@ -48,6 +48,8 @@ struct caml_params {
 
   uintnat init_max_stack_wsz;
 
+  uintnat max_domains;
+
   uintnat backtrace_enabled;
   uintnat runtime_warnings;
   uintnat cleanup_on_exit;
