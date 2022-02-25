@@ -39,6 +39,14 @@ Working version
   (Enguerrand Decorne, KC Sivaramakrishnan and Tom Kelly,
   review by Anil Madhavapeddy and Gabriel Scherer)
 
+- #?????: There is no fixed limit for maximum minor heap size anymore. The
+  runtime reserves address space for the minor heaps with a maximum capacity
+  per domain. Calling Gc.set asking for larger minor heap will un-reserve and
+  re-reserve the minor heap of all domains -- and change the minor heap size
+  only for the current domain.
+  (Sabine Schmaltz, Gabriel Scherer, KC Sivaramakrishnan, review by
+   Enguerrand Decorne, Armaël Guéneau, Jacques-Henri Jourdan, ??)
+
 - #11010: Use strerror_r for reentrant error string conversion.
   (Anil Madhavapeddy and Xavier Leroy, review by same and Edwin Török)
 
