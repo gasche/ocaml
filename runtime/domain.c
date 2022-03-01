@@ -45,20 +45,25 @@
 #include "caml/sync.h"
 #include "caml/weak.h"
 
-/* From a runtime perspective, domains must handle stop-the-world (STW)
-   sections, during which:
-    - they are within a section no mutator code is running
-    - all domains will execute the section in parallel
-    - barriers are provided to know all domains have reached the
-      same stage within a section
+/* The runtime can run stop-the-world (STW) sections, during which all
+   active domains run the same code in parallel (with a barrier
+   mechanism to synchronize within this code). See
+   [caml_try_run_on_all_domains] below.
 
    Stop-the-world sections are used to handle duties such as:
     - minor GC
-    - major GC to trigger major state machine phase changes
+    - major GC phase changes
 
-   Two invariants for STW sections:
-    - domains only execute mutator code if in the stop-the-world set
-    - domains in the stop-the-world set guarantee to service the sections
+   We guarantee that no mutator code runs in parallel with a STW
+   section, and neither does domain initialization or cleanup code.
+
+   To provide these guarantees:
+    - domains must register as STW participants before running any
+      mutator code
+    - domains registered as STW participants must be careful to
+      service STW interrupt requests
+    - STW sections must not trigger callbacks (eg. finalisers or
+      signal handlers).
 */
 
 /* The main C-stack for a domain can enter a blocking call.
