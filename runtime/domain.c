@@ -619,6 +619,7 @@ init_signal_stack_failure:
 
 
 domain_init_complete:
+  caml_plat_broadcast(&all_domains_cond); /* wake spawning domains */
   caml_plat_unlock(&all_domains_lock);
 }
 
@@ -1057,7 +1058,7 @@ static void decrement_stw_domains_still_processing(void)
     /* release the STW lock to allow new STW sections */
     caml_plat_lock(&all_domains_lock);
     atomic_store_rel(&stw_leader, 0);
-    caml_plat_broadcast(&all_domains_cond);
+    caml_plat_broadcast(&all_domains_cond); /* wake spawning domains */
     caml_gc_log("clearing stw leader");
     caml_plat_unlock(&all_domains_lock);
   }
@@ -1477,6 +1478,7 @@ static void domain_terminate (void)
       CAMLassert (domain_self->backup_thread_running);
       domain_self->backup_thread_running = 0;
     }
+    caml_plat_broadcast(&all_domains_cond); /* wake spawning domains */
     caml_plat_unlock(&all_domains_lock);
   }
   /* We can not touch domain_self->interruptor after here
