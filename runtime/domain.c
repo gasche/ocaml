@@ -171,7 +171,7 @@ static struct {
 static caml_plat_mutex all_domains_lock = CAML_PLAT_MUTEX_INITIALIZER;
 static caml_plat_cond all_domains_cond =
     CAML_PLAT_COND_INITIALIZER(&all_domains_lock);
-static atomic_uintnat /* dom_internal* */ stw_leader = 0;
+static dom_internal* stw_leader = NULL; /* protected by [all_domains_lock] */
 static struct dom_internal all_domains[Max_domains];
 
 CAMLexport atomic_uintnat caml_num_domains_running;
@@ -464,7 +464,7 @@ static void create_domain(uintnat initial_minor_heap_wsize) {
   caml_plat_lock(&all_domains_lock);
 
   /* wait until any in-progress STW sections end */
-  while (atomic_load_acq(&stw_leader))
+  while (stw_leader != NULL)
     caml_plat_wait(&all_domains_cond);
 
   d = next_free_domain();
@@ -1054,7 +1054,7 @@ static void decrement_stw_domains_still_processing(void)
   if( am_last ) {
     /* release the STW lock to allow new STW sections */
     caml_plat_lock(&all_domains_lock);
-    atomic_store_rel(&stw_leader, 0);
+    stw_leader = NULL;
     caml_plat_broadcast(&all_domains_cond);
     caml_gc_log("clearing stw leader");
     caml_plat_unlock(&all_domains_lock);
@@ -1118,23 +1118,21 @@ int caml_try_run_on_all_domains_with_spin_work(
 
   caml_gc_log("requesting STW");
 
-  /* Don't touch the lock if there's already a stw leader
-    OR we can't get the lock */
-  if (atomic_load_acq(&stw_leader) ||
-      !caml_plat_try_lock(&all_domains_lock)) {
+  /* Give up if we cannot take the lock... */
+  if (!caml_plat_try_lock(&all_domains_lock)) {
     caml_handle_incoming_interrupts();
     return 0;
   }
 
-  /* see if there is a stw_leader already */
-  if (atomic_load_acq(&stw_leader)) {
+  /* ... or if there is already a STW section running. */
+  if (stw_leader != NULL) {
     caml_plat_unlock(&all_domains_lock);
     caml_handle_incoming_interrupts();
     return 0;
   }
 
   /* we have the lock and can claim the stw_leader */
-  atomic_store_rel(&stw_leader, (uintnat)domain_self);
+  stw_leader = domain_self;
 
   CAML_EV_BEGIN(EV_STW_LEADER);
   caml_gc_log("causing STW");
