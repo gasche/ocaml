@@ -1176,7 +1176,13 @@ int caml_try_run_on_all_domains_with_spin_work(
   caml_gc_log("requesting STW");
 
   /* Don't touch the lock if there's already a stw leader
-    OR we can't get the lock */
+     OR we can't get the lock.
+
+     Note: this read on [stw_leader] is an optimization, giving up
+     faster (before trying to take the lock) in contended
+     situations. Without this read, [stw_leader] would be protected by
+     [all_domains_lock] and could be a non-atomic variable.
+  */
   if (atomic_load_acq(&stw_leader) ||
       !caml_plat_try_lock(&all_domains_lock)) {
     caml_handle_incoming_interrupts();
@@ -1240,7 +1246,15 @@ int caml_try_run_on_all_domains_with_spin_work(
      Note: releasing the lock will not allow new domain to be created
      in parallel with the rest of the STW section, as new domains
      follow the protocol of waiting on [all_domains_cond] which is
-     only signalled at the end of the STW section. */
+     only broadcast at the end of the STW section.
+
+     The reason we use a condition variable [all_domains_cond] instead
+     of just holding the lock until the end of the STW section is that
+     the last domain to exit the section (and broadcast the condition)
+     is not necessarily the same as the domain starting the section
+     (and taking the lock) -- whereas POSIX mutexes must be unlocked
+     by the same thread that locked them.
+  */
   caml_plat_unlock(&all_domains_lock);
 
   for(i = 0; i < stw_request.num_domains; i++) {
