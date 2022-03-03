@@ -1135,11 +1135,12 @@ int caml_domain_is_in_stw(void) {
      looping until (1) it has the [all_domains_lock] and (2) there is
      no current STW section (using the [stw_leader] variable).
 
-   - Domain cleanup code runs after the terminating domain has safely removed
-     itself from the STW participant set:
-     the [domain_terminate] function is careful to only leave the STW
-     set when (1) it has the [all_domains_lock] and (2) it hasn't
-     received any request to participate in a STW section.
+   - Domain cleanup code runs after the terminating domain may run in
+     parallel to a STW section, but only after that domain has safely
+     removed itself from the STW participant set: the
+     [domain_terminate] function is careful to only leave the STW set
+     when (1) it has the [all_domains_lock] and (2) it hasn't received
+     any request to participate in a STW section.
 
    Each domain leaves the section as soon as it is finished running
    the section code. In particular, a mutator may resume while some
@@ -1148,9 +1149,12 @@ int caml_domain_is_in_stw(void) {
    all STW participants to synchronize.
 
    Taken together, these properties guarantee that STW sections act as
-   a proper exclusion mechanism: for example, some mutable state can
-   be "protected by STW" if it is only mutated within STW section,
-   with a barrier before the next read.
+   a proper exclusion mechanism: for example, some mutable state
+   global to all domains can be "protected by STW" if it is only
+   mutated within STW section, with a barrier before the next
+   read. Such state can be safely updated by domain initialization,
+   but additional synchronization would be required to update it
+   during domain cleanup.
 
    Note: in the case of both [create_domain] and [domain_terminate] it
    is important that the loops (waiting for STW sections to finish)
