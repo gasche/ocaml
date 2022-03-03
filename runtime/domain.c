@@ -97,7 +97,7 @@
               v                             |               |
     BT_IN_BLOCKING_SECTION  ----------------+               |
               |                                             |
-     (domain_terminate)                                     |
+     (terminate_domain)                                     |
        [main pthread]                                       |
               |                                             |
               v                                             |
@@ -793,7 +793,7 @@ static void* backup_thread_func(void* v)
       case BT_ENTERING_OCAML:
         /* Main thread wants to enter OCaml
          * Will be woken from caml_bt_exit_ocaml
-         * or domain_terminate
+         * or terminate_domain
          */
         caml_plat_lock(&di->domain_lock);
         msg = atomic_load_acq (&di->backup_thread_msg);
@@ -868,7 +868,7 @@ CAMLexport void (*caml_domain_stop_hook)(void) =
 CAMLexport void (*caml_domain_external_interrupt_hook)(void) =
    caml_domain_external_interrupt_hook_default;
 
-static void domain_terminate();
+static void terminate_domain();
 
 static void* domain_thread_func(void* v)
 {
@@ -916,7 +916,7 @@ static void* domain_thread_func(void* v)
                 domain_self->interruptor.unique_id);
     caml_domain_set_name("Domain");
     caml_callback(ml_values->callback, Val_unit);
-    domain_terminate();
+    terminate_domain();
     /* Joining domains will lock/unlock the terminate_mutex so this unlock will
        release them if any domains are waiting. */
     caml_mutex_unlock(terminate_mutex);
@@ -1138,7 +1138,7 @@ int caml_domain_is_in_stw(void) {
    - Domain cleanup code runs after the terminating domain may run in
      parallel to a STW section, but only after that domain has safely
      removed itself from the STW participant set: the
-     [domain_terminate] function is careful to only leave the STW set
+     [terminate_domain] function is careful to only leave the STW set
      when (1) it has the [all_domains_lock] and (2) it hasn't received
      any request to participate in a STW section.
 
@@ -1156,11 +1156,11 @@ int caml_domain_is_in_stw(void) {
    but additional synchronization would be required to update it
    during domain cleanup.
 
-   Note: in the case of both [create_domain] and [domain_terminate] it
+   Note: in the case of both [create_domain] and [terminate_domain] it
    is important that the loops (waiting for STW sections to finish)
    regularly release [all_domains_lock], to avoid deadlocks scenario
    with in-progress STW sections.
-    - For [domain_terminate] we release the lock and join
+    - For [terminate_domain] we release the lock and join
       the STW section before resuming.
     - For [create_domain] we wait until the end of the section using
       the condition variable [all_domains_cond] over
@@ -1464,7 +1464,7 @@ int caml_domain_is_terminating (void)
   return s->terminating;
 }
 
-static void domain_terminate (void)
+static void terminate_domain (void)
 {
   caml_domain_state* domain_state = domain_self->state;
   struct interruptor* s = &domain_self->interruptor;
