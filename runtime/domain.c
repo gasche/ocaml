@@ -1130,17 +1130,11 @@ int caml_domain_is_in_stw(void) {
      0, the STW section did not run at all, so you should call this
      function in a loop.)
 
-   - Domain initialization code from [create_domain] will not run in
-     parallel with a STW section, as [create_domain] starts by
-     looping until (1) it has the [all_domains_lock] and (2) there is
-     no current STW section (using the [stw_leader] variable).
-
-   - Domain cleanup code runs after the terminating domain may run in
-     parallel to a STW section, but only after that domain has safely
-     removed itself from the STW participant set: the
-     [terminate_domain] function is careful to only leave the STW set
-     when (1) it has the [all_domains_lock] and (2) it hasn't received
-     any request to participate in a STW section.
+   - Domain initialization code from [create_domain] or domain cleanup
+     code from [terminate_domain] will not run in parallel with a STW
+     section, as each function starts by looping until (1) it has the
+     [all_domains_lock] and (2) there is no current STW section
+     (using the [stw_leader] variable).
 
    Each domain leaves the section as soon as it is finished running
    the section code. In particular, a mutator may resume while some
@@ -1152,22 +1146,16 @@ int caml_domain_is_in_stw(void) {
    a proper exclusion mechanism: for example, some mutable state
    global to all domains can be "protected by STW" if it is only
    mutated within STW section, with a barrier before the next
-   read. Such state can be safely updated by domain initialization,
-   but additional synchronization would be required to update it
-   during domain cleanup.
+   read. Such state can be safely updated by domain initialization
+   or domain cleanup.
 
    Note: in the case of both [create_domain] and [terminate_domain] it
    is important that the loops (waiting for STW sections to finish)
    regularly release [all_domains_lock], to avoid deadlocks scenario
-   with in-progress STW sections.
-    - For [terminate_domain] we release the lock and join
-      the STW section before resuming.
-    - For [create_domain] we wait until the end of the section using
-      the condition variable [all_domains_cond] over
-      [all_domains_lock], which is broadcasted when a STW section
-      finishes.
-   The same logic would apply for any other situations in which a domain
-   wants to join or leave the set of STW participants.
+   with in-progress STW sections. This is done by either directly
+   unlocking [all_domains_lock], or by waiting on the condition
+   variable [all_domains_cond] over [all_domains_lock], which gets
+   broadcasted when a STW section finishes.
 */
 int caml_try_run_on_all_domains_with_spin_work(
   void (*handler)(caml_domain_state*, void*, int, caml_domain_state**),
@@ -1192,6 +1180,7 @@ int caml_try_run_on_all_domains_with_spin_work(
   if (atomic_load_acq(&stw_leader) ||
       !caml_plat_try_lock(&all_domains_lock)) {
     caml_handle_incoming_interrupts();
+    cpu_relax();
     return 0;
   }
 
@@ -1199,6 +1188,7 @@ int caml_try_run_on_all_domains_with_spin_work(
   if (atomic_load_acq(&stw_leader)) {
     caml_plat_unlock(&all_domains_lock);
     caml_handle_incoming_interrupts();
+    cpu_relax();
     return 0;
   }
 
@@ -1476,7 +1466,7 @@ static void terminate_domain (void)
   // run the domain termination hook
   caml_domain_stop_hook();
 
-  while (!finished) {
+  do {
     caml_orphan_allocated_words();
     caml_finish_sweeping();
 
@@ -1524,7 +1514,13 @@ static void terminate_domain (void)
       domain_self->backup_thread_running = 0;
     }
     caml_plat_unlock(&all_domains_lock);
+  } while (!finished);
+
+  caml_plat_lock(&all_domains_lock);
+  while (atomic_load_acq(&stw_leader)) {
+    caml_plat_wait(&all_domains_cond);
   }
+
   /* We can not touch domain_self->interruptor after here
      because it may be reused */
   caml_remove_generational_global_root(&domain_state->dls_root);
@@ -1553,6 +1549,7 @@ static void terminate_domain (void)
   if(domain_state->current_stack != NULL) {
     caml_free_stack(domain_state->current_stack);
   }
+  caml_plat_unlock(&all_domains_lock);
 
   /* signal the domain termination to the backup thread
      NB: for a program with no additional domains, the backup thread
