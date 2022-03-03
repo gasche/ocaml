@@ -55,7 +55,8 @@
     - major GC phase changes
 
    We guarantee that no mutator code runs in parallel with a STW
-   section, and neither does domain initialization or cleanup code.
+   section, and domains are blocked from entering or leaving the set of active
+   STW participants while a STW section is in progress.
 
    To provide these guarantees:
     - domains must register as STW participants before running any
@@ -1130,13 +1131,14 @@ int caml_domain_is_in_stw(void) {
      function in a loop.)
 
    - Domain initialization code from [create_domain] will not run in
-     parallel with a STW section, as [create_domain] starts bit
+     parallel with a STW section, as [create_domain] starts by
      looping until (1) it has the [all_domains_lock] and (2) there is
      no current STW section (using the [stw_leader] variable).
 
-   - Domain cleanup code will not run in parallel with a STW section:
-     the [domain_terminate] function is careful to only start domain
-     cleanup when (1) it has the [all_domains_lock] and (2) it hasn't
+   - Domain cleanup code runs after the terminating domain has safely removed
+     itself from the STW participant set:
+     the [domain_terminate] function is careful to only leave the STW
+     set when (1) it has the [all_domains_lock] and (2) it hasn't
      received any request to participate in a STW section.
 
    Each domain leaves the section as soon as it is finished running
