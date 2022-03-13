@@ -18,9 +18,9 @@
 open Ocamltest_stdlib
 
 class tool
-  ~(name : string)
+  ~(name : string list)
   ~(family : string)
-  ~(flags : string)
+  ~(flags : string list)
   ~(directory : string)
   ~(exit_status_variable : Variables.t)
   ~(reference_variable : Variables.t)
@@ -54,9 +54,9 @@ let expected_exit_status env tool =
 let ocamldoc =
   object inherit
   tool
-    ~name:Ocaml_files.ocamldoc
+    ~name:[Ocaml_files.ocamldoc]
     ~family:"doc"
-    ~flags:""
+    ~flags:[]
     ~directory:"ocamldoc"
     ~exit_status_variable:Ocaml_variables.ocamldoc_exit_status
     ~reference_variable:Ocaml_variables.ocamldoc_reference

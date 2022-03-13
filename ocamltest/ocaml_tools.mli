@@ -16,17 +16,17 @@
 (* Descriptions of the OCaml tools *)
 
 class tool :
-  name : string ->
+  name : string list ->
   family : string ->
-  flags : string ->
+  flags : string list ->
   directory : string ->
   exit_status_variable : Variables.t ->
   reference_variable : Variables.t ->
   output_variable : Variables.t ->
 object
-  method name : string
+  method name : string list
   method family : string
-  method flags : string
+  method flags : string list
   method directory : string
   method exit_status_variable : Variables.t
   method reference_variable : Variables.t

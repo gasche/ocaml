@@ -18,8 +18,8 @@
 open Ocamltest_stdlib
 
 class compiler
-  ~(name : string)
-  ~(flags : string)
+  ~(name : string list)
+  ~(flags : string list)
   ~(directory : string)
   ~(exit_status_variable : Variables.t)
   ~(reference_variable : Variables.t)
@@ -62,7 +62,7 @@ end
 
 let ocamlc_byte = new compiler
   ~name: Ocaml_commands.ocamlrun_ocamlc
-  ~flags: ""
+  ~flags: []
   ~directory: "ocamlc.byte"
   ~exit_status_variable: Ocaml_variables.ocamlc_byte_exit_status
   ~reference_variable: Ocaml_variables.compiler_reference
@@ -71,8 +71,8 @@ let ocamlc_byte = new compiler
   ~target: Ocaml_backends.Bytecode
 
 let ocamlc_opt = new compiler
-  ~name: Ocaml_files.ocamlc_dot_opt
-  ~flags: ""
+  ~name: [Ocaml_files.ocamlc_dot_opt]
+  ~flags: []
   ~directory: "ocamlc.opt"
   ~exit_status_variable: Ocaml_variables.ocamlc_opt_exit_status
   ~reference_variable: Ocaml_variables.compiler_reference2
@@ -82,7 +82,7 @@ let ocamlc_opt = new compiler
 
 let ocamlopt_byte = new compiler
   ~name: Ocaml_commands.ocamlrun_ocamlopt
-  ~flags: ""
+  ~flags: []
   ~directory: "ocamlopt.byte"
   ~exit_status_variable: Ocaml_variables.ocamlopt_byte_exit_status
   ~reference_variable: Ocaml_variables.compiler_reference
@@ -91,8 +91,8 @@ let ocamlopt_byte = new compiler
   ~target: Ocaml_backends.Native
 
 let ocamlopt_opt = new compiler
-  ~name: Ocaml_files.ocamlopt_dot_opt
-  ~flags: ""
+  ~name: [Ocaml_files.ocamlopt_dot_opt]
+  ~flags: []
   ~directory: "ocamlopt.opt"
   ~exit_status_variable: Ocaml_variables.ocamlopt_opt_exit_status
   ~reference_variable: Ocaml_variables.compiler_reference2

@@ -18,8 +18,8 @@
 open Ocamltest_stdlib
 
 class toplevel
-  ~(name : string)
-  ~(flags : string)
+  ~(name : string list)
+  ~(flags : string list)
   ~(directory : string)
   ~(exit_status_variable : Variables.t)
   ~(reference_variable : Variables.t)
@@ -51,7 +51,7 @@ end
 
 let ocaml = new toplevel
   ~name: Ocaml_commands.ocamlrun_ocaml
-  ~flags: ""
+  ~flags: []
   ~directory: "ocaml"
   ~exit_status_variable: Ocaml_variables.ocaml_exit_status
   ~reference_variable: Ocaml_variables.compiler_reference
@@ -60,8 +60,8 @@ let ocaml = new toplevel
   ~compiler: Ocaml_compilers.ocamlc_byte
 
 let ocamlnat = new toplevel
-  ~name: Ocaml_files.ocamlnat
-  ~flags: "-S" (* Keep intermediate assembly files *)
+  ~name: [Ocaml_files.ocamlnat]
+  ~flags: ["-S" (* Keep intermediate assembly files *)]
   ~directory: "ocamlnat"
   ~exit_status_variable: Ocaml_variables.ocamlnat_exit_status
   ~reference_variable: Ocaml_variables.compiler_reference2

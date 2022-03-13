@@ -47,6 +47,9 @@ let settings_of_commandline ?(stdout_fname="") ?(stderr_fname="") commandline =
     log = stderr
   }
 
-external run : settings -> int = "caml_run_command"
+external run' : settings -> int = "caml_run_command"
+
+let run settings =
+  run' settings
 
 let run_commandline commandline = run (settings_of_commandline commandline)

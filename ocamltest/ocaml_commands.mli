@@ -15,21 +15,21 @@
 
 (* Helper functions to build OCaml-related commands *)
 
-val ocamlrun_ocamlc : string
+val ocamlrun_ocamlc : string list
 
-val ocamlrun_ocamlopt : string
+val ocamlrun_ocamlopt : string list
 
-val ocamlrun_ocaml : string
+val ocamlrun_ocaml : string list
 
-val ocamlrun_expect_test : string
+val ocamlrun_expect_test : string list
 
-val ocamlrun_ocamllex : string
+val ocamlrun_ocamllex : string list
 
-val ocamlrun_ocamldoc : string
+val ocamlrun_ocamldoc : string list
 
-val ocamlrun_ocamldebug : string
+val ocamlrun_ocamldebug : string list
 
-val ocamlrun_ocamlobjinfo : string
+val ocamlrun_ocamlobjinfo : string list
 
-val ocamlrun_ocamlmklib : string
-val ocamlrun_codegen : string
+val ocamlrun_ocamlmklib : string list
+val ocamlrun_codegen : string list

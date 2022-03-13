@@ -16,8 +16,8 @@
 (* Descriptions of the OCaml toplevels *)
 
 class toplevel :
-  name : string ->
-  flags : string ->
+  name : string list ->
+  flags : string list ->
   directory : string ->
   exit_status_variable : Variables.t ->
   reference_variable : Variables.t ->

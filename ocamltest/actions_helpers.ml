@@ -144,15 +144,8 @@ let run_cmd
       strace_cmd @ original_cmd
     end else original_cmd
   in
-  let lst = List.concat (List.map String.words cmd) in
-  let quoted_lst =
-    if Sys.win32
-    then List.map Filename.maybe_quote lst
-    else lst in
-  let cmd' = String.concat " " quoted_lst in
-  Printf.fprintf log "Commandline: %s\n" cmd';
-  let progname = List.hd quoted_lst in
-  let arguments = Array.of_list quoted_lst in
+  (* let cmd = if not Sys.win32 then cmd else List.map Filename.maybe_quote cmd in *)
+  let progname, arguments = List.hd cmd, Array.of_list cmd in
   let stdin_filename = Environments.safe_lookup stdin_variable env in
   let stdout_filename = Environments.safe_lookup stdout_variable env in
   let stderr_filename = Environments.safe_lookup stderr_variable env in
