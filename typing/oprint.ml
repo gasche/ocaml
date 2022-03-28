@@ -283,7 +283,14 @@ and print_out_type_1 mode ppf =
       pp_open_box ppf 0;
       if lab <> "" then (pp_print_string ppf lab; pp_print_char ppf ':');
       print_out_arg am ppf ty1;
-      pp_print_string ppf " ->";
+      let pp_mode ppf = function
+           | Oam_local -> Format.fprintf ppf "l"
+           | Oam_global -> Format.fprintf ppf "g"
+           | Oam_unknown -> Format.fprintf ppf "u"
+      in
+      Format.fprintf ppf " {%a}->{%a}"
+        pp_mode am
+        pp_mode rm;
       pp_print_space ppf ();
       let mode = join_modes mode am in
       print_out_ret mode rm ppf ty2;
