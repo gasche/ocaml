@@ -238,9 +238,8 @@ Line 2, characters 0-17:
     ^^^^^^^^^^^^^^^^^
 Error: The type abbreviation t is cyclic:
          'a t = 'a t u,
-         'a t u contains 'a t,
-         'a t = 'a t u,
-         'a t u = 'a t
+         'a t u = 'a t,
+         'a t = 'a t u
 |}];;
 type 'a u = 'a;;
 [%%expect{|
@@ -253,10 +252,9 @@ Line 1, characters 0-18:
     ^^^^^^^^^^^^^^^^^^
 Error: The type abbreviation t is cyclic:
          t = t u * t u,
-         t u * t u contains t,
-         t = t u * t u,
          t u * t u contains t u,
-         t u = t
+         t u = t,
+         t = t u * t u
 |}];;
 
 type t = <x : 'a> as 'a;;
