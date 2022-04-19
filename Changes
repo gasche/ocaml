@@ -373,6 +373,9 @@ OCaml 5.0
   socket and deadlock the parent.
   (Antonin Décimo, review by Xavier Leroy)
 
+- #11150, #11207: Avoid recomputation in Typedecl.check_wellfounded
+  (Jacques Garrigue, report by Boris Yakobowski)
+
 - #11204: Fix regression introduced in 4.14.0 that would trigger Warning 17 when
   calling virtual methods introduced by constraining the self type from within
   the class definition.

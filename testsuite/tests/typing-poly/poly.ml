@@ -909,8 +909,7 @@ type t = u and u = t;;
 Line 1, characters 0-10:
 1 | type t = u and u = t;;
     ^^^^^^^^^^
-Error: The definition of t contains a cycle:
-       u
+Error: The type abbreviation t is cyclic
 |}];;
 
 (* PR#8188 *)
@@ -1026,7 +1025,7 @@ Line 1, characters 0-83:
 1 | type ('a1, 'b1) ty1 = 'a1 -> unit constraint 'a1 = [> `V1 of ('a1, 'b1) ty2 as 'b1]
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Error: The definition of ty1 contains a cycle:
-       [> `V1 of ('a, 'b) ty2 as 'b ] as 'a
+       ([> `V1 of 'a ], 'a) ty2 as 'a
 |}];;
 
 (* PR#8359: expanding may change original in Ctype.unify2 *)

@@ -7,13 +7,12 @@ type 'a t = [`A of 'a t t] as 'a;; (* fails *)
 Line 1, characters 0-32:
 1 | type 'a t = [`A of 'a t t] as 'a;; (* fails *)
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: The type abbreviation t is cyclic
-|}, Principal{|
-Line 1, characters 0-32:
-1 | type 'a t = [`A of 'a t t] as 'a;; (* fails *)
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: The definition of t contains a cycle:
-       [ `A of 'a t t ] as 'a
+Error: This recursive type is not regular.
+       The type constructor t is defined as
+         type 'b t
+       but it is used as
+         ([ `A of 'a ] as 'b) t t as 'a.
+       All uses need to match the definition for the recursive type to be regular.
 |}];;
 type 'a t = [`A of 'a t t];; (* fails *)
 [%%expect{|
@@ -49,11 +48,10 @@ type 'a t = [ `A of 'b ] as 'b constraint 'a = [ `A of 'a ]
 |}];;
 type 'a v = [`A of u v] constraint 'a = t and t = u and u = t;; (* fails *)
 [%%expect{|
-Line 1, characters 0-41:
+Line 1, characters 42-51:
 1 | type 'a v = [`A of u v] constraint 'a = t and t = u and u = t;; (* fails *)
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: The definition of v contains a cycle:
-       t
+                                              ^^^^^^^^^
+Error: The type abbreviation t is cyclic
 |}];;
 
 type 'a t = 'a;;
