@@ -72,55 +72,19 @@ let main () =
   lexbuf.Lexing.lex_curr_p <-
     {Lexing.pos_fname = source_name; Lexing.pos_lnum = 1;
      Lexing.pos_bol = 0; Lexing.pos_cnum = 0};
-  try
-    let def = Parser.lexer_definition Lexer.main lexbuf in
-    let (entries, transitions) = Lexgen.make_dfa def.entrypoints in
-    if !ml_automata then begin
-      Outputbis.output_lexdef
-        ic oc tr
-        def.header def.refill_handler entries transitions def.trailer
-    end else begin
-       let tables = Compact.compact_tables transitions in
-       Output.output_lexdef ic oc tr
-         def.header def.refill_handler tables entries def.trailer
-    end;
-    close_in ic;
-    close_out oc;
-    Common.close_tracker tr;
-  with exn ->
-    let bt = Printexc.get_raw_backtrace () in
-    close_in ic;
-    close_out oc;
-    Common.close_tracker tr;
-    Sys.remove dest_name;
-    begin match exn with
-    | Cset.Bad ->
-        let p = Lexing.lexeme_start_p lexbuf in
-        Printf.fprintf stderr
-          "File \"%s\", line %d, character %d: character set expected.\n"
-          p.Lexing.pos_fname p.Lexing.pos_lnum
-          (p.Lexing.pos_cnum - p.Lexing.pos_bol)
-    | Parsing.Parse_error ->
-        let p = Lexing.lexeme_start_p lexbuf in
-        Printf.fprintf stderr
-          "File \"%s\", line %d, character %d: syntax error.\n"
-          p.Lexing.pos_fname p.Lexing.pos_lnum
-          (p.Lexing.pos_cnum - p.Lexing.pos_bol)
-    | Lexer.Lexical_error(msg, file, line, col) ->
-        Printf.fprintf stderr
-          "File \"%s\", line %d, character %d: %s.\n"
-          file line col msg
-    | Lexgen.Memory_overflow ->
-        Printf.fprintf stderr
-          "File \"%s\":\n Position memory overflow, too many bindings\n"
-          source_name
-    | Output.Table_overflow ->
-        Printf.fprintf stderr
-          "File \"%s\":\ntransition table overflow, automaton is too big\n"
-          source_name
-    | _ ->
-        Printexc.raise_with_backtrace exn bt
-    end;
-    exit 3
+  let def = Parser.lexer_definition Lexer.main lexbuf in
+  let (entries, transitions) = Lexgen.make_dfa def.entrypoints in
+  if !ml_automata then begin
+    Outputbis.output_lexdef
+      ic oc tr
+      def.header def.refill_handler entries transitions def.trailer
+  end else begin
+     let tables = Compact.compact_tables transitions in
+     Output.output_lexdef ic oc tr
+       def.header def.refill_handler tables entries def.trailer
+  end;
+  close_in ic;
+  close_out oc;
+  Common.close_tracker tr
 
 let _ = (* Printexc.catch *) main (); exit 0
