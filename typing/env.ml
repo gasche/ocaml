@@ -2231,7 +2231,7 @@ let persistent_structures_of_dir dir =
 let save_signature_with_transform cmi_transform ~alerts sg modname filename =
   Btype.cleanup_abbrev ();
   Subst.reset_for_saving ();
-  let sg = Subst.signature Make_local (Subst.for_saving Subst.identity) sg in
+  let sg = Subst.signature Subst.Make_local (Subst.for_saving Subst.identity) sg in
   let cmi =
     Persistent_env.make_cmi persistent_env modname sg alerts
     |> cmi_transform in
