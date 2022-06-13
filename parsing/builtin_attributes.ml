@@ -30,6 +30,22 @@ let string_of_opt_payload p =
   | Some s -> s
   | None -> ""
 
+let list_of_exp exp =
+  let rec loop acc = function
+  | {pexp_desc = Pexp_construct ({txt = Longident.Lident "[]"; _}, None)} ->
+      Ok (List.rev acc)
+  | {pexp_desc = Pexp_construct ({txt = Longident.Lident "::"; _},
+                                 Some {pexp_desc = Pexp_tuple [e1; e2]})} ->
+      loop (e1 :: acc) e2
+  | {pexp_loc = loc} ->
+      Error loc
+  in loop [] exp
+
+let list_of_payload loc = function
+  | PStr[{pstr_desc = Pstr_eval (li, _)}] ->
+      list_of_exp li
+  | _ -> Error loc
+
 let error_of_extension ext =
   let submessage_from main_loc main_txt = function
     | {pstr_desc=Pstr_extension
