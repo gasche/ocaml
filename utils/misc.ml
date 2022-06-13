@@ -1124,3 +1124,18 @@ module Magic_number = struct
            | Error err -> Error (Unexpected_error err)
            | Ok () -> Ok info
 end
+
+
+(* shapes that the user can name in [@shape ...] payloads *)
+type named_shape = [
+  | `Int (* all immediate shapes *)
+  | `Lazy (* Obj.lazy_tag, etc. *)
+  | `Closure
+  | `Infix
+  | `Forward
+  | `Abstract
+  | `String
+  | `Double
+  | `Double_array
+  | `Custom
+]
