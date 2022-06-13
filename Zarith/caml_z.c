@@ -1445,6 +1445,11 @@ CAMLprim value ml_z_add_boxcustom(value arg1, value arg2)
   return box(ml_z_addsub(unbox(arg1), unbox(arg2), 0));
 }
 
+CAMLprim value ml_z_add_unboxcustom(value arg1, value arg2)
+{
+  return ml_z_addsub(arg1, arg2, 0);
+}
+
 CAMLprim value ml_z_sub(value arg1, value arg2)
 {
   Z_MARK_OP;

@@ -4,19 +4,25 @@ type test =
   | Zarith
   | Boxed
   | Unboxed
+  | Unboxed_both
 
+let impls = [
+  "wrong-int", Wrong_int;
+  "zarith", Zarith;
+  "boxed", Boxed;
+  "unboxed", Unboxed;
+  "unboxed_both", Unboxed_both;
+]
 
 let usage () =
   Printf.eprintf
-    "Usage: %s [wrong-int|zarith|boxed|unboxed] <input : int> <n_iters: int >\n%!"
+    "Usage: %s [%s] <input : int> <n_iters: int >\n%!"
+    (String.concat "|" (List.map fst impls))
     Sys.argv.(0)
 
-let impl_choice = match Sys.argv.(1) with
-  | "wrong-int" -> Wrong_int
-  | "zarith" -> Zarith
-  | "boxed" -> Boxed
-  | "unboxed" -> Unboxed
-  | _ | exception _ -> usage (); exit 2
+let impl_choice = match List.assoc Sys.argv.(1) impls with
+  | v -> v
+  | exception _ -> usage (); exit 2
 
 let factorial_input =
   try int_of_string Sys.argv.(2)
@@ -138,10 +144,6 @@ module Unboxed = struct
      unboxing the "short" constructor to get something close to Zarith's internal representation.
 
      The only different compared to the Boxed implementation above is the [@unboxed] annotation.
-
-     Note: in theory we could also design the implementation to unbox the Long constructor
-     (provided it only stores custom blocks, never immediate integers), but we have not
-     implemented support for refining abstract type head-shapes, which would be required.
   *)
   type gmp_t
 
@@ -150,6 +152,39 @@ module Unboxed = struct
     | Long of gmp_t
 
   external c_add: t -> t -> t = "ml_z_add_boxcustom"
+
+  let of_int n = Short n
+
+  let add_unboxed a b =
+    match a, b with
+    | Short x, Short y ->
+        let z = x + y in
+        (* Overflow check -- Hacker's Delight, section 2.12 *)
+        if (z lxor x) land (z lxor y) >= 0
+        then Short z
+        else c_add a b
+    | _, _ -> c_add a b
+
+  let fac n = factorial of_int add_unboxed n
+
+  external c_format: string -> gmp_t -> string = "ml_z_format"
+  let to_string = function
+    | Short n -> string_of_int n
+    | Long n -> c_format "%d" n
+end
+
+module Unboxed_both = struct
+  (* This is a safe implementation of Zarith's fast-path logic,
+     using an algebraic to distinguish short from long integers,
+     unboxing both constructors to recover Zarith's internal representation.
+  *)
+  type gmp_t [@@shape [custom]]
+
+  type t =
+    | Short of int [@unboxed]
+    | Long of gmp_t [@unboxed]
+
+  external c_add: t -> t -> t = "ml_z_add_unboxcustom"
 
   let of_int n = Short n
 
@@ -188,3 +223,5 @@ let () =
       test Boxed.to_string Boxed.fac
   | Unboxed ->
       test Unboxed.to_string Unboxed.fac
+  | Unboxed_both ->
+      test Unboxed_both.to_string Unboxed_both.fac

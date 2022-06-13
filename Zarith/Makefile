@@ -4,7 +4,7 @@ STDFLAGS=-nostdlib -I $(ROOTDIR)/stdlib
 OCAMLC=$(OCAMLRUN) $(ROOTDIR)/ocamlc $(STDFLAGS)
 OCAMLOPT=$(OCAMLRUN) $(ROOTDIR)/ocamlopt $(STDFLAGS)
 
-BENCHS=wrong-int zarith unboxed boxed
+BENCHS=wrong-int zarith unboxed unboxed_both boxed
 BENCH_SIZE ?= 20
 
 run: test.byte test.native
@@ -25,10 +25,10 @@ ZARITH_FLAGS=-ccopt "-I$(ROOTDIR)/runtime -DHAS_GMP -O3 -Wall -Wextra" -cclib -l
 test.cmm: test.ml
 	$(OCAMLOPT) -c test.ml -dcmm 2>test.cmm
 
-test.byte: test.ml
+test.byte: test.ml caml_z.c
 	$(OCAMLC) -o test.byte -custom $(ZARITH_FLAGS) -linkall caml_z.c test.ml
 
-test.native: test.ml
+test.native: test.ml caml_z.c
 	$(OCAMLOPT) -o test.native $(ZARITH_FLAGS) caml_z.c test.ml
 
 clean:
