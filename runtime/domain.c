@@ -1720,6 +1720,7 @@ static void domain_terminate (void)
   if(domain_state->current_stack != NULL) {
     caml_free_stack(domain_state->current_stack);
   }
+  caml_stat_free(domain_state->gc_regs_buckets);
 
   /* signal the domain termination to the backup thread
      NB: for a program with no additional domains, the backup thread
