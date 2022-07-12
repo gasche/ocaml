@@ -641,7 +641,34 @@ let check_abbrev env sdecl (id, decl) =
    - if -rectypes is used, we must prevent non-contractive fixpoints
      ('a as 'a)
    - if -rectypes is not used, we only allow cycles in the type graph
-     if they go through an object or polymorphic variant type *)
+     if they go through an object or polymorphic variant type.
+
+   Note that local cycles such as ('a as 'a) or ('a option as 'a) cannot
+   be written as-is by the user, another check in typetexp will fail
+   before we reach well_founded. But they can result of a functor application,
+   for example:
+
+     module type T = sig type t end
+     module Fix(F:(T -> T)) = struct
+       module rec Fixed : T with type t = F(Fixed).t = F(Fixed)
+     end
+
+     (* this ok *)
+     module F3(X:T) = struct type t = Z | S of X.t end;;
+
+     (* well-founded rejects *)
+     module T1 = Fix(functor (X:sig type t end) -> struct type t = X.t option end);;
+     Error: In the signature of this functor application:
+            The definition of Fixed.t contains a cycle:
+            F(Fixed).t
+
+  Note that the definition of T1.t above is equivalent to the more direct definition:
+
+    type t = t option
+    Error: The type abbreviation t is cyclic
+
+  but the cycle is only detected at functor-application time.
+*)
 
 let check_well_founded env loc path to_check ty =
   let visited = ref TypeMap.empty in
