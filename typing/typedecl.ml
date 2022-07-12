@@ -672,7 +672,10 @@ let check_abbrev env sdecl (id, decl) =
 
 let check_well_founded env loc path to_check ty =
   let visited = ref TypeMap.empty in
-  let rec check root ty0 parents ty =
+  (* ~root is true on the paths from the type-expression we were
+     originally called on to the first node allowing recursion
+     (see [rec_ok] below for the definition of "allowing recursion"). *)
+  let rec check ~root ty0 parents ty =
     if TypeSet.mem ty parents then begin
       (*Format.eprintf "@[%a@]@." Printtyp.raw_type_expr ty;*)
       if match get_desc ty0 with
@@ -711,28 +714,28 @@ let check_well_founded env loc path to_check ty =
       | _ -> !Clflags.recursive_types
     in
     let ty0 = if TypeSet.is_empty parents then ty else ty0 in
-    if rec_ok then Btype.iter_type_expr (check false ty0 TypeSet.empty) ty else
+    if rec_ok then Btype.iter_type_expr (check ~root:false ty0 TypeSet.empty) ty else
     let parents = TypeSet.add ty parents in
     match get_desc ty with
     | Tconstr(p, tyl, _) ->
         let to_check = to_check p in
-        if to_check then List.iter (check root ty0 parents) tyl
-        else List.iter (check false ty0 TypeSet.empty) tyl;
+        if to_check then List.iter (check ~root ty0 parents) tyl
+        else List.iter (check ~root:false ty0 TypeSet.empty) tyl;
         (* Only expand nodes on a root path, or if we need to check
            whether some parameters are accessible *)
         if root || not to_check && tyl <> [] then begin
           try
             let ty' = Ctype.try_expand_once_opt env ty in
-            check root ty0 (TypeSet.add ty parents) ty'
+            check ~root ty0 (TypeSet.add ty parents) ty'
           with
             Ctype.Cannot_expand ->
-              List.iter (check root ty0 parents) tyl
+              List.iter (check ~root ty0 parents) tyl
         end
     | _ ->
-        Btype.iter_type_expr (check root ty0 parents) ty
+        Btype.iter_type_expr (check ~root ty0 parents) ty
   in
   let snap = Btype.snapshot () in
-  try Ctype.wrap_trace_gadt_instances env (check true ty TypeSet.empty) ty
+  try Ctype.wrap_trace_gadt_instances env (check ~root:true ty TypeSet.empty) ty
   with Ctype.Escape _ ->
     (* Will be detected by check_regularity *)
     Btype.backtrack snap
