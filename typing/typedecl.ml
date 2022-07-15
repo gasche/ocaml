@@ -752,6 +752,17 @@ let check_well_founded_decl env loc path decl to_check =
      it_type_expr = (fun _ -> check_well_founded env loc path to_check)} in
   it.it_type_declaration it (Ctype.generic_instance_declaration decl)
 
+(* Jacques: it could be the case that there are some local cycles in
+   the declaration.
+
+   When we call check_well_founded_manifest we are first checking that
+   it is okay to expand types.
+
+   We are still expanding, but only as far as we need to check that
+   the "root" type we were given is well-founded. We do not expand
+   when checking for internal cycles.
+*)
+
 (* Check for non-regular abbreviations; an abbreviation
    [type 'a t = ...] is non-regular if the expansion of [...]
    contains instances [ty t] where [ty] is not equal to ['a].
