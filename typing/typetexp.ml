@@ -31,7 +31,6 @@ type error =
   | Undefined_type_constructor of Path.t
   | Type_arity_mismatch of Longident.t * int * int
   | Bound_type_variable of string
-  | Recursive_type
   | Unbound_row_variable of Longident.t
   | Type_mismatch of Errortrace.unification_error
   | Alias_type_mismatch of Errortrace.unification_error
@@ -727,8 +726,6 @@ let report_error env ppf = function
       longident lid expected provided
   | Bound_type_variable name ->
     fprintf ppf "Already bound type parameter %a" Pprintast.tyvar name
-  | Recursive_type ->
-    fprintf ppf "This type is recursive"
   | Unbound_row_variable lid ->
       (* we don't use "spellcheck" here: this error is not raised
          anywhere so it's unclear how it should be handled *)
