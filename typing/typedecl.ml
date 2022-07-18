@@ -637,37 +637,130 @@ let check_coherence env loc dpath decl =
 let check_abbrev env sdecl (id, decl) =
   check_coherence env sdecl.ptype_loc (Path.Pident id) decl
 
-(* Check that recursion is well-founded:
-   - if -rectypes is used, we must prevent non-contractive fixpoints
-     ('a as 'a)
-   - if -rectypes is not used, we only allow cycles in the type graph
-     if they go through an object or polymorphic variant type.
+(* Note: Well-foundedness for OCaml types
 
-   Note that local cycles such as ('a as 'a) or ('a option as 'a) cannot
-   be written as-is by the user, another check in typetexp will fail
-   before we reach well_founded. But they can result of a functor application,
-   for example:
+   We want to guarantee that all cycles within OCaml types are
+   "guarded".
+
+   More precisly, we consider a reachability relation
+     "[t] is reachable [guarded|unguarded] from [u]"
+   defined as follows:
+
+   - [t1, t2...] are reachable rectypes-guarded from
+     [t1 -> t2], [t1 * t2 * ...], and all other built-in
+     contractive type constructors.
+
+     (By rectypes-guarded we mean: guarded if -rectypes is set,
+      unguarded if it is not set.)
+
+   - [t1, t2...] are reachable guarded from object types
+       [< m1 : t1; m2 : t2; ... >]
+     or polymorphic variants
+       [[`A of t1 | `B of t2 | ...]].
+
+   -  If [(t1, t2...) c] is an (expandable) abbreviation,
+      then its expansion is reachable unguarded from it.
+      Note that we do not demand that [t1, t2...] be reachable.
+
+   - If [(t1, t2...) c] is not an expandable abbreviation,
+     typically an abstract type or a datatype (variant or record)
+     then [t1, t2...] are reachable unguarded from it.
+
+   - the relation is transitive and guardedness of a composition
+     is the disjunction of each guardedness:
+     if t1 is reachable from t2 and t2 is reachable from t3,
+     then t1 is reachable from t3, and it is guarded in t3 if
+     either t1 is guarded in t2 or t2 is guarded in t3.
+
+   A type [t] is not well-founded if and only if [t] is reachable
+   unguarded in [t].
+
+   Notice that, in the case of datatypes, the arguments of
+   a parametrized datatype are reachable (they must not contain
+   recursive occurrences of the type), but the definition of the
+   datatype is not.
+
+      (* well-founded *)
+      type t = Foo of u
+      and u = t
+
+      (* ill-founded *)
+      type 'a t = Foo of 'a
+      and u = u t
+      > Error: The type abbreviation u is cyclic
+
+   Indeed, in the second example [u] is reachable unguarded in [u t]
+   -- its own definition.
+*)
+
+(* Note: Forms of ill-foundedness
+
+   Several OCaml language constructs could introduce ill-founded
+   types, and there are several distinct checks that forbid different
+   sources of ill-foundedness.
+
+   1. Type aliases.
+
+      (* well-founded *)
+      type t = < x : 'a > as 'a
+
+      (* ill-founded, unless -rectypes is used *)
+      type t = (int * 'a) as 'a
+      > Error: This alias is bound to type int * 'a
+      > but is used as an instance of type 'a
+      > The type variable 'a occurs inside int * 'a
+
+      Ill-foundedness coming from type aliases is detected by the "occur check"
+      used by our type unification algorithm. See typetexp.ml.
+
+   2. Type abbreviations.
+
+      (* well-founded *)
+      type t = < x : t >
+
+      (* ill-founded, unless -rectypes is used *)
+      type t = (int * t)
+      > Error: The type abbreviation t is cyclic
+
+      Ill-foundedness coming from type abbreviations is detected by
+      [check_well_founded] below.
+
+  3. Recursive modules.
+
+     (* well-founded *)
+     module rec M : sig type t = < x : M.t > end = M
+
+     (* ill-founded, unless -rectypes is used *)
+     module rec M : sig type t = int * M.t end = M
+     > Error: The definition of M.t contains a cycle:
+     >        int * M.t
+
+     This is also checked by [check_well_founded] below,
+     as called from [check_recmod_typedecl].
+
+  4. Functor application
+
+     A special case of (3) is that a type can be abstract
+     in a functor definition, and be instantiated with
+     an abbreviation in an application of the functor.
+     This can introduce ill-foundedness, so functor applications
+     must be checked by re-checking the type declarations of their result.
 
      module type T = sig type t end
      module Fix(F:(T -> T)) = struct
+       (* this recursive definition is well-founded
+          as F(Fixed).t contains no reachable type expression. *)
        module rec Fixed : T with type t = F(Fixed).t = F(Fixed)
      end
 
-     (* this ok *)
-     module F3(X:T) = struct type t = Z | S of X.t end;;
+     (* well-founded *)
+     Module M = Fix(functor (M:T) -> struct type t = < x : M.t > end)
 
-     (* well-founded rejects *)
-     module T1 = Fix(functor (X:sig type t end) -> struct type t = X.t option end);;
-     Error: In the signature of this functor application:
-            The definition of Fixed.t contains a cycle:
-            F(Fixed).t
-
-  Note that the definition of T1.t above is equivalent to the more direct definition:
-
-    type t = t option
-    Error: The type abbreviation t is cyclic
-
-  but the cycle is only detected at functor-application time.
+     (* ill-founded *)
+     module M = Fix(functor (M:T) -> struct type t = int * M.t end);;
+     > Error: In the signature of this functor application:
+     >   The definition of Fixed.t contains a cycle:
+     >   F(Fixed).t
 *)
 
 let check_well_founded env loc path to_check ty =
@@ -990,7 +1083,7 @@ let transl_type_decl env rec_flag sdecl_list =
   (* Generalize type declarations. *)
   Ctype.end_def();
   List.iter (fun (_, decl) -> generalize_decl decl) decls;
-  (* Check for ill-formed abbrevs *)
+  (* Check for ill-founded abbrevs *)
   let id_loc_list =
     List.map2 (fun (id, _) sdecl -> (id, sdecl.ptype_loc))
       ids_list sdecl_list
@@ -1673,7 +1766,7 @@ let approx_type_decl sdecl_list =
        abstract_type_decl ~injective (List.length sdecl.ptype_params)))
     sdecl_list
 
-(* Check the well-formedness conditions on type abbreviations defined
+(* Check the well-foundedness conditions on type abbreviations defined
    within recursive modules. *)
 
 let check_recmod_typedecl env loc recmod_ids path decl =
