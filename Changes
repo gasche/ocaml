@@ -149,6 +149,9 @@ Working version
   (Simon Cruanes, review by Gabriel Scherer, Xavier Leroy,
    Guillaume Munch-Maccagnoni)
 
+- #11563: Add the Dyn_array module to the stdlib
+  (Simon Cruanes and Florian Angeletti)
+
 - #11581: Add type equality witness `type (_, _) eq = Equal: ('a, 'a) eq` in a
   new module Stdlib.Type.
   (Nicolás Ojeda Bär, review by Daniel Bünzli, Jacques Garrigue, Florian
