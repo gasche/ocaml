@@ -21,7 +21,7 @@ open Interval
 module IntervalSet = Set.Make (struct
     type t = Interval.t
     let compare i j =
-      let c = Int.compare j.iend i.iend in
+      let c = Int.compare i.iend j.iend in
       if c = 0 then Int.compare i.reg.stamp j.reg.stamp else c
   end)
 
@@ -65,8 +65,8 @@ let release_expired_spilled ci pos =
       expired ci.ci_free_slots;
   ci.ci_spilled <- rest
 
-(* [dummy_interval pos] is strictly above intervals [i] with [i.iend >= pos] and
-   strictly below [i] with [i.iend < pos]. We use a dummy register with a
+(* [dummy_interval pos] is strictly above intervals [i] with [i.iend < pos] and
+   strictly below [i] with [i.iend >= pos]. We use a dummy register with a
    non-existent [stamp] to make sure that it is not "equal" to any of the
    intervals in the set (according to the equality function of [IntervalSet]
    above). *)
@@ -78,14 +78,14 @@ let dummy_interval pos =
    ranges = []}
 
 let release_expired_fixed ci pos =
-  let (rest, divider_in_set, _expired) =
+  let (_expired, divider_in_set, rest) =
     IntervalSet.split (dummy_interval pos) ci.ci_fixed in
   assert (not divider_in_set);
   IntervalSet.iter (fun i -> Interval.remove_expired_ranges i pos) rest;
   ci.ci_fixed <- rest
 
 let release_expired_active ci pos =
-  let (rest, divider_in_set, _expired) =
+  let (_expired, divider_in_set, rest) =
     IntervalSet.split (dummy_interval pos) ci.ci_active in
   assert (not divider_in_set);
   let active, inactive =
@@ -96,7 +96,7 @@ let release_expired_active ci pos =
   ci.ci_inactive <- IntervalSet.union inactive ci.ci_inactive
 
 let release_expired_inactive ci pos =
-  let (rest, divider_in_set, _expired) =
+  let (_expired, divider_in_set, rest) =
     IntervalSet.split (dummy_interval pos) ci.ci_inactive in
   assert (not divider_in_set);
   let active, inactive =
@@ -187,7 +187,7 @@ let allocate_free_register num_stack_slots i =
 let allocate_blocked_register num_stack_slots i =
   let cl = Proc.register_class i.reg in
   let ci = active.(cl) in
-  match IntervalSet.min_elt_opt ci.ci_active with
+  match IntervalSet.max_elt_opt ci.ci_active with
   | Some ilast when
       ilast.iend > i.iend &&
       (* Last interval in active is the last interval, so spill it. *)
