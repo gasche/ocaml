@@ -25,7 +25,7 @@ module IntervalSet = Set.Make (struct
       if c = 0 then Int.compare i.reg.stamp j.reg.stamp else c
   end)
 
-module IntSet = Set.Make(Int)
+module SlotSet = Set.Make(Int)
 
 module SpilledSet = Set.Make (struct
     type t = int * int
@@ -42,7 +42,7 @@ type class_intervals =
     mutable ci_active: IntervalSet.t;
     mutable ci_inactive: IntervalSet.t;
     mutable ci_spilled: SpilledSet.t;
-    mutable ci_free_slots: IntSet.t; (* stack slots available for reuse *)
+    mutable ci_free_slots: SlotSet.t; (* stack slots available for reuse *)
   }
 
 let active = Array.init Proc.num_register_classes (fun _ -> {
@@ -50,7 +50,7 @@ let active = Array.init Proc.num_register_classes (fun _ -> {
   ci_active = IntervalSet.empty;
   ci_inactive = IntervalSet.empty;
   ci_spilled = SpilledSet.empty;
-  ci_free_slots = IntSet.empty;
+  ci_free_slots = SlotSet.empty;
 })
 
 let release_expired_spilled ci pos =
@@ -61,7 +61,7 @@ let release_expired_spilled ci pos =
     SpilledSet.split (pos, (-1)) ci.ci_spilled in
   assert (not divider_in_set);
   ci.ci_free_slots <-
-    SpilledSet.fold (fun (_, ss) free -> IntSet.add ss free)
+    SpilledSet.fold (fun (_, ss) free -> SlotSet.add ss free)
       expired ci.ci_free_slots;
   ci.ci_spilled <- rest
 
@@ -113,9 +113,9 @@ let allocate_stack_slot num_stack_slots i =
   let cl = Proc.register_class i.reg in
   let ci = active.(cl) in
   let ss =
-    match IntSet.min_elt_opt ci.ci_free_slots with
+    match SlotSet.min_elt_opt ci.ci_free_slots with
     | Some ss ->
-        ci.ci_free_slots <- IntSet.remove ss ci.ci_free_slots;
+        ci.ci_free_slots <- SlotSet.remove ss ci.ci_free_slots;
         ss
     | None ->
         let ss = num_stack_slots.(cl) in
@@ -238,7 +238,7 @@ let allocate_registers (intervals : Interval.result) =
       ci_active = IntervalSet.empty;
       ci_inactive = IntervalSet.empty;
       ci_spilled = SpilledSet.empty;
-      ci_free_slots = IntSet.empty;
+      ci_free_slots = SlotSet.empty;
     };
   done;
   (* Reset the stack slot counts *)
