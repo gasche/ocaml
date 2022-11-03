@@ -56,54 +56,51 @@ let slot_of_spilled i =
   | _ -> invalid_arg "Linscan.slot_of_spilled"
 
 
-(* [dummy_interval pos] is strictly above intervals [i] with [i.iend < pos] and
-   strictly below [i] with [i.iend >= pos]. We use a dummy register with a
-   non-existent [stamp] to make sure that it is not "equal" to any of the
-   intervals in the set (according to the equality function of [IntervalSet]
-   above). *)
+let split_by_pos intervals pos =
+  let divider =
+    (* this interval is strictly above intervals [i] with [i.iend >= pos] and
+       strictly below [i] with [i.iend < pos]. We use a dummy register with a
+       non-existent [stamp] to make sure that it is not "equal" to any of the
+       intervals in the set (according to the equality function of [IntervalSet]
+       above). *)
+    {Interval.reg = {Reg.dummy with stamp = -1};
+     ibegin = pos;
+     iend = pos;
+     ranges = []}
+  in
+  let (before, divider_in_set, after) = IntervalSet.split divider intervals in
+  assert (not divider_in_set);
+  (before, after)
 
-let dummy_interval pos =
-  {Interval.reg = {Reg.dummy with stamp = -1};
-   ibegin = pos;
-   iend = pos;
-   ranges = []}
+let remove_expired_ranges intervals pos =
+  IntervalSet.iter (fun i -> Interval.remove_expired_ranges i pos) intervals
 
 let release_expired_spilled ci pos =
-  let (expired, divider_in_set, rest) =
-    IntervalSet.split (dummy_interval pos) ci.ci_spilled in
-  assert (not divider_in_set);
+  let (expired, rest) = split_by_pos ci.ci_spilled pos in
   ci.ci_free_slots <-
     IntervalSet.fold (fun i free -> SlotSet.add (slot_of_spilled i) free)
       expired ci.ci_free_slots;
   ci.ci_spilled <- rest
 
 let release_expired_fixed ci pos =
-  let (_expired, divider_in_set, rest) =
-    IntervalSet.split (dummy_interval pos) ci.ci_fixed in
-  assert (not divider_in_set);
-  IntervalSet.iter (fun i -> Interval.remove_expired_ranges i pos) rest;
+  let (_expired, rest) = split_by_pos ci.ci_fixed pos in
+  remove_expired_ranges rest pos;
   ci.ci_fixed <- rest
 
+let partition_live intervals pos =
+  IntervalSet.partition (fun i -> Interval.is_live i pos) intervals
+
 let release_expired_active ci pos =
-  let (_expired, divider_in_set, rest) =
-    IntervalSet.split (dummy_interval pos) ci.ci_active in
-  assert (not divider_in_set);
-  let active, inactive =
-    IntervalSet.partition (fun i ->
-        Interval.remove_expired_ranges i pos;
-        Interval.is_live i pos) rest in
+  let (_expired, rest) = split_by_pos ci.ci_active pos in
+  remove_expired_ranges rest pos;
+  let active, inactive = partition_live rest pos in
   ci.ci_active <- active;
   ci.ci_inactive <- IntervalSet.union inactive ci.ci_inactive
 
 let release_expired_inactive ci pos =
-  let (_expired, divider_in_set, rest) =
-    IntervalSet.split (dummy_interval pos) ci.ci_inactive in
-  assert (not divider_in_set);
-  let active, inactive =
-    IntervalSet.partition
-      (fun i ->
-         Interval.remove_expired_ranges i pos;
-         Interval.is_live i pos) rest in
+  let (_expired, rest) = split_by_pos ci.ci_inactive pos in
+  remove_expired_ranges rest pos;
+  let active, inactive = partition_live rest pos in
   ci.ci_inactive <- inactive;
   ci.ci_active <- IntervalSet.union active ci.ci_active
 
