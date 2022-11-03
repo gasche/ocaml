@@ -58,8 +58,8 @@ let slot_of_spilled i =
 
 let split_by_pos intervals pos =
   let divider =
-    (* this interval is strictly above intervals [i] with [i.iend >= pos] and
-       strictly below [i] with [i.iend < pos]. We use a dummy register with a
+    (* this interval is strictly above intervals [i] with [i.iend < pos] and
+       strictly below [i] with [i.iend >= pos]. We use a dummy register with a
        non-existent [stamp] to make sure that it is not "equal" to any of the
        intervals in the set (according to the equality function of [IntervalSet]
        above). *)
