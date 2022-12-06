@@ -20,6 +20,8 @@
 
 #ifdef CAML_INTERNALS
 
+#include "platform.h"
+
 enum digest_status {
   DIGEST_LATER,    /* computed on demand */
   DIGEST_NOW,      /* computed by caml_register_code_fragment */
@@ -33,7 +35,20 @@ struct code_fragment {
   char *code_end;
   int fragnum;
   unsigned char digest[16];
-  enum digest_status digest_status;
+  /* The digest is obtained by hashing
+     the bytes between [code_start] and [code_end].
+
+     It is only guaranteed to be valid if [digest_status]
+     below is [DIGEST_PROVIDED].
+  */
+  _Atomic enum digest_status digest_status;
+  /* If [digest_status] is [DIGEST_LATER], then the field [digest] is
+     protected by the mutex [mutex] below.
+
+     For all other statuses, [digest] will never be mutated and can be
+     accessed directly -- but taking the mutex is of course also
+     correct. */
+  caml_plat_mutex mutex;
 };
 
 /* Initialise codefrag. This must be done before any of the other

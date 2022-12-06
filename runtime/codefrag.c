@@ -55,6 +55,7 @@ int caml_register_code_fragment(char *start, char *end,
   case DIGEST_LATER:
     break;
   case DIGEST_NOW:
+    /* no one knows of this code fragment yet, no need to take its lock */
     caml_md5_block(cf->digest, cf->code_start, cf->code_end - cf->code_start);
     digest_kind = DIGEST_PROVIDED;
     break;
@@ -64,13 +65,19 @@ int caml_register_code_fragment(char *start, char *end,
   case DIGEST_IGNORE:
     break;
   }
-  cf->digest_status = digest_kind;
+  atomic_store(&cf->digest_status, digest_kind);
   cf->fragnum = atomic_fetch_add_explicit
                   (&code_fragments_counter, 1, memory_order_relaxed);
+  caml_plat_mutex_init(&cf->mutex);
   caml_lf_skiplist_insert(&code_fragments_by_pc, (uintnat)start, (uintnat)cf);
   caml_lf_skiplist_insert(&code_fragments_by_num, (uintnat)cf->fragnum,
                           (uintnat)cf);
   return cf->fragnum;
+}
+
+static void caml_free_code_fragment(struct code_fragment *cf) {
+  caml_plat_mutex_free(&cf->mutex);
+  caml_stat_free(cf);
 }
 
 void caml_remove_code_fragment(struct code_fragment *cf) {
@@ -117,13 +124,33 @@ struct code_fragment *caml_find_code_fragment_by_num(int fragnum) {
   }
 }
 
+static enum digest_status acquire_digest_status(struct code_fragment *cf) {
+  return atomic_load_explicit(&cf->digest_status, memory_order_acquire);
+}
+
 unsigned char *caml_digest_of_code_fragment(struct code_fragment *cf) {
-  if (cf->digest_status == DIGEST_IGNORE)
+  enum digest_status status = acquire_digest_status(cf);
+
+  if (status == DIGEST_IGNORE)
     return NULL;
-  if (cf->digest_status == DIGEST_LATER) {
-    caml_md5_block(cf->digest, cf->code_start, cf->code_end - cf->code_start);
-    cf->digest_status = DIGEST_PROVIDED;
+
+  if (status == DIGEST_LATER) {
+    caml_plat_lock(&cf->mutex);
+    /* Another thread may have changed the status between the previous
+       check and acquiring the lock -- in that case, we know the status
+       has become DIGEST_PROVIDED and there is nothing to do.
+
+       But if we observe DIGEST_LATER again while holding the lock, we
+       know that no one can change the status or access the [digest]
+       field before we release the lock. */
+    if (acquire_digest_status(cf) == DIGEST_LATER)
+    {
+        caml_md5_block(cf->digest, cf->code_start, cf->code_end - cf->code_start);
+        atomic_store_explicit(&cf->digest_status, DIGEST_PROVIDED, memory_order_release);
+    }
+    caml_plat_unlock(&cf->mutex);
   }
+  CAMLassert(acquire_digest_status(cf) != DIGEST_LATER);
   return cf->digest;
 }
 
@@ -151,7 +178,7 @@ void caml_code_fragment_cleanup (void)
   while (curr != NULL) {
     struct code_fragment_garbage *next = curr->next;
 
-    caml_stat_free(curr->cf);
+    caml_free_code_fragment(curr->cf);
     caml_stat_free(curr);
 
     curr = next;
