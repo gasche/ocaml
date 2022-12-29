@@ -8,19 +8,14 @@ Line 1, characters 0-32:
 1 | type 'a t = [`A of 'a t t] as 'a;; (* fails *)
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Error: The type abbreviation t is cyclic:
-         ('a t as 'b) t as 'a contains 'b,
-         'b = 'a
+         'a t t as 'a contains 'a
 |}, Principal{|
 Line 1, characters 0-32:
 1 | type 'a t = [`A of 'a t t] as 'a;; (* fails *)
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Error: The definition of t contains a cycle:
-         [ `A of ('a t as 'c) t as 'b ] as 'a contains 'c,
-         'c = [ `A of ('d t as 'e) t ] as 'd,
-         'd contains 'e,
-         'e = 'b,
-         'b contains 'c,
-         'c = 'b
+         [ `A of ('a t as 'b) t ] as 'a contains 'b,
+         'b = [ `A of 'c t t ] as 'c
 |}];;
 type 'a t = [`A of 'a t t];; (* fails *)
 [%%expect{|
@@ -41,7 +36,7 @@ Line 1, characters 0-47:
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Error: The type abbreviation t is cyclic:
          ('a t as 'a) t = [ `A of 'a t t ],
-         [ `A of 'a t t ] contains 'a
+         [ `A of 'a t t ] contains 'a t t
 |}];;
 type 'a t = [`A of 'a t] constraint 'a = 'a t;; (* fails since 4.04 *)
 [%%expect{|
@@ -50,7 +45,7 @@ Line 1, characters 0-45:
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Error: The type abbreviation t is cyclic:
          ('a t as 'a) t = [ `A of 'a t ],
-         [ `A of 'a t ] contains 'a
+         [ `A of 'a t ] contains 'a t
 |}];;
 type 'a t = [`A of 'a] as 'a;;
 [%%expect{|
@@ -65,8 +60,7 @@ Line 1, characters 0-41:
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Error: The definition of v contains a cycle:
          t = u,
-         u = t,
-         t = u
+         u = t
 |}];;
 
 type 'a t = 'a;;

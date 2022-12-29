@@ -646,6 +646,52 @@ let check_coherence env loc dpath decl =
 let check_abbrev env sdecl (id, decl) =
   check_coherence env sdecl.ptype_loc (Path.Pident id) decl
 
+
+(** The expansion trace we accumulated stopped when it encountered
+    a type that is physically equal to one of its already-traversed
+    parents. But it is often the case that equivalent types (that get
+    printed in the same way) are not physically equal, so the cycle
+    reported to the user does not look minimal, for example:
+
+      t = u,
+      u = t,
+      t = u
+
+    At the second expansion, [u = t], it looks like we have found
+    a cycle with [t], but it may be that the first and second
+    occurrences of [t] correspond to distinct type nodes, that expand
+    to the same node [u] -- so it is only on the second expansion into
+    [u] that a physical cycle is detected.
+
+    [reaching_path_for_cycle_trace trace] post-processes such a cycle
+    trace to test structural equivalence of types instead of physical
+    equality along the trace, and "cut" the trace at the first point
+    that is structurally-equal to a previous type. This results in
+    shorter traces that are less confusing for users.
+*)
+let reaching_path_for_cycle_trace trace =
+  (* Expansion traces are accumulated in reverse order, we
+     reverse them to get a reaching path. *)
+  let path = List.rev trace in
+  (* Avoid quadratic behavior on long traces *)
+  if List.compare_length_with path 128 >= 0 then path else
+  let rec cut acc parents = function
+    | [] -> List.rev acc
+    | (Contains (ty, _) | Expands_to (ty, _)) as item :: rest ->
+        let structurally_equal ty1 ty2 =
+          (* It is important to use [Env.empty] here, rather than the
+             current typing environment, to prevent Ctype.is_equal
+             from trying to expand abbreviations. Indeed, we are in
+             the middle of checking whether an abbreviation is
+             well-founded, so we may encounter types whose expansion
+             does not terminate. *)
+          Ctype.is_equal Env.empty (*rename:*)false [ty1] [ty2] in
+        if List.exists (structurally_equal ty) parents
+        then List.rev acc
+        else cut (item :: acc) (ty :: parents) rest
+  in
+  cut [] [] path
+
 (* Check that recursion is well-founded:
    - if -rectypes is used, we must prevent non-contractive fixpoints
      ('a as 'a)
@@ -659,12 +705,9 @@ let check_well_founded env loc path to_check ty =
       (*Format.eprintf "@[%a@]@." Printtyp.raw_type_expr ty;*)
       let err =
         let reaching_path =
-          (* The reaching trace is accumulated in reverse order, we
-             reverse it to get a reaching path. *)
-          match trace with
-          | [] -> assert false
-          | trace ->
-              List.rev trace in
+          assert (trace <> []);
+          reaching_path_for_cycle_trace trace
+        in
         if match get_desc ty0 with
           | Tconstr (p, _, _) -> Path.same p path
           | _ -> false

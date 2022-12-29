@@ -24,6 +24,132 @@ Error: In the signature of this functor application:
          Fixed.t option contains Fixed.t,
          Fixed.t = F(Fixed).t,
          F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
+         Fixed.t option contains Fixed.t,
+         Fixed.t = F(Fixed).t,
+         F(Fixed).t = Fixed.t option,
          Fixed.t option contains Fixed.t
 |}]
 module T2 = Fix(functor (X:sig type t end) -> struct type t = X.t end);;
@@ -34,8 +160,7 @@ Line 1, characters 12-70:
 Error: In the signature of this functor application:
        The definition of Fixed.t contains a cycle:
          F(Fixed).t = Fixed.t,
-         Fixed.t = F(Fixed).t,
-         F(Fixed).t = Fixed.t
+         Fixed.t = F(Fixed).t
 |}]
 
 (* Positive example *)
@@ -77,8 +202,7 @@ Line 1, characters 18-38:
 Error: In this instantiated signature:
        The definition of Fixed.t contains a cycle:
          F(Fixed).t = Fixed.t,
-         Fixed.t = F(Fixed).t,
-         F(Fixed).t = Fixed.t
+         Fixed.t = F(Fixed).t
 |}]
 
 (* More examples by lpw25 *)
@@ -90,8 +214,7 @@ Line 1, characters 11-18:
 Error: In the signature of this functor application:
        The definition of Fixed.t contains a cycle:
          Id(Fixed).t = Fixed.t,
-         Fixed.t = Id(Fixed).t,
-         Id(Fixed).t = Fixed.t
+         Fixed.t = Id(Fixed).t
 |}]
 type t = Fix(Id).Fixed.t;;
 [%%expect{|
@@ -101,8 +224,7 @@ Line 1, characters 9-24:
 Error: In the signature of Fix(Id):
        The definition of Fixed.t contains a cycle:
          Id(Fixed).t = Fixed.t,
-         Fixed.t = Id(Fixed).t,
-         Id(Fixed).t = Fixed.t
+         Fixed.t = Id(Fixed).t
 |}]
 let f (x : Fix(Id).Fixed.t) = x;;
 [%%expect{|
@@ -112,8 +234,7 @@ Line 1, characters 11-26:
 Error: In the signature of Fix(Id):
        The definition of Fixed.t contains a cycle:
          Id(Fixed).t = Fixed.t,
-         Fixed.t = Id(Fixed).t,
-         Id(Fixed).t = Fixed.t
+         Fixed.t = Id(Fixed).t
 |}]
 
 module Foo (F : T -> T) = struct
@@ -129,8 +250,7 @@ Line 1:
 Error: In the signature of Fix(Id):
        The definition of Fixed.t contains a cycle:
          Id(Fixed).t = Fixed.t,
-         Fixed.t = Id(Fixed).t,
-         Id(Fixed).t = Fixed.t
+         Fixed.t = Id(Fixed).t
 |}]
 
 (* Extra tests for GPR#1676 *)
@@ -164,6 +284,5 @@ Line 5, characters 11-26:
 Error: In the signature of Fix2(Id):
        The definition of Fixed.t contains a cycle:
          Id(Fixed).t = Fixed.t,
-         Fixed.t = Id(Fixed).t,
-         Id(Fixed).t = Fixed.t
+         Fixed.t = Id(Fixed).t
 |}]
