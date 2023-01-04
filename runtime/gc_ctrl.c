@@ -262,9 +262,9 @@ static value gc_full_major_exn(void)
   value exn = Val_unit;
   CAML_EV_BEGIN(EV_EXPLICIT_GC_FULL_MAJOR);
   caml_gc_log ("Full Major GC requested");
-  /* In general, it can require up to 3 GC cycles for a
+  /* In general, it can require up to 4 GC cycles for a
      currently-unreachable object to be collected. */
-  for (i = 0; i < 3; i++) {
+  for (i = 0; i < 4; i++) {
     caml_empty_minor_heaps_once();
     caml_finish_major_cycle();
     exn = caml_process_pending_actions_exn();
