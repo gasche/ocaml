@@ -249,7 +249,6 @@ Caml_inline void pool_initialize(pool* r,
   r->next_obj = p - wh;
 }
 
-/* Allocating an object from a pool */
 static intnat pool_sweep(struct caml_heap_state* local,
                          pool**,
                          sizeclass sz,
@@ -462,16 +461,30 @@ static intnat pool_sweep(struct caml_heap_state* local, pool** plist,
     struct heap_stats* s = &local->stats;
 
     while (p + wh <= end) {
+      int in_free_list = 0;
+      int do_free_block = 0;
       header_t hd = (header_t)atomic_load_relaxed((atomic_uintnat*)p);
       if (hd == 0) {
         /* already on freelist */
-        all_used = 0;
+        in_free_list = 0;
       } else if (Has_status_hd(hd, caml_global_heap_state.GARBAGE)) {
+        do_free_block = 1;
         CAMLassert(Whsize_hd(hd) <= wh);
         if (Tag_hd (hd) == Custom_tag) {
           void (*final_fun)(value) = Custom_ops_val(Val_hp(p))->finalize;
-          if (final_fun != NULL) final_fun(Val_hp(p));
+          if (final_fun != NULL) {
+            /* In [noexc] mode, we cannot call a finalizer.
+               In this case we give up on freeing this block. */
+            if (noexc) {
+              do_free_block = 0;
+            } else {
+              final_fun(Val_hp(p));
+            }
+          }
         }
+      }
+
+      if (do_free_block) {
         /* add to freelist */
         atomic_store_relaxed((atomic_uintnat*)p, 0);
         p[1] = (value)a->next_obj;
@@ -492,10 +505,16 @@ static intnat pool_sweep(struct caml_heap_state* local, pool** plist,
         s->pool_live_words -= Whsize_hd(hd);
         local->owner->swept_words += Whsize_hd(hd);
         s->pool_frag_words -= (wh - Whsize_hd(hd));
-      } else {
+      }
+
+      if (in_free_list) {
+        all_used = 0;
+      }
+      if (!in_free_list && !do_free_block) {
         /* still live, the pool can't be released to the global freelist */
         release_to_global_pool = 0;
       }
+
       p += wh;
       work += wh;
     }
@@ -521,12 +540,25 @@ static intnat large_alloc_sweep(struct caml_heap_state* local, int noexc) {
 
   p = (value*)((char*)a + LARGE_ALLOC_HEADER_SZ);
   hd = (header_t)*p;
+  int do_free_block = 0;
+
   if (Has_status_hd(hd, caml_global_heap_state.GARBAGE)) {
+    do_free_block = 1;
     if (Tag_hd (hd) == Custom_tag) {
       void (*final_fun)(value) = Custom_ops_val(Val_hp(p))->finalize;
-      if (final_fun != NULL) final_fun(Val_hp(p));
+      if (final_fun != NULL) {
+        /* In [noexc] mode, we cannot call a finalizer.
+           In this case we give up on freeing this block. */
+        if (noexc) {
+          do_free_block = 0;
+        } else {
+          final_fun(Val_hp(p));
+        }
+      }
     }
+  }
 
+  if (do_free_block) {
     local->stats.large_words -=
       Whsize_hd(hd) + Wsize_bsize(LARGE_ALLOC_HEADER_SZ);
     local->owner->swept_words +=
