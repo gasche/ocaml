@@ -1,6 +1,11 @@
 OCaml 5.0 maintenance version
 -----------------------------
 
+### Runtime system:
+
+- #11935: Load frametables of dynlink'd modules in batch
+  (Stephen Dolan, review by David Allsopp and Guillaume Munch-Maccagnoni)
+
 ### Build system:
 
 - #11590: Allow installing to a destination path containing spaces.
