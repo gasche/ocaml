@@ -6,6 +6,10 @@ OCaml 5.0 maintenance version
 - #11935: Load frametables of dynlink'd modules in batch
   (Stephen Dolan, review by David Allsopp and Guillaume Munch-Maccagnoni)
 
+- #11972: refactor runtime/frame_descriptors.c
+  in preparation for quadratic-time fix
+  (Gabriel Scherer, review by Enguerrand Decorne)
+
 ### Build system:
 
 - #11590: Allow installing to a destination path containing spaces.
