@@ -881,22 +881,7 @@ end = struct
   let f (x : < m : 'a. [< `Foo] as 'a >) = ()
 end;;
 [%%expect{|
-Lines 3-5, characters 6-3:
-3 | ......struct
-4 |   let f (x : < m : 'a. [< `Foo] as 'a >) = ()
-5 | end..
-Error: Signature mismatch:
-       Modules do not match:
-         sig val f : < m : 'a. [< `Foo ] as 'a > -> unit end
-       is not included in
-         sig val f : < m : [< `Foo ] > -> unit end
-       Values do not match:
-         val f : < m : 'a. [< `Foo ] as 'a > -> unit
-       is not included in
-         val f : < m : [< `Foo ] > -> unit
-       The type < m : 'a. [< `Foo ] as 'a > -> unit
-       is not compatible with the type < m : [< `Foo ] > -> unit
-       Types for method m are incompatible
+module M : sig val f : < m : 'a. [< `Foo ] as 'a > -> unit end
 |}];;
 
 module M : sig

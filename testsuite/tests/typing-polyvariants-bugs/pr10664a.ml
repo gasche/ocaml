@@ -119,26 +119,35 @@ val y :
 
 let h (x : < m : 'a. <n : 'b. [< `A of 'a * 'b * 'c] > > as 'c) = x#m;;
 [%%expect{|
-Line 1, characters 66-69:
-1 | let h (x : < m : 'a. <n : 'b. [< `A of 'a * 'b * 'c] > > as 'c) = x#m;;
-                                                                      ^^^
-Error: This expression has type
-         < n : 'b. [< `A of 'a * 'b0 * < m : 'a. < n : 'b0. 'c > > ] as 'c >
-       but an expression was expected of type 'd
-       The universal variable 'a would escape its scope
+val h :
+  (< m : 'a. < n : 'd 'b. [< `A of 'a * 'b * 'c ] as 'd > > as 'c) ->
+  < n : 'e 'b. [< `A of 'f * 'b * 'c ] as 'e > = <fun>
+|}, Principal{|
+val h :
+  (< m : 'a. < n : 'd 'b. [< `A of 'a * 'b * 'c ] as 'd > > as 'c) ->
+  < n : 'e 'b.
+          [< `A of
+               'f * 'b *
+               (< m : 'a. < n : 'h 'b0. [< `A of 'a * 'b0 * 'g ] as 'h > >
+                as 'g) ]
+          as 'e > =
+  <fun>
 |}]
 
 (* Since the row variable is not bound, 'a leaks *)
 
 let j (x : < m : 'a. <n : 'b. [< `A of 'a ] -> 'c > > as 'c) = x#m;;
 [%%expect{|
-Line 1, characters 63-66:
-1 | let j (x : < m : 'a. <n : 'b. [< `A of 'a ] -> 'c > > as 'c) = x#m;;
-                                                                   ^^^
-Error: This expression has type
-         < n : ([< `A of 'a ] as 'b) -> (< m : 'a. < n : 'b -> 'c > > as 'c) >
-       but an expression was expected of type 'd
-       The universal variable 'a would escape its scope
+val j :
+  (< m : 'a. < n : 'c. ([< `A of 'a ] as 'c) -> 'b > > as 'b) ->
+  < n : 'd. ([< `A of 'e ] as 'd) -> 'b > = <fun>
+|}, Principal{|
+val j :
+  (< m : 'a. < n : 'c. ([< `A of 'a ] as 'c) -> 'b > > as 'b) ->
+  < n : 'd.
+          ([< `A of 'e ] as 'd) ->
+          (< m : 'a. < n : 'g. ([< `A of 'a ] as 'g) -> 'f > > as 'f) > =
+  <fun>
 |}]
 
 let o =
@@ -147,11 +156,21 @@ let o =
       object method n _ = self end
   end;;
 [%%expect{|
-Lines 3-4, characters 4-34:
-3 | ....method m : 'a. < n : [< `A of 'a] -> 'b > =
+Line 4, characters 6-34:
 4 |       object method n _ = self end
-Error: The method m has type 'b but is expected to have type
-         < n : ([< `A of 'a ] as 'c) ->
-               (< m : 'a. < n : 'c -> 'd >; .. > as 'd) >
-       The universal variable 'a would escape its scope
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error: This expression has type
+         < n : 'b ->
+               (< m : 'a. < n : 'd. ([< `A of 'a ] as 'd) -> 'c > > as 'c) >
+       but an expression was expected of type
+         < n : 'e.
+                 ([< `A of 'f ] as 'e) ->
+                 (< m : 'a. < n : 'g. ([< `A of 'a ] as 'g) -> 'c > > as 'c) >
+       The method n has type
+       'b -> (< m : 'a. < n : 'h. ([< `A of 'a ] as 'h) -> 'c > > as 'c),
+       but the expected method type was
+       'i.
+         ([< `A of 'f ] as 'i) ->
+         (< m : 'a. < n : 'j. ([< `A of 'a ] as 'j) -> 'c > > as 'c)
+       The universal variable 'k would escape its scope
 |}]

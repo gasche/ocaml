@@ -653,7 +653,7 @@ val f :
 - : (< m : 'a. 'a * < p : 'b. 'b * 'd * 'c > as 'd > as 'c) ->
     ('f * < p : 'b. 'b * 'e * 'c > as 'e)
 = <fun>
-- : < m : 'a. < p : 'a; .. > as 'b > -> 'b = <fun>
+- : < m : 'b 'a. < p : 'a; .. > as 'b > -> < p : 'c; .. > = <fun>
 |}, Principal{|
 - : (< m : 'a. 'a * 'b > as 'b) -> 'c * (< m : 'a. 'a * 'd > as 'd) = <fun>
 - : (< m : 'a. 'b * 'a list > as 'b) ->
@@ -673,7 +673,7 @@ val f :
              (< m : 'a. 'a * < p : 'b0. 'b0 * 'h * 'g > as 'h > as 'g) >
      as 'e)
 = <fun>
-- : < m : 'a. < p : 'a; .. > as 'b > -> 'b = <fun>
+- : < m : 'b 'a. < p : 'a; .. > as 'b > -> < p : 'c; .. > = <fun>
 |}];;
 
 type sum = T of < id: 'a. 'a -> 'a > ;;
@@ -1529,34 +1529,31 @@ val n : < m : 'x 'a. ([< `Foo of 'x ] as 'a) -> 'x > = <obj>
 let n =
   object method m : 'x. [< `Foo of 'x] -> 'x = fun x -> assert false end;;
 [%%expect {|
-Line 2, characters 9-68:
-2 |   object method m : 'x. [< `Foo of 'x] -> 'x = fun x -> assert false end;;
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: The method m has type 'a -> 'b but is expected to have type
-         [< `Foo of 'x ] -> 'c
-       The universal variable 'x would escape its scope
+val n : < m : 'a 'x. ([< `Foo of 'x ] as 'a) -> 'x > = <obj>
 |}];;
 (* fail *)
 let (n : < m : 'a. [< `Foo of int] -> 'a >) =
   object method m : 'x. [< `Foo of 'x] -> 'x = fun x -> assert false end;;
 [%%expect {|
-Line 2, characters 9-68:
+Line 2, characters 2-72:
 2 |   object method m : 'x. [< `Foo of 'x] -> 'x = fun x -> assert false end;;
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: The method m has type 'a -> 'b but is expected to have type
-         [< `Foo of 'x ] -> 'c
-       The universal variable 'x would escape its scope
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error: This expression has type < m : 'b 'x. ([< `Foo of 'x ] as 'b) -> 'x >
+       but an expression was expected of type
+         < m : 'c 'a. ([< `Foo of int ] as 'c) -> 'a >
+       Types for tag `Foo are incompatible
 |}];;
 (* fail *)
 let (n : 'b -> < m : 'a . ([< `Foo of int] as 'b) -> 'a >) = fun x ->
   object method m : 'x. [< `Foo of 'x] -> 'x = fun x -> assert false end;;
 [%%expect {|
-Line 2, characters 9-68:
+Line 2, characters 2-72:
 2 |   object method m : 'x. [< `Foo of 'x] -> 'x = fun x -> assert false end;;
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: The method m has type 'a -> 'b but is expected to have type
-         [< `Foo of 'x ] -> 'c
-       The universal variable 'x would escape its scope
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error: This expression has type < m : 'b 'x. ([< `Foo of 'x ] as 'b) -> 'x >
+       but an expression was expected of type
+         < m : 'a. [< `Foo of int ] -> 'a >
+       Types for tag `Foo are incompatible
 |}];;
 (* ok *)
 let f (n : < m : 'a 'r. [< `Foo of 'a & int | `Bar] as 'r >) =
@@ -1583,18 +1580,9 @@ Error: This expression has type
 let f (n : < m : 'a. [< `Foo of 'a & int | `Bar] >) =
   (n : < m : 'b. [< `Foo of 'b & int | `Bar] >)
 [%%expect{|
-Line 1:
-Error: Values do not match:
-         val f :
-           < m : 'a. [< `Bar | `Foo of 'a & int ] as 'c > -> < m : 'b. 'c >
-       is not included in
-         val f :
-           < m : 'a. [< `Bar | `Foo of 'b & int ] as 'c > -> < m : 'b. 'c >
-       The type
-         < m : 'a. [< `Bar | `Foo of 'b & int ] as 'c > -> < m : 'b. 'c >
-       is not compatible with the type
-         < m : 'a. [< `Bar | `Foo of 'b & int ] as 'd > -> < m : 'b. 'd >
-       Types for tag `Foo are incompatible
+val f :
+  < m : 'c 'a. [< `Bar | `Foo of 'a & int ] as 'c > ->
+  < m : 'd 'b. [< `Bar | `Foo of 'b & int ] as 'd > = <fun>
 |}]
 
 (* PR#6171 *)
