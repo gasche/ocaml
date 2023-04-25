@@ -478,7 +478,7 @@ and transl_type_aux env ~policy ~row_policy styp =
       let ty = match get_desc ty with
         | Tobject (fi, _) ->
             let _, tv = flatten_fields fi in
-            TyVarEnv.add_pre_univar tv row_policy;
+            TyVarEnv.add_pre_univar tv policy;
             ty
         | _ ->
             assert false
@@ -718,7 +718,7 @@ and transl_fields env ~policy ~row_policy o fields =
   let ty_init =
      match o with
      | Closed -> newty Tnil
-     | Open -> TyVarEnv.new_var row_policy
+     | Open -> TyVarEnv.new_var policy
   in
   let ty = List.fold_left (fun ty (s, ty') ->
       newty (Tfield (s, field_public, ty', ty))) ty_init fields in
