@@ -876,12 +876,32 @@ Error: Signature mismatch:
 |}];;
 
 module M : sig
-  val f : < m : [< `Foo]> -> unit
+  val f : < m : [< `Foo] -> [< `Foo]> -> unit
 end = struct
-  let f (x : < m : 'a. [< `Foo] as 'a >) = ()
+  let f (x : < m : 'a.( [< `Foo] as 'a) -> 'a >) = ()
 end;;
 [%%expect{|
-module M : sig val f : < m : 'a. [< `Foo ] as 'a > -> unit end
+Lines 3-5, characters 6-3:
+3 | ......struct
+4 |   let f (x : < m : 'a.( [< `Foo] as 'a) -> 'a >) = ()
+5 | end..
+Error: Signature mismatch:
+       Modules do not match:
+         sig val f : < m : 'a. ([< `Foo ] as 'a) -> 'a > -> unit end
+       is not included in
+         sig
+           val f :
+             < m : 'a 'b. ([< `Foo ] as 'a) -> ([< `Foo ] as 'b) > -> unit
+         end
+       Values do not match:
+         val f : < m : 'a. ([< `Foo ] as 'a) -> 'a > -> unit
+       is not included in
+         val f :
+           < m : 'a 'b. ([< `Foo ] as 'a) -> ([< `Foo ] as 'b) > -> unit
+       The type < m : 'a. ([< `Foo ] as 'a) -> 'a > -> unit
+       is not compatible with the type
+         < m : 'b 'c. ([< `Foo ] as 'b) -> ([< `Foo ] as 'c) > -> unit
+       Types for method m are incompatible
 |}];;
 
 module M : sig

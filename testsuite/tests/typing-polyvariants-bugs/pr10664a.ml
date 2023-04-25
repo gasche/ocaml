@@ -115,7 +115,7 @@ val y :
   <obj>
 |}]
 
-(* Since the row variable is not explicitly bound, 'a and 'b leak *)
+(* Since the row variable is is implicitly bound, 'a and 'b don't leak *)
 
 let h (x : < m : 'a. <n : 'b. [< `A of 'a * 'b * 'c] > > as 'c) = x#m;;
 [%%expect{|
@@ -134,7 +134,7 @@ val h :
   <fun>
 |}]
 
-(* Since the row variable is not bound, 'a leaks *)
+(* Since the row variable is implicitly bound, 'a doesn't leak *)
 
 let j (x : < m : 'a. <n : 'b. [< `A of 'a ] -> 'c > > as 'c) = x#m;;
 [%%expect{|

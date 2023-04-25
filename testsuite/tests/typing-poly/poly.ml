@@ -1525,7 +1525,7 @@ end;;
 [%%expect {|
 val n : < m : 'x 'a. ([< `Foo of 'x ] as 'a) -> 'x > = <obj>
 |}];;
-(* ok *)
+(* ok, due to implicit `'o. [< `Foo of _ ] as 'o`  *)
 let n =
   object method m : 'x. [< `Foo of 'x] -> 'x = fun x -> assert false end;;
 [%%expect {|
@@ -1576,7 +1576,7 @@ Error: This expression has type
          < m : 'b 'd. [< `Bar | `Foo of int & 'b ] as 'd >
        Types for tag `Foo are incompatible
 |}]
-(* fail? *)
+(* ok (with implicit universal quantification) *)
 let f (n : < m : 'a. [< `Foo of 'a & int | `Bar] >) =
   (n : < m : 'b. [< `Foo of 'b & int | `Bar] >)
 [%%expect{|
