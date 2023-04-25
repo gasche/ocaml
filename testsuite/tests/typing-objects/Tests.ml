@@ -1069,8 +1069,8 @@ Error: The class type
          object method foo : < foo : int; .. > -> < foo : int > -> unit end
        The method foo has type 'a. (< foo : int; .. > as 'a) -> 'a -> unit
        but is expected to have type
-         < foo : int; .. > -> < foo : int > -> unit
-       Type 'b is not compatible with type 'c
+         'b. (< foo : int; .. > as 'b) -> < foo : int > -> unit
+       Type 'c is not compatible with type <  >
 |}];;
 
 
