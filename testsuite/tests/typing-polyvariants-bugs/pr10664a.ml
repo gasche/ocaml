@@ -156,21 +156,5 @@ let o =
       object method n _ = self end
   end;;
 [%%expect{|
-Line 4, characters 6-34:
-4 |       object method n _ = self end
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Error: This expression has type
-         < n : 'b ->
-               (< m : 'a. < n : 'd. ([< `A of 'a ] as 'd) -> 'c > > as 'c) >
-       but an expression was expected of type
-         < n : 'e.
-                 ([< `A of 'f ] as 'e) ->
-                 (< m : 'a. < n : 'g. ([< `A of 'a ] as 'g) -> 'c > > as 'c) >
-       The method n has type
-       'b -> (< m : 'a. < n : 'h. ([< `A of 'a ] as 'h) -> 'c > > as 'c),
-       but the expected method type was
-       'i.
-         ([< `A of 'f ] as 'i) ->
-         (< m : 'a. < n : 'j. ([< `A of 'a ] as 'j) -> 'c > > as 'c)
-       The universal variable 'k would escape its scope
+val o : < m : 'c 'a. < n : ([< `A of 'a ] as 'c) -> 'b > > as 'b = <obj>
 |}]

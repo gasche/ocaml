@@ -618,7 +618,13 @@ and transl_type_aux env ~policy ~row_policy styp =
   | Ptyp_poly(vars, st) ->
       let vars = List.map (fun v -> v.txt) vars in
       let (new_univars, cty), implicit_row_univars =
-        TyVarEnv.collect_univars begin fun () ->
+        let collect = match vars with
+          | [] ->
+              (* empty Ptyp_poly are a typechecker encoding  *)
+              (fun f -> f (), [])
+          | _ :: _ -> TyVarEnv.collect_univars
+        in
+        collect begin fun () ->
           with_local_level begin fun () ->
             let new_univars = TyVarEnv.make_poly_univars vars in
             let cty = TyVarEnv.with_univars new_univars begin fun () ->

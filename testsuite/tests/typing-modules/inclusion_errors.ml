@@ -889,18 +889,13 @@ Error: Signature mismatch:
        Modules do not match:
          sig val f : < m : 'a. ([< `Foo ] as 'a) -> 'a > -> unit end
        is not included in
-         sig
-           val f :
-             < m : 'a 'b. ([< `Foo ] as 'a) -> ([< `Foo ] as 'b) > -> unit
-         end
+         sig val f : < m : [< `Foo ] -> [< `Foo ] > -> unit end
        Values do not match:
          val f : < m : 'a. ([< `Foo ] as 'a) -> 'a > -> unit
        is not included in
-         val f :
-           < m : 'a 'b. ([< `Foo ] as 'a) -> ([< `Foo ] as 'b) > -> unit
+         val f : < m : [< `Foo ] -> [< `Foo ] > -> unit
        The type < m : 'a. ([< `Foo ] as 'a) -> 'a > -> unit
-       is not compatible with the type
-         < m : 'b 'c. ([< `Foo ] as 'b) -> ([< `Foo ] as 'c) > -> unit
+       is not compatible with the type < m : [< `Foo ] -> [< `Foo ] > -> unit
        Types for method m are incompatible
 |}];;
 
