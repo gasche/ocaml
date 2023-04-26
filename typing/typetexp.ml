@@ -253,6 +253,7 @@ end = struct
     | _ -> ()
 
   let collect_univars f =
+    Misc.protect_refs [R(pre_univars, [])] @@ fun () ->
     pre_univars := [];
     let result = f () in
     let univs =
@@ -478,7 +479,7 @@ and transl_type_aux env ~policy ~row_policy styp =
       let ty = match get_desc ty with
         | Tobject (fi, _) ->
             let _, tv = flatten_fields fi in
-            TyVarEnv.add_pre_univar tv row_policy;
+            TyVarEnv.add_pre_univar tv policy;
             ty
         | _ ->
             assert false
@@ -488,7 +489,7 @@ and transl_type_aux env ~policy ~row_policy styp =
       let cty =
         try
           let t = TyVarEnv.lookup_local alias in
-          let ty = transl_type env ~policy ~row_policy st in
+          let ty = transl_type env ~policy ~row_policy:policy st in
           begin try unify_var env t ty.ctyp_type with Unify err ->
             let err = Errortrace.swap_unification_error err in
             raise(Error(styp.ptyp_loc, env, Alias_type_mismatch err))
@@ -616,7 +617,13 @@ and transl_type_aux env ~policy ~row_policy styp =
   | Ptyp_poly(vars, st) ->
       let vars = List.map (fun v -> v.txt) vars in
       let (new_univars, cty), implicit_row_univars =
-        TyVarEnv.collect_univars begin fun () ->
+        let collect = match vars with
+          | [] ->
+              (* empty Ptyp_poly are a typechecker encoding  *)
+              (fun f -> f (), [])
+          | _ :: _ -> TyVarEnv.collect_univars
+        in
+        collect begin fun () ->
           with_local_level begin fun () ->
             let new_univars = TyVarEnv.make_poly_univars vars in
             let cty = TyVarEnv.with_univars new_univars begin fun () ->
@@ -627,8 +634,10 @@ and transl_type_aux env ~policy ~row_policy styp =
           ~post:(fun (_,cty) -> generalize_ctyp cty)
         end
       in
-      let ty_list =
-        implicit_row_univars @ TyVarEnv.check_poly_univars env styp.ptyp_loc new_univars in
+      let explicit_ty_list =
+        TyVarEnv.check_poly_univars env styp.ptyp_loc new_univars
+      in
+      let ty_list = implicit_row_univars @ explicit_ty_list in
       let ty = cty.ctyp_type in
       let ty_list = List.filter (fun v -> deep_occur v ty) ty_list in
       let ty' = Btype.newgenty (Tpoly(ty, ty_list)) in
@@ -716,7 +725,7 @@ and transl_fields env ~policy ~row_policy o fields =
   let ty_init =
      match o with
      | Closed -> newty Tnil
-     | Open -> TyVarEnv.new_var row_policy
+     | Open -> TyVarEnv.new_var policy
   in
   let ty = List.fold_left (fun ty (s, ty') ->
       newty (Tfield (s, field_public, ty', ty))) ty_init fields in

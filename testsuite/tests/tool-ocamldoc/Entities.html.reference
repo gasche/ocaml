@@ -26,12 +26,12 @@
 <pre><span id="TYPEamp"><span class="keyword">type</span> <code class="type"></code>amp</span> </pre>
 
 
-<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type">[&lt; `A of &amp; <a href="Entities.html#TYPEamp">amp</a> ]</code> t</span> = &lt;</pre><table class="typetable">
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type">'a</code> t</span> = &lt;</pre><table class="typetable">
 <tr>
 <td align="left" valign="top" >
 <code>&nbsp;&nbsp;</code></td>
 <td align="left" valign="top" >
-<code><span id="TYPEELTt.ul">ul</span>&nbsp;: <code class="type">&lt; li : [&lt; `A of &amp; <a href="Entities.html#TYPEamp">amp</a> ] as 'a &gt;</code>;</code></td>
+<code><span id="TYPEELTt.ul">ul</span>&nbsp;: <code class="type">&lt; li : 'a0. [&lt; `A of &amp; <a href="Entities.html#TYPEamp">amp</a> ] as 'a0 &gt;</code>;</code></td>
 
 </tr></table>
 >
