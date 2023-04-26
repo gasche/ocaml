@@ -253,7 +253,7 @@ end = struct
     | _ -> ()
 
   let collect_univars f =
-    let old_univars = !pre_univars in
+    Misc.protect_refs [R(pre_univars, [])] @@ fun () ->
     pre_univars := [];
     let result = f () in
     let univs =
@@ -265,7 +265,6 @@ end = struct
                v :: acc
            | _ -> acc)
         [] !pre_univars in
-    pre_univars := old_univars;
     result, univs
 
   let new_var ?name policy =
