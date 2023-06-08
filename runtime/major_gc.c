@@ -491,7 +491,7 @@ static inline intnat diffmod (uintnat x1, uintnat x2)
   return (intnat) (x1 - x2);
 }
 
-static void update_major_slice_work(intnat howmuch) {
+static void update_major_slice_work(intnat howmuch, collection_slice_mode mode) {
   double heap_words;
   intnat alloc_work, dependent_work, extra_work, new_work;
   intnat my_alloc_count, my_dependent_count;
@@ -616,7 +616,7 @@ static void update_major_slice_work(intnat howmuch) {
               " %"ARCH_INTNAT_PRINTF_FORMAT "u slice target,  "
               " %"ARCH_INTNAT_PRINTF_FORMAT "d slice budget"
               ,
-              caml_gc_phase_char(caml_gc_phase),
+              caml_gc_phase_char(mode),
               (uintnat)heap_words, dom_st->allocated_words,
               alloc_work, dependent_work, extra_work,
               atomic_load (&work_counter),
@@ -1489,7 +1489,7 @@ static void major_collection_slice(intnat howmuch,
   int log_events = mode != Slice_opportunistic ||
                    (atomic_load_relaxed(&caml_verb_gc) & 0x40);
 
-  update_major_slice_work(howmuch);
+  update_major_slice_work(howmuch, mode);
 
   /* When a full slice of major GC work is done,
      or the slice is interrupted (in mode Slice_interruptible),
@@ -1671,7 +1671,7 @@ mark_again:
     ("Major slice [%c%c%c]: %ld sweep, %ld mark (%lu blocks)",
               collection_slice_mode_char(mode),
               !caml_incoming_interrupts_queued() ? '.' : '*',
-              caml_gc_phase_char(caml_gc_phase),
+              caml_gc_phase_char(mode),
               (long)sweep_work, (long)mark_work,
               (unsigned long)(domain_state->stat_blocks_marked
                                                       - blocks_marked_before));
@@ -1919,7 +1919,11 @@ void caml_teardown_major_gc(void) {
   caml_domain_state* d = Caml_state;
 
   /* account for latest allocations */
-  update_major_slice_work (0);
+  update_major_slice_work (0,
+    /* Hack: we use Slice_opportunistic here to indicate that this
+       code may run concurrently with a STW section -- at this point
+       we have been removed from the STW participant set. */
+    Slice_opportunistic);
   CAMLassert(!caml_addrmap_iter_ok(&d->mark_stack->compressed_stack,
                                    d->mark_stack->compressed_stack_iter));
   caml_addrmap_clear(&d->mark_stack->compressed_stack);

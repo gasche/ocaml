@@ -23,10 +23,23 @@ typedef enum {
   Phase_mark_final,
   Phase_sweep_ephe
 } gc_phase_t;
+
+/* The caml_gc_phase global is only ever updated at the end of the STW
+   section, by the last domain leaving a barrier. This means that no
+   synchronization is required on typical reads: the only races could
+   happen with reads happening inside the STW section, and in fact
+   within barriers within the STW sections.
+
+   There are in fact non-trivial parts of the runtime that run during
+   barriers in STW sections: opportunistic collections. Opportunistic
+   work can race with caml_gc_phase update, so they cannot read
+   caml_gc_phase. */
 extern gc_phase_t caml_gc_phase;
 
-Caml_inline char caml_gc_phase_char(gc_phase_t phase) {
-  switch (phase) {
+Caml_inline char caml_gc_phase_char(collection_slice_mode mode) {
+  if (mode == Slice_opportunistic)
+    return 'O';
+  switch (caml_gc_phase) {
     case Phase_sweep_and_mark_main:
       return 'M';
     case Phase_mark_final:
