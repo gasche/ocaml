@@ -906,25 +906,12 @@ void caml_init_domain_self(int domain_id) {
 
 enum domain_status { Dom_starting, Dom_started, Dom_failed };
 
+/* those OCaml values are transferred from the parent to the child;
+   they must be rooted by either one of them at any time. */
 struct domain_ml_values {
-  value callback;
-  value term_mutex;
+  value *callback;
+  value *term_mutex;
 };
-
-static void init_domain_ml_values(struct domain_ml_values* ml_values,
-                                  value callback, value term_mutex)
-{
-  ml_values->callback = callback;
-  ml_values->term_mutex = term_mutex;
-  caml_register_generational_global_root(&ml_values->callback);
-  caml_register_generational_global_root(&ml_values->term_mutex);
-}
-
-static void free_domain_ml_values(struct domain_ml_values* ml_values) {
-  caml_remove_generational_global_root(&ml_values->callback);
-  caml_remove_generational_global_root(&ml_values->term_mutex);
-  caml_stat_free(ml_values);
-}
 
 /* This is the structure of the data exchanged between the parent
    domain and child domain during domain_spawn. Some fields are 'in'
@@ -935,7 +922,7 @@ struct domain_startup_params {
   struct interruptor* parent; /* in */
   enum domain_status status; /* in+out:
                                 parent and child synchronize on this value. */
-  struct domain_ml_values* ml_values; /* in */
+  struct domain_ml_values ml_values; /* in */
   dom_internal* newdom; /* out */
   uintnat unique_id; /* out */
 #ifndef _WIN32
@@ -1073,7 +1060,6 @@ static void domain_terminate(void);
 static void* domain_thread_func(void* v)
 {
   struct domain_startup_params* p = v;
-  struct domain_ml_values *ml_values = p->ml_values;
 #ifndef _WIN32
   sigset_t mask = *(p->mask);
   void * signal_stack;
@@ -1087,6 +1073,14 @@ static void* domain_thread_func(void* v)
   domain_create(caml_params->init_minor_heap_wsz);
   /* this domain is now part of the STW participant set */
   p->newdom = domain_self;
+
+  /* Now that the domain is setup, we can register (local) roots.
+     Copy the ml_values and root them.
+     (The parent domain has them rooted until the handshake below.) */
+  CAMLparam0();
+  CAMLlocal2(callback, term_mutex);
+  callback = *(p->ml_values.callback);
+  term_mutex = *(p->ml_values.term_mutex);
 
   /* handshake with the parent domain */
   caml_plat_lock(&p->parent->lock);
@@ -1114,28 +1108,26 @@ static void* domain_thread_func(void* v)
     /* FIXME: ignoring errors and asynchronous exceptions during
        domain initialization is unsafe and/or can deadlock. */
     caml_domain_initialize_hook();
-    caml_callback_exn(ml_values->callback, Val_unit);
+
+    /* unrooted: see the [note about callbacks and GC] in callback.c */
+    value unrooted_callback = callback;
+    callback = Val_unit;
+    caml_callback_exn(unrooted_callback, Val_unit);
+
     domain_terminate();
 
     /* This domain currently holds the [term_mutex], and has signaled all the
        waiting domains to be woken up. We unlock the [term_mutex] to release
        the joining domains. The unlock is done after [domain_terminate] to
        ensure that this domain has released all of its runtime state. */
-    caml_mutex_unlock(Mutex_val(ml_values->term_mutex));
-
-    /* [ml_values] must be freed after unlocking [term_mutex]. This ensures
-       that [term_mutex] is only removed from the root set after [term_mutex]
-       is unlocked. Otherwise, there is a risk of [term_mutex] being destroyed
-       by [caml_mutex_finalize] finaliser while it remains locked, leading to
-       undefined behaviour. */
-    free_domain_ml_values(ml_values);
+    caml_mutex_unlock(Mutex_val(term_mutex));
   } else {
     caml_gc_log("Failed to create domain");
   }
 #ifndef _WIN32
   caml_free_signal_stack(signal_stack);
 #endif
-  return 0;
+  CAMLreturnT(void*, 0);
 }
 
 CAMLprim value caml_domain_spawn(value callback, value mutex)
@@ -1155,10 +1147,10 @@ CAMLprim value caml_domain_spawn(value callback, value mutex)
   p.parent = &domain_self->interruptor;
   p.status = Dom_starting;
 
-  p.ml_values =
-      (struct domain_ml_values*) caml_stat_alloc(
-                                    sizeof(struct domain_ml_values));
-  init_domain_ml_values(p.ml_values, callback, mutex);
+  /* We pass a reference to the values that we have rooted.
+     The child domain will copy and reroot them before the handshake. */
+  p.ml_values.callback = &callback;
+  p.ml_values.term_mutex = &mutex;
 
 /* We block all signals while we spawn the new domain. This is because
    pthread_create inherits the current signals set, and we want to avoid a
@@ -1194,14 +1186,12 @@ CAMLprim value caml_domain_spawn(value callback, value mutex)
   caml_plat_unlock(&domain_self->interruptor.lock);
 
   if (p.status == Dom_started) {
-    /* successfully created a domain.
-       p.ml_values is now owned by that domain */
+    /* successfully created a domain. */
     pthread_detach(th);
   } else {
     CAMLassert (p.status == Dom_failed);
     /* failed */
     pthread_join(th, 0);
-    free_domain_ml_values(p.ml_values);
     caml_failwith("failed to allocate domain");
   }
   /* When domain 0 first spawns a domain, the backup thread is not active, we
