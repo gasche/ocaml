@@ -61,7 +61,11 @@ CAMLexport value caml_alloc (mlsize_t wosize, tag_t tag)
 CAMLexport value caml_alloc_shr_check_gc (mlsize_t wosize, tag_t tag)
 {
   caml_check_urgent_gc (Val_unit);
-  return caml_alloc_shr (wosize, tag);
+  value result = caml_alloc_shr (wosize, tag);
+  if (tag < No_scan_tag) {
+    for (mlsize_t i = 0; i < wosize; i++) Field (result, i) = Val_unit;
+  }
+  return result;
 }
 
 /* Copy the values to be preserved to a different array.
