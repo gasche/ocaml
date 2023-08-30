@@ -3263,6 +3263,27 @@ let arg_to_var arg cls =
       let v = name_pattern "*match*" cls in
       (v, Lvar v)
 
+(* When we match on a column, we want to bind eagerly (now) the
+   accesses to mutable fields. *)
+
+let bind_strict_pm_args (pm : _ pattern_matching) compile_fun =
+  let args_now_rev, args_later =
+    List.fold_left_map (fun args_now ((arg_lam, str) as arg) ->
+      match str with
+      | Alias -> (args_now, arg)
+      | Strict | StrictOpt ->
+          let v, newarg = arg_to_var arg_lam [] in
+          ((v, arg_lam, str) :: args_now, (newarg, Alias))
+    ) [] pm.args
+  in
+  let lam, jumps = compile_fun { pm with args = args_later } in
+  let lam =
+    List.fold_left (fun lam (v, arg, str) ->
+      bind str v arg lam
+    ) lam args_now_rev
+  in
+  (lam, jumps)
+
 (*
   The main compilation function.
    Input:
@@ -3291,6 +3312,7 @@ let rec compile_match ~scopes repr partial ctx
 
 and compile_match_nonempty ~scopes repr partial ctx
     (m : Typedtree.pattern Non_empty_row.t clause pattern_matching) =
+  bind_strict_pm_args m @@ fun m ->
   match m with
   | { cases = []; args = [] } -> comp_exit ctx m
   | { args = (arg, str) :: argl } ->
@@ -3305,6 +3327,7 @@ and compile_match_nonempty ~scopes repr partial ctx
 
 and compile_match_simplified ~scopes repr partial ctx
     (m : Simple.clause pattern_matching) =
+  bind_strict_pm_args m @@ fun m ->
   match m with
   | { cases = []; args = [] } -> comp_exit ctx m
   | { args = ((Lvar v as arg), str) :: argl } ->
