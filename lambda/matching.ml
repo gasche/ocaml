@@ -1667,6 +1667,36 @@ type cell = {
 (** a submatrix after specializing by discriminant pattern;
     [ctx] is the context shared by all rows. *)
 
+(* To find reasonable names for variables *)
+
+let rec name_pattern = function
+  | ((pat, _), _) :: rem -> (
+      match pat.pat_desc with
+      | Tpat_var (id, _) -> Some id
+      | Tpat_alias (_, id, _) -> Some id
+      | _ -> name_pattern rem
+    )
+  | _ -> None
+
+let name_expr = function
+  | Lvar v -> Some v
+  | Lprim (Pfield (i, _, _), [ Lvar v ], _loc) ->
+    let v_i = String.concat "'" [Ident.name v; string_of_int i] in
+    Some (Ident.create_local v_i)
+  | _ -> None
+
+let arg_to_var ~default arg cls =
+  match arg with
+  | Lvar v -> v
+  | _ ->
+  match name_pattern cls with
+  | Some v -> v
+  | None ->
+  match name_expr arg with
+  | Some v -> v
+  | None ->
+  Ident.create_local default
+
 (* When we match on a column, we want to bind eagerly (now) the
    accesses to mutable fields. *)
 let collect_strict_args args =
@@ -1675,7 +1705,7 @@ let collect_strict_args args =
       match str with
       | Alias -> (args_now, arg)
       | Strict | StrictOpt ->
-          let v = Ident.create_local "*strict*" in
+          let v = arg_to_var ~default:"*strict*" arg_lam [] in
           ((v, arg_lam, str) :: args_now, (Lvar v, Alias))
     ) [] args
   in List.rev bindings_rev, delayed_args
@@ -3271,24 +3301,6 @@ let rec comp_match_handlers comp_fun partial ctx first_match next_matches =
         comp_match_handlers comp_fun partial ctx second_match next_next_matches
     )
 
-(* To find reasonable names for variables *)
-
-let rec name_pattern default = function
-  | ((pat, _), _) :: rem -> (
-      match pat.pat_desc with
-      | Tpat_var (id, _) -> id
-      | Tpat_alias (_, id, _) -> id
-      | _ -> name_pattern default rem
-    )
-  | _ -> Ident.create_local default
-
-let arg_to_var arg cls =
-  match arg with
-  | Lvar v -> (v, arg)
-  | _ ->
-      let v = name_pattern "*match*" cls in
-      (v, Lvar v)
-
 (*
   The main compilation function.
    Input:
@@ -3320,7 +3332,8 @@ and compile_match_nonempty ~scopes repr partial ctx
   match m with
   | { cases = []; args = [] } -> comp_exit ctx m
   | { args = (arg, str) :: argl } ->
-      let v, newarg = arg_to_var arg m.cases in
+      let v = arg_to_var ~default:"*match*" arg m.cases in
+      let newarg = Lvar v in
       let args = (newarg, Alias) :: argl in
       let cases = List.map (half_simplify_nonempty ~arg:newarg) m.cases in
       let m = { m with args; cases } in
