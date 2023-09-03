@@ -527,8 +527,23 @@ end = struct
     (** Recombination of contexts.
         For example:
           { (_,_)::left; p1::p2::right } -> { left; (p1,p2)::right }
-        All mutable fields are replaced by '_', since side-effects in
-        guards can alter these fields. *)
+
+        [set_args_erase_mutable]: all mutable fields are replaced by
+        '_', since side-effects in guards can alter these fields.
+
+        Note: erasing mutable field information on [combine] means
+        that no static information is kept on the mutable sub-fields
+        of the current arguments of the pattern matrix -- and their
+        sub-sub-fields, etc.
+
+        We do keep information on the head constructor of each
+        argument, which correspond to the head constructors of the
+        [right] columns in the context. This information remains valid
+        even if the arguments are themselves under a mutable field,
+        because accesses to mutable fields are evaluated strictly as
+        soon as the corresponding arguments appear in the context, and
+        never re-evaluated inside their lexical scope -- see
+        [collect_strict_bindings].  *)
     let combine { left; right } =
       match left with
       | p :: ps -> { left = ps; right = set_args_erase_mutable p right }
@@ -1697,8 +1712,32 @@ let arg_to_var ~default arg cls =
   | None ->
   Ident.create_local default
 
-(* When we match on a column, we want to bind eagerly (now) the
-   accesses to mutable fields. *)
+(* Note on [collect_strict_args]:
+
+   When we split on a column, we generate expressions to access the
+   sub-values of the scrutinee (see the [get_expr_args_*] functions),
+   which are pushed in the [args] list of sub-scrutinees. Those
+   expressions will be bound to variables in the generated code in
+   a "delayed" manner: each argument will be bound right before the
+   corresponding colum is itself split over. Sometimes the
+   pattern-matching compiler will split on the same position several
+   times, and argument access expressions may be duplicated in the
+   generated code.
+
+   However, some access expressions are effectful: reads of a mutable
+   field or array element, forcing a lazy thunk. We bind these in
+   a "strict" manner, right after splitting on the head constructor
+   above those subvalues. This guarantees that they are never
+   duplicated in the generated code. Reading a mutable field several
+   times would not only give surprising behavior in some cases, it is
+   even unsound (see issue #7241): our "context" optimizations
+   (see the [Context]) module carry static optimization information on
+   the scrutinees: "we know this argument starts with a [Some]
+   constructor, so we can access its first field directly without
+   checking". This information could become invalid on a second read
+   of the mutable field (the argument was mutated into [None]),
+   leading to memory errors.
+*)
 let collect_strict_args args =
   let bindings_rev, delayed_args =
     List.fold_left_map (fun args_now ((arg_lam, str) as arg) ->
