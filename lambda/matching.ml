@@ -2731,6 +2731,12 @@ let complete_pats_constrs = function
 *)
 
 let mk_failaction_neg partial ctx def =
+  debugf
+    "@,@[<v 2>COMBINE (mk_failaction_neg %s)@]"
+    ( match partial with
+    | Partial -> "Partial"
+    | Total -> "Total"
+    );
   match partial with
   | Partial -> (
       match Default_environment.pop def with
@@ -2779,13 +2785,17 @@ let mk_failaction_pos partial seen ctx defs =
         defs
     in
     debugf
-      "@,@[<v 2>COMBINE (mk_failaction_pos)@,\
+      "@,@[<v 2>COMBINE (mk_failaction_pos %s)@,\
            %a@,\
            @[<v 2>FAIL PATTERNS:@,\
              %a@]@,\
            @[<v 2>POSITIVE JUMPS:@,\
              %a@]\
            @]"
+      ( match partial with
+      | Partial -> "Partial"
+      | Total -> "Total"
+      )
       Default_environment.pp defs
       (Format.pp_print_list ~pp_sep:Format.pp_print_cut
          Printpat.pretty_pat) fail_pats
