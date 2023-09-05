@@ -277,6 +277,9 @@ Working version
   bytecode executable (`ocamlc -custom`).
   (Antonin Décimo, review by Xavier Leroy)
 
+- #12532: improve readability of the pattern-matching debug output
+  (Gabriel Scherer, review by ???)
+
 ### Build system:
 
 - #12198, #12321: continue the merge of the sub-makefiles into the root Makefile
