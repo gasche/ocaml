@@ -97,7 +97,7 @@ open Printpat
 
 module Scoped_location = Debuginfo.Scoped_location
 
-let dbg = false
+let dbg = true
 
 (*
    Compatibility predicate that considers potential rebindings of constructors
