@@ -145,7 +145,7 @@ and pretty_lvals ppf = function
         lbl.lbl_name pretty_val v pretty_lvals rest
 
 let top_pretty ppf v =
-  fprintf ppf "@[%a@]@?" pretty_val v
+  fprintf ppf "@[%a@]" pretty_val v
 
 let pretty_pat p =
   top_pretty Format.str_formatter p ;
@@ -153,17 +153,15 @@ let pretty_pat p =
 
 type 'k matrix = 'k general_pattern list list
 
-let pretty_line fmt =
+let pretty_line fmt line =
+  Format.fprintf fmt "@[";
   List.iter (fun p ->
-    Format.fprintf fmt " <";
-    top_pretty fmt p;
-    Format.fprintf fmt ">";
-  )
+    Format.fprintf fmt "<%a>@ "
+      top_pretty p
+  ) line;
+  Format.fprintf fmt "@]"
 
 let pretty_matrix fmt (pss : 'k matrix) =
-  Format.fprintf fmt "begin matrix\n" ;
-  List.iter (fun ps ->
-    pretty_line fmt ps ;
-    Format.fprintf fmt "\n"
-  ) pss;
-  Format.fprintf fmt "end matrix\n%!"
+  Format.fprintf fmt "@[<v 2>  %a@]"
+    (Format.pp_print_list ~pp_sep:Format.pp_print_cut pretty_line)
+    pss
