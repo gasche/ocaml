@@ -464,6 +464,10 @@ let ncols = function
   | [] -> 0
   | ps :: _ -> List.length ps
 
+let pp_partial ppf = function
+  | Total -> Format.fprintf ppf "Total"
+  | Partial -> Format.fprintf ppf "Partial"
+
 module Context : sig
   type t
 
@@ -920,15 +924,20 @@ end = struct
 
   let partial { partial = p; _ } = p
 
-  let pp ppf ({ env } : t) =
-    if env = [] then Format.fprintf ppf "empty" else
-    Format.pp_print_list ~pp_sep:Format.pp_print_cut (fun ppf (i, ctx) ->
-      Format.fprintf ppf
-        "jump for %d@,\
-         %a"
-        i
-        Context.pp ctx
-    ) ppf env
+  let pp ppf ({ env; partial } : t) =
+    if env = [] then Format.fprintf ppf "empty"
+    else begin
+      Format.pp_print_list ~pp_sep:Format.pp_print_cut (fun ppf (i, ctx) ->
+        Format.fprintf ppf
+          "jump for %d@,\
+           %a"
+          i
+          Context.pp ctx
+      ) ppf env
+    end;
+    match partial with
+    | Partial -> debugf "@,Partial"
+    | Total -> debugf "@,Total"
 
   let extract i jumps =
     let rec extract i = function
@@ -2790,11 +2799,9 @@ let complete_pats_constrs = function
 
 let mk_failaction_neg partial ctx def =
   debugf
-    "@,@[<v 2>COMBINE (mk_failaction_neg %s)@]"
-    ( match partial with
-    | Partial -> "Partial"
-    | Total -> "Total"
-    );
+    "@,@[<v 2>COMBINE (mk_failaction_neg %a)@]"
+    pp_partial partial
+  ;
   match partial with
   | Partial -> (
       match Default_environment.pop def with
@@ -2862,20 +2869,21 @@ let mk_failaction_pos partial seen ctx defs =
       ) fail_pats in
     let fails, jmps = scan_def [] fail_pats_with_ctx defs in
     debugf
-      "@,@[<v 2>COMBINE (mk_failaction_pos %s)@,\
+      "@,@[<v 2>COMBINE (mk_failaction_pos %a)@,\
            %a@,\
+           @[<v 2>CTX:@,\
+             %a@]@,\
            @[<v 2>FAIL PATTERNS:@,\
              %a@]@,\
-           @[<v 2>POSITIVE JUMPS:@,\
+           @[<v 2>POSITIVE JUMPS (%a):@,\
              %a@]\
            @]"
-      ( match partial with
-      | Partial -> "Partial"
-      | Total -> "Total"
-      )
+      pp_partial partial
       Default_environment.pp defs
+      Context.pp ctx
       (Format.pp_print_list ~pp_sep:Format.pp_print_cut
          Printpat.pretty_pat) fail_pats
+      pp_partial (Jumps.partial jmps)
       Jumps.pp jmps
     ;
     (None, fails, jmps)
@@ -3516,12 +3524,9 @@ and combine_handlers ~scopes repr partial ctx (v, str, arg) first_match rem =
 (* verbose version of do_compile_matching, for debug *)
 and do_compile_matching_pr ~scopes repr partial ctx x =
   debugf
-    "@[<v>MATCH %s\
+    "@[<v>MATCH %a\
      @,%a"
-    ( match partial with
-    | Partial -> "Partial"
-    | Total -> "Total"
-    )
+    pp_partial partial
     pretty_precompiled x;
   debugf "@,@[<v 2>CTX:@,%a@]"
     Context.pp ctx;
@@ -3534,7 +3539,8 @@ and do_compile_matching_pr ~scopes repr partial ctx x =
   in
   debugf "@]";
   if Jumps.is_empty jumps then
-    debugf "@,NO JUMPS"
+    debugf "@,NO JUMPS (%a)"
+      pp_partial (Jumps.partial jumps)
   else
     debugf "@,@[<v 2>JUMPS:@,%a@]"
       Jumps.pp jumps;
