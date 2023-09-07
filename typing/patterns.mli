@@ -104,6 +104,11 @@ module Head : sig
   (** reconstructs a pattern, putting wildcards as sub-patterns. *)
   val to_omega_pattern : t -> pattern
 
+  (** [mutability] is a list of size [arity head], each element
+      indicates whether the argument in the corresponding position is
+      mutable. *)
+  val mutability : t -> Asttypes.mutable_flag list
+
   val omega : t
 
 end
