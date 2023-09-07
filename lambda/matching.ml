@@ -1043,7 +1043,7 @@ end
 
 type 'row pattern_matching = {
   mutable cases : 'row list;
-  args : lambda list;
+  args : (lambda * mutable_flag) list;
       (** Args are not just Ident.t. For example, when matching the
           arguments of a constructor, direct field projections are
           used (see [make_field_args]).
@@ -1586,7 +1586,7 @@ and precompile_var args cls def k =
      If the rest doesn't generate any split, abort and do_not_precompile. *)
   match args with
   | [] -> assert false
-  | _ :: (Lvar v as arg) :: rargs -> (
+  | _ :: ((Lvar v as arg_lam, _) as arg) :: rargs -> (
       (* We will use the name of the head column of the submatrix
          we compile, and this is the *second* column of our argument. *)
       match cls with
@@ -1604,7 +1604,7 @@ and precompile_var args cls def k =
                 (* we learned by pattern-matching on [args]
                    that [p::ps] has at least two arguments,
                    so [ps] must be non-empty *)
-                half_simplify_clause ~arg (ps, act))
+                half_simplify_clause ~arg:arg_lam (ps, act))
               cls
           and var_def = Default_environment.pop_column def in
           let { me = first; matrix }, nexts =
@@ -1875,10 +1875,19 @@ let collect_strict_args args =
     ) [] args
   in List.rev bindings_rev, delayed_args
 
-let process_new_args get_expr_args head arg old_args =
-  let new_args = get_expr_args head arg [] in
+let process_new_args get_expr_args head (arg_lam, arg_mut) old_args =
+  let new_args = get_expr_args head arg_lam [] in
   let bindings, new_delayed_args = collect_strict_args new_args in
-  let args = new_delayed_args @ old_args in
+  let conj_mut m1 m2 = match m1, m2 with
+    | Immutable, Immutable -> Immutable
+    | Mutable, _ | _, Mutable -> Mutable
+  in
+  let new_delayed_args_with_mut =
+    List.map2 (fun new_arg mut ->
+      (new_arg, conj_mut arg_mut mut)
+    ) new_delayed_args (Patterns.Head.mutability head)
+  in
+  let args = new_delayed_args_with_mut @ old_args in
   (bindings, args)
 
 let make_matching get_expr_args head def ctx = function
@@ -1897,7 +1906,7 @@ let make_line_matching get_expr_args head def = function
       bindings, { cases = []; args; default; }
 
 type 'a division = {
-  args : lambda list;
+  args : (lambda * mutable_flag) list;
   cells : ('a * cell) list
 }
 
@@ -2861,11 +2870,12 @@ let complete_pats_constrs = function
   | _ -> assert false
 
 (*
-     Following two ``failaction'' function compute n, the trap handler
+    Following two ``failaction'' function compute n, the trap handler
     to jump to in case of failure of elementary tests
 *)
 
-let mk_failaction_neg partial ctx def =
+
+let mk_failaction_neg partial (_mut : mutable_flag) ctx def =
   debugf
     "@,@[<v 2>COMBINE (mk_failaction_neg %a)@]"
     pp_partial partial
@@ -2883,7 +2893,7 @@ let mk_failaction_neg partial ctx def =
   | Total -> (None, Jumps.empty partial)
 
 (* In line with the article and simpler than before *)
-let mk_failaction_pos partial seen ctx defs =
+let mk_failaction_pos partial mut seen ctx defs =
   let rec scan_def env to_test defs =
     match (to_test, Default_environment.pop defs) with
     | [], _
@@ -2957,7 +2967,7 @@ let mk_failaction_pos partial seen ctx defs =
     (None, fails, jmps)
   ) else (
     (* Too many non-matched constructors -> reduced information *)
-    let fail, jumps = mk_failaction_neg partial ctx defs in
+    let fail, jumps = mk_failaction_neg partial mut ctx defs in
     debugf
       "@,@[<v 2>COMBINE (mk_failaction_pos)@,\
            %a@,\
@@ -2973,9 +2983,9 @@ let mk_failaction_pos partial seen ctx defs =
     (fail, [], jumps)
   )
 
-let combine_constant loc arg cst partial ctx def
+let combine_constant loc (arg, mut) cst partial ctx def
     (const_lambda_list, total, _pats) =
-  let fail, local_jumps = mk_failaction_neg partial ctx def in
+  let fail, local_jumps = mk_failaction_neg partial mut ctx def in
   let lambda1 =
     match cst with
     | Const_int _ ->
@@ -3070,13 +3080,13 @@ let transl_match_on_option arg loc ~if_some ~if_none =
   else
     Lifthenelse(arg, if_some, if_none)
 
-let combine_constructor loc arg pat_env cstr partial ctx def
+let combine_constructor loc (arg, mut) pat_env cstr partial ctx def
     (descr_lambda_list, total1, pats) =
   let tag_lambda (cstr, act) = (cstr.cstr_tag, act) in
   match cstr.cstr_tag with
   | Cstr_extension _ ->
       (* Special cases for extensions *)
-      let fail, local_jumps = mk_failaction_neg partial ctx def in
+      let fail, local_jumps = mk_failaction_neg partial mut ctx def in
       let lambda1 =
         let consts, nonconsts =
           split_extension_cases (List.map tag_lambda descr_lambda_list) in
@@ -3125,7 +3135,7 @@ let combine_constructor loc arg pat_env cstr partial ctx def
           let constrs =
             List.map2 (fun (constr, _act) p -> { p with pat_desc = constr })
               descr_lambda_list pats in
-          mk_failaction_pos partial constrs ctx def
+          mk_failaction_pos partial mut constrs ctx def
       in
       let descr_lambda_list = fails @ descr_lambda_list in
       let consts, nonconsts =
@@ -3237,8 +3247,9 @@ let call_switcher_variant_constr loc fail arg int_lambda_list =
       Lprim (Pfield (0, Pointer, Immutable), [ arg ], loc),
       call_switcher loc fail (Lvar v) min_int max_int int_lambda_list )
 
-let combine_variant loc row arg partial ctx def (tag_lambda_list, total1, _pats)
-    =
+let combine_variant loc row (arg, mut) partial ctx def
+    (tag_lambda_list, total1, _pats)
+  =
   let num_constr = ref 0 in
   if row_closed row then
     List.iter
@@ -3266,7 +3277,7 @@ let combine_variant loc row arg partial ctx def (tag_lambda_list, total1, _pats)
     then
       (None, Jumps.empty partial)
     else
-      mk_failaction_neg partial ctx def
+      mk_failaction_neg partial mut ctx def
   in
   let consts, nonconsts = split_cases tag_lambda_list in
   let lambda1 =
@@ -3301,9 +3312,10 @@ let combine_variant loc row arg partial ctx def (tag_lambda_list, total1, _pats)
   in
   (lambda1, Jumps.union local_jumps total1)
 
-let combine_array loc arg kind partial ctx def (len_lambda_list, total1, _pats)
-    =
-  let fail, local_jumps = mk_failaction_neg partial ctx def in
+let combine_array loc (arg, mut) kind partial ctx def
+    (len_lambda_list, total1, _pats)
+  =
+  let fail, local_jumps = mk_failaction_neg partial mut ctx def in
   let lambda1 =
     let newvar = Ident.create_local "len" in
     let switch =
@@ -3413,12 +3425,15 @@ let compile_orhandlers compile_fun lambda1 total1 ctx to_catch =
   in
   do_rec lambda1 total1 to_catch
 
-let compile_test compile_fun partial divide combine ctx to_match =
+let compile_test compile_fun partial divide combine
+    ctx (to_match : _ pattern_matching)
+  =
   let division = divide ctx to_match in
   let c_div = compile_list compile_fun division.cells in
   match c_div with
   | [], _, _ -> (
-      match mk_failaction_neg partial ctx to_match.default with
+      let mut = snd (List.hd to_match.args) in
+      match mk_failaction_neg partial mut ctx to_match.default with
       | None, _ -> raise Unused
       | Some l, total -> (l, total)
     )
@@ -3544,10 +3559,10 @@ and compile_match_nonempty ~scopes repr partial ctx
     (m : Typedtree.pattern Non_empty_row.t clause pattern_matching) =
   match m with
   | { cases = []; args = [] } -> comp_exit ctx m
-  | { args = arg :: argl } ->
+  | { args = (arg, mut) :: argl } ->
       let v = arg_to_var ~default:"*match*" arg m.cases in
       let newarg = Lvar v in
-      let args = newarg :: argl in
+      let args = (newarg, mut) :: argl in
       let cases = List.map (half_simplify_nonempty ~arg:newarg) m.cases in
       let m = { m with args; cases } in
       let first_match, rem =
@@ -3559,7 +3574,7 @@ and compile_match_simplified ~scopes repr partial ctx
     (m : Simple.clause pattern_matching) =
   match m with
   | { cases = []; args = [] } -> comp_exit ctx m
-  | { args = (Lvar v as arg) :: _ } ->
+  | { args = (Lvar v as arg, _) :: _ } ->
       let first_match, rem = split_and_precompile_simplified m in
       combine_handlers ~scopes repr partial ctx (v, Alias, arg) first_match rem
   | _ -> assert false
@@ -3844,7 +3859,7 @@ let compile_matching ~scopes loc ~failer repr arg pat_act_list partial =
   let (v, _) as v_param =
     let cls = List.map (fun (p, act) -> (p, []), act) pat_act_list in
     param_to_var cls arg in
-  let args = [ Lvar v ] in
+  let args = [ (Lvar v, Immutable) ] in
   let rows = map_on_rows (fun pat -> (pat, [])) pat_act_list in
   bind_opt v_param @@
   toplevel_handler ~scopes loc ~failer partial args rows (fun partial pm ->
@@ -4040,7 +4055,7 @@ let for_let ~scopes loc param pat body =
 (* Easy case since variables are available *)
 let for_tupled_function ~scopes loc paraml pats_act_list partial =
   let partial = check_partial_list pats_act_list partial in
-  let args = List.map (fun id -> (Lvar id)) paraml in
+  let args = List.map (fun id -> (Lvar id, Immutable)) paraml in
   let handler =
     toplevel_handler ~scopes loc ~failer:Raise_match_failure
       partial args pats_act_list in
@@ -4121,21 +4136,22 @@ let compile_flattened ~scopes repr partial ctx pmh =
 
 let do_for_multiple_match ~scopes loc v_args pat_act_list partial =
   let repr = None in
-  let flat_args = List.map (fun v -> Lvar v) v_args in
+  let flat_args_lam = List.map (fun v -> Lvar v) v_args in
   let arg =
     let sloc = Scoped_location.of_location ~scopes loc in
-    Lprim (Pmakeblock (0, Immutable, None), flat_args, sloc) in
+    Lprim (Pmakeblock (0, Immutable, None), flat_args_lam, sloc) in
   let handler =
     let partial = check_partial pat_act_list partial in
     let rows = map_on_rows (fun p -> (p, [])) pat_act_list in
     toplevel_handler ~scopes loc ~failer:Raise_match_failure
-      partial [ arg ] rows in
+      partial [ (arg, Immutable) ] rows in
   handler (fun partial pm1 ->
     let pm1_half =
       { pm1 with cases = List.map (half_simplify_nonempty ~arg) pm1.cases }
     in
     let next, nexts = split_and_precompile_half_simplified ~arg pm1_half in
     let size = List.length v_args in
+    let flat_args = List.map (fun arg -> (arg, Immutable)) flat_args_lam in
     let flat_next = flatten_precompiled size flat_args next
     and flat_nexts =
       List.map (fun (e, pm) -> (e, flatten_precompiled size flat_args pm)) nexts
