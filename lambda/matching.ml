@@ -468,6 +468,10 @@ let pp_partial ppf = function
   | Total -> Format.fprintf ppf "Total"
   | Partial -> Format.fprintf ppf "Partial"
 
+let pp_mutable ppf = function
+  | Mutable -> Format.fprintf ppf "Mutable"
+  | Immutable -> Format.fprintf ppf "Immutable"
+
 module Context : sig
   type t
 
@@ -2875,10 +2879,11 @@ let complete_pats_constrs = function
 *)
 
 
-let mk_failaction_neg partial (_mut : mutable_flag) ctx def =
+let mk_failaction_neg partial (mut : mutable_flag) ctx def =
   debugf
-    "@,@[<v 2>COMBINE (mk_failaction_neg %a)@]"
+    "@,@[<v 2>COMBINE (mk_failaction_neg %a %a)@]"
     pp_partial partial
+    pp_mutable mut
   ;
   match partial with
   | Partial -> (
@@ -2947,7 +2952,7 @@ let mk_failaction_pos partial mut seen ctx defs =
       ) fail_pats in
     let fails, jmps = scan_def [] fail_pats_with_ctx defs in
     debugf
-      "@,@[<v 2>COMBINE (mk_failaction_pos %a)@,\
+      "@,@[<v 2>COMBINE (mk_failaction_pos %a %a)@,\
            %a@,\
            @[<v 2>CTX:@,\
              %a@]@,\
@@ -2957,6 +2962,7 @@ let mk_failaction_pos partial mut seen ctx defs =
              %a@]\
            @]"
       pp_partial partial
+      pp_mutable mut
       Default_environment.pp defs
       Context.pp ctx
       (Format.pp_print_list ~pp_sep:Format.pp_print_cut
