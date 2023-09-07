@@ -2877,7 +2877,9 @@ let complete_pats_constrs = function
     Following two ``failaction'' function compute n, the trap handler
     to jump to in case of failure of elementary tests
 *)
-
+let degrade partial = function
+  | Mutable -> Partial
+  | Immutable -> partial
 
 let mk_failaction_neg partial (mut : mutable_flag) ctx def =
   debugf
@@ -2885,6 +2887,7 @@ let mk_failaction_neg partial (mut : mutable_flag) ctx def =
     pp_partial partial
     pp_mutable mut
   ;
+  let partial = degrade partial mut in
   match partial with
   | Partial -> (
       match Default_environment.pop def with
@@ -2909,6 +2912,7 @@ let mk_failaction_pos partial mut seen ctx defs =
             (fun pat r -> (get_key_constr pat, action) :: r)
             pats acc
         in
+        let partial = degrade partial mut in
         let final_jumps =
           if to_test = []
           then Jumps.empty Total
@@ -3277,11 +3281,11 @@ let combine_variant loc row (arg, mut) partial ctx def
     if
       sig_complete
       ||
-      match partial with
+      match degrade partial mut with
       | Total -> true
       | _ -> false
     then
-      (None, Jumps.empty partial)
+      (None, Jumps.empty Total)
     else
       mk_failaction_neg partial mut ctx def
   in
