@@ -160,6 +160,11 @@ module Head : sig
   (** reconstructs a pattern, putting wildcards as sub-patterns. *)
   val to_omega_pattern : t -> pattern
 
+  (** [mutability] is a list of size [arity head], each element
+      indicates whether the argument in the corresponding position is
+      mutable. *)
+  val mutability : t -> Asttypes.mutable_flag list
+
   val omega : t
 end = struct
   type desc =
@@ -220,6 +225,20 @@ end = struct
       | Record l -> List.length l
       | Variant { has_arg; _ } -> if has_arg then 1 else 0
       | Lazy -> 1
+
+  let mutability t =
+    match t.pat_desc with
+      | Any -> []
+      | Constant _ -> []
+      | Construct c -> List.init c.cstr_arity (fun _ -> Immutable)
+      | Tuple n -> List.init n (fun _ -> Immutable)
+      | Array n -> List.init n (fun _ -> Mutable)
+      | Record l -> List.map (fun lbl -> lbl.lbl_mut) l
+      | Variant { has_arg; _ } -> if has_arg then [Immutable] else []
+      | Lazy ->
+          (* a lazy pattern is considered immutable, forcing it always
+             returns the same value. *)
+          [Immutable]
 
   let to_omega_pattern t =
     let pat_desc =
