@@ -3912,92 +3912,6 @@ and compile_no_test ~scopes divide up_ctx repr partial ctx to_match =
 
 (* The entry points *)
 
-(*
-   If there is a guard in a matching or a lazy pattern,
-   then set exhaustiveness info to Partial.
-   (because of side effects, assume the worst).
-
-   Notice that exhaustiveness information is trusted by the compiler,
-   that is, a match flagged as Total should not fail at runtime.
-   More specifically, for instance if match y with x::_ -> x is flagged
-   total (as it happens during JoCaml compilation) then y cannot be []
-   at runtime. As a consequence, the static Total exhaustiveness information
-   have to be downgraded to Partial, in the dubious cases where guards
-   or lazy pattern execute arbitrary code that may perform side effects
-   and change the subject values.
-LM:
-   Lazy pattern was PR#5992, initial patch by lpw25.
-   I have  generalized the patch, so as to also find mutable fields.
-*)
-
-let is_lazy_pat p =
-  match p.pat_desc with
-  | Tpat_lazy _ -> true
-  | Tpat_alias _
-  | Tpat_variant _
-  | Tpat_record _
-  | Tpat_tuple _
-  | Tpat_construct _
-  | Tpat_array _
-  | Tpat_or _
-  | Tpat_constant _
-  | Tpat_var _
-  | Tpat_any ->
-      false
-
-let has_lazy p = Typedtree.exists_pattern is_lazy_pat p
-
-let is_record_with_mutable_field p =
-  match p.pat_desc with
-  | Tpat_record (lps, _) ->
-      List.exists
-        (fun (_, lbl, _) ->
-          match lbl.Types.lbl_mut with
-          | Mutable -> true
-          | Immutable -> false)
-        lps
-  | Tpat_alias _
-  | Tpat_variant _
-  | Tpat_lazy _
-  | Tpat_tuple _
-  | Tpat_construct _
-  | Tpat_array _
-  | Tpat_or _
-  | Tpat_constant _
-  | Tpat_var _
-  | Tpat_any ->
-      false
-
-let has_mutable p = Typedtree.exists_pattern is_record_with_mutable_field p
-
-(* Downgrade Total when
-   1. Matching accesses some mutable fields;
-   2. And there are  guards or lazy patterns.
-*)
-
-let check_partial has_mutable has_lazy pat_act_list = function
-  | Partial -> Partial
-  | Total ->
-      if
-        pat_act_list = []
-        || (* allow empty case list *)
-           List.exists
-             (fun (pats, lam) ->
-               has_mutable pats && (is_guarded lam || has_lazy pats))
-             pat_act_list
-      then
-        Partial
-      else
-        Total
-
-let check_partial_list pats_act_list =
-  check_partial (List.exists has_mutable) (List.exists has_lazy) pats_act_list
-
-let check_partial pat_act_list =
-  check_partial has_mutable has_lazy pat_act_list
-
-(* have toplevel handler when appropriate *)
-
 type failer_kind =
   | Raise_match_failure
   | Reraise_noloc of lambda
@@ -4063,7 +3977,6 @@ let root_arg arg binding_kind =
   { arg; binding_kind; mut = Immutable }
 
 let compile_matching ~scopes loc ~failer repr arg pat_act_list partial =
-  let partial = check_partial pat_act_list partial in
   let args = [ root_arg arg Strict ] in
   let rows = map_on_rows (fun pat -> (pat, [])) pat_act_list in
   let handler =
@@ -4267,7 +4180,6 @@ let for_let ~scopes loc param pat body =
 
 (* Easy case since variables are available *)
 let for_tupled_function ~scopes loc paraml pats_act_list partial =
-  let partial = check_partial_list pats_act_list partial in
   let args = List.map (fun id -> root_arg (Lvar id) Strict) paraml in
   let handler =
     toplevel_handler ~scopes loc ~failer:Raise_match_failure
@@ -4355,7 +4267,6 @@ let do_for_multiple_match ~scopes loc idl pat_act_list partial =
     Lprim (Pmakeblock (0, Immutable, None), args, sloc) in
   let input_args = { first = root_arg (Tuple arg) Strict; rest = [] } in
   let handler =
-    let partial = check_partial pat_act_list partial in
     let rows = map_on_rows (fun p -> (p, [])) pat_act_list in
     toplevel_handler ~scopes loc ~failer:Raise_match_failure
       partial input_args rows in
