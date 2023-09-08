@@ -464,6 +464,10 @@ let ncols = function
   | [] -> 0
   | ps :: _ -> List.length ps
 
+let pp_partial ppf = function
+  | Total -> Format.fprintf ppf "Total"
+  | Partial -> Format.fprintf ppf "Partial"
+
 module Context : sig
   type t
 
@@ -680,6 +684,15 @@ let flatten_matrix size pss =
     provide static information on what happens "after" each jump, which we use
     to optimize our exit choices.
     This is what [mk_failaction_pos] (and its callers) does.
+
+    The default environment also carries a special [final_exit] exit
+    number, which is used for values that are not matched by any
+    clauses of the matching being compiled. The final exit is treated
+    as a free variable, it is not bound in the [raise_num * matrix]
+    list. When [Default_environment.pop] returns [None], there are no
+    exit handlers to matching clauses left, but
+    (for non-exhaustive matches) inputs could still jump to the final
+    exit.
 *)
 module Default_environment : sig
   type t
@@ -688,7 +701,9 @@ module Default_environment : sig
 
   val pop : t -> ((int * matrix) * t) option
 
-  val empty : t
+  val empty : final_exit:int -> t
+
+  val final_exit : t -> int
 
   val cons : matrix -> int -> t -> t
 
@@ -702,21 +717,27 @@ module Default_environment : sig
 
   val pp : Format.formatter -> t -> unit
 end = struct
-  type t = (int * matrix) list
+  type t = {
+    env: (int * matrix) list;
+    final_exit: int;
+  }
   (** All matrices in the list should have the same arity -- their rows should
       have the same number of columns -- as it should match the arity of the
       current scrutiny vector. *)
 
-  let empty = []
+  let empty ~final_exit = { env = []; final_exit; }
 
-  let is_empty = function
+  let is_empty def = match def.env with
     | [] -> true
     | _ -> false
+
+  let final_exit { final_exit; _ } = final_exit
 
   let cons matrix raise_num default =
     match matrix with
     | [] -> default
-    | _ -> (raise_num, matrix) :: default
+    | _ ->
+        { default with env = (raise_num, matrix) :: default.env }
 
   let specialize_matrix arity matcher pss =
     let rec filter_rec = function
@@ -802,7 +823,7 @@ end = struct
     in
     filter_rec pss
 
-  let specialize_ arity matcher env =
+  let specialize_ arity matcher def =
     let rec make_rec = function
       | [] -> []
       | (i, ([] :: _)) :: _ -> [ (i, [ [] ]) ]
@@ -820,7 +841,7 @@ end = struct
           | pss -> (i, pss) :: make_rec rem
         )
     in
-    make_rec env
+    { def with env = make_rec def.env }
 
   let specialize head def =
     specialize_ (Patterns.Head.arity head) (matcher head) def
@@ -836,9 +857,9 @@ end = struct
     in
     specialize_ 0 compat_matcher def
 
-  let pop = function
+  let pop def = match def.env with
     | [] -> None
-    | def :: defs -> Some (def, defs)
+    | i_mat :: rem -> Some (i_mat, { def with env = rem })
 
   let pp ppf def =
     Format.fprintf ppf
@@ -855,10 +876,12 @@ end = struct
                   i
                   pretty_matrix pss
              ) ppf li
-      ) def
+      ) def.env
 
   let flatten size def =
-    List.map (fun (i, pss) -> (i, flatten_matrix size pss)) def
+    { def with
+      env = List.map (fun (i, pss) -> (i, flatten_matrix size pss)) def.env;
+    }
 end
 
 (** For a given code fragment, we call "external" exits the exit numbers that
@@ -867,13 +890,29 @@ end
     The jump summary of a code fragment is an ordered list of
     [raise_num * Context.t] pairs, mapping all its external exit numbers to
     context information valid for all its raise points within the code fragment.
+
+    Jump summaries also carry a [partial] information, that carries
+    information on whether the "final exit" of the default environment
+    is used -- whether any values will jump to it, and whether it
+    occurs in the generated code. If [partial] is [Total], then the
+    [final_exit] is not used in the generated code. (The reason to
+    special-case the final exit in this way is that we don't need to
+    track its context for matching code generation, and tracking
+    fine-grained contexts can be expensive.)
 *)
 module Jumps : sig
   type t
 
   val is_empty : t -> bool
 
-  val empty : t
+  val partial : t -> partial
+
+  val empty : partial -> t
+  (** [empty Total] is the jump summary of exhaustive matching code
+      that never fails. [empty Partial] is the jump summary of
+      matching code that does not exit into any handler of the default
+      environment, but may still use the final failure action in the
+      final exit. *)
 
   val singleton : int -> Context.t -> t
 
@@ -893,45 +932,56 @@ module Jumps : sig
 
   val pp : Format.formatter -> t -> unit
 end = struct
-  type t = (int * Context.t) list
+  type t = {
+    env : (int * Context.t) list;
+    partial : partial;
+  }
 
-  let pp ppf (env : t) =
-    if env = [] then Format.fprintf ppf "empty" else
-    Format.pp_print_list ~pp_sep:Format.pp_print_cut (fun ppf (i, ctx) ->
-      Format.fprintf ppf
-        "jump for %d@,\
-         %a"
-        i
-        Context.pp ctx
-    ) ppf env
+  let partial { partial = p; _ } = p
 
-  let rec extract i = function
+  let pp ppf ({ env; partial } : t) =
+    if env = [] then Format.fprintf ppf "empty"
+    else begin
+      Format.pp_print_list ~pp_sep:Format.pp_print_cut (fun ppf (i, ctx) ->
+        Format.fprintf ppf
+          "jump for %d@,\
+           %a"
+          i
+          Context.pp ctx
+      ) ppf env
+    end;
+    match partial with
+    | Partial -> debugf "@,Partial"
+    | Total -> debugf "@,Total"
+
+  let extract i jumps =
+    let rec extract i = function
     | [] -> (Context.empty, [])
-    | ((j, pss) as x) :: rem as all ->
+    | ((j, ctx) as x) :: rem as all ->
         if i = j then
-          (pss, rem)
+          (ctx, rem)
         else if j < i then
           (Context.empty, all)
         else
           let r, rem = extract i rem in
           (r, x :: rem)
+    in
+    let (ctx, rem) = extract i jumps.env in
+    (ctx, { jumps with env = rem })
 
-  let rec remove i = function
+  let remove i jumps =
+    let rec remove i = function
     | [] -> []
     | (j, _) :: rem when i = j -> rem
     | x :: rem -> x :: remove i rem
+    in
+    { jumps with env = remove i jumps.env }
 
-  let empty = []
+  let empty partial = { env = []; partial; }
 
-  and is_empty = function
-    | [] -> true
+  let is_empty = function
+    | { env = []; _ } -> true
     | _ -> false
-
-  let singleton i ctx =
-    if Context.is_empty ctx then
-      []
-    else
-      [ (i, ctx) ]
 
   let add i ctx jumps =
     let rec add = function
@@ -947,19 +997,33 @@ end = struct
     if Context.is_empty ctx then
       jumps
     else
-      add jumps
+      { jumps with env = add jumps.env }
 
-  let rec union (env1 : t) env2 =
-    match (env1, env2) with
-    | [], _ -> env2
-    | _, [] -> env1
-    | ((i1, pss1) as x1) :: rem1, ((i2, pss2) as x2) :: rem2 ->
-        if i1 = i2 then
-          (i1, Context.union pss1 pss2) :: union rem1 rem2
-        else if i1 > i2 then
-          x1 :: union rem1 env2
-        else
-          x2 :: union env1 rem2
+  let singleton i ctx =
+    (* Total: a singleton only jumps to exit [i],
+       not to the final exit. *)
+    add i ctx (empty Total)
+
+  let union j1 j2 =
+    let rec union env1 env2 =
+      match (env1, env2) with
+      | [], _ -> env2
+      | _, [] -> env1
+      | ((i1, pss1) as x1) :: rem1, ((i2, pss2) as x2) :: rem2 ->
+          if i1 = i2 then
+            (i1, Context.union pss1 pss2) :: union rem1 rem2
+          else if i1 > i2 then
+            x1 :: union rem1 env2
+          else
+            x2 :: union env1 rem2
+    in
+    {
+      env = union j1.env j2.env;
+      partial = (match j1.partial, j2.partial with
+        | Total, Total -> Total
+        | Partial, _ | _, Partial -> Partial
+      );
+    }
 
   let rec merge = function
     | env1 :: env2 :: rem -> union env1 env2 :: merge rem
@@ -967,11 +1031,14 @@ end = struct
 
   let rec unions envs =
     match envs with
-    | [] -> []
+    | [] -> empty Total
     | [ env ] -> env
     | _ -> unions (merge envs)
 
-  let map f env = List.map (fun (i, pss) -> (i, f pss)) env
+  let map f jumps =
+    { jumps with
+      env = List.map (fun (i, pss) -> (i, f pss)) jumps.env;
+    }
 end
 
 (* Pattern matching before any compilation *)
@@ -2824,23 +2891,20 @@ let complete_pats_constrs = function
 
 let mk_failaction_neg partial ctx def =
   debugf
-    "@,@[<v 2>COMBINE (mk_failaction_neg %s)@]"
-    ( match partial with
-    | Partial -> "Partial"
-    | Total -> "Total"
-    );
+    "@,@[<v 2>COMBINE (mk_failaction_neg %a)@]"
+    pp_partial partial
+  ;
   match partial with
   | Partial -> (
       match Default_environment.pop def with
       | Some ((idef, _), _) ->
           (Some (Lstaticraise (idef, [])), Jumps.singleton idef ctx)
       | None ->
-          (* Act as Total, this means
-             If no appropriate default matrix exists,
-             then this switch cannot fail *)
-          (None, Jumps.empty)
+          let final_exit = Default_environment.final_exit def in
+          (Some (Lstaticraise (final_exit, [])),
+           Jumps.empty partial)
     )
-  | Total -> (None, Jumps.empty)
+  | Total -> (None, Jumps.empty partial)
 
 (* In line with the article and simpler than before *)
 let mk_failaction_pos partial seen ctx defs =
@@ -2848,18 +2912,31 @@ let mk_failaction_pos partial seen ctx defs =
     match (to_test, Default_environment.pop defs) with
     | [], _
     | _, None ->
+        let add_exit_for_pats exit pats acc =
+          let action = Lstaticraise (exit, []) in
+          List.fold_right
+            (fun pat r -> (get_key_constr pat, action) :: r)
+            pats acc
+        in
+        let final_jumps =
+          if to_test = []
+          then Jumps.empty Total
+          else Jumps.empty partial in
+        let final_exits =
+          match partial with
+          | Total -> []
+          | Partial ->
+              let final_exit = Default_environment.final_exit defs in
+              add_exit_for_pats final_exit (List.map fst to_test) []
+        in
         List.fold_left
           (fun (klist, jumps) (i, pats) ->
-            let action = Lstaticraise (i, []) in
-            let klist =
-              List.fold_right
-                (fun pat r -> (get_key_constr pat, action) :: r)
-                pats klist
+            let klist = add_exit_for_pats i pats klist
             and jumps =
               Jumps.add i (Context.lub (list_as_pat pats) ctx) jumps
             in
             (klist, jumps))
-          ([], Jumps.empty) env
+          (final_exits, final_jumps) env
     | _, Some ((idef, pss), rem) -> (
         let now, later =
           List.partition (fun (_p, p_ctx) -> Context.matches p_ctx pss) to_test
@@ -2871,29 +2948,37 @@ let mk_failaction_pos partial seen ctx defs =
   in
   let fail_pats = complete_pats_constrs seen in
   if List.length fail_pats < !Clflags.match_context_rows then (
-    let fail, jmps =
-      scan_def []
-        (List.map (fun pat -> (pat, Context.lub pat ctx)) fail_pats)
-        defs
-    in
+    let fail_pats_with_ctx =
+      (* note: instead of filtering here we could filter the
+         [final_exits] inside [scan_defs] above. Filtering earlier is
+         slightly more efficient as it avoids re-scanning the
+         empty-context patterns for all entries of the default
+         environment. *)
+      List.filter_map (fun pat ->
+        let pat_ctx = Context.lub pat ctx in
+        if Context.is_empty pat_ctx then None
+        else Some (pat, pat_ctx)
+      ) fail_pats in
+    let fails, jmps = scan_def [] fail_pats_with_ctx defs in
     debugf
-      "@,@[<v 2>COMBINE (mk_failaction_pos %s)@,\
+      "@,@[<v 2>COMBINE (mk_failaction_pos %a)@,\
            %a@,\
+           @[<v 2>CTX:@,\
+             %a@]@,\
            @[<v 2>FAIL PATTERNS:@,\
              %a@]@,\
-           @[<v 2>POSITIVE JUMPS:@,\
+           @[<v 2>POSITIVE JUMPS (%a):@,\
              %a@]\
            @]"
-      ( match partial with
-      | Partial -> "Partial"
-      | Total -> "Total"
-      )
+      pp_partial partial
       Default_environment.pp defs
+      Context.pp ctx
       (Format.pp_print_list ~pp_sep:Format.pp_print_cut
          Printpat.pretty_pat) fail_pats
+      pp_partial (Jumps.partial jmps)
       Jumps.pp jmps
     ;
-    (None, fail, jmps)
+    (None, fails, jmps)
   ) else (
     (* Too many non-matched constructors -> reduced information *)
     let fail, jumps = mk_failaction_neg partial ctx defs in
@@ -3059,7 +3144,7 @@ let combine_constructor loc arg pat_env cstr partial ctx def
       let sig_complete = ncases = nconstrs in
       let fail_opt, fails, local_jumps =
         if sig_complete then
-          (None, [], Jumps.empty)
+          (None, [], Jumps.empty Total)
         else
           let constrs =
             List.map2 (fun (constr, _act) p -> { p with pat_desc = constr })
@@ -3203,7 +3288,7 @@ let combine_variant loc row arg partial ctx def (tag_lambda_list, total1, _pats)
       | Total -> true
       | _ -> false
     then
-      (None, Jumps.empty)
+      (None, Jumps.empty partial)
     else
       mk_failaction_neg partial ctx def
   in
@@ -3460,7 +3545,7 @@ let rec comp_match_handlers comp_fun partial ctx first_match next_matches =
 *)
 
 let rec compile_match ~scopes repr partial ctx
-    (m : initial_clause pattern_matching) =
+    (m : initial_clause pattern_matching) : lambda * Jumps.t =
   match m.cases with
   | ([], action) :: rem ->
       let res =
@@ -3470,7 +3555,7 @@ let rec compile_match ~scopes repr partial ctx
           in
           (event_branch repr (patch_guarded lambda action), total)
         else
-          (event_branch repr action, Jumps.empty)
+          (event_branch repr action, Jumps.empty Total)
       in
       debugf "empty matrix%t"
         (fun ppf -> if is_guarded action then Format.fprintf ppf " (guarded)");
@@ -3519,12 +3604,9 @@ and combine_handlers ~scopes repr partial ctx (v, str, arg) first_match rem =
 (* verbose version of do_compile_matching, for debug *)
 and do_compile_matching_pr ~scopes repr partial ctx x =
   debugf
-    "@[<v>MATCH %s\
+    "@[<v>MATCH %a\
      @,%a"
-    ( match partial with
-    | Partial -> "Partial"
-    | Total -> "Total"
-    )
+    pp_partial partial
     pretty_precompiled x;
   debugf "@,@[<v 2>CTX:@,%a@]"
     Context.pp ctx;
@@ -3537,7 +3619,8 @@ and do_compile_matching_pr ~scopes repr partial ctx x =
   in
   debugf "@]";
   if Jumps.is_empty jumps then
-    debugf "@,NO JUMPS"
+    debugf "@,NO JUMPS (%a)"
+      pp_partial (Jumps.partial jumps)
   else
     debugf "@,@[<v 2>JUMPS:@,%a@]"
       Jumps.pp jumps;
@@ -3759,13 +3842,6 @@ let failure_handler ~scopes loc ~failer () =
         ],
         sloc )
 
-let check_total ~scopes loc ~failer total lambda i =
-  if Jumps.is_empty total then
-    lambda
-  else
-    Lstaticcatch (lambda, (i, []),
-                  failure_handler ~scopes loc ~failer ())
-
 let toplevel_handler ~scopes loc ~failer partial args cases compile_fun =
   let compile_fun partial pm =
     debugf "@[<v>MATCHING@,";
@@ -3773,24 +3849,19 @@ let toplevel_handler ~scopes loc ~failer partial args cases compile_fun =
     debugf "@]@.";
     result
   in
-  match partial with
-  | Total when not !Clflags.safer_matching ->
-      let default = Default_environment.empty in
-      let pm = { args; cases; default } in
-      let (lam, total) = compile_fun Total pm in
-      assert (Jumps.is_empty total);
-      lam
-  | Partial | Total (* when !Clflags.safer_matching *) ->
-      let raise_num = next_raise_count () in
-      let default =
-        Default_environment.cons [ Patterns.omega_list args ] raise_num
-          Default_environment.empty in
-      let pm = { args; cases; default } in
-      begin match compile_fun Partial pm with
-      | exception Unused -> assert false
-      | (lam, total) ->
-          check_total ~scopes loc ~failer total lam raise_num
-      end
+  let final_exit = next_raise_count () in
+  let default = Default_environment.empty ~final_exit in
+  let pm = { args; cases; default } in
+  let safe_partial = if !Clflags.safer_matching then Partial else partial in
+  begin match compile_fun safe_partial pm with
+  | exception Unused -> assert false
+  | (lam, jumps) ->
+      match Jumps.partial jumps with
+      | Total -> lam
+      | Partial ->
+        Lstaticcatch (lam, (final_exit, []),
+                      failure_handler ~scopes loc ~failer ())
+  end
 
 let compile_matching ~scopes loc ~failer repr arg pat_act_list partial =
   let partial = check_partial pat_act_list partial in
