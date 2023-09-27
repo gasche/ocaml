@@ -2713,11 +2713,6 @@ let call_switcher loc fail arg low high int_lambda_list =
   let edges, (cases, actions) = as_interval fail low high int_lambda_list in
   Switcher.zyva loc edges arg cases actions
 
-let rec list_as_pat = function
-  | [] -> fatal_error "Matching.list_as_pat"
-  | [ pat ] -> pat
-  | pat :: rem -> { pat with pat_desc = Tpat_or (pat, list_as_pat rem, None) }
-
 let complete_pats_constrs = function
   | constr :: _ as constrs ->
       let constr_of_pat cstr_pat =
@@ -2851,7 +2846,7 @@ let mk_failaction_pos partial seen ctx defs =
            unioning the specialized contexts of each failure pattern,
            but more efficient -- the union would have a lot of
            redundancy. *)
-        let i_fail_pat = list_as_pat i_fail_pats in
+        let i_fail_pat = Patterns.orify_many i_fail_pats in
         let i_fail_ctx = Context.lub i_fail_pat ctx in
         Jumps.add i i_fail_ctx jumps
       ) Jumps.empty exit_failpats

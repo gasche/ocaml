@@ -20,19 +20,28 @@ open Typedtree
 
 (* useful pattern auxiliary functions *)
 
-let omega = {
-  pat_desc = Tpat_any;
+let make desc ty env = {
+  pat_desc = desc;
   pat_loc = Location.none;
   pat_extra = [];
-  pat_type = Ctype.none;
-  pat_env = Env.empty;
+  pat_type = ty;
+  pat_env = env;
   pat_attributes = [];
 }
+
+let omega = make Tpat_any Ctype.none Env.empty
 
 let rec omegas i =
   if i <= 0 then [] else omega :: omegas (i-1)
 
 let omega_list l = List.map (fun _ -> omega) l
+
+let orify x y = make (Tpat_or (x, y, None)) x.pat_type x.pat_env
+
+let rec orify_many = function
+| [] -> invalid_arg "orify_many"
+| [x] -> x
+| x :: xs -> orify x (orify_many xs)
 
 module Non_empty_row = struct
   type 'a t = 'a * Typedtree.pattern list

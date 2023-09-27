@@ -42,11 +42,7 @@ let untyped_case { Parsetree.pc_lhs; pc_guard; pc_rhs } =
 (* Utilities for building patterns   *)
 (*************************************)
 
-let make_pat desc ty tenv =
-  {pat_desc = desc; pat_loc = Location.none; pat_extra = [];
-   pat_type = ty ; pat_env = tenv;
-   pat_attributes = [];
-  }
+let make_pat = Patterns.make
 
 let omega = Patterns.omega
 let omegas = Patterns.omegas
@@ -829,18 +825,11 @@ let pat_of_constr ex_pat cstr =
    Tpat_construct (mknoloc (Longident.Lident cstr.cstr_name),
                    cstr, omegas cstr.cstr_arity, None)}
 
-let orify x y = make_pat (Tpat_or (x, y, None)) x.pat_type x.pat_env
-
-let rec orify_many = function
-| [] -> assert false
-| [x] -> x
-| x :: xs -> orify x (orify_many xs)
-
 (* build an or-pattern from a constructor list *)
 let pat_of_constrs ex_pat cstrs =
   let ex_pat = Patterns.Head.to_omega_pattern ex_pat in
   if cstrs = [] then raise Empty else
-  orify_many (List.map (pat_of_constr ex_pat) cstrs)
+  Patterns.orify_many (List.map (pat_of_constr ex_pat) cstrs)
 
 let pats_of_type env ty =
   match Ctype.extract_concrete_typedecl env ty with
@@ -966,15 +955,14 @@ let build_other ext env =
             in
             let row = type_row () in
             begin match
-              List.fold_left
-                (fun others (tag,f) ->
-                  if List.mem tag tags then others else
-                  match row_field_repr f with
-                    Rabsent (* | Reither _ *) -> others
-                  (* This one is called after erasing pattern info *)
-                  | Reither (c, _, _) -> make_other_pat tag c :: others
-                  | Rpresent arg -> make_other_pat tag (arg = None) :: others)
-                [] (row_fields row)
+              List.filter_map (fun (tag,f) ->
+                if List.mem tag tags then None else
+                match row_field_repr f with
+                  Rabsent (* | Reither _ *) -> None
+                (* This one is called after erasing pattern info *)
+                | Reither (c, _, _) -> Some (make_other_pat tag c)
+                | Rpresent arg -> Some (make_other_pat tag (arg = None))
+              ) (row_fields row)
             with
               [] ->
                 let tag =
@@ -983,11 +971,7 @@ let build_other ext env =
                     if List.mem tag tags then mktag (tag ^ "'") else tag in
                   mktag "AnyOtherTag"
                 in make_other_pat tag true
-            | pat::other_pats ->
-                List.fold_left
-                  (fun p_res pat ->
-                    make_pat (Tpat_or (pat, p_res, None)) d.pat_type d.pat_env)
-                  pat other_pats
+            | several_pats -> Patterns.orify_many several_pats
             end
       | Constant Const_char _ ->
           let all_chars =
@@ -2031,7 +2015,7 @@ let check_unused pred casel =
                 if sfs = [] then Unused else
                 let sfs =
                   List.map (function [u] -> u | _ -> assert false) sfs in
-                let u = orify_many sfs in
+                let u = Patterns.orify_many sfs in
                 (*Format.eprintf "%a@." pretty_val u;*)
                 let pattern = {u with pat_loc = q.pat_loc} in
                 match pred refute pattern with

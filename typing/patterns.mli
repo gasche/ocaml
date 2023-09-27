@@ -18,6 +18,8 @@ open Asttypes
 open Typedtree
 open Types
 
+val make : 'a -> type_expr -> Env.t -> 'a pattern_data
+
 val omega : pattern
 (** aka. "Tpat_any" or "_"  *)
 
@@ -26,6 +28,9 @@ val omegas : int -> pattern list
 
 val omega_list : 'a list -> pattern list
 (** [List.map (fun _ -> omega)] *)
+
+val orify_many : pattern list -> pattern
+(** @raise Invalid_argument on empty lists -- there is no empty pattern. *)
 
 module Non_empty_row : sig
   type 'a t = 'a * Typedtree.pattern list
