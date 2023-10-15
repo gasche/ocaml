@@ -990,13 +990,13 @@ and label_x_bool_x_core_type_list i ppf x =
       line i ppf "Tinherit\n";
       core_type (i+1) ppf ct
 
-let interface ppf { intf_signature; intf_loc; _ } =
-  line 0 ppf "interface %a\n" fmt_location intf_loc;
-  list 0 signature_item ppf intf_signature.sig_items
+let interface ppf { signature; location; _ } =
+  line 0 ppf "interface %a\n" fmt_location location;
+  list 0 signature_item ppf signature.sig_items
 
-let implementation ppf { impl_structure; impl_loc; _ } =
-  line 0 ppf "implementation %a\n" fmt_location impl_loc;
-  list 0 structure_item ppf impl_structure.str_items
+let implementation ppf { structure; location; _ } =
+  line 0 ppf "implementation %a\n" fmt_location location;
+  list 0 structure_item ppf structure.str_items
 
 let structure = structure 0
 let signature = signature 0

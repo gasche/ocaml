@@ -3063,18 +3063,18 @@ let type_implementation target initial_env ast =
       let simple_sg = Signature_names.simplify finalenv names sg in
       if !Clflags.print_types then begin
         Typecore.force_delayed_checks ();
-        let impl_shape = Shape.local_reduce shape in
+        let shape = Shape.local_reduce shape in
         Printtyp.wrap_printing_env ~error:false initial_env
           (fun () -> fprintf std_formatter "%a@."
               (Printtyp.printed_signature @@ Unit_info.source_file target)
               simple_sg
           );
         gen_annot target (Cmt_format.Implementation str);
-        { impl_structure = str;
-          impl_coercion = Tcoerce_none;
-          impl_shape;
-          impl_signature = simple_sg;
-          impl_loc = ast.pimpl_loc;
+        { structure = str;
+          coercion = Tcoerce_none;
+          shape;
+          signature = simple_sg;
+          location = ast.pimpl_loc;
         } (* result is ignored by Compile.implementation *)
       end else begin
         let source_intf = Unit_info.mli_from_source target in
@@ -3089,7 +3089,7 @@ let type_implementation target initial_env ast =
                               Interface_not_compiled source_intf))
           in
           let dclsig = Env.read_signature compiled_intf_file in
-          let impl_coercion, shape =
+          let coercion, shape =
             Includemod.compunit initial_env ~mark:Mark_positive
               sourcefile sg source_intf
               dclsig shape
@@ -3098,14 +3098,14 @@ let type_implementation target initial_env ast =
           (* It is important to run these checks after the inclusion test above,
              so that value declarations which are not used internally but
              exported are not reported as being unused. *)
-          let impl_shape = Shape.local_reduce shape in
+          let shape = Shape.local_reduce shape in
           let annots = Cmt_format.Implementation str in
-          save_cmt target annots initial_env None (Some impl_shape);
-          { impl_structure = str;
-            impl_coercion;
-            impl_shape;
-            impl_signature = dclsig;
-            impl_loc = ast.pimpl_loc;
+          save_cmt target annots initial_env None (Some shape);
+          { structure = str;
+            coercion;
+            shape;
+            signature = dclsig;
+            location = ast.pimpl_loc;
           }
         end else begin
           Location.prerr_warning
@@ -3131,11 +3131,11 @@ let type_implementation target initial_env ast =
             let annots = Cmt_format.Implementation str in
             save_cmt target annots initial_env (Some cmi) (Some shape)
           end;
-          { impl_structure = str;
-            impl_coercion = coercion;
-            impl_shape = shape;
-            impl_signature = simple_sg;
-            impl_loc = ast.pimpl_loc;
+          { structure = str;
+            coercion;
+            shape;
+            signature = simple_sg;
+            location = ast.pimpl_loc;
           }
         end
       end
@@ -3153,8 +3153,8 @@ let save_signature target tsg initial_env cmi =
     (Cmt_format.Interface tsg) initial_env (Some cmi) None
 
 let type_interface env ast =
-  { intf_signature = transl_signature env ast.pintf_signature
-  ; intf_loc = ast.pintf_loc
+  { signature = transl_signature env ast.pintf_signature
+  ; location = ast.pintf_loc
   }
 
 (* "Packaging" of several compilation units into one unit

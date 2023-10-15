@@ -52,7 +52,7 @@ let typecheck_intf info ast =
     |> Typemod.type_interface info.env
     |> print_if info.ppf_dump Clflags.dump_typedtree Printtyped.interface
   in
-  let tsg = tintf.Typedtree.intf_signature in
+  let tsg = tintf.Typedtree.signature in
   let sg = tsg.Typedtree.sig_type in
   if !Clflags.print_types then
     Printtyp.wrap_printing_env ~error:false info.env (fun () ->
@@ -65,7 +65,7 @@ let typecheck_intf info ast =
   tintf
 
 let emit_interface info ast tintf =
-  let tsg = tintf.Typedtree.intf_signature in
+  let tsg = tintf.Typedtree.signature in
   let sg =
     let alerts = Builtin_attributes.alerts_of_sig ast.Parsetree.pintf_signature in
     Env.save_signature ~alerts tsg.Typedtree.sig_type
@@ -99,7 +99,7 @@ let typecheck_impl i parsetree =
   |> print_if i.ppf_dump Clflags.dump_typedtree
     Printtyped.implementation
   |> print_if i.ppf_dump Clflags.dump_shape
-    (fun fmt {Typedtree.impl_shape; _} -> Shape.print fmt impl_shape)
+    (fun fmt {Typedtree.shape; _} -> Shape.print fmt shape)
 
 let implementation info ~backend =
   Profile.record_call (Unit_info.source_file info.target) @@ fun () ->

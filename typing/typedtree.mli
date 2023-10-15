@@ -818,11 +818,11 @@ and 'a class_infos =
    }
 
 type implementation = {
-  impl_structure: structure;
-  impl_coercion: module_coercion;
-  impl_signature: Types.signature;
-  impl_shape: Shape.t;
-  impl_loc: Location.t;
+  structure: structure;
+  coercion: module_coercion;
+  signature: Types.signature;
+  shape: Shape.t;
+  location: Location.t;
 }
 (** A typechecked implementation including its module structure, its exported
     signature, and a coercion of the module against that signature.
@@ -835,8 +835,8 @@ type implementation = {
 *)
 
 type interface = {
-  intf_signature: signature;
-  intf_loc: Location.t;
+  signature: signature;
+  location: Location.t;
 }
 (** A typechecked interface including its signature and its location. *)
 

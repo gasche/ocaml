@@ -624,14 +624,14 @@ let value_binding sub {vb_loc; vb_pat; vb_expr; vb_attributes; _} =
   sub.pat sub vb_pat;
   sub.expr sub vb_expr
 
-let interface sub { intf_signature; intf_loc } =
-  sub.location sub intf_loc;
-  sub.signature sub intf_signature
+let interface (sub : iterator) (intf : interface) =
+  sub.location sub intf.location;
+  sub.signature sub intf.signature
 ;;
 
-let implementation sub { impl_structure; impl_loc; _ } =
-  sub.location sub impl_loc;
-  sub.structure sub impl_structure
+let implementation (sub : iterator) (impl : implementation) =
+  sub.location sub impl.location;
+  sub.structure sub impl.structure
 ;;
 
 let env _sub _ = ()
