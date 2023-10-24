@@ -47,18 +47,18 @@ let remove_preprocessed inputfile =
     None -> ()
   | Some _ -> Misc.remove_file inputfile
 
-type ('a, 'b) ast_kind =
-| Structure : (Parsetree.structure, Parsetree.implementation) ast_kind
-| Signature : (Parsetree.signature, Parsetree.interface) ast_kind
+type 'a ast_kind =
+| Structure : Parsetree.structure ast_kind
+| Signature : Parsetree.signature ast_kind
 
-let magic_of_kind : type a b . (a, b) ast_kind -> string = function
+let magic_of_kind : type a . a ast_kind -> string = function
   | Structure -> Config.ast_impl_magic_number
   | Signature -> Config.ast_intf_magic_number
 
 (* Note: some of the functions here should go to Ast_mapper instead,
    which would encapsulate the "binary AST" protocol. *)
 
-let write_ast (type a b) (kind : (a, b) ast_kind) fn (ast : a) =
+let write_ast (type a) (kind : a ast_kind) fn (ast : a) =
   let oc = open_out_bin fn in
   output_string oc (magic_of_kind kind);
   output_value oc (!Location.input_name : string);
@@ -90,7 +90,7 @@ let apply_rewriter kind fn_in ppx =
   end;
   fn_out
 
-let read_ast (type a b) (kind : (a, b) ast_kind) fn : a =
+let read_ast (type a) (kind : a ast_kind) fn : a =
   let ic = open_in_bin fn in
   Misc.try_finally
     ~always:(fun () -> close_in ic; Misc.remove_file fn)
@@ -133,7 +133,7 @@ let apply_rewriters_sig ?(restore = true) ~tool_name ast =
       Ast_invariants.signature ast; ast
 
 let apply_rewriters ?restore ~tool_name
-    (type a b) (kind : (a, b) ast_kind) (ast : a) : a =
+    (type a) (kind : a ast_kind) (ast : a) : a =
   match kind with
   | Structure ->
       apply_rewriters_str ?restore ~tool_name ast
@@ -160,19 +160,8 @@ let open_and_check_magic inputfile ast_magic =
   in
   (ic, is_ast_file)
 
-let wrap_with_location (type a b) (kind : (a, b) ast_kind) (ast : a) ~file : b =
-  let loc = Location.in_file file in
-  match kind with
-  | Structure -> { Parsetree.pimpl_structure = ast; pimpl_loc = loc }
-  | Signature -> { Parsetree.pintf_signature = ast; pintf_loc = loc }
-
-let map_ast (type a b) (kind : (a, b) ast_kind) (ast : b) ~(f:a -> a) : b =
-  match kind with
-  | Structure -> { ast with pimpl_structure = f ast.pimpl_structure }
-  | Signature -> { ast with pintf_signature = f ast.pintf_signature }
-
-let file_aux ~tool_name inputfile (type a b) parse_fun (invariant_fun : b -> unit)
-             (kind : (a, b) ast_kind) : b =
+let file_aux ~tool_name inputfile (type a b) parse_fun invariant_fun
+             (kind : a ast_kind) (k : a -> b) : b =
   let ast =
     let ast_magic = magic_of_kind kind in
     let (ic, is_ast_file) = open_and_check_magic inputfile ast_magic in
@@ -180,12 +169,11 @@ let file_aux ~tool_name inputfile (type a b) parse_fun (invariant_fun : b -> uni
     if is_ast_file then begin
       let ast =
         Fun.protect ~finally:close_ic @@ fun () ->
-        let file = (input_value ic : string) in
-        Location.input_name := file;
+        Location.input_name := (input_value ic : string);
         if !Clflags.unsafe then
           Location.prerr_warning (Location.in_file !Location.input_name)
             Warnings.Unsafe_array_syntax_without_parsing;
-        wrap_with_location kind (input_value ic : a) ~file
+        (input_value ic : a)
       in
       if !Clflags.all_ppx = [] then invariant_fun ast;
       (* if all_ppx <> [], invariant_fun will be called by apply_rewriters *)
@@ -207,11 +195,12 @@ let file_aux ~tool_name inputfile (type a b) parse_fun (invariant_fun : b -> uni
     end
   in
   Profile.record_call "-ppx" (fun () ->
-      map_ast kind ast ~f:(apply_rewriters ~restore:false ~tool_name kind)
-    )
+    apply_rewriters ~restore:false ~tool_name kind ast |> k
+  )
 
 let file ~tool_name inputfile parse_fun ast_kind =
   file_aux ~tool_name inputfile parse_fun ignore ast_kind
+    Fun.id
 
 let report_error ppf = function
   | CannotRun cmd ->
@@ -228,19 +217,27 @@ let () =
       | _ -> None
     )
 
-let parse_file ~tool_name invariant_fun parse kind sourcefile =
+let parse_file ~tool_name invariant_fun parse kind sourcefile k =
   Location.input_name := sourcefile;
   let inputfile = preprocess sourcefile in
   Misc.try_finally
     (fun () ->
        Profile.record_call "parsing" @@ fun () ->
-       file_aux ~tool_name inputfile parse invariant_fun kind)
+       file_aux ~tool_name inputfile parse invariant_fun kind k)
     ~always:(fun () -> remove_preprocessed inputfile)
 
 let parse_implementation ~tool_name sourcefile =
-  parse_file ~tool_name Ast_invariants.implementation
-    Parse.implementation Structure sourcefile
+  parse_file ~tool_name Ast_invariants.structure
+    Parse.structure Structure sourcefile
+    (fun ast -> {
+       Parsetree.pimpl_structure = ast;
+       pimpl_loc = Location.in_file !Location.input_name;
+     })
 
-let parse_interface ~tool_name sourcefile =
-  parse_file ~tool_name Ast_invariants.interface
-    Parse.interface Signature sourcefile
+let parse_interface ~tool_name sourcefile : Parsetree.interface =
+  parse_file ~tool_name Ast_invariants.signature
+    Parse.signature Signature sourcefile
+    (fun ast -> {
+       Parsetree.pintf_signature = ast;
+       pintf_loc = Location.in_file !Location.input_name;
+     })

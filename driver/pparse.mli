@@ -31,18 +31,18 @@ exception Error of error
 val preprocess : string -> string
 val remove_preprocessed : string -> unit
 
-type ('a, 'b) ast_kind =
-| Structure : (Parsetree.structure, Parsetree.implementation) ast_kind
-| Signature : (Parsetree.signature, Parsetree.interface) ast_kind
+type 'a ast_kind =
+| Structure : Parsetree.structure ast_kind
+| Signature : Parsetree.signature ast_kind
 
-val read_ast : ('a, _) ast_kind -> string -> 'a
-val write_ast : ('a, _) ast_kind -> string -> 'a -> unit
+val read_ast : 'a ast_kind -> string -> 'a
+val write_ast : 'a ast_kind -> string -> 'a -> unit
 
 val file : tool_name:string -> string ->
-  (Lexing.lexbuf -> 'a) -> (_, 'a) ast_kind -> 'a
+  (Lexing.lexbuf -> 'a) -> 'a ast_kind -> 'a
 
 val apply_rewriters: ?restore:bool -> tool_name:string ->
-  ('a, _) ast_kind -> 'a -> 'a
+  'a ast_kind -> 'a -> 'a
   (** If [restore = true] (the default), cookies set by external
       rewriters will be kept for later calls. *)
 
