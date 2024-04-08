@@ -1056,7 +1056,11 @@ type split_args = {
   rest : args;
 }
 (** [split_args] is a more restricted form of argument list, used
-    when argument in head position is about to be matched upon. *)
+    when argument in head position is about to be matched upon.
+
+    Note: the [let_kind] corresponds to the binding kind that was used
+    to bind the expression that became the [Var] simple argument. *)
+
 
 and pure_head =
   | Var of Ident.t
@@ -3548,7 +3552,7 @@ and compile_match_nonempty ~scopes repr partial ctx
   | { args = (arg, str) :: rest } ->
       let v = arg_to_var arg m.cases in
       bind_match_arg str v arg (
-        let args = { head = (Var v, Alias); rest } in
+        let args = { head = (Var v, str); rest } in
         let cases = List.map (half_simplify_nonempty ~arg:(Lvar v)) m.cases in
         let m = { m with args; cases } in
         let first_match, rem =
@@ -3561,6 +3565,142 @@ and compile_match_simplified ~scopes repr partial ctx
     (m : (split_args, Simple.clause) pattern_matching) =
   let first_match, rem = split_and_precompile_simplified m in
   combine_handlers ~scopes repr partial ctx first_match rem
+
+(* Note on [compile_partial].
+
+   Partiality information is provided by the
+   type-checker. A pattern-matching is compiled as Total if the
+   type-checker verified that any well-typed value of the scrutinee
+   type is matched by at least one unguarded clause.
+
+   The pattern-matching compiler also tracks information relevant to
+   partiality/exhaustiveness: it checks that a switch on constructors
+   is 'complete' (all constructors at that type are matched), and it
+   carries fine-grained context information that allows to determine
+   that some incomplete switches are in fact exhaustive
+   (missing constructors were matched previously), or refine
+   information about which constructors are left to match for the
+   following switches.
+
+   Sometimes the pattern-matching compiler cannot tell that a switch
+   is complete, but the type-checker can. This is the case in
+   particular for GADTs -- the compiler does not use type information
+   to rule certain constructors out.
+
+     type _ t =
+       | Int : int -> int t
+       | Bool : bool -> bool t
+
+     let total_function : int t -> int = function
+       | Int n -> n
+
+   In these cases we want to trust the type-checker totality
+   information to generate better code: we know that the only possible
+   constructor is [Int], so we can generate branchless code that
+   fetches its argument directly. Users rely on this performant
+   compilation scheme for GADTs.
+
+   Trusting the totality information also lets us avoid computing
+   fine-grained 'negative' information, which can avoid some
+   pathological cases for pattern-matching compilation. (The vast
+   majority of 'match' and 'function' uses in practice are total.)
+
+   On the other hand, there are cases where the type-checker wrongly
+   believes that a matching is total, because its totality criterion
+   (all well-typed values are matched by a non-guarded clause) ignores
+   side-effects.
+
+     let r = ref (Some 42)
+
+     let () = match Some r with
+       | { contents = None } -> 0
+       | _ when (r := None; false) -> 1
+       | { contents = Some n } -> n
+
+   In this example, the pattern-matching compiler will notice that the
+   [Some n] case is not total (this is thanks to the use of
+   [set_args_erase_mutable] in Context.combine), but the type-checker
+   believes that it is total, so that the only possible value reaching
+   the third clause has a [Some] constructor. Trusting the
+   type-checker would lead us to generate a direct field access to the
+   [Some] argument, which is unsound as the value at this point has
+   become [None].
+
+   The job of [compile_partial] is to combine the totality information
+   coming from the type-checker and contextual information provided by
+   the compiler to decide whether a given switch should be considered
+   partial or not, in a way that is correct but does not pessimize too
+   many code patterns.
+
+   The criterion that we use is the [mut] information propagated by
+   the matching compiler: is the current sub-value we are switching
+   over under a mutable field?
+
+   - If we are *not* under a mutable field, we know that side-effects
+     cannot influence the possible constructors, and we trust the
+     type-checker information.
+
+   - If we *are* under a mutable field, side-effects can falsify the
+     type-checker totality information on the current switch, so we
+     trust the compiler information.
+
+   With this criterion, pure patterns are never pessimized, but even
+   patterns that have some GADTs and some non-GADT mutable components
+   work well -- for example, a pair of a GADT value and
+   a reference. On the other hand, matching on GADTs inside
+   a reference is pessimized. (Matching on non-GADT constructors
+   inside a reference is also arguably pessimized, given that cases
+   where side-effects occur are exceedingly rare; but we cannot know
+   that they will not occur.)
+
+   We could always do better, at the cost of more complexity. For
+   example, clauses are split in independent submatrices, and we know
+   that mutable positions that only occur in a single submatrix are in
+   fact safe -- we read their field at most once, and never observe
+   value updates during the pattern-matching execution. Our current
+   implementation will pessimize the following program, that could in
+   fact be compiled as total:
+
+     let total_function : int t ref -> int = function
+     | { contents = Int n } -> n
+
+   In other words, we could pessimize only switches on mutable
+   positions that came up in several distinct switches / exit
+   handlers. This could be done by tracking 'dangerous' positions in
+   jump summaries -- mutable positions that come from another switch
+   that jumped to our current exit handler -- and only pessimizing
+   Total switches in exit handlers that are already marked as
+   'dangerous' in the context. However this would require more
+   computation of contexts and jump summaries, with a risk of time-
+   and memory-blowup during compilation (in particular, the crucial
+   'get_mins' optimization may have to be restricted to avoid erasing
+   information on dangerous positions). In contrast, the current
+   approximation has no noticeable computational cost, even in
+   pathological cases.
+*)
+(* The code should ensure that all partiality information that is used
+   to make code-generation decisions has gone through [compile_partial].
+
+   Only the [mk_failaction_*] functions use partiality information for
+   compilation. One can check that only them use [match partial with ...],
+   which are always dominated by a [compile_partial] call. *)
+and compile_partial partial = function
+  | Mutable -> Partial
+  | Immutable -> partial
+
+and mut_of_str =
+  (* This is somewhat of a hack: we notice that a pattern-matching
+     argument is mutable (its value can change if evaluated
+     several times) exactly when it is bound as StrictOpt. Alias
+     bindings are obviously pure, but Strict bindings are also only
+     used in the pattern-matching compiler for expressions that give
+     the same value when evaluated twice.
+     An alternative would be to track 'mutability of the field'
+     directly.
+  *)
+  function
+  | Strict | Alias -> Immutable
+  | StrictOpt -> Mutable
 
 and bind_match_arg str v arg (lam, jumps) =
   let jumps =
@@ -3589,21 +3729,7 @@ and bind_match_arg str v arg (lam, jumps) =
        incorrect. We "fix" the context information on mutable arguments
        by calling [Context.erase_first_col] below.
     *)
-    let mut =
-      (* This is somewhat of a hack: we notice that a pattern-matching
-         argument is mutable (its value can change if evaluated
-         several times) exactly when it is bound as StrictOpt. Alias
-         bindings are obviously pure, but Strict bindings are also only
-         used in the pattern-matching compiler for expressions that give
-         the same value when evaluated twice.
-         An alternative would be to track 'mutability of the field'
-         directly.
-      *)
-      match str with
-      | Strict | Alias -> Immutable
-      | StrictOpt -> Mutable
-    in
-    match mut with
+    match mut_of_str str with
     | Immutable -> jumps
     | Mutable ->
         Jumps.map Context.erase_first_col jumps in
@@ -3644,7 +3770,11 @@ and do_compile_matching_pr ~scopes repr partial ctx x =
 and do_compile_matching ~scopes repr partial ctx pmh =
   match pmh with
   | Pm pm -> (
-      let arg = arg_of_pure_head (fst pm.args.head) in
+      let arg, arg_partial =
+        let (arg, str) = pm.args.head in
+        (arg_of_pure_head arg,
+         compile_partial partial (mut_of_str str))
+      in
       let ph = what_is_cases pm.cases in
       let pomega = Patterns.Head.to_omega_pattern ph in
       let ploc = head_loc ~scopes ph in
@@ -3667,20 +3797,20 @@ and do_compile_matching ~scopes repr partial ctx pmh =
           compile_test
             (compile_match ~scopes repr partial)
             partial divide_constant
-            (combine_constant ploc arg cst partial)
+            (combine_constant ploc arg cst arg_partial)
             ctx pm
       | Construct cstr ->
           compile_test
             (compile_match ~scopes repr partial)
             partial (divide_constructor ~scopes)
-            (combine_constructor ploc arg ph.pat_env cstr partial)
+            (combine_constructor ploc arg ph.pat_env cstr arg_partial)
             ctx pm
       | Array _ ->
           let kind = Typeopt.array_pattern_kind pomega in
           compile_test
             (compile_match ~scopes repr partial)
             partial (divide_array ~scopes kind)
-            (combine_array ploc arg kind partial)
+            (combine_array ploc arg kind arg_partial)
             ctx pm
       | Lazy ->
           compile_no_test ~scopes
@@ -3690,7 +3820,7 @@ and do_compile_matching ~scopes repr partial ctx pmh =
           compile_test
             (compile_match ~scopes repr partial)
             partial (divide_variant ~scopes !row)
-            (combine_variant ploc !row arg partial)
+            (combine_variant ploc !row arg arg_partial)
             ctx pm
     )
   | PmVar { inside = pmh } ->

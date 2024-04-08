@@ -67,7 +67,7 @@ val simple : t -> int = <fun>
    if the two accesses to [b] are done on different reads of the same
    mutable field.
 
-   PASS: a single read of [field_mut 1 x], no Match_failure case. *)
+   PASS: two reads of [field_mut 1 x], and a Match_failure case. *)
 let f x =
   match x with
   | {a = false; b = _} -> 0
@@ -80,7 +80,11 @@ let f x =
      (function x/298 : int
        (if (field_int 0 x/298)
          (let (*match*/302 =o (field_mut 1 x/298))
-           (if *match*/302 (field_imm 0 *match*/302) 1))
+           (if *match*/302 (field_imm 0 *match*/302)
+             (let (*match*/303 =o (field_mut 1 x/298))
+               (if *match*/303
+                 (raise (makeblock 0 (global Match_failure/18!) [0: "" 2 2]))
+                 1))))
          0)))
   (apply (field_mut 1 (global Toploop!)) "f" f/297))
 val f : t -> int = <fun>
@@ -100,9 +104,7 @@ let f r =
    (field_mut 0) access, or the second access should include
    a Match_failure case.
 
-   FAIL: the second occurrence of (field_mut 0) is used with a direct
-   (field_imm 0) access without a constructor check. The compiler is
-   unsound here. *)
+   PASS: two different readds (field_mut 0), and a Match_failure case. *)
 [%%expect {|
 (let
   (f/304 =
@@ -117,7 +119,9 @@ let f r =
            (if (seq (setfield_ptr 0 r/305 0) 0) 1
              (if *match*/307
                (let (*match*/311 =o (field_mut 0 (field_imm 0 *match*/307)))
-                 (field_imm 0 *match*/311))
+                 (if *match*/311 (field_imm 0 *match*/311)
+                   (raise
+                     (makeblock 0 (global Match_failure/18!) [0: "" 2 2]))))
                3))))))
   (apply (field_mut 1 (global Toploop!)) "f" f/304))
 val f : int option ref -> int = <fun>
