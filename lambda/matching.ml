@@ -3521,11 +3521,31 @@ let bind_check kind v arg lam =
   | Alias, _ -> lower_bind v arg lam
   | _, _ -> bind kind v arg lam
 
-let rec comp_match_handlers comp_fun partial ctx first_match next_matches =
+type temporality =
+  | First
+  | Following
+(** The [temporality] information tracks information about the
+    placement of the current submatrix within the
+    whole pattern-matching.
+
+    - [First]: this is the first submatrix on this position seen by values
+      that flow into the submatrix.
+    - [Following]: there was a split, some other submatrix was tried first
+      and failed, and the control jumped to the current submatrix.
+
+    This information is used in {!compute_arg_partial}.
+*)
+
+let rec comp_match_handlers comp_fun partial (tempo : temporality) ctx first_match next_matches =
   match next_matches with
-  | [] -> comp_fun partial ctx first_match
+  | [] -> comp_fun partial tempo ctx first_match
   | (_, second_match) :: next_next_matches -> (
-      let rec c_rec body jumps_body = function
+      let rec c_rec body jumps_body =
+        (* [c_rec] is only called on [Following] sub-matrices;
+           this is the key point where the [Following] temporality
+           is introduced in the pattern-matching compilation. *)
+        let tempo = Following in
+        function
         | [] -> (body, jumps_body)
         | (i, pm_i) :: rem -> (
             separate_debug_output ();
@@ -3537,7 +3557,7 @@ let rec comp_match_handlers comp_fun partial ctx first_match next_matches =
                 | [] -> partial
                 | _ -> Partial
               in
-              match comp_fun partial ctx_i pm_i with
+              match comp_fun partial tempo ctx_i pm_i with
               | lambda_i, jumps_i ->
                 c_rec
                   (Lstaticcatch (body, (i, []), lambda_i))
@@ -3550,12 +3570,12 @@ let rec comp_match_handlers comp_fun partial ctx first_match next_matches =
             end
           )
       in
-      match comp_fun Partial ctx first_match with
+      match comp_fun Partial tempo ctx first_match with
       | first_lam, jumps ->
         c_rec first_lam jumps next_matches
       | exception Unused ->
         separate_debug_output ();
-        comp_match_handlers comp_fun partial ctx second_match next_next_matches
+        comp_match_handlers comp_fun partial tempo ctx second_match next_next_matches
     )
 
 (* To find reasonable names for variables *)
@@ -3579,20 +3599,21 @@ let arg_to_var arg cls =
    Input:
       repr=used for inserting debug events
       partial=exhaustiveness information from Parmatch
+      tempo=temporality information
       ctx=a context
       m=a pattern matching
 
    Output: a lambda term, a jump summary {..., exit number -> context, ... }
 *)
 
-let rec compile_match ~scopes repr partial ctx
+let rec compile_match ~scopes repr partial (tempo : temporality) ctx
     (m : (args, initial_clause) pattern_matching) : lambda * Jumps.t =
   match m.cases with
   | ([], action) :: rem ->
       let res =
         if is_guarded action then
           let lambda, total =
-            compile_match ~scopes None partial ctx { m with cases = rem }
+            compile_match ~scopes None partial tempo ctx { m with cases = rem }
           in
           (event_branch repr (patch_guarded lambda action), total)
         else
@@ -3602,10 +3623,10 @@ let rec compile_match ~scopes repr partial ctx
         (fun ppf -> if is_guarded action then Format.fprintf ppf " (guarded)");
       res
   | nonempty_cases ->
-      compile_match_nonempty ~scopes repr partial ctx
+      compile_match_nonempty ~scopes repr partial tempo ctx
         { m with cases = map_on_rows Non_empty_row.of_initial nonempty_cases }
 
-and compile_match_nonempty ~scopes repr partial ctx
+and compile_match_nonempty ~scopes repr partial (tempo : temporality) ctx
     (m : (args, Typedtree.pattern Non_empty_row.t clause) pattern_matching) =
   match m with
   | { cases = []; args = [] } -> comp_exit ctx m.default
@@ -3617,14 +3638,14 @@ and compile_match_nonempty ~scopes repr partial ctx
         let m = { m with args; cases } in
         let first_match, rem =
           split_and_precompile_half_simplified m in
-        combine_handlers ~scopes repr partial ctx first_match rem
+        combine_handlers ~scopes repr partial tempo ctx first_match rem
       )
   | _ -> assert false
 
-and compile_match_simplified ~scopes repr partial ctx
+and compile_match_simplified ~scopes repr partial (tempo : temporality) ctx
     (m : (split_args, Simple.clause) pattern_matching) =
   let first_match, rem = split_and_precompile_simplified m in
-  combine_handlers ~scopes repr partial ctx first_match rem
+  combine_handlers ~scopes repr partial tempo ctx first_match rem
 
 (* Note on [compute_arg_partial].
 
@@ -3692,51 +3713,36 @@ and compile_match_simplified ~scopes repr partial ctx
    argument should be considered partial or not, in a way that is
    correct but does not pessimize too many code patterns.
 
-   The criterion that we use is the [mut] information propagated by
-   the matching compiler: is the current sub-value we are switching
-   over under a mutable field?
+   The criterion that we use is basded on two contextual informations:
 
-   - If we are *not* under a mutable field, we know that side-effects
-     cannot influence the possible constructors, and we trust the
-     type-checker information.
+   - [mut]: is the current sub-value we are switching over placed
+     (transitively) under a mutable field?
 
-   - If we *are* under a mutable field, side-effects can falsify the
-     type-checker totality information on the current switch, so we
-     trust the compiler information.
+   - [tempo]: is this always the first switch on this position,
+     or did some value jump here after coming from previous submatrices 
+     that may already have switched on the position?
+
+   If [mut = Mutable], that is we are in a transitivitely mutable position,
+   and [tempo = Following], this may not be the first switch on this position,
+   then we pessimize totality information.
+
+   Remark: when we split a matrix into several submatrices that have
+   to be tried in turn, and the original matrix was in a [Total]
+   context, we compile all submatrices as [Partial] except for the
+   very last one that remains [Total] -- see
+   {!comp_match_handlers}. And that very last matrix will be
+   a [Following] matrix, unless there was no actual split -- we split
+   into only one matrix. The criterion above can thus be understood
+   as: either we are at an [Immutable] position, or there was no
+   actual split from the root of the pattern-matching to the current
+   submatrix.
 
    With this criterion, pure patterns are never pessimized, but even
    patterns that have some GADTs and some non-GADT mutable components
    work well -- for example, a pair of a GADT value and
    a reference. On the other hand, matching on GADTs inside
-   a reference is pessimized. (Matching on non-GADT constructors
-   inside a reference is also arguably pessimized, given that cases
-   where side-effects occur are exceedingly rare; but we cannot know
-   that they will not occur.)
-
-   We could always do better, at the cost of more complexity. For
-   example, clauses are split in independent submatrices, and we know
-   that mutable positions that only occur in a single submatrix are in
-   fact safe -- we read their field at most once, and never observe
-   value updates during the pattern-matching execution. Our current
-   implementation will pessimize the following program, that could in
-   fact be compiled as total:
-
-     let total_function : int t ref -> int = function
-     | { contents = Int n } -> n
-
-   In other words, we could pessimize only switches on mutable
-   positions that came up in several distinct switches / exit
-   handlers. This could be done by tracking 'dangerous' positions in
-   jump summaries -- mutable positions that come from another switch
-   that jumped to our current exit handler -- and only pessimizing
-   Total switches in exit handlers that are already marked as
-   'dangerous' in the context. However this would require more
-   computation of contexts and jump summaries, with a risk of time-
-   and memory-blowup during compilation (in particular, the crucial
-   'get_mins' optimization may have to be restricted to avoid erasing
-   information on dangerous positions). In contrast, the current
-   approximation has no noticeable computational cost, even in
-   pathological cases.
+   a reference is pessimized when the GADT matching occurs under
+   a mutable constructor and after a split.
 *)
 (* The code should ensure that all partiality information that is used
    to make code-generation decisions has gone through
@@ -3744,9 +3750,10 @@ and compile_match_simplified ~scopes repr partial ctx
    general type [partial] of partiality information from the
    specialized type [arg_partial] used to make code-generation
    decisions for a given argument switch. *)
-and compute_arg_partial partial = function
-  | Mutable -> Arg Partial
-  | Immutable -> Arg partial
+and compute_arg_partial partial tempo mut =
+  match tempo, mut with
+  | Following, Mutable -> Arg Partial
+  | First, _ | _, Immutable -> Arg partial
 
 and mut_of_binding_kind =
   (* This is somewhat of a hack: we notice that a pattern-matching
@@ -3796,7 +3803,7 @@ and bind_match_arg kind v arg (lam, jumps) =
   (bind_check kind v arg lam,
    jumps)
 
-and combine_handlers ~scopes repr partial ctx first_match rem =
+and combine_handlers ~scopes repr partial (tempo : temporality) ctx first_match rem =
   comp_match_handlers
     (( if dbg then
          do_compile_matching_pr ~scopes
@@ -3804,10 +3811,10 @@ and combine_handlers ~scopes repr partial ctx first_match rem =
          do_compile_matching ~scopes
      )
        repr)
-    partial ctx first_match rem
+    partial tempo ctx first_match rem
 
 (* verbose version of do_compile_matching, for debug *)
-and do_compile_matching_pr ~scopes repr partial ctx x =
+and do_compile_matching_pr ~scopes repr partial tempo ctx x =
   debugf
     "@[<v>MATCH %a\
      @,%a"
@@ -3817,7 +3824,7 @@ and do_compile_matching_pr ~scopes repr partial ctx x =
     Context.pp ctx;
   debugf "@,@[<v 2>COMPILE:@,";
   let ((_, jumps) as r) =
-    try do_compile_matching ~scopes repr partial ctx x with
+    try do_compile_matching ~scopes repr partial tempo ctx x with
     | exn ->
         debugf "EXN (%s)@]@]" (Printexc.to_string exn);
         raise exn
@@ -3827,13 +3834,13 @@ and do_compile_matching_pr ~scopes repr partial ctx x =
   debugf "@]";
   r
 
-and do_compile_matching ~scopes repr partial ctx pmh =
+and do_compile_matching ~scopes repr partial (tempo : temporality) ctx pmh =
   match pmh with
   | Pm pm -> (
       let first = pm.args.first in
       let arg = arg_of_pure first.arg in
       let arg_partial =
-        compute_arg_partial partial first.mut
+        compute_arg_partial partial tempo first.mut
         (* It is important to distinguish:
            - [arg_partial]: the partiality information that will
              be used to compile the 'upcoming' switch on the first argument
@@ -3848,66 +3855,66 @@ and do_compile_matching ~scopes repr partial ctx pmh =
       let ph = what_is_cases pm.cases in
       let pomega = Patterns.Head.to_omega_pattern ph in
       let ploc = head_loc ~scopes ph in
+      let compile_no_test divide combine =
+        compile_no_test ~scopes divide combine repr partial tempo ctx pm
+      in
+      let compile_test divide combine =
+        compile_test
+          (compile_match ~scopes repr partial tempo)
+          arg_partial divide combine ctx pm
+      in
       let open Patterns.Head in
       match ph.pat_desc with
       | Any ->
-          compile_no_test ~scopes
+          compile_no_test
             divide_var
-            Context.rshift repr partial ctx pm
+            Context.rshift
       | Tuple _ ->
-          compile_no_test ~scopes
+          compile_no_test
             (divide_tuple ~scopes ph)
-            Context.combine repr partial ctx pm
+            Context.combine
       | Record [] -> assert false
       | Record (lbl :: _) ->
-          compile_no_test ~scopes
+          compile_no_test
             (divide_record ~scopes lbl.lbl_all ph)
-            Context.combine repr partial ctx pm
+            Context.combine
       | Constant cst ->
           compile_test
-            (compile_match ~scopes repr partial)
-            arg_partial divide_constant
+            divide_constant
             (combine_constant ploc arg cst arg_partial)
-            ctx pm
       | Construct cstr ->
           compile_test
-            (compile_match ~scopes repr partial)
-            arg_partial (divide_constructor ~scopes)
+            (divide_constructor ~scopes)
             (combine_constructor ploc arg ph.pat_env cstr arg_partial)
-            ctx pm
       | Array _ ->
           let kind = Typeopt.array_pattern_kind pomega in
           compile_test
-            (compile_match ~scopes repr partial)
-            arg_partial (divide_array ~scopes kind)
+            (divide_array ~scopes kind)
             (combine_array ploc arg kind arg_partial)
-            ctx pm
       | Lazy ->
-          compile_no_test ~scopes
+          compile_no_test
             (divide_lazy ~scopes ph)
-            Context.combine repr partial ctx pm
+            Context.combine
       | Variant { cstr_row = row } ->
           compile_test
-            (compile_match ~scopes repr partial)
-            arg_partial (divide_variant ~scopes !row)
+            (divide_variant ~scopes !row)
             (combine_variant ploc !row arg arg_partial)
-            ctx pm
     )
   | PmVar { inside = pmh } ->
       let lam, total =
-        do_compile_matching ~scopes repr partial (Context.lshift ctx) pmh
+        do_compile_matching ~scopes repr partial tempo (Context.lshift ctx) pmh
       in
       (lam, Jumps.map Context.rshift total)
   | PmOr { body; handlers } ->
       let lam, total =
-        compile_match_simplified ~scopes repr partial ctx body in
-      compile_orhandlers (compile_match ~scopes repr partial)
+        compile_match_simplified ~scopes repr partial tempo ctx body in
+      compile_orhandlers (compile_match ~scopes repr partial tempo)
         lam total ctx handlers
 
-and compile_no_test ~scopes divide up_ctx repr partial ctx to_match =
+and compile_no_test ~scopes divide up_ctx repr partial tempo ctx to_match =
   let { pm = this_match; ctx = this_ctx } = divide ctx to_match in
   let lambda, total =
-    compile_match ~scopes repr partial this_ctx this_match in
+    compile_match ~scopes repr partial tempo this_ctx this_match in
   (lambda, Jumps.map up_ctx total)
 
 (* The entry points *)
@@ -3983,7 +3990,7 @@ let compile_matching ~scopes loc ~failer repr arg pat_act_list partial =
     toplevel_handler ~scopes loc ~failer partial args rows
   in
   handler (fun partial pm ->
-    compile_match_nonempty ~scopes repr partial (Context.start 1) pm
+    compile_match_nonempty ~scopes repr partial First (Context.start 1) pm
   )
 
 let for_function ~scopes loc repr param pat_act_list partial =
@@ -4185,7 +4192,7 @@ let for_tupled_function ~scopes loc paraml pats_act_list partial =
     toplevel_handler ~scopes loc ~failer:Raise_match_failure
       partial args pats_act_list in
   handler (fun partial pm ->
-    compile_match ~scopes None partial
+    compile_match ~scopes None partial First
       (Context.start (List.length paraml)) pm
   )
 
@@ -4252,12 +4259,12 @@ let flatten_precompiled size args pmh =
    Hence it needs a fourth argument, which it ignores
 *)
 
-let compile_flattened ~scopes repr partial ctx pmh =
+let compile_flattened ~scopes repr partial tempo ctx pmh =
   match pmh with
-  | FPm pm -> compile_match_nonempty ~scopes repr partial ctx pm
+  | FPm pm -> compile_match_nonempty ~scopes repr partial tempo ctx pm
   | FPmOr { body = b; handlers = hs } ->
-      let lam, total = compile_match_nonempty ~scopes repr partial ctx b in
-      compile_orhandlers (compile_match ~scopes repr partial) lam total ctx hs
+      let lam, total = compile_match_nonempty ~scopes repr partial tempo ctx b in
+      compile_orhandlers (compile_match ~scopes repr partial tempo) lam total ctx hs
 
 let do_for_multiple_match ~scopes loc idl pat_act_list partial =
   let repr = None in
@@ -4282,7 +4289,7 @@ let do_for_multiple_match ~scopes loc idl pat_act_list partial =
     and flat_nexts =
       List.map (fun (e, pm) -> (e, flatten_precompiled size args pm)) nexts
     in
-    comp_match_handlers (compile_flattened ~scopes repr) partial
+    comp_match_handlers (compile_flattened ~scopes repr) partial First
       (Context.start size) flat_next flat_nexts
   )
 
