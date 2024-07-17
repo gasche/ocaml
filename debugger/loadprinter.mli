@@ -33,3 +33,4 @@ type error =
 exception Error of error
 
 val report_error: formatter -> error -> unit
+
