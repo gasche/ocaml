@@ -510,6 +510,10 @@ let rec transl env e =
          | Pdls_get
          | Patomic_load _ | Patomic_exchange
          | Patomic_cas | Patomic_fetch_add
+         | Patomic_load_field _
+         | Patomic_exchange_field _
+         | Patomic_cas_field _
+         | Patomic_fetch_add_field _
          | Psequor | Pnot | Pnegint | Paddint | Psubint
          | Pmulint | Pandint | Porint | Pxorint | Plslint
          | Plsrint | Pasrint | Pintoffloat | Pfloatofint
@@ -836,12 +840,23 @@ and transl_prim_1 env p arg dbg =
       Cop(mk_load_atomic Word_int, [transl env arg], dbg)
   | Patomic_load {immediate_or_pointer = Pointer} ->
       Cop(mk_load_atomic Word_val, [transl env arg], dbg)
+  | Patomic_load_field fld ->
+      let fld = Cconst_int (fld, dbg) in
+      let arg = transl env arg in
+      Cop(
+        Cextcall("caml_atomic_load_field", typ_val, [], false),
+        [arg; fld],
+        dbg
+      )
   | Ppoll ->
     (Csequence (remove_unit (transl env arg),
                 return_unit dbg (Cop(Cpoll, [], dbg))))
   | (Pfield_computed | Psequand | Psequor
     | Prunstack | Presume | Preperform
     | Patomic_exchange | Patomic_cas | Patomic_fetch_add
+    | Patomic_exchange_field _
+    | Patomic_cas_field _
+    | Patomic_fetch_add_field _
     | Paddint | Psubint | Pmulint | Pandint
     | Porint | Pxorint | Plslint | Plsrint | Pasrint
     | Paddfloat | Psubfloat | Pmulfloat | Pdivfloat
@@ -1031,8 +1046,28 @@ and transl_prim_2 env p arg1 arg2 dbg =
   | Patomic_fetch_add ->
      Cop (Cextcall ("caml_atomic_fetch_add", typ_int, [], false),
           [transl env arg1; transl env arg2], dbg)
+  | Patomic_exchange_field fld ->
+      let fld = Cconst_int (fld, dbg) in
+      let arg1 = transl env arg1 in
+      let arg2 = transl env arg2 in
+      Cop (
+        Cextcall("caml_atomic_exchange_field", typ_val, [], false),
+        [arg1; fld; arg2],
+        dbg
+      )
+  | Patomic_fetch_add_field fld ->
+      let fld = Cconst_int (fld, dbg) in
+      let arg1 = transl env arg1 in
+      let arg2 = transl env arg2 in
+      Cop (
+        Cextcall("caml_atomic_fetch_add_field", typ_int, [], false),
+        [arg1; fld; arg2],
+        dbg
+      )
   | Prunstack | Pperform | Presume | Preperform | Pdls_get
-  | Patomic_cas | Patomic_load _
+  | Patomic_load _ | Patomic_cas
+  | Patomic_load_field _
+  | Patomic_cas_field _
   | Pnot | Pnegint | Pintoffloat | Pfloatofint | Pnegfloat
   | Pabsfloat | Pstringlength | Pbyteslength | Pbytessetu | Pbytessets
   | Pisint | Pbswap16 | Pint_as_pointer | Popaque | Pread_symbol _
@@ -1087,6 +1122,16 @@ and transl_prim_3 env p arg1 arg2 arg3 dbg =
   | Patomic_cas ->
      Cop (Cextcall ("caml_atomic_cas", typ_int, [], false),
           [transl env arg1; transl env arg2; transl env arg3], dbg)
+  | Patomic_cas_field fld ->
+      let fld = Cconst_int (fld, dbg) in
+      let arg1 = transl env arg1 in
+      let arg2 = transl env arg2 in
+      let arg3 = transl env arg3 in
+      Cop (
+        Cextcall("caml_atomic_cas_field", typ_int, [], false),
+        [arg1; fld; arg2; arg3],
+        dbg
+      )
 
   (* Effects *)
 
@@ -1103,7 +1148,10 @@ and transl_prim_3 env p arg1 arg2 arg3 dbg =
            dbg)
 
   | Pperform | Pdls_get | Presume
-  | Patomic_exchange | Patomic_fetch_add | Patomic_load _
+  | Patomic_load _ | Patomic_exchange | Patomic_fetch_add
+  | Patomic_load_field _
+  | Patomic_exchange_field _
+  | Patomic_fetch_add_field _
   | Pfield_computed | Psequand | Psequor | Pnot | Pnegint | Paddint
   | Psubint | Pmulint | Pandint | Porint | Pxorint | Plslint | Plsrint | Pasrint
   | Pintoffloat | Pfloatofint | Pnegfloat | Pabsfloat | Paddfloat | Psubfloat
@@ -1134,9 +1182,13 @@ and transl_prim_4 env p arg1 arg2 arg3 arg4 dbg =
            dbg)
   | Psetfield_computed _
   | Pbytessetu | Pbytessets | Parraysetu _
-  | Parraysets _ | Pbytes_set _ | Pbigstring_set _ | Patomic_cas
+  | Parraysets _ | Pbytes_set _ | Pbigstring_set _
   | Prunstack | Preperform | Pperform | Pdls_get
-  | Patomic_exchange | Patomic_fetch_add | Patomic_load _
+  | Patomic_load _ | Patomic_exchange | Patomic_cas | Patomic_fetch_add
+  | Patomic_load_field _
+  | Patomic_exchange_field _
+  | Patomic_cas_field _
+  | Patomic_fetch_add_field _
   | Pfield_computed | Psequand | Psequor | Pnot | Pnegint | Paddint
   | Psubint | Pmulint | Pandint | Porint | Pxorint | Plslint | Plsrint | Pasrint
   | Pintoffloat | Pfloatofint | Pnegfloat | Pabsfloat | Paddfloat | Psubfloat
@@ -1154,7 +1206,7 @@ and transl_prim_4 env p arg1 arg2 arg3 arg4 dbg =
   | Pbigarrayref (_, _, _, _) | Pbigarrayset (_, _, _, _) | Pbigarraydim _
   | Pstring_load _ | Pbytes_load _ | Pbigstring_load _ | Pbbswap _ | Ppoll
     ->
-      fatal_errorf "Cmmgen.transl_prim_3: %a"
+      fatal_errorf "Cmmgen.transl_prim_4: %a"
         Printclambda_primitives.primitive p
 
 and transl_unbox_float dbg env exp =

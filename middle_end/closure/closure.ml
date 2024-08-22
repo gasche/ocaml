@@ -1094,6 +1094,50 @@ let rec close ({ backend; fenv; cenv ; mutable_vars } as env) lam =
       (Uprim(P.Praise k, [ulam], dbg),
        Value_unknown)
   | Lprim (Pmakearray _, [], _loc) -> make_const_ref (Uconst_block (0, []))
+  | Lprim (
+      Patomic_load_loc,
+      [ Lprim (Pmakeblock _, [obj; Lconst (Const_base (Const_int fld))], _);
+      ],
+      loc
+    ) ->
+      let obj, _ = close env obj in
+      let dbg = Debuginfo.from_location loc in
+      Uprim (P.Patomic_load_field fld, [obj], dbg), Value_unknown
+  | Lprim (
+      Patomic_exchange_loc,
+      [ Lprim (Pmakeblock _, [obj; Lconst (Const_base (Const_int fld))], _);
+        arg;
+      ],
+      loc
+    ) ->
+      let obj, _ = close env obj in
+      let arg, _ = close env arg in
+      let dbg = Debuginfo.from_location loc in
+      Uprim (P.Patomic_exchange_field fld, [obj; arg], dbg), Value_unknown
+  | Lprim (
+      Patomic_cas_loc,
+      [ Lprim (Pmakeblock _, [obj; Lconst (Const_base (Const_int fld))], _);
+        arg1;
+        arg2;
+      ],
+      loc
+    ) ->
+      let obj, _ = close env obj in
+      let arg1, _ = close env arg1 in
+      let arg2, _ = close env arg2 in
+      let dbg = Debuginfo.from_location loc in
+      Uprim (P.Patomic_cas_field fld, [obj; arg1; arg2], dbg), Value_unknown
+  | Lprim (
+      Patomic_fetch_add_loc,
+      [ Lprim (Pmakeblock _, [obj; Lconst (Const_base (Const_int fld))], _);
+        arg;
+      ],
+      loc
+    ) ->
+      let obj, _ = close env obj in
+      let arg, _ = close env arg in
+      let dbg = Debuginfo.from_location loc in
+      Uprim (P.Patomic_fetch_add_field fld, [obj; arg], dbg), Value_unknown
   | Lprim(p, args, loc) ->
       let p = Convert_primitives.convert p in
       let dbg = Debuginfo.from_location loc in
