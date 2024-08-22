@@ -314,37 +314,50 @@ CAMLexport CAMLweakdef void caml_initialize (volatile value *fp, value val)
     Ref_table_add(&Caml_state->minor_tables->major_ref, fp);
 }
 
-
-CAMLprim value caml_atomic_load (value ref)
+CAMLprim value caml_atomic_load_field (value obj, value vfield)
 {
+  intnat field = Long_val(vfield);
   if (caml_domain_alone()) {
-    return Field(ref, 0);
+    return Field(obj, field);
   } else {
-    value v;
     /* See Note [MM] above */
     atomic_thread_fence(memory_order_acquire);
-    v = atomic_load(Op_atomic_val(ref));
-    return v;
+    return atomic_load(&Op_atomic_val(obj)[field]);
   }
+}
+CAMLprim value caml_atomic_load (value ref)
+{
+  return caml_atomic_load_field(ref, Val_long(0));
 }
 
 /* stores are implemented as exchanges */
-CAMLprim value caml_atomic_exchange (value ref, value v)
+CAMLprim value caml_atomic_exchange_field (value obj, value vfield, value v)
 {
   value ret;
+  intnat field = Long_val(vfield);
   if (caml_domain_alone()) {
-    ret = Field(ref, 0);
-    Field(ref, 0) = v;
+    ret = Field(obj, field);
+    Field(obj, field) = v;
   } else {
     /* See Note [MM] above */
     atomic_thread_fence(memory_order_acquire);
-    ret = atomic_exchange(Op_atomic_val(ref), v);
+    ret = atomic_exchange(&Op_atomic_val(obj)[field], v);
     atomic_thread_fence(memory_order_release); /* generates `dmb ish` on Arm64*/
   }
-  write_barrier(ref, 0, ret, v);
+  write_barrier(obj, field, ret, v);
   return ret;
 }
+CAMLprim value caml_atomic_exchange (value ref, value v)
+{
+  return caml_atomic_exchange_field(ref, Val_long(0), v);
+}
 
+/* The naming of the [caml_atomic_cas_*] primitives is slightly different
+   from other [caml_atomic_*] primitives, because a [caml_atomic_cas_field]
+   at this type was exposed in pre-5.0 Multicore OCaml (even without
+   CAML_INTERNALS). For now we keep it around for backward-compatibility. We
+   call [caml_atomic_cas_field_boxed] the version that corresponds to the
+   other [caml_atomic_foo_field] functions. */
 CAMLexport int caml_atomic_cas_field (
   value obj, intnat field, value oldval, value newval)
 {
@@ -372,26 +385,37 @@ CAMLexport int caml_atomic_cas_field (
   }
 }
 
-CAMLprim value caml_atomic_cas (value ref, value oldval, value newval);
+CAMLprim value caml_atomic_cas_field_boxed (
+  value obj, value field, value oldval, value newval)
 {
-  return Val_bool(caml_atomic_cas_field(ref, 0, oldal, newval));
+  return Val_bool(caml_atomic_cas_field(obj, Long_val(field), oldval, newval));
 }
 
-CAMLprim value caml_atomic_fetch_add (value ref, value incr)
+CAMLprim value caml_atomic_cas (value ref, value oldval, value newval)
 {
+  return Val_bool(caml_atomic_cas_field(ref, 0, oldval, newval));
+}
+
+CAMLprim value caml_atomic_fetch_add_field (value obj, value vfield, value incr)
+{
+  intnat field = Long_val(vfield);
   value ret;
   if (caml_domain_alone()) {
-    value* p = Op_val(ref);
-    CAMLassert(Is_long(*p));
+    value* p = &Op_val(obj)[field];
     ret = *p;
+    CAMLassert(Is_long(ret));
     *p = Val_long(Long_val(ret) + Long_val(incr));
     /* no write barrier needed, integer write */
   } else {
-    atomic_value *p = &Op_atomic_val(ref)[0];
-    ret = atomic_fetch_add(p, 2*Long_val(incr));
+    atomic_value *p = &Op_atomic_val(obj)[field];
+    ret = atomic_fetch_add(p, 2 * Long_val(incr));
     atomic_thread_fence(memory_order_release); /* generates `dmb ish` on Arm64*/
   }
   return ret;
+}
+CAMLprim value caml_atomic_fetch_add (value ref, value incr)
+{
+  return caml_atomic_fetch_add_field(ref, Val_long(0), incr);
 }
 
 CAMLexport void caml_set_fields (value obj, value v)
