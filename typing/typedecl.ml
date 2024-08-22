@@ -75,6 +75,7 @@ type error =
   | Boxed_and_unboxed
   | Nonrec_gadt
   | Invalid_private_row_declaration of type_expr
+  | Atomic_field_must_be_mutable of string
 
 open Typedtree
 
@@ -229,11 +230,15 @@ let transl_labels env univars closed lbls =
       (fun () ->
          let arg = Ast_helper.Typ.force_poly arg in
          let cty = transl_simple_type env ?univars ~closed arg in
+         let is_atomic = Builtin_attributes.has_atomic attrs in
+         let is_mutable = match mut with Mutable -> true | Immutable -> false in
+         if is_atomic && not is_mutable then
+           raise (Error (loc, Atomic_field_must_be_mutable name.txt));
          {ld_id = Ident.create_local name.txt;
           ld_name = name;
           ld_uid = Uid.mk ~current_unit:(Env.get_current_unit ());
           ld_mutable = mut;
-          ld_atomic = false;
+          ld_atomic = is_atomic;
           ld_type = cty; ld_loc = loc; ld_attributes = attrs}
       )
   in
@@ -362,7 +367,9 @@ let transl_declaration env sdecl (id, uid) =
         | [] -> bad "it has no fields"
         | _::_::_ -> bad "it has more than one field"
         | [{pld_mutable = Mutable}] -> bad "it is mutable"
-        | [{pld_mutable = Immutable}] -> ()
+        | [{pld_mutable = Immutable; pld_attributes = attrs}] ->
+            if Builtin_attributes.has_atomic attrs then
+              bad "it has an atomic field"
       end
     | Ptype_variant constructors -> begin match constructors with
         | [] -> bad "it has no constructor"
@@ -451,10 +458,16 @@ let transl_declaration env sdecl (id, uid) =
       | Ptype_record lbls ->
           let lbls, lbls' = transl_labels env None true lbls in
           let rep =
-            if unbox then Record_unboxed false
-            else if List.for_all (fun l -> is_float env l.Types.ld_type) lbls'
-            then Record_float
-            else Record_regular
+            if unbox then (
+              Record_unboxed false
+            ) else if
+              List.for_all (fun (l : Types.label_declaration) ->
+                is_float env l.ld_type && not l.ld_atomic
+              ) lbls'
+            then
+              Record_float
+            else
+              Record_regular
           in
           Ttype_record lbls, Type_record(lbls', rep)
       | Ptype_open -> Ttype_open, Type_open
@@ -2259,6 +2272,9 @@ let report_error_doc ppf = function
          write explicitly@]@;<1 2>%a@]"
         (Style.as_inline_code Printtyp.type_expr) ty
         (Style.as_inline_code pp_private) ty
+  | Atomic_field_must_be_mutable name ->
+      fprintf ppf "@[The label %a must be mutable to be declared atomic.@]"
+        Style.inline_code name
 
 let () =
   Location.register_error_of_exn
