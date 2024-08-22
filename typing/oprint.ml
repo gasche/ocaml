@@ -385,10 +385,12 @@ and print_typargs ppf =
       pp_print_char ppf ')';
       pp_close_box ppf ();
       pp_print_space ppf ()
-and print_out_label ppf (name, mut, arg) =
-  fprintf ppf "@[<2>%s%a :@ %a@];" (if mut then "mutable " else "")
+and print_out_label ppf (name, mut, atomic, arg) =
+  fprintf ppf "@[<2>%s%a :@ %a%s@];"
+    (if mut then "mutable " else "")
     print_lident name
     print_out_type arg
+    (if atomic then " [@atomic]" else "")
 
 let out_label = ref print_out_label
 

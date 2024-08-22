@@ -252,6 +252,7 @@ and expression_desc =
               { fields = [| l1, Kept t1; l2 Override P2 |]; representation;
                 extended_expression = Some E0 }
         *)
+  | Texp_atomic_loc of expression * Longident.t loc * Types.label_description
   | Texp_field of expression * Longident.t loc * Types.label_description
   | Texp_setfield of
       expression * Longident.t loc * Types.label_description * expression
@@ -728,6 +729,7 @@ and label_declaration =
      ld_name: string loc;
      ld_uid: Uid.t;
      ld_mutable: mutable_flag;
+     ld_atomic: bool;
      ld_type: core_type;
      ld_loc: Location.t;
      ld_attributes: attributes;

@@ -496,6 +496,9 @@ let expression sub exp =
             [] fields
         in
         Pexp_record (list, Option.map (sub.expr sub) extended_expression)
+    | Texp_atomic_loc (_exp, _lid, _label) ->
+        (* TODOclement *)
+        assert false
     | Texp_field (exp, lid, _label) ->
         Pexp_field (sub.expr sub exp, map_loc sub lid)
     | Texp_setfield (exp1, lid, _label, exp2) ->

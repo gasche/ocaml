@@ -325,33 +325,75 @@ and transl_exp0 ~in_new_scope ~scopes e =
   | Texp_record {fields; representation; extended_expression} ->
       transl_record ~scopes e.exp_loc e.exp_env
         fields representation extended_expression
-  | Texp_field(arg, _, lbl) ->
+  | Texp_atomic_loc (arg, _, lbl) ->
+      let loc = of_location ~scopes e.exp_loc in
+      transl_atomic_loc ~scopes arg lbl loc
+  | Texp_field (arg, _, lbl) when not lbl.lbl_atomic ->
       let targ = transl_exp ~scopes arg in
       begin match lbl.lbl_repres with
-          Record_regular | Record_inlined _ ->
-          Lprim (Pfield (lbl.lbl_pos, maybe_pointer e, lbl.lbl_mut), [targ],
-                 of_location ~scopes e.exp_loc)
-        | Record_unboxed _ -> targ
-        | Record_float ->
-          Lprim (Pfloatfield lbl.lbl_pos, [targ],
-                 of_location ~scopes e.exp_loc)
-        | Record_extension _ ->
-          Lprim (Pfield (lbl.lbl_pos + 1, maybe_pointer e, lbl.lbl_mut), [targ],
-                 of_location ~scopes e.exp_loc)
+        Record_regular
+      | Record_inlined _ ->
+        Lprim (Pfield (lbl.lbl_pos, maybe_pointer e, lbl.lbl_mut), [targ],
+               of_location ~scopes e.exp_loc)
+      | Record_unboxed _ ->
+        targ
+      | Record_float ->
+        Lprim (Pfloatfield lbl.lbl_pos, [targ],
+               of_location ~scopes e.exp_loc)
+      | Record_extension _ ->
+        Lprim (Pfield (lbl.lbl_pos + 1, maybe_pointer e, lbl.lbl_mut), [targ],
+               of_location ~scopes e.exp_loc)
       end
-  | Texp_setfield(arg, _, lbl, newval) ->
+  | Texp_field (arg, _, lbl) ->
+      let loc = of_location ~scopes e.exp_loc in
+      let atomic_loc = transl_atomic_loc ~scopes arg lbl loc in
+      begin match lbl.lbl_repres with
+        Record_regular
+      | Record_inlined _ ->
+        Lprim (Patomic_load_loc, [atomic_loc], loc)
+      | Record_unboxed _ ->
+        fatal_error "Translcore.transl_exp0: atomic field in unboxed record"
+      | Record_float ->
+        fatal_error "Translcore.transl_exp0: atomic field in float record"
+      | Record_extension _ ->
+        (* TODOclement *)
+        assert false
+      end
+  | Texp_setfield (arg, _, lbl, newval) when not lbl.lbl_atomic ->
       let access =
         match lbl.lbl_repres with
           Record_regular
         | Record_inlined _ ->
-          Psetfield(lbl.lbl_pos, maybe_pointer newval, Assignment)
-        | Record_unboxed _ -> assert false
-        | Record_float -> Psetfloatfield (lbl.lbl_pos, Assignment)
+          Psetfield (lbl.lbl_pos, maybe_pointer newval, Assignment)
+        | Record_unboxed _ ->
+          assert false
+        | Record_float ->
+          Psetfloatfield (lbl.lbl_pos, Assignment)
         | Record_extension _ ->
           Psetfield (lbl.lbl_pos + 1, maybe_pointer newval, Assignment)
       in
-      Lprim(access, [transl_exp ~scopes arg; transl_exp ~scopes newval],
-            of_location ~scopes e.exp_loc)
+      Lprim (access, [transl_exp ~scopes arg; transl_exp ~scopes newval],
+             of_location ~scopes e.exp_loc)
+  | Texp_setfield (arg, _, lbl, newval) ->
+      let loc = of_location ~scopes e.exp_loc in
+      let atomic_loc = transl_atomic_loc ~scopes arg lbl loc in
+      let newval = transl_exp ~scopes newval in
+      begin match lbl.lbl_repres with
+        Record_regular
+      | Record_inlined _ ->
+        Lprim (
+          Pignore,
+          [Lprim (Patomic_exchange_loc, [atomic_loc; newval], loc)],
+          loc
+        )
+      | Record_unboxed _ ->
+          fatal_error "Translcore.transl_exp0: atomic field in unboxed record"
+      | Record_float ->
+        fatal_error "Translcore.transl_exp0: atomic field in float record"
+      | Record_extension _ ->
+        (* TODOclement *)
+        assert false
+      end
   | Texp_array expr_list ->
       let kind = array_kind e in
       let ll = transl_list ~scopes expr_list in
@@ -1077,6 +1119,12 @@ and transl_record ~scopes loc env fields repres opt_init_expr =
              Array.fold_left update_field (Lvar copy_id) fields)
     end
   end
+
+and transl_atomic_loc ~scopes arg lbl loc =
+  let shape = Some [Typeopt.value_kind arg.exp_env arg.exp_type; Pintval] in
+  let arg = transl_exp ~scopes arg in
+  let lbl = Lconst (Const_base (Const_int lbl.lbl_pos)) in
+  Lprim (Pmakeblock (0, Immutable, shape), [arg; lbl], loc)
 
 and transl_match ~scopes e arg pat_expr_list partial =
   let rewrite_case (val_cases, exn_cases, static_handlers as acc)

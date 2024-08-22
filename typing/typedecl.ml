@@ -233,6 +233,7 @@ let transl_labels env univars closed lbls =
           ld_name = name;
           ld_uid = Uid.mk ~current_unit:(Env.get_unit_name ());
           ld_mutable = mut;
+          ld_atomic = Builtin_attributes.has_atomic attrs;
           ld_type = cty; ld_loc = loc; ld_attributes = attrs}
       )
   in
@@ -244,6 +245,7 @@ let transl_labels env univars closed lbls =
          let ty = match get_desc ty with Tpoly(t,[]) -> t | _ -> ty in
          {Types.ld_id = ld.ld_id;
           ld_mutable = ld.ld_mutable;
+          ld_atomic = ld.ld_atomic;
           ld_type = ty;
           ld_loc = ld.ld_loc;
           ld_attributes = ld.ld_attributes;
@@ -360,7 +362,9 @@ let transl_declaration env sdecl (id, uid) =
         | [] -> bad "it has no fields"
         | _::_::_ -> bad "it has more than one field"
         | [{pld_mutable = Mutable}] -> bad "it is mutable"
-        | [{pld_mutable = Immutable}] -> ()
+        | [{pld_mutable = Immutable; pld_attributes = attrs}] ->
+            if Builtin_attributes.has_atomic attrs then
+              bad "it has an atomic field"
       end
     | Ptype_variant constructors -> begin match constructors with
         | [] -> bad "it has no constructor"
@@ -449,10 +453,16 @@ let transl_declaration env sdecl (id, uid) =
       | Ptype_record lbls ->
           let lbls, lbls' = transl_labels env None true lbls in
           let rep =
-            if unbox then Record_unboxed false
-            else if List.for_all (fun l -> is_float env l.Types.ld_type) lbls'
-            then Record_float
-            else Record_regular
+            if unbox then (
+              Record_unboxed false
+            ) else if
+              List.for_all (fun (l : Types.label_declaration) ->
+                is_float env l.ld_type && not l.ld_atomic
+              ) lbls'
+            then
+              Record_float
+            else
+              Record_regular
           in
           Ttype_record lbls, Type_record(lbls', rep)
       | Ptype_open -> Ttype_open, Type_open
