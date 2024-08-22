@@ -15,6 +15,19 @@
 (*                                                                        *)
 (**************************************************************************)
 
+module Loc : sig
+  type 'a t =
+    'a atomic_loc
+
+  val get : 'a t -> 'a
+  val set : 'a t -> 'a -> unit
+  val exchange : 'a t -> 'a -> 'a
+  val compare_and_set : 'a t -> 'a -> 'a -> bool
+  val fetch_and_add : int t -> int -> int
+  val incr : int t -> unit
+  val decr : int t -> unit
+end
+
 (** Atomic references.
 
   See {{!examples} the examples} below.
