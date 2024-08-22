@@ -866,6 +866,10 @@ let rec choice ctx t =
 
     (* we don't handle atomic primitives *)
     | Patomic_exchange | Patomic_cas | Patomic_fetch_add | Patomic_load _
+    | Patomic_load_loc
+    | Patomic_exchange_loc
+    | Patomic_cas_loc
+    | Patomic_fetch_add_loc
 
     (* we don't handle array indices as destinations yet *)
     | (Pmakearray _ | Pduparray _)

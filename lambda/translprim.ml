@@ -369,6 +369,10 @@ let primitives_table =
     "%atomic_exchange", Primitive (Patomic_exchange, 2);
     "%atomic_cas", Primitive (Patomic_cas, 3);
     "%atomic_fetch_add", Primitive (Patomic_fetch_add, 2);
+    "%atomic_load_loc", Primitive (Patomic_load_loc, 1);
+    "%atomic_exchange_loc", Primitive (Patomic_exchange_loc, 2);
+    "%atomic_cas_loc", Primitive (Patomic_cas_loc, 3);
+    "%atomic_fetch_add_loc", Primitive (Patomic_fetch_add_loc, 2);
     "%runstack", Primitive (Prunstack, 3);
     "%reperform", Primitive (Preperform, 3);
     "%perform", Primitive (Pperform, 1);
@@ -827,6 +831,10 @@ let lambda_primitive_needs_event_after = function
   | Pbytessetu | Pmakearray ((Pintarray | Paddrarray | Pfloatarray), _)
   | Parraylength _ | Parrayrefu _ | Parraysetu _ | Pisint | Pisout
   | Patomic_exchange | Patomic_cas | Patomic_fetch_add | Patomic_load _
+  | Patomic_load_loc
+  | Patomic_exchange_loc
+  | Patomic_cas_loc
+  | Patomic_fetch_add_loc
   | Pintofbint _ | Pctconst _ | Pbswap16 | Pint_as_pointer | Popaque | Pdls_get
       -> false
 
