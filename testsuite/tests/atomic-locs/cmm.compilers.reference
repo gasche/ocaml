@@ -1,0 +1,55 @@
+
+cmm:
+(data)
+(data int 3063 "camlCmm.5": addr "camlCmm.get_273" int 72057594037927941)
+(data
+ int 3063
+ "camlCmm.4":
+ addr "camlCmm.get_immediate_306"
+ int 72057594037927941)
+(data
+ int 4087
+ "camlCmm.3":
+ addr "caml_curry3"
+ int 216172782113783815
+ addr "camlCmm.compare_and_set_309")
+(data
+ int 3063
+ "camlCmm.2":
+ addr "camlCmm.standard_atomic_get_314"
+ int 72057594037927941)
+(data
+ int 3063
+ "camlCmm.1":
+ addr "camlCmm.standard_atomic_get_immediate_317"
+ int 72057594037927941)
+(data int 5888 global "camlCmm" "camlCmm": int 1 int 1 int 1 int 1 int 1)
+(data global "camlCmm.gc_roots" "camlCmm.gc_roots": addr "camlCmm" int 0)
+(function camlCmm.get_273 (v: val)
+ (extcall "caml_atomic_load_field" v 1 ->val))
+
+(function camlCmm.get_immediate_306 (v: val)
+ (extcall "caml_atomic_load_field" v 1 ->val))
+
+(function camlCmm.compare_and_set_309 (v: val old_: val new_: val)
+ (extcall "caml_atomic_cas_field" v 1 old_ new_ ->int))
+
+(function camlCmm.standard_atomic_get_314 (v: val) (load_mut_atomic val v))
+
+(function camlCmm.standard_atomic_get_immediate_317 (v: val)
+ (load_mut_atomic val v))
+
+(function camlCmm.entry ()
+ (let get "camlCmm.5" (extcall "caml_initialize" "camlCmm" get ->unit))
+ (let get_immediate "camlCmm.4"
+   (extcall "caml_initialize" (+a "camlCmm" 8) get_immediate ->unit))
+ (let compare_and_set "camlCmm.3"
+   (extcall "caml_initialize" (+a "camlCmm" 16) compare_and_set ->unit))
+ (let standard_atomic_get "camlCmm.2"
+   (extcall "caml_initialize" (+a "camlCmm" 24) standard_atomic_get ->unit))
+ (let standard_atomic_get_immediate "camlCmm.1"
+   (extcall "caml_initialize" (+a "camlCmm" 32) standard_atomic_get_immediate
+     ->unit))
+ 1)
+
+(data)
