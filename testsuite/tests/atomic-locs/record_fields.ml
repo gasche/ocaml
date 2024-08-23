@@ -55,12 +55,10 @@ module Weird = struct
   (* TODO: we should forbid this,
      only support [@atomic] on mutable fields. *)
 end
-(* TODO: The location below is slightly wrong, it should show the use-site of the field
-   rather than the definition site. *)
 [%%expect{|
-Line 2, characters 13-30:
-2 |   type t = { x : int [@atomic] }
-                 ^^^^^^^^^^^^^^^^^
+Line 5, characters 23-26:
+5 |     [%ocaml.atomic.loc w.x]
+                           ^^^
 Error: The record field "x" is not mutable
 |}];;
 

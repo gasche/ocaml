@@ -4381,16 +4381,20 @@ and type_expect_
       begin match payload with
       | PStr [ { pstr_desc =
                   Pstr_eval (
-                    { pexp_desc = Pexp_field (srecord, lid); _ } as sexp, _
+                    {
+                      pexp_desc = Pexp_field (srecord, lid);
+                      pexp_loc = loc;
+                    } as sexp,
+                    _
                   )
                } ] ->
           let record, label, ty_arg =
             solve_Pexp_field ~label_usage:Env.Mutation env sexp srecord lid
           in
-          if label.lbl_mut <> Mutable then
-            raise (Error (label.lbl_loc, env, Label_not_mutable lid.txt)) ;
           if not label.lbl_atomic then
-            raise (Error (label.lbl_loc, env, Label_not_atomic lid.txt)) ;
+            raise (Error (loc, env, Label_not_atomic lid.txt)) ;
+          if label.lbl_mut <> Mutable then
+            raise (Error (loc, env, Label_not_mutable lid.txt)) ;
           rue {
             exp_desc = Texp_atomic_loc (record, lid, label);
             exp_loc = loc; exp_extra = [];
