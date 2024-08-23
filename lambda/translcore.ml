@@ -348,16 +348,14 @@ and transl_exp0 ~in_new_scope ~scopes e =
       let loc = of_location ~scopes e.exp_loc in
       let atomic_loc = transl_atomic_loc ~scopes arg lbl loc in
       begin match lbl.lbl_repres with
-        Record_regular
-      | Record_inlined _ ->
+      | Record_regular
+      | Record_inlined _
+      | Record_extension _ ->
         Lprim (Patomic_load_loc, [atomic_loc], loc)
       | Record_unboxed _ ->
         fatal_error "Translcore.transl_exp0: atomic field in unboxed record"
       | Record_float ->
         fatal_error "Translcore.transl_exp0: atomic field in float record"
-      | Record_extension _ ->
-        (* TODOclement *)
-        assert false
       end
   | Texp_setfield (arg, _, lbl, newval) when not lbl.lbl_atomic ->
       let access =
@@ -380,7 +378,8 @@ and transl_exp0 ~in_new_scope ~scopes e =
       let newval = transl_exp ~scopes newval in
       begin match lbl.lbl_repres with
         Record_regular
-      | Record_inlined _ ->
+      | Record_inlined _ 
+      | Record_extension _ ->
         Lprim (
           Pignore,
           [Lprim (Patomic_exchange_loc, [atomic_loc; newval], loc)],
@@ -390,9 +389,6 @@ and transl_exp0 ~in_new_scope ~scopes e =
           fatal_error "Translcore.transl_exp0: atomic field in unboxed record"
       | Record_float ->
         fatal_error "Translcore.transl_exp0: atomic field in float record"
-      | Record_extension _ ->
-        (* TODOclement *)
-        assert false
       end
   | Texp_array expr_list ->
       let kind = array_kind e in
@@ -1123,7 +1119,12 @@ and transl_record ~scopes loc env fields repres opt_init_expr =
 and transl_atomic_loc ~scopes arg lbl loc =
   let shape = Some [Typeopt.value_kind arg.exp_env arg.exp_type; Pintval] in
   let arg = transl_exp ~scopes arg in
-  let lbl = Lconst (Const_base (Const_int lbl.lbl_pos)) in
+  let offset =
+    match lbl.lbl_repres with
+    | Record_regular | Record_float | Record_unboxed _ | Record_inlined _ -> 0
+    | Record_extension _ -> 1
+  in
+  let lbl = Lconst (Const_base (Const_int (lbl.lbl_pos + offset))) in
   Lprim (Pmakeblock (0, Immutable, shape), [arg; lbl], loc)
 
 and transl_match ~scopes e arg pat_expr_list partial =
