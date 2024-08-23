@@ -24,6 +24,9 @@ open Linear
 open Emitaux
 open Emitenv
 
+(* used by tools/cvt_emit.ml *)
+let instruction_count = ref 0
+
 (* Reserved space at bottom of stack *)
 
 let reserved_stack_space = 32

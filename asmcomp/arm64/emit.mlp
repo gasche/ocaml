@@ -27,6 +27,9 @@ open Linear
 open Emitaux
 open Emitenv
 
+(* used by tools/cvt_emit.ml *)
+let instruction_count = ref 0
+
 (* Names for special regs *)
 
 let reg_domain_state_ptr = phys_reg 25 (* x28 *)

@@ -24,6 +24,9 @@ open Linear
 open Emitaux
 open Emitenv
 
+(* used by tools/cvt_emit.ml *)
+let instruction_count = ref 0
+
 (* Layout of the stack.  The C stack must be 16-aligned, but 8-alignment
    is enough for the OCaml stack. *)
 

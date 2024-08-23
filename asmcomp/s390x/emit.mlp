@@ -25,6 +25,9 @@ open Linear
 open Emitaux
 open Emitenv
 
+(* used by tools/cvt_emit.ml *)
+let instruction_count = ref 0
+
 let frame_size env =
   let size =
     env.stack_offset +      (* Trap frame, outgoing parameters *)

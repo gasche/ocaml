@@ -33,15 +33,21 @@ let print_unescaped_string s =
     print_char s.[!i];
     i := !i + 1
   done
+
+let lex_command ~count_instr command lexbuf =
+  lexeme_beginning := Lexing.lexeme_start lexbuf;
+  first_item := true;
+  print_char '(';
+  if count_instr then print_string " incr instruction_count; ";
+  command lexbuf;
+  print_char ')'
 }
 
 rule lex = parse
-    "`" { lexeme_beginning := Lexing.lexeme_start lexbuf;
-          first_item := true;
-          print_char '(';
-          command lexbuf;
-          print_char ')';
+  | "`" { lex_command ~count_instr:true command lexbuf;
           lex lexbuf }
+  | "@`" { lex_command ~count_instr:false command lexbuf;
+           lex lexbuf }
   | "\\`"
         { print_string "`"; lex lexbuf }
   | '\t' { prerr_string "Invalid tab at character ";
