@@ -173,10 +173,10 @@ let patomic_cas = "Patomic_cas"
 let patomic_exchange = "Patomic_exchange"
 let patomic_fetch_add = "Patomic_fetch_add"
 let patomic_load = "Patomic_load"
-let patomic_load_loc = "Patomic_load_loc"
-let patomic_exchange_loc = "Patomic_exchange_loc"
-let patomic_cas_loc = "Patomic_cas_loc"
-let patomic_fetch_add_loc = "Patomic_fetch_add_loc"
+let patomic_load_field = "Patomic_load_field"
+let patomic_exchange_field = "Patomic_exchange_field"
+let patomic_cas_field = "Patomic_cas_field"
+let patomic_fetch_add_field = "Patomic_fetch_add_field"
 let prunstack = "Prunstack"
 let pperform = "Pperform"
 let presume = "Presume"
@@ -290,10 +290,10 @@ let patomic_cas_arg = "Patomic_cas_arg"
 let patomic_exchange_arg = "Patomic_exchange_arg"
 let patomic_fetch_add_arg = "Patomic_fetch_add_arg"
 let patomic_load_arg = "Patomic_load_arg"
-let patomic_load_loc_arg = "Patomic_load_loc_arg"
-let patomic_exchange_loc_arg = "Patomic_exchange_loc_arg"
-let patomic_cas_loc_arg = "Patomic_cas_loc_arg"
-let patomic_fetch_add_loc_arg = "Patomic_fetch_add_loc_arg"
+let patomic_load_field_arg = "Patomic_load_field_arg"
+let patomic_exchange_field_arg = "Patomic_exchange_field_arg"
+let patomic_cas_field_arg = "Patomic_cas_field_arg"
+let patomic_fetch_add_field_arg = "Patomic_fetch_add_field_arg"
 let prunstack_arg = "Prunstack_arg"
 let pperform_arg = "Pperform_arg"
 let presume_arg = "Presume_arg"
@@ -439,10 +439,10 @@ let of_primitive : Lambda.primitive -> string = function
   | Patomic_exchange -> patomic_exchange
   | Patomic_fetch_add -> patomic_fetch_add
   | Patomic_load _ -> patomic_load
-  | Patomic_load_loc -> patomic_load_loc
-  | Patomic_exchange_loc -> patomic_exchange_loc
-  | Patomic_cas_loc -> patomic_cas_loc
-  | Patomic_fetch_add_loc -> patomic_fetch_add_loc
+  | Patomic_load_field -> patomic_load_field
+  | Patomic_exchange_field -> patomic_exchange_field
+  | Patomic_cas_field -> patomic_cas_field
+  | Patomic_fetch_add_field -> patomic_fetch_add_field
   | Prunstack -> prunstack
   | Pperform -> pperform
   | Presume -> presume
@@ -556,10 +556,10 @@ let of_primitive_arg : Lambda.primitive -> string = function
   | Patomic_exchange -> patomic_exchange_arg
   | Patomic_fetch_add -> patomic_fetch_add_arg
   | Patomic_load _ -> patomic_load_arg
-  | Patomic_load_loc -> patomic_load_loc_arg
-  | Patomic_exchange_loc -> patomic_exchange_loc_arg
-  | Patomic_cas_loc -> patomic_cas_loc_arg
-  | Patomic_fetch_add_loc -> patomic_fetch_add_loc_arg
+  | Patomic_load_field -> patomic_load_field_arg
+  | Patomic_exchange_field -> patomic_exchange_field_arg
+  | Patomic_cas_field -> patomic_cas_field_arg
+  | Patomic_fetch_add_field -> patomic_fetch_add_field_arg
   | Prunstack -> prunstack_arg
   | Pperform -> pperform_arg
   | Presume -> presume_arg

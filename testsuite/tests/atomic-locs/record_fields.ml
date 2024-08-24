@@ -23,10 +23,9 @@ end
 [%%expect{|
 (apply (field_mut 1 (global Toploop!)) "Basic/329"
   (let
-    (get = (function v (atomic_load_loc (makeblock 0 (*,int) v 1)))
+    (get = (function v (atomic_load_field v 1))
      compare_and_set =
-       (function v old_ new_ : int
-         (atomic_cas_loc (makeblock 0 (*,int) v 1) old_ new_))
+       (function v old_ new_ : int (atomic_cas_field v 1 old_ new_))
      get_loc = (function v never_inline (makeblock 0 (*,int) v 1))
      less_efficient_set =
        (function v new_ : int
@@ -141,9 +140,7 @@ module Inline_record = struct
 end
 [%%expect{|
 (apply (field_mut 1 (global Toploop!)) "Inline_record/357"
-  (let
-    (test =
-       (function param : int (atomic_load_loc (makeblock 0 (*,int) param 0))))
+  (let (test = (function param : int (atomic_load_field param 0)))
     (makeblock 0 test)))
 module Inline_record :
   sig type t = A of { mutable x : int [@atomic]; } val test : t -> int end
@@ -166,8 +163,7 @@ end
        (makeblock 248 "Extension_with_inline_record.A" (caml_fresh_oo_id 0))
      test =
        (function param : int
-         (if (== (field_imm 0 param) A)
-           (atomic_load_loc (makeblock 0 (*,int) param 1)) 0)))
+         (if (== (field_imm 0 param) A) (atomic_load_field param 1) 0)))
     (makeblock 0 A test)))
 module Extension_with_inline_record :
   sig
@@ -190,7 +186,7 @@ end
 (apply (field_mut 1 (global Toploop!)) "Float_records/377"
   (let
     (mk_t = (function x[float] y[float] (makemutable 0 (float,float) x y))
-     get = (function v : float (atomic_load_loc (makeblock 0 (*,int) v 1))))
+     get = (function v : float (atomic_load_field v 1)))
     (makeblock 0 mk_t get)))
 module Float_records :
   sig

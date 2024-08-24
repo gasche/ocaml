@@ -366,7 +366,7 @@ CAMLprim value caml_atomic_exchange_loc (value loc, value v)
   );
 }
 
-CAMLexport value caml_atomic_cas_field (
+CAMLprim value caml_atomic_cas_field (
   value obj,
   value vfield,
   value oldv,

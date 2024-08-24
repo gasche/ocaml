@@ -77,6 +77,12 @@ type loc_kind =
   | Loc_POS
   | Loc_FUNCTION
 
+type atomic_op =
+  | Load
+  | Exchange
+  | Cas
+  | Fetch_add
+
 type prim =
   | Primitive of Lambda.primitive * int
   | External of Primitive.description
@@ -92,6 +98,7 @@ type prim =
   | Identity
   | Apply
   | Revapply
+  | Atomic_loc of atomic_op
 
 let used_primitives = Hashtbl.create 7
 let add_used_primitive loc env path =
@@ -369,10 +376,10 @@ let primitives_table =
     "%atomic_exchange", Primitive (Patomic_exchange, 2);
     "%atomic_cas", Primitive (Patomic_cas, 3);
     "%atomic_fetch_add", Primitive (Patomic_fetch_add, 2);
-    "%atomic_load_loc", Primitive (Patomic_load_loc, 1);
-    "%atomic_exchange_loc", Primitive (Patomic_exchange_loc, 2);
-    "%atomic_cas_loc", Primitive (Patomic_cas_loc, 3);
-    "%atomic_fetch_add_loc", Primitive (Patomic_fetch_add_loc, 2);
+    "%atomic_load_loc", Atomic_loc Load;
+    "%atomic_exchange_loc", Atomic_loc Exchange;
+    "%atomic_cas_loc", Atomic_loc Cas;
+    "%atomic_fetch_add_loc", Atomic_loc Fetch_add;
     "%runstack", Primitive (Prunstack, 3);
     "%reperform", Primitive (Preperform, 3);
     "%perform", Primitive (Pperform, 1);
@@ -662,6 +669,16 @@ let lambda_of_loc kind sloc =
     let scope_name = Debuginfo.Scoped_location.string_of_scoped_location sloc in
     Lconst (Const_immstring scope_name)
 
+let lambda_of_atomic_loc_op prim loc loc_arg args =
+  match loc_arg with
+  | Lprim(Pmakeblock _, [ptr; ofs], _argloc) ->
+    Lprim(prim, [ptr; ofs] @ args, loc)
+  | _ ->
+    let varg = Ident.create_local "atomic_arg" in
+    let ptr = Lprim(Pfield(0, Pointer, Immutable), [Lvar varg], loc) in
+    let ofs = Lprim(Pfield(1, Immediate, Immutable), [Lvar varg], loc) in
+    Llet(Strict, Pgenval, varg, loc_arg, Lprim(prim, [ptr; ofs] @ args, loc))
+
 let caml_restore_raw_backtrace =
   Primitive.simple ~name:"caml_restore_raw_backtrace" ~arity:2 ~alloc:false
 
@@ -748,11 +765,27 @@ let lambda_of_prim prim_name prim loc args arg_exps =
         ap_inlined = Default_inline;
         ap_specialised = Default_specialise;
       }
+  | Atomic_loc Load, [loc_arg] ->
+      lambda_of_atomic_loc_op Patomic_load_field loc loc_arg []
+  | Atomic_loc Exchange, [loc_arg; arg2] ->
+      lambda_of_atomic_loc_op Patomic_exchange_field loc loc_arg [arg2]
+  | Atomic_loc Cas, [loc_arg; arg2; arg3] ->
+      lambda_of_atomic_loc_op Patomic_cas_field loc loc_arg [arg2; arg3]
+  | Atomic_loc Fetch_add, [loc_arg; arg2] ->
+      lambda_of_atomic_loc_op Patomic_fetch_add_field loc loc_arg [arg2]
   | (Raise _ | Raise_with_backtrace
     | Lazy_force | Loc _ | Primitive _ | Comparison _
     | Send | Send_self | Send_cache | Frame_pointers | Identity
-    | Apply | Revapply), _ ->
+    | Apply | Revapply
+    | Atomic_loc (Load | Exchange | Cas | Fetch_add)
+    ), _ ->
       raise(Error(to_location loc, Wrong_arity_builtin_primitive prim_name))
+
+let atomic_loc_op_arity = function
+  | Load -> 1
+  | Exchange -> 2
+  | Cas -> 3
+  | Fetch_add -> 2
 
 let check_primitive_arity loc p =
   let prim = lookup_primitive loc p in
@@ -770,6 +803,7 @@ let check_primitive_arity loc p =
     | Frame_pointers -> p.prim_arity = 0
     | Identity -> p.prim_arity = 1
     | Apply | Revapply -> p.prim_arity = 2
+    | Atomic_loc op -> p.prim_arity = atomic_loc_op_arity op
   in
   if not ok then raise(Error(loc, Wrong_arity_builtin_primitive p.prim_name))
 
@@ -831,10 +865,10 @@ let lambda_primitive_needs_event_after = function
   | Pbytessetu | Pmakearray ((Pintarray | Paddrarray | Pfloatarray), _)
   | Parraylength _ | Parrayrefu _ | Parraysetu _ | Pisint | Pisout
   | Patomic_exchange | Patomic_cas | Patomic_fetch_add | Patomic_load _
-  | Patomic_load_loc
-  | Patomic_exchange_loc
-  | Patomic_cas_loc
-  | Patomic_fetch_add_loc
+  | Patomic_load_field
+  | Patomic_exchange_field
+  | Patomic_cas_field
+  | Patomic_fetch_add_field
   | Pintofbint _ | Pctconst _ | Pbswap16 | Pint_as_pointer | Popaque | Pdls_get
       -> false
 
@@ -846,7 +880,11 @@ let primitive_needs_event_after = function
       lambda_primitive_needs_event_after (comparison_primitive comp knd)
   | Lazy_force | Send | Send_self | Send_cache
   | Apply | Revapply -> true
-  | Raise _ | Raise_with_backtrace | Loc _ | Frame_pointers | Identity -> false
+  | Raise _ | Raise_with_backtrace
+  | Loc _
+  | Frame_pointers | Identity
+  | Atomic_loc _
+    -> false
 
 let transl_primitive_application loc p env ty path exp args arg_exps =
   let prim =

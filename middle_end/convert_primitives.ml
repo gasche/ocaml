@@ -149,28 +149,23 @@ let convert (prim : Lambda.primitive) : Clambda_primitives.primitive =
   | Patomic_exchange -> Patomic_exchange
   | Patomic_cas -> Patomic_cas
   | Patomic_fetch_add -> Patomic_fetch_add
-  | Patomic_load_loc ->
+  | Patomic_load_field -> Patomic_load_field
+  | Patomic_exchange_field ->
       Pccall (Primitive.simple
-        ~name:"caml_atomic_load_loc"
-        ~arity:1
-        ~alloc:false
-      )
-  | Patomic_exchange_loc ->
-      Pccall (Primitive.simple
-        ~name:"caml_atomic_exchange_loc"
-        ~arity:2
-        ~alloc:false
-      )
-  | Patomic_cas_loc ->
-      Pccall (Primitive.simple
-        ~name:"caml_atomic_cas_loc"
+        ~name:"caml_atomic_exchange_field"
         ~arity:3
         ~alloc:false
       )
-  | Patomic_fetch_add_loc ->
+  | Patomic_cas_field ->
       Pccall (Primitive.simple
-        ~name:"caml_atomic_fetch_add_loc"
-        ~arity:2
+        ~name:"caml_atomic_cas_field"
+        ~arity:4
+        ~alloc:false
+      )
+  | Patomic_fetch_add_field ->
+      Pccall (Primitive.simple
+        ~name:"caml_atomic_fetch_add_field"
+        ~arity:3
         ~alloc:false
       )
   | Popaque -> Popaque
