@@ -508,7 +508,7 @@ let rec transl env e =
       | ((Pfield_computed|Psequand
          | Prunstack | Pperform | Presume | Preperform
          | Pdls_get
-         | Patomic_load _ | Patomic_exchange
+         | Patomic_load | Patomic_exchange
          | Patomic_cas | Patomic_fetch_add
          | Psequor | Pnot | Pnegint | Paddint | Psubint
          | Pmulint | Pandint | Porint | Pxorint | Plslint
@@ -832,9 +832,7 @@ and transl_prim_1 env p arg dbg =
        dbg)
   | Pdls_get ->
       Cop(Cdls_get, [transl env arg], dbg)
-  | Patomic_load {immediate_or_pointer = Immediate} ->
-      Cop(mk_load_atomic Word_int, [transl env arg], dbg)
-  | Patomic_load {immediate_or_pointer = Pointer} ->
+  | Patomic_load ->
       Cop(mk_load_atomic Word_val, [transl env arg], dbg)
   | Ppoll ->
     (Csequence (remove_unit (transl env arg),
@@ -1032,7 +1030,7 @@ and transl_prim_2 env p arg1 arg2 dbg =
      Cop (Cextcall ("caml_atomic_fetch_add", typ_int, [], false),
           [transl env arg1; transl env arg2], dbg)
   | Prunstack | Pperform | Presume | Preperform | Pdls_get
-  | Patomic_cas | Patomic_load _
+  | Patomic_cas | Patomic_load
   | Pnot | Pnegint | Pintoffloat | Pfloatofint | Pnegfloat
   | Pabsfloat | Pstringlength | Pbyteslength | Pbytessetu | Pbytessets
   | Pisint | Pbswap16 | Pint_as_pointer | Popaque | Pread_symbol _
@@ -1103,7 +1101,7 @@ and transl_prim_3 env p arg1 arg2 arg3 dbg =
            dbg)
 
   | Pperform | Pdls_get | Presume
-  | Patomic_exchange | Patomic_fetch_add | Patomic_load _
+  | Patomic_exchange | Patomic_fetch_add | Patomic_load
   | Pfield_computed | Psequand | Psequor | Pnot | Pnegint | Paddint
   | Psubint | Pmulint | Pandint | Porint | Pxorint | Plslint | Plsrint | Pasrint
   | Pintoffloat | Pfloatofint | Pnegfloat | Pabsfloat | Paddfloat | Psubfloat
@@ -1136,7 +1134,7 @@ and transl_prim_4 env p arg1 arg2 arg3 arg4 dbg =
   | Pbytessetu | Pbytessets | Parraysetu _
   | Parraysets _ | Pbytes_set _ | Pbigstring_set _ | Patomic_cas
   | Prunstack | Preperform | Pperform | Pdls_get
-  | Patomic_exchange | Patomic_fetch_add | Patomic_load _
+  | Patomic_exchange | Patomic_fetch_add | Patomic_load
   | Pfield_computed | Psequand | Psequor | Pnot | Pnegint | Paddint
   | Psubint | Pmulint | Pandint | Porint | Pxorint | Plslint | Plsrint | Pasrint
   | Pintoffloat | Pfloatofint | Pnegfloat | Pabsfloat | Paddfloat | Psubfloat

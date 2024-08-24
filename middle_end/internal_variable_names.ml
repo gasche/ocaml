@@ -430,7 +430,7 @@ let of_primitive : Lambda.primitive -> string = function
   | Patomic_cas -> patomic_cas
   | Patomic_exchange -> patomic_exchange
   | Patomic_fetch_add -> patomic_fetch_add
-  | Patomic_load _ -> patomic_load
+  | Patomic_load -> patomic_load
   | Prunstack -> prunstack
   | Pperform -> pperform
   | Presume -> presume
@@ -543,7 +543,7 @@ let of_primitive_arg : Lambda.primitive -> string = function
   | Patomic_cas -> patomic_cas_arg
   | Patomic_exchange -> patomic_exchange_arg
   | Patomic_fetch_add -> patomic_fetch_add_arg
-  | Patomic_load _ -> patomic_load_arg
+  | Patomic_load -> patomic_load_arg
   | Prunstack -> prunstack_arg
   | Pperform -> pperform_arg
   | Presume -> presume_arg
