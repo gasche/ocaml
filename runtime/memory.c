@@ -314,8 +314,9 @@ CAMLexport CAMLweakdef void caml_initialize (volatile value *fp, value val)
     Ref_table_add(&Caml_state->minor_tables->major_ref, fp);
 }
 
-CAMLprim value caml_atomic_load_field (value obj, intnat field)
+CAMLprim value caml_atomic_load_field (value obj, value vfield)
 {
+  intnat field = Long_val(vfield);
   if (caml_domain_alone()) {
     return Field(obj, field);
   } else {
@@ -326,19 +327,20 @@ CAMLprim value caml_atomic_load_field (value obj, intnat field)
 }
 CAMLprim value caml_atomic_load (value obj)
 {
-  return caml_atomic_load_field(obj, 0);
+  return caml_atomic_load_field(obj, Val_long(0));
 }
 CAMLprim value caml_atomic_load_loc (value loc)
 {
   return caml_atomic_load_field(
     Field(loc, 0),
-    Long_val(Field(loc, 1))
+    Field(loc, 1)
   );
 }
 
-CAMLprim value caml_atomic_exchange_field (value obj, intnat field, value v)
+CAMLprim value caml_atomic_exchange_field (value obj, value vfield, value v)
 {
   value ret;
+  intnat field = Long_val(vfield);
   if (caml_domain_alone()) {
     ret = Field(obj, field);
     Field(obj, field) = v;
@@ -353,23 +355,24 @@ CAMLprim value caml_atomic_exchange_field (value obj, intnat field, value v)
 }
 CAMLprim value caml_atomic_exchange (value obj, value v)
 {
-  return caml_atomic_exchange_field(obj, 0, v);
+  return caml_atomic_exchange_field(obj, Val_long(0), v);
 }
 CAMLprim value caml_atomic_exchange_loc (value loc, value v)
 {
   return caml_atomic_exchange_field(
     Field(loc, 0),
-    Long_val(Field(loc, 1)),
+    Field(loc, 1),
     v
   );
 }
 
 CAMLexport value caml_atomic_cas_field (
   value obj,
-  intnat field,
+  value vfield,
   value oldv,
   value newv
 ) {
+  intnat field = Long_val(vfield);
   if (caml_domain_alone()) {
     /* non-atomic CAS since only this thread can access the object */
     volatile value* p = &Field(obj, field);
@@ -395,20 +398,21 @@ CAMLexport value caml_atomic_cas_field (
 }
 CAMLprim value caml_atomic_cas (value obj, value oldv, value newv)
 {
-  return caml_atomic_cas_field(obj, 0, oldv, newv);
+  return caml_atomic_cas_field(obj, Val_long(0), oldv, newv);
 }
 CAMLprim value caml_atomic_cas_loc (value loc, value oldv, value newv)
 {
   return caml_atomic_cas_field(
     Field(loc, 0),
-    Long_val(Field(loc, 1)),
+    Field(loc, 1),
     oldv,
     newv
   );
 }
 
-CAMLprim value caml_atomic_fetch_add_field (value obj, intnat field, value incr)
+CAMLprim value caml_atomic_fetch_add_field (value obj, value vfield, value incr)
 {
+  intnat field = Long_val(vfield);
   value ret;
   if (caml_domain_alone()) {
     value* p = &Op_val(obj)[field];
@@ -425,13 +429,13 @@ CAMLprim value caml_atomic_fetch_add_field (value obj, intnat field, value incr)
 }
 CAMLprim value caml_atomic_fetch_add (value obj, value incr)
 {
-  return caml_atomic_fetch_add_field(obj, 0, incr);
+  return caml_atomic_fetch_add_field(obj, Val_long(0), incr);
 }
 CAMLprim value caml_atomic_fetch_add_loc (value loc, value incr)
 {
   return caml_atomic_fetch_add_field(
     Field(loc, 0),
-    Long_val(Field(loc, 1)),
+    Field(loc, 1),
     incr
   );
 }

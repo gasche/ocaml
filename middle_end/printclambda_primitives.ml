@@ -220,10 +220,10 @@ let primitive ppf (prim:Clambda_primitives.primitive) =
   | Patomic_exchange -> fprintf ppf "atomic_exchange"
   | Patomic_cas -> fprintf ppf "atomic_cas"
   | Patomic_fetch_add -> fprintf ppf "atomic_fetch_add"
-  | Patomic_load_field fld -> fprintf ppf "atomic_load_field %i" fld
-  | Patomic_exchange_field fld -> fprintf ppf "atomic_exchange_field %i" fld
-  | Patomic_cas_field fld -> fprintf ppf "atomic_cas_field %i" fld
-  | Patomic_fetch_add_field fld -> fprintf ppf "atomic_fetch_add_field %i" fld
+  | Patomic_load_field -> fprintf ppf "atomic_load_field"
+  | Patomic_exchange_field -> fprintf ppf "atomic_exchange_field"
+  | Patomic_cas_field -> fprintf ppf "atomic_cas_field"
+  | Patomic_fetch_add_field -> fprintf ppf "atomic_fetch_add_field"
   | Popaque -> fprintf ppf "opaque"
   | Pdls_get -> fprintf ppf "dls_get"
   | Ppoll -> fprintf ppf "poll"

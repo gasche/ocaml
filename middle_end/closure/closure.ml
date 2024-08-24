@@ -1101,8 +1101,9 @@ let rec close ({ backend; fenv; cenv ; mutable_vars } as env) lam =
       loc
     ) ->
       let obj, _ = close env obj in
+      let ofs, _ = make_const_int fld in
       let dbg = Debuginfo.from_location loc in
-      Uprim (P.Patomic_load_field fld, [obj], dbg), Value_unknown
+      Uprim (P.Patomic_load_field, [obj; ofs], dbg), Value_unknown
   | Lprim (
       Patomic_exchange_loc,
       [ Lprim (Pmakeblock _, [obj; Lconst (Const_base (Const_int fld))], _);
@@ -1111,9 +1112,10 @@ let rec close ({ backend; fenv; cenv ; mutable_vars } as env) lam =
       loc
     ) ->
       let obj, _ = close env obj in
+      let ofs, _ = make_const_int fld in
       let arg, _ = close env arg in
       let dbg = Debuginfo.from_location loc in
-      Uprim (P.Patomic_exchange_field fld, [obj; arg], dbg), Value_unknown
+      Uprim (P.Patomic_exchange_field, [obj; ofs; arg], dbg), Value_unknown
   | Lprim (
       Patomic_cas_loc,
       [ Lprim (Pmakeblock _, [obj; Lconst (Const_base (Const_int fld))], _);
@@ -1123,10 +1125,11 @@ let rec close ({ backend; fenv; cenv ; mutable_vars } as env) lam =
       loc
     ) ->
       let obj, _ = close env obj in
+      let ofs, _ = make_const_int fld in
       let arg1, _ = close env arg1 in
       let arg2, _ = close env arg2 in
       let dbg = Debuginfo.from_location loc in
-      Uprim (P.Patomic_cas_field fld, [obj; arg1; arg2], dbg), Value_unknown
+      Uprim (P.Patomic_cas_field, [obj; ofs; arg1; arg2], dbg), Value_unknown
   | Lprim (
       Patomic_fetch_add_loc,
       [ Lprim (Pmakeblock _, [obj; Lconst (Const_base (Const_int fld))], _);
@@ -1135,9 +1138,10 @@ let rec close ({ backend; fenv; cenv ; mutable_vars } as env) lam =
       loc
     ) ->
       let obj, _ = close env obj in
+      let ofs, _ = make_const_int fld in
       let arg, _ = close env arg in
       let dbg = Debuginfo.from_location loc in
-      Uprim (P.Patomic_fetch_add_field fld, [obj; arg], dbg), Value_unknown
+      Uprim (P.Patomic_fetch_add_field, [obj; ofs; arg], dbg), Value_unknown
   | Lprim(p, args, loc) ->
       let p = Convert_primitives.convert p in
       let dbg = Debuginfo.from_location loc in

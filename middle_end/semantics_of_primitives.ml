@@ -120,10 +120,10 @@ let for_primitive (prim : Clambda_primitives.primitive) =
   | Patomic_exchange
   | Patomic_cas
   | Patomic_fetch_add
-  | Patomic_load_field _
-  | Patomic_exchange_field _
-  | Patomic_cas_field _
-  | Patomic_fetch_add_field _
+  | Patomic_load_field
+  | Patomic_exchange_field
+  | Patomic_cas_field
+  | Patomic_fetch_add_field
   | Parraysetu _
   | Parraysets _
   | Pbytessetu

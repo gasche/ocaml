@@ -214,6 +214,10 @@ val set_field :
   expression -> int -> expression -> Lambda.initialization_or_assignment ->
   Debuginfo.t -> expression
 
+(** [field_address_computed ptr ofs dbg] returns an expression for the address
+    at offset [ofs] of the block pointed to by [ptr]. *)
+val field_address_computed : expression -> expression -> Debuginfo.t -> expression
+
 (** Load a block's header *)
 val get_header : expression -> Debuginfo.t -> expression
 

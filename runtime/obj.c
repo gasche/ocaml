@@ -173,7 +173,7 @@ CAMLprim value caml_obj_add_offset (value v, value offset)
 CAMLprim value caml_obj_compare_and_swap (value v, value f,
                                           value oldv, value newv)
 {
-  value res = caml_atomic_cas_field(v, Long_val(f), oldv, newv);
+  value res = caml_atomic_cas_field(v, f, oldv, newv);
   caml_check_urgent_gc(Val_unit);
   return res;
 }
