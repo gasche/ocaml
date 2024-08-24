@@ -25,20 +25,17 @@ cmm:
  int 72057594037927941)
 (data int 5888 global "camlCmm" "camlCmm": int 1 int 1 int 1 int 1 int 1)
 (data global "camlCmm.gc_roots" "camlCmm.gc_roots": addr "camlCmm" int 0)
-(function camlCmm.get_273 (v: val)
- (extcall "caml_atomic_load_field" v 1 ->val))
+(function camlCmm.get_273 (v: val) (load_mut_atomic val (+a v 8)))
 
-(function camlCmm.get_immediate_306 (v: val)
- (extcall "caml_atomic_load_field" v 1 ->val))
+(function camlCmm.get_immediate_306 (v: val) (load_mut_atomic val (+a v 8)))
 
 (function camlCmm.compare_and_set_309 (v: val old_: val new_: val)
  (extcall "caml_atomic_cas_field" v 1 old_ new_ ->int))
 
-(function camlCmm.standard_atomic_get_314 (v: val)
- (extcall "caml_atomic_load_field" v 0 ->val))
+(function camlCmm.standard_atomic_get_314 (v: val) (load_mut_atomic val v))
 
 (function camlCmm.standard_atomic_get_immediate_317 (v: val)
- (extcall "caml_atomic_load_field" v 0 ->val))
+ (load_mut_atomic val v))
 
 (function camlCmm.entry ()
  (let get "camlCmm.5" (extcall "caml_initialize" "camlCmm" get ->unit))

@@ -841,13 +841,9 @@ and transl_prim_1 env p arg dbg =
   | Patomic_load {immediate_or_pointer = Pointer} ->
       Cop(mk_load_atomic Word_val, [transl env arg], dbg)
   | Patomic_load_field fld ->
-      let fld = Cconst_int (fld, dbg) in
-      let arg = transl env arg in
-      Cop(
-        Cextcall("caml_atomic_load_field", typ_val, [], false),
-        [arg; fld],
-        dbg
-      )
+      let ptr = transl env arg in
+      Cop(mk_load_atomic Word_val,
+          [field_address ptr fld dbg], dbg)
   | Ppoll ->
     (Csequence (remove_unit (transl env arg),
                 return_unit dbg (Cop(Cpoll, [], dbg))))
