@@ -545,6 +545,7 @@ and label_declaration =
      ld_name: string loc;
      ld_uid: Uid.t;
      ld_mutable: mutable_flag;
+     ld_atomic: bool;
      ld_type: core_type;
      ld_loc: Location.t;
      ld_attributes: attribute list;
