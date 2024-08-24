@@ -233,6 +233,7 @@ let transl_labels env univars closed lbls =
           ld_name = name;
           ld_uid = Uid.mk ~current_unit:(Env.get_current_unit ());
           ld_mutable = mut;
+          ld_atomic = false;
           ld_type = cty; ld_loc = loc; ld_attributes = attrs}
       )
   in
@@ -244,6 +245,7 @@ let transl_labels env univars closed lbls =
          let ty = match get_desc ty with Tpoly(t,[]) -> t | _ -> ty in
          {Types.ld_id = ld.ld_id;
           ld_mutable = ld.ld_mutable;
+          ld_atomic = ld.ld_atomic;
           ld_type = ty;
           ld_loc = ld.ld_loc;
           ld_attributes = ld.ld_attributes;
