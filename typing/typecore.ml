@@ -4393,8 +4393,6 @@ and type_expect_
           in
           if not label.lbl_atomic then
             raise (Error (loc, env, Label_not_atomic lid.txt)) ;
-          if label.lbl_mut <> Mutable then
-            raise (Error (loc, env, Label_not_mutable lid.txt)) ;
           rue {
             exp_desc = Texp_atomic_loc (record, lid, label);
             exp_loc = loc; exp_extra = [];

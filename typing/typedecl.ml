@@ -75,6 +75,7 @@ type error =
   | Boxed_and_unboxed
   | Nonrec_gadt
   | Invalid_private_row_declaration of type_expr
+  | Atomic_field_must_be_mutable of string
 
 open Typedtree
 
@@ -229,11 +230,15 @@ let transl_labels env univars closed lbls =
       (fun () ->
          let arg = Ast_helper.Typ.force_poly arg in
          let cty = transl_simple_type env ?univars ~closed arg in
+         let is_atomic = Builtin_attributes.has_atomic attrs in
+         let is_mutable = match mut with Mutable -> true | Immutable -> false in
+         if is_atomic && not is_mutable then
+           raise (Error (loc, Atomic_field_must_be_mutable name.txt));
          {ld_id = Ident.create_local name.txt;
           ld_name = name;
           ld_uid = Uid.mk ~current_unit:(Env.get_unit_name ());
           ld_mutable = mut;
-          ld_atomic = Builtin_attributes.has_atomic attrs;
+          ld_atomic = is_atomic;
           ld_type = cty; ld_loc = loc; ld_attributes = attrs}
       )
   in
@@ -2264,6 +2269,9 @@ let report_error_doc ppf = function
          write explicitly@]@;<1 2>%a@]"
         (Style.as_inline_code Printtyp.type_expr) ty
         (Style.as_inline_code pp_private) ty
+  | Atomic_field_must_be_mutable name ->
+      fprintf ppf "@[The label %a must be mutable to be declared atomic.@]"
+        Style.inline_code name
 
 let () =
   Location.register_error_of_exn

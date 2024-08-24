@@ -43,22 +43,15 @@ module Basic :
 |}];;
 
 
-(* If you mark a non-mutable field as atomic,
-   taking its location is an error. *)
-module Weird = struct
+(* Atomic fields must be mutable. *)
+module Error = struct
   type t = { x : int [@atomic] }
-
-  let this_is_an_error (w : t) =
-    [%ocaml.atomic.loc w.x]
-
-  (* TODO: we should forbid this,
-     only support [@atomic] on mutable fields. *)
 end
 [%%expect{|
-Line 5, characters 23-26:
-5 |     [%ocaml.atomic.loc w.x]
-                           ^^^
-Error: The record field "x" is not mutable
+Line 2, characters 13-30:
+2 |   type t = { x : int [@atomic] }
+                 ^^^^^^^^^^^^^^^^^
+Error: The label "x" must be mutable to be declared atomic.
 |}];;
 
 
