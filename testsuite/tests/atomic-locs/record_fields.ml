@@ -118,7 +118,7 @@ end : sig
   type t = { mutable x : int [@atomic] }
 end)
 [%%expect{|
-(apply (field_mut 1 (global Toploop!)) "Ok/349" (makeblock 0))
+(apply (field_mut 1 (global Toploop!)) "Ok/345" (makeblock 0))
 module Ok : sig type t = { mutable x : int [@atomic]; } end
 |}];;
 
@@ -132,7 +132,7 @@ module Inline_record = struct
   let test : t -> int = fun (A r) -> r.x
 end
 [%%expect{|
-(apply (field_mut 1 (global Toploop!)) "Inline_record/357"
+(apply (field_mut 1 (global Toploop!)) "Inline_record/353"
   (let (test = (function param : int (atomic_load_field param 0)))
     (makeblock 0 test)))
 module Inline_record :
@@ -150,7 +150,7 @@ module Extension_with_inline_record = struct
     | _ -> 0
 end
 [%%expect{|
-(apply (field_mut 1 (global Toploop!)) "Extension_with_inline_record/365"
+(apply (field_mut 1 (global Toploop!)) "Extension_with_inline_record/361"
   (let
     (A =
        (makeblock 248 "Extension_with_inline_record.A" (caml_fresh_oo_id 0))
@@ -176,7 +176,7 @@ module Float_records = struct
   let get v = v.y
 end
 [%%expect{|
-(apply (field_mut 1 (global Toploop!)) "Float_records/377"
+(apply (field_mut 1 (global Toploop!)) "Float_records/373"
   (let
     (mk_t = (function x[float] y[float] (makemutable 0 (float,float) x y))
      get = (function v : float (atomic_load_field v 1)))
