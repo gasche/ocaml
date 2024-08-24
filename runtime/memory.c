@@ -329,13 +329,6 @@ CAMLprim value caml_atomic_load (value obj)
 {
   return caml_atomic_load_field(obj, Val_long(0));
 }
-CAMLprim value caml_atomic_load_loc (value loc)
-{
-  return caml_atomic_load_field(
-    Field(loc, 0),
-    Field(loc, 1)
-  );
-}
 
 CAMLprim value caml_atomic_exchange_field (value obj, value vfield, value v)
 {
@@ -356,14 +349,6 @@ CAMLprim value caml_atomic_exchange_field (value obj, value vfield, value v)
 CAMLprim value caml_atomic_exchange (value obj, value v)
 {
   return caml_atomic_exchange_field(obj, Val_long(0), v);
-}
-CAMLprim value caml_atomic_exchange_loc (value loc, value v)
-{
-  return caml_atomic_exchange_field(
-    Field(loc, 0),
-    Field(loc, 1),
-    v
-  );
 }
 
 CAMLprim value caml_atomic_cas_field (
@@ -400,15 +385,6 @@ CAMLprim value caml_atomic_cas (value obj, value oldv, value newv)
 {
   return caml_atomic_cas_field(obj, Val_long(0), oldv, newv);
 }
-CAMLprim value caml_atomic_cas_loc (value loc, value oldv, value newv)
-{
-  return caml_atomic_cas_field(
-    Field(loc, 0),
-    Field(loc, 1),
-    oldv,
-    newv
-  );
-}
 
 CAMLprim value caml_atomic_fetch_add_field (value obj, value vfield, value incr)
 {
@@ -430,14 +406,6 @@ CAMLprim value caml_atomic_fetch_add_field (value obj, value vfield, value incr)
 CAMLprim value caml_atomic_fetch_add (value obj, value incr)
 {
   return caml_atomic_fetch_add_field(obj, Val_long(0), incr);
-}
-CAMLprim value caml_atomic_fetch_add_loc (value loc, value incr)
-{
-  return caml_atomic_fetch_add_field(
-    Field(loc, 0),
-    Field(loc, 1),
-    incr
-  );
 }
 
 CAMLexport void caml_set_fields (value obj, value v)
