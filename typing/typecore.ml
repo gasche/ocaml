@@ -2619,6 +2619,7 @@ let rec is_nonexpansive exp =
            | Kept _ -> true)
         fields
       && is_nonexpansive_opt extended_expression
+  | Texp_atomic_loc(exp, _, _) -> is_nonexpansive exp
   | Texp_field(exp, _, _) -> is_nonexpansive exp
   | Texp_ifthenelse(_cond, ifso, ifnot) ->
       is_nonexpansive ifso && is_nonexpansive_opt ifnot
@@ -2956,7 +2957,7 @@ let check_partial_application ~statement exp =
             match exp_desc with
             | Texp_ident _ | Texp_constant _ | Texp_tuple _
             | Texp_construct _ | Texp_variant _ | Texp_record _
-            | Texp_field _ | Texp_setfield _ | Texp_array _
+            | Texp_atomic_loc _ | Texp_field _ | Texp_setfield _ | Texp_array _
             | Texp_while _ | Texp_for _ | Texp_instvar _
             | Texp_setinstvar _ | Texp_override _ | Texp_assert _
             | Texp_lazy _ | Texp_object _ | Texp_pack _ | Texp_unreachable
@@ -3840,11 +3841,9 @@ and type_expect_
         exp_attributes = sexp.pexp_attributes;
         exp_env = env }
   | Pexp_field(srecord, lid) ->
-      let (record, label, _) =
-        type_label_access env srecord Env.Projection lid
+      let record, label, ty_arg =
+        solve_Pexp_field ~label_usage:Env.Projection env sexp srecord lid
       in
-      let (_, ty_arg, ty_res) = instance_label ~fixed:false label in
-      unify_exp ~sexp env record ty_res;
       rue {
         exp_desc = Texp_field(record, lid, label);
         exp_loc = loc; exp_extra = [];
@@ -4377,6 +4376,29 @@ and type_expect_
       | _ ->
           raise (Error (loc, env, Invalid_extension_constructor_payload))
       end
+  | Pexp_extension ({ txt = ("ocaml.atomic.loc"
+                             |"atomic.loc"); _ },
+                    payload) ->
+      begin match payload with
+      | PStr [ { pstr_desc =
+                  Pstr_eval (
+                    { pexp_desc = Pexp_field (srecord, lid); _ } as sexp, _
+                  )
+               } ] ->
+          let record, label, ty_arg =
+            solve_Pexp_field ~label_usage:Env.Mutation env sexp srecord lid
+          in
+          if not label.lbl_atomic then
+            raise (Error (loc, env, Label_not_atomic lid.txt)) ;
+          rue {
+            exp_desc = Texp_atomic_loc (record, lid, label);
+            exp_loc = loc; exp_extra = [];
+            exp_type = instance (Predef.type_atomic_loc ty_arg);
+            exp_attributes = sexp.pexp_attributes;
+            exp_env = env }
+      | _ ->
+          raise (Error (loc, env, Invalid_atomic_loc_payload))
+      end
   | Pexp_extension ext ->
       raise (Error_forward (Builtin_attributes.error_of_extension ext))
 
@@ -4881,6 +4903,14 @@ and type_label_access env srecord usage lid =
     wrap_disambiguate "This expression has" (mk_expected ty_exp)
       (Label.disambiguate usage lid env expected_type) labels in
   (record, label, expected_type)
+
+and solve_Pexp_field ~label_usage env sexp srecord lid =
+  let (record, label, _) =
+    type_label_access env srecord label_usage lid
+  in
+  let (_, ty_arg, ty_res) = instance_label ~fixed:false label in
+  unify_exp ~sexp env record ty_res;
+  (record, label, ty_arg)
 
 (* Typing format strings for printing or reading.
    These formats are used by functions in modules Printf, Format, and Scanf.
