@@ -11,18 +11,39 @@ module Basic = struct
   let get (type a) (r : a atomic) : a = r.x
 
   let set (type a) (r : a atomic) (v : a) : unit = r.x <- v
+
+  let cas (type a ) (r : a atomic) oldv newv =
+    Atomic.Loc.compare_and_set [%atomic.loc r.x] oldv newv
+
+  let[@inline never] get_loc (type a) (r : a atomic) : a Atomic.Loc.t =
+    [%atomic.loc r.x]
+
+  let slow_cas (type a ) (r : a atomic) oldv newv =
+    Atomic.Loc.compare_and_set (get_loc r) oldv newv
 end
 [%%expect{|
-(apply (field_mut 1 (global Toploop!)) "Basic/289"
+(apply (field_mut 1 (global Toploop!)) "Basic/335"
   (let
     (get = (function r (atomic_load r 1))
-     set = (function r v : int (ignore (caml_atomic_exchange_field r 1 v))))
-    (makeblock 0 get set)))
+     set = (function r v : int (ignore (caml_atomic_exchange_field r 1 v)))
+     cas =
+       (function r oldv newv : int
+         (caml_atomic_cas_field_boxed r 1 oldv newv))
+     get_loc = (function r never_inline (makeblock 0 (*,int) r 1))
+     slow_cas =
+       (function r oldv newv : int
+         (let (atomic_arg = (apply get_loc r))
+           (caml_atomic_cas_field_boxed (field_imm 0 atomic_arg)
+             (field_int 1 atomic_arg) oldv newv))))
+    (makeblock 0 get set cas get_loc slow_cas)))
 module Basic :
   sig
     type 'a atomic = { mutable filler : unit; mutable x : 'a [@atomic]; }
     val get : 'a atomic -> 'a
     val set : 'a atomic -> 'a -> unit
+    val cas : 'a atomic -> 'a -> 'a -> bool
+    val get_loc : 'a atomic -> 'a Atomic.Loc.t
+    val slow_cas : 'a atomic -> 'a -> 'a -> bool
   end
 |}];;
 
@@ -102,7 +123,7 @@ end : sig
   type t = { mutable x : int [@atomic] }
 end)
 [%%expect{|
-(apply (field_mut 1 (global Toploop!)) "Ok/305" (makeblock 0))
+(apply (field_mut 1 (global Toploop!)) "Ok/352" (makeblock 0))
 module Ok : sig type t = { mutable x : int [@atomic]; } end
 |}];;
 
@@ -116,7 +137,7 @@ module Inline_record = struct
   let test : t -> int = fun (A r) -> r.x
 end
 [%%expect{|
-(apply (field_mut 1 (global Toploop!)) "Inline_record/313"
+(apply (field_mut 1 (global Toploop!)) "Inline_record/360"
   (let (test = (function param : int (atomic_load param 0)))
     (makeblock 0 test)))
 module Inline_record :
@@ -134,7 +155,7 @@ module Extension_with_inline_record = struct
     | _ -> 0
 end
 [%%expect{|
-(apply (field_mut 1 (global Toploop!)) "Extension_with_inline_record/321"
+(apply (field_mut 1 (global Toploop!)) "Extension_with_inline_record/368"
   (let
     (A =
        (makeblock 248 "Extension_with_inline_record.A" (caml_fresh_oo_id 0))
@@ -160,7 +181,7 @@ module Float_records = struct
   let get v = v.y
 end
 [%%expect{|
-(apply (field_mut 1 (global Toploop!)) "Float_records/333"
+(apply (field_mut 1 (global Toploop!)) "Float_records/380"
   (let
     (mk_t = (function x[float] y[float] (makemutable 0 (float,float) x y))
      get = (function v : float (atomic_load v 1)))
