@@ -31,7 +31,7 @@ type t = { a : bool; mutable b : int option; }
                (let (*match*/287 =o (field_mut 1 x/282))
                  (if *match*/287 (field_imm 0 *match*/287)
                    (raise
-                     (makeblock 0 (global Match_failure/20!) [0: "" 4 2])))))
+                     (makeblock 0 (global Match_failure/21!) [0: "" 4 2])))))
              1))
          0)))
   (apply (field_mut 1 (global Toploop!)) "f" f/280))
@@ -83,7 +83,7 @@ let f x =
            (if *match*/302 (field_imm 0 *match*/302)
              (let (*match*/303 =o (field_mut 1 x/298))
                (if *match*/303
-                 (raise (makeblock 0 (global Match_failure/20!) [0: "" 2 2]))
+                 (raise (makeblock 0 (global Match_failure/21!) [0: "" 2 2]))
                  1))))
          0)))
   (apply (field_mut 1 (global Toploop!)) "f" f/297))
@@ -121,7 +121,7 @@ let f r =
                (let (*match*/311 =o (field_mut 0 (field_imm 0 *match*/307)))
                  (if *match*/311 (field_imm 0 *match*/311)
                    (raise
-                     (makeblock 0 (global Match_failure/20!) [0: "" 2 2]))))
+                     (makeblock 0 (global Match_failure/21!) [0: "" 2 2]))))
                3))))))
   (apply (field_mut 1 (global Toploop!)) "f" f/304))
 val f : int option ref -> int = <fun>
@@ -176,7 +176,7 @@ type _ t = Int : int -> int t | Bool : bool -> bool t
              (switch* *match*/327
               case tag 0: (field_imm 0 *match*/327)
               case tag 1:
-               (raise (makeblock 0 (global Match_failure/20!) [0: "" 3 11]))))
+               (raise (makeblock 0 (global Match_failure/21!) [0: "" 3 11]))))
            0))))
   (apply (field_mut 1 (global Toploop!)) "test" test/323))
 val test : int t option ref -> int = <fun>
@@ -253,7 +253,7 @@ let deep r =
                   *match*/353 =a (field_imm 1 *match*/351))
                  (if *match*/353 (field_imm 0 *match*/353)
                    (raise
-                     (makeblock 0 (global Match_failure/20!) [0: "" 2 2]))))
+                     (makeblock 0 (global Match_failure/21!) [0: "" 2 2]))))
                3))))))
   (apply (field_mut 1 (global Toploop!)) "deep" deep/341))
 val deep : (unit * int option) ref -> int = <fun>
