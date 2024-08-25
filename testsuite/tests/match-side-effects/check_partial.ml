@@ -74,7 +74,7 @@ let lazy_needs_partial : _ * bool t ref -> int = function
                0)
              (exit 3)))
         with (3)
-         (raise (makeblock 0 (global Match_failure/20!) [0: "" 1 49])))))
+         (raise (makeblock 0 (global Match_failure/21!) [0: "" 1 49])))))
   (apply (field_mut 1 (global Toploop!)) "lazy_needs_partial"
     lazy_needs_partial/295))
 val lazy_needs_partial : unit lazy_t * bool t ref -> int = <fun>
@@ -93,7 +93,7 @@ let guard_total : bool t ref -> int = function
        (if (opaque 0) 1
          (let (*match*/384 =o (field_mut 0 param/383))
            (if (isint *match*/384) (if *match*/384 12 0)
-             (raise (makeblock 0 (global Match_failure/20!) [0: "" 1 38])))))))
+             (raise (makeblock 0 (global Match_failure/21!) [0: "" 1 38])))))))
   (apply (field_mut 1 (global Toploop!)) "guard_total" guard_total/306))
 val guard_total : bool t ref -> int = <fun>
 |}];;
@@ -113,7 +113,7 @@ let guard_needs_partial : bool t ref -> int = function
           with (9)
            (if (opaque 0) 1
              (if (isint *match*/388) 12
-               (raise (makeblock 0 (global Match_failure/20!) [0: "" 1 46]))))))))
+               (raise (makeblock 0 (global Match_failure/21!) [0: "" 1 46]))))))))
   (apply (field_mut 1 (global Toploop!)) "guard_needs_partial"
     guard_needs_partial/385))
 val guard_needs_partial : bool t ref -> int = <fun>
