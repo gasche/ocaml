@@ -7,6 +7,17 @@ let standard_atomic_get (r : 'a Atomic.t) =
 let standard_atomic_cas (r : 'a Atomic.t) oldv newv =
   Atomic.compare_and_set r oldv newv
 
+
+(* atomic record fields *)
+
+type 'a atomic = { filler : unit; mutable x : 'a [@atomic] }
+
+let get (r : 'a atomic) : 'a =
+  r.x
+
+let set (r : 'a atomic) v =
+  r.x <- v
+
 (* TEST
    not-windows; (* MSVC uses a different symbol separator *)
    no-flambda; (* the output will be slightly different under Flambda *)
