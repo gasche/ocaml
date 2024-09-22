@@ -2054,7 +2054,7 @@ let get_expr_args_constr ~scopes head { arg; mut; _ } rem =
     | Cstr_constant _
     | Cstr_block _ ->
         make_field_accesses Alias 0 (cstr.cstr_arity - 1) rem
-    | Cstr_unboxed -> { arg; binding_kind = Alias; mut } :: rem
+    | Cstr_unboxed _ -> { arg; binding_kind = Alias; mut } :: rem
     | Cstr_extension _ -> make_field_accesses Alias 1 cstr.cstr_arity rem
 
 let divide_constructor ~scopes ctx pm =
@@ -3171,7 +3171,11 @@ let split_cases tag_lambda_list =
         match cstr_tag with
         | Cstr_constant n -> ((n, act) :: consts, nonconsts)
         | Cstr_block n -> (consts, (n, act) :: nonconsts)
-        | Cstr_unboxed -> (consts, (0, act) :: nonconsts)
+        | Cstr_unboxed _ ->
+            if (List.length tag_lambda_list <> 1) then
+              Location.raise_errorf "TODO: mixing boxed and unboxed \
+                                     constructors is still unsupported.";
+            (consts, (0, act) :: nonconsts)
         | Cstr_extension _ -> assert false
       )
   in
