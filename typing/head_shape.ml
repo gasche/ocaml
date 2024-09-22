@@ -194,7 +194,9 @@ and of_regular_cstr_description env descr fuel =
   | Cstr_constant n -> imm_shape [Imm n]
   | Cstr_block tag ->
       block_shape [Tag tag]
-  | Cstr_unboxed | Cstr_extension _ ->
+  | Cstr_unboxed _ ->
+      failwith "TODO"
+  | Cstr_extension _ ->
       (* cannot occur in regular variants *)
       assert false
 
@@ -207,3 +209,22 @@ let of_type_path env path =
   let decl = Env.find_type path env in
   let ty = Btype.newgenty (Tconstr (path, decl.type_params, ref Mnil)) in
   of_type_expr env ty initial_fuel
+
+let check_typedecl env (path, decl) =
+  match Env.find_type_descrs path env with
+  | exception Not_found -> assert false
+  | Type_open | Type_record _ -> ()
+  | Type_abstract _ -> ()
+  | Type_variant (_, Variant_unboxed) -> ()
+  | Type_variant (cstrs, Variant_regular) ->
+      cstrs |> List.iter (function
+        | {cstr_tag = (Cstr_constant _ | Cstr_block _ | Cstr_extension _)} ->
+            ()
+        | {cstr_tag = Cstr_unboxed _; cstr_loc; _} ->
+            (* In this temporary state, we have not implemented
+               the shape-disjointness check yet, so we simply fail
+               if the user asks for an unboxed constructor. *)
+            ignore decl;
+            Location.raise_errorf ~loc:cstr_loc
+              "TODO: [@unboxed] constructors are still unsupported"
+      )

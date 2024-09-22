@@ -5605,7 +5605,7 @@ and type_construct env ~sexp lid sarg ty_expected_explained =
     begin match constr.cstr_tag with
     | Cstr_extension _ ->
         raise(Error(sexp.pexp_loc, env, Private_constructor (constr, ty_res)))
-    | Cstr_constant _ | Cstr_block _ | Cstr_unboxed ->
+    | Cstr_constant _ | Cstr_block _ | Cstr_unboxed _ ->
         raise (Error(sexp.pexp_loc, env, Private_type ty_res));
     end;
   (* NOTE: shouldn't we call "re" on this final expression? -- AF *)

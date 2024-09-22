@@ -45,3 +45,5 @@ type t = {
   imms: imm_set; (* set of immediates the head can be *)
   blocks: block_set; (* set of block shapes the head can be *)
 }
+
+type unboxed_cstr_description = TODO

@@ -40,3 +40,5 @@ type t = {
   imms: imm_set;
   blocks: block_set;
 }
+
+type unboxed_cstr_description = TODO
