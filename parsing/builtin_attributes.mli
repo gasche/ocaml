@@ -82,3 +82,5 @@ val immediate64: Parsetree.attributes -> bool
 
 val has_unboxed: Parsetree.attributes -> bool
 val has_boxed: Parsetree.attributes -> bool
+
+val find_shapes: Parsetree.attributes -> Misc.named_shape list option

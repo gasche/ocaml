@@ -41,7 +41,7 @@ module Head_shape : sig
 
   val pp : Format.formatter -> t -> unit
 
-  (** Check a new type decalaration, that may be a variant type
+  (** Check a new type declaration, that may be a variant type
       containing unboxed constructors, to verify that the unboxing
       requests respect the "disjointness" requirement of constructor
       unboxing -- the values of two constructors must not conflict.

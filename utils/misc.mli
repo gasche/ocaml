@@ -671,3 +671,18 @@ module Magic_number : sig
 
   val all_kinds : kind list
 end
+
+
+(* shapes that the user can name in [@shape ...] payloads *)
+type named_shape = [
+  | `Int (* all immediate shapes *)
+  | `Lazy (* Obj.lazy_tag, etc. *)
+  | `Closure
+  | `Infix
+  | `Forward
+  | `Abstract
+  | `String
+  | `Double
+  | `Double_array
+  | `Custom
+]

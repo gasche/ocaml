@@ -170,6 +170,13 @@ module Head_shape = struct
     head_separated = true;
   }
 
+  let any_imm_shape =
+  {
+    head_imm = Shape_any;
+    head_blocks = Shape_set [];
+    head_separated = true;
+  }
+
   let block_shape tags =
     let imm = Shape_set [] in
     let blocks = Shape_set tags in
@@ -189,16 +196,32 @@ module Head_shape = struct
          true);
     }
 
-  let disjoint_union hd1 hd2 =
+  let of_named : Misc.named_shape -> t = function
+    | `Int -> any_imm_shape
+    | `Lazy -> block_shape [Obj.lazy_tag]
+    | `Closure -> block_shape [Obj.closure_tag]
+    | `Infix -> block_shape [Obj.infix_tag]
+    | `Forward -> block_shape [Obj.forward_tag]
+    | `Abstract -> block_shape [Obj.abstract_tag]
+    | `String -> block_shape [Obj.string_tag]
+    | `Double -> block_shape [Obj.double_tag]
+    | `Double_array -> block_shape [Obj.double_array_tag]
+    | `Custom -> block_shape [Obj.custom_tag]
+
+  let union ~disjoint hd1 hd2 =
+    let conflict_or k =
+      if disjoint then raise Conflict;
+      k ()
+    in
     let union s1 s2 = match s1, s2 with
     | Shape_any, Shape_set [] | Shape_set [], Shape_any -> Shape_any
-    | Shape_any, _ | _, Shape_any -> raise Conflict
+    | Shape_any, _ | _, Shape_any -> conflict_or (fun () -> Shape_any)
     | Shape_set l1, Shape_set l2 ->
         (* invariant : l1 and l2 are sorted *)
         let rec merge l1 l2 = match l1, l2 with
         | [], l | l, [] -> l
         | x :: xx, y :: yy ->
-            if x = y then raise Conflict
+            if x = y then conflict_or (fun () -> x :: merge xx yy)
             else if x < y then x :: (merge xx l2)
             else y :: (merge l1 yy)
         in Shape_set (merge l1 l2)
@@ -212,6 +235,9 @@ module Head_shape = struct
       not (head_has_float hd2 && head_has_nonfloat hd1)
     in
     { head_imm; head_blocks; head_separated }
+
+  let disjoint_union hd1 hd2 =
+    union ~disjoint:true hd1 hd2
 
   module Callstack = struct
     type t = Path.t list
@@ -269,26 +295,21 @@ module Head_shape = struct
   | _ -> ty
 
   let of_primitive_type = function
-    | Int ->
-        {
-          head_imm = Shape_any;
-          head_blocks = Shape_set [];
-          head_separated = true;
-         }
-    | Float -> block_shape [Obj.double_tag]
+    | Int -> of_named `Int
+    | Float -> of_named `Double
     | String
-    | Bytes -> block_shape [Obj.string_tag]
+    | Bytes -> of_named `String
     | Array ->
         block_shape
           (if Config.flat_float_array then [0]
            else [0; Obj.double_array_tag])
-    | Floatarray -> block_shape [Obj.double_array_tag]
+    | Floatarray -> of_named `Double_array
     | Lazy -> any_shape
     (* Lazy values can 'shortcut' the lazy block, and thus have many
        different tags. When Config.flat_float_array, they
        cannot be floats, so we might want to refine that if there
        are strong use-cases. *)
-    | Custom -> block_shape [Obj.custom_tag]
+    | Custom -> of_named `Custom
 
   let rec of_type_expr env ty callstack_map =
     (* TODO : try the Ctype.expand_head_opt version here *)
@@ -351,8 +372,18 @@ module Head_shape = struct
     match ty_descr with
     | Type_abstract ->
        begin match ty_decl.type_manifest with
-       | None -> any_shape
        | Some ty -> of_type_expr_with_params ty
+       | None ->
+           begin match Builtin_attributes.find_shapes ty_decl.type_attributes with
+           | None -> any_shape
+           | Some named_shapes ->
+               let shapes = List.map of_named named_shapes in
+               try List.fold_left disjoint_union empty_shape shapes
+               with Conflict ->
+                 (* TODO use a proper error here as well *)
+                 Location.raise_errorf ~loc:ty_decl.type_loc ~sub:[]
+                   "The [@shape ...] attribute(s) contains conflicting shapes."
+           end
        end
     | Type_record (_, Record_regular) -> block_shape [0]
     | Type_record (_, Record_float) -> block_shape [Obj.double_array_tag]

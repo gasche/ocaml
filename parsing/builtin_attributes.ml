@@ -30,6 +30,22 @@ let string_of_opt_payload p =
   | Some s -> s
   | None -> ""
 
+let list_of_exp exp =
+  let rec loop acc = function
+  | {pexp_desc = Pexp_construct ({txt = Longident.Lident "[]"; _}, None)} ->
+      Ok (List.rev acc)
+  | {pexp_desc = Pexp_construct ({txt = Longident.Lident "::"; _},
+                                 Some {pexp_desc = Pexp_tuple [e1; e2]})} ->
+      loop (e1 :: acc) e2
+  | {pexp_loc = loc} ->
+      Error loc
+  in loop [] exp
+
+let list_of_payload loc = function
+  | PStr[{pstr_desc = Pstr_eval (li, _)}] ->
+      list_of_exp li
+  | _ -> Error loc
+
 let error_of_extension ext =
   let submessage_from main_loc main_txt = function
     | {pstr_desc=Pstr_extension
@@ -287,3 +303,49 @@ let has_unboxed attr =
 
 let has_boxed attr =
   List.exists (check ["ocaml.boxed"; "boxed"]) attr
+
+
+let find_shapes attrs : Misc.named_shape list option =
+  let err loc msg =
+    warn_payload loc "shape" msg;
+    None
+  in
+  let shape_of_exp exp =
+    let shapes = [
+      "int", `Int;
+      "lazy", `Lazy;
+      "closure", `Closure;
+      "infix", `Infix;
+      "forward", `Forward;
+      "abstract", `Abstract;
+      "string", `String;
+      "double", `Double;
+      "double_array", `Double_array;
+      "custom", `Custom;
+    ] in
+    let loc = exp.pexp_loc in
+    match exp.pexp_desc with
+    | Pexp_ident {loc; txt = Longident.Lident shape_name} ->
+        begin match List.assoc_opt shape_name shapes with
+        | Some tag -> Some tag
+        | None ->
+            Printf.ksprintf (err loc) "Unknown shape name %s." shape_name
+        end
+    | _ ->
+        err loc "Unsupported shape format"
+  in
+  let shape_of_payload loc payload =
+    match list_of_payload loc payload with
+    | Error loc -> err loc "A shape list such as [int; lazy; custom] was expected."
+    | Ok args -> Some (List.filter_map shape_of_exp args)
+  in
+  let find_shape_payload a =
+    match a.attr_name.txt with
+    | "shape" | "ocaml.shape" ->
+        shape_of_payload a.attr_loc a.attr_payload
+    | _ -> None
+  in
+  match List.filter_map find_shape_payload attrs with
+  | [] -> None
+  | (_ :: _) as shape_specs ->
+      Some (List.fold_left List.rev_append [] shape_specs)
