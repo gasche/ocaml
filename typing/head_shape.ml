@@ -38,6 +38,26 @@ let empty =
     blocks = Those TagSet.empty;
   }
 
+let intersection sh1 sh2 =
+  let inter_any inter any1 any2 =
+    match any1, any2 with
+    | Any, other | other, Any ->
+        other
+    | Those a, Those b -> Those (inter a b)
+  in
+  {
+    imms = inter_any ImmSet.inter sh1.imms sh2.imms;
+    blocks = inter_any TagSet.inter sh1.blocks sh2.blocks;
+  }
+
+let is_empty sh =
+  let empty_any is_empty = function
+    | Any -> false
+    | Those s -> is_empty s
+  in
+  empty_any ImmSet.is_empty sh.imms
+  && empty_any TagSet.is_empty sh.blocks
+
 let union sh1 sh2 =
   let imms = Or_any.mon_map2 ImmSet.union sh1.imms sh2.imms in
   let blocks = Or_any.mon_map2 TagSet.union sh1.blocks sh2.blocks in
@@ -173,6 +193,11 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
   | Type_variant ([], Variant_regular) ->
       empty
   | Type_variant (cstr_descrs, Variant_regular) ->
+      (* Here we use the {!union} function to compute the head shape
+         of the variant, without trying to enforce that the union is
+         disjoint. Indeed, we already know that it must be disjoint,
+         otherwise it would have been rejected at declaration time by
+         the {!check_typedecl} function below. *)
       let of_cstr_descr descr = of_regular_cstr_description env descr fuel in
       List.map of_cstr_descr cstr_descrs
       |> List.fold_left union empty
@@ -220,14 +245,40 @@ let check_typedecl env (path, decl) =
   | Type_abstract _ -> ()
   | Type_variant (_, Variant_unboxed) -> ()
   | Type_variant (cstrs, Variant_regular) ->
-      cstrs |> List.iter (function
-        | {cstr_tag = (Cstr_constant _ | Cstr_block _ | Cstr_extension _)} ->
-            ()
-        | {cstr_tag = Cstr_unboxed _; cstr_loc; _} ->
-            (* In this temporary state, we have not implemented
-               the shape-disjointness check yet, so we simply fail
-               if the user asks for an unboxed constructor. *)
-            ignore decl;
-            Location.raise_errorf ~loc:cstr_loc
-              "TODO: [@unboxed] constructors are still unsupported"
-      )
+      let is_unboxed cstr =
+        match cstr.cstr_tag with
+        | Cstr_constant _ | Cstr_block _ | Cstr_extension _ -> false
+        | Cstr_unboxed _ -> true
+      in
+      let has_unboxed_cstr = List.exists is_unboxed cstrs in
+      if not has_unboxed_cstr then ()
+      else begin
+        let cstr_shapes =
+          Array.of_list @@ List.map (fun descr ->
+            of_regular_cstr_description env descr initial_fuel
+          ) cstrs
+        in
+        (* Boxed constructors, by construction, cannot have overlapping representations,
+           as they get assigned distinct immediates or tags.
+
+           If an overlap arises, it is necessarily between an unboxed
+           constructor an another constructor (boxed or unboxed). We
+           check all pairs of an unboxed constructor and another
+           constructor. *)
+        List.iteri (fun i cstr1 ->
+          if is_unboxed cstr1 then
+            List.iteri (fun j cstr2 ->
+              let sh1, sh2 = cstr_shapes.(i), cstr_shapes.(j) in
+              if i <> j && not (is_empty (intersection sh1 sh2)) then
+                (* TODO: define a proper error with an error printer. *)
+                Location.raise_errorf ~loc:decl.type_loc
+                  "@[Constructors %s and %s have overlapping representations.\
+                     @;<1 2>shape of %s: %a\
+                     @;<1 2>shape of %s: %a\
+                   @]"
+                  cstr1.cstr_name cstr2.cstr_name
+                  cstr1.cstr_name Print_head_shape.doc sh1
+                  cstr2.cstr_name Print_head_shape.doc sh2
+            ) cstrs
+        ) cstrs
+      end

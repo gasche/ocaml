@@ -149,8 +149,8 @@ typing_SOURCES = \
   file_formats/cmt_format.mli file_formats/cmt_format.ml \
   typing/cmt2annot.mli typing/cmt2annot.ml \
   typing/head_shape_types.mli typing/head_shape_types.ml \
-  typing/head_shape.mli typing/head_shape.ml \
   typing/print_head_shape.mli typing/print_head_shape.ml \
+  typing/head_shape.mli typing/head_shape.ml \
   typing/untypeast.mli typing/untypeast.ml \
   typing/includemod.mli typing/includemod.ml \
   typing/includemod_errorprinter.mli typing/includemod_errorprinter.ml \
