@@ -154,6 +154,11 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
       | _ -> assert false
       end
   | Type_variant (cstr_descrs, Variant_regular) ->
+      (* Here we use the {!union} function to compute the head shape
+         of the variant, without trying to enforce that the union is
+         disjoint. Indeed, we already know that it must be disjoint,
+         otherwise it would have been rejected at declaration time by
+         the {!check_typedecl} function below. *)
       let of_cstr_descr descr = of_regular_cstr_description env descr fuel in
       List.map of_cstr_descr cstr_descrs
       |> List.fold_left Shape.union Shape.empty
@@ -212,14 +217,47 @@ let check_typedecl env (path, decl) =
   | Type_abstract _ | Type_external _ -> ()
   | Type_variant (_, Variant_unboxed) -> ()
   | Type_variant (cstrs, Variant_regular) ->
-      cstrs |> List.iter (function
-        | {cstr_tag = (Cstr_constant _ | Cstr_block _ | Cstr_extension _)} ->
-            ()
-        | {cstr_tag = Cstr_unboxed _; cstr_loc; _} ->
-            (* In this temporary state, we have not implemented
-               the shape-disjointness check yet, so we simply fail
-               if the user asks for an unboxed constructor. *)
-            ignore decl;
-            Location.raise_errorf ~loc:cstr_loc
-              "TODO: [@unboxed] constructors are still unsupported"
-      )
+      let is_unboxed cstr =
+        match cstr.cstr_tag with
+        | Cstr_constant _ | Cstr_block _ | Cstr_extension _ -> false
+        | Cstr_unboxed _ -> true
+      in
+      let has_unboxed_cstr = List.exists is_unboxed cstrs in
+      if not has_unboxed_cstr then ()
+      else begin
+        let cstr_shapes =
+          Array.of_list @@ List.map (fun descr ->
+            of_regular_cstr_description env descr initial_fuel
+          ) cstrs
+        in
+        (* Boxed constructors, by construction, cannot have overlapping
+           representations, as they get assigned distinct immediates or tags.
+
+           If an overlap arises, it is necessarily between an unboxed
+           constructor an another constructor (boxed or unboxed). We
+           check all pairs of an unboxed constructor and another
+           constructor. *)
+        (* TODO: this is quadratic to get nice error messages,
+           a linear version would be safer. First accumulate the union
+           shape until you find a constructor that has a non-empty
+           intersection with the accumulator, then restart from the
+           beginning scanning for a earlier constructor that has
+           a non-empty intersection with this conflicting
+           constructor. *)
+        List.iteri (fun i cstr1 ->
+          if is_unboxed cstr1 then
+            List.iteri (fun j cstr2 ->
+              let sh1, sh2 = cstr_shapes.(i), cstr_shapes.(j) in
+              if i <> j && not (Shape.is_empty (Shape.inter sh1 sh2)) then
+                (* TODO: define a proper error with an error printer. *)
+                Location.raise_errorf ~loc:decl.type_loc
+                  "@[Constructors %s and %s have overlapping representations.\
+                     @;<1 2>shape of %s: %a\
+                     @;<1 2>shape of %s: %a\
+                   @]"
+                  cstr1.cstr_name cstr2.cstr_name
+                  cstr1.cstr_name Print_head_shape.doc sh1
+                  cstr2.cstr_name Print_head_shape.doc sh2
+            ) cstrs
+        ) cstrs
+      end
