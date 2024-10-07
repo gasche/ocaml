@@ -56,3 +56,25 @@ Error: Constructors Double and Single have overlapping representations.
          shape of Double: {imm = []; blocks = [0];}
          shape of Single: {imm = []; blocks = [0];}
 |}]
+
+
+type benign_cycle =
+  | Cycle of benign_cycle [@unboxed]
+[%%expect{|
+shape of benign_cycle: {imm = Any; blocks = Any;}
+type benign_cycle = Cycle of benign_cycle
+|}]
+
+
+type bad_cycle =
+  | Case
+  | Cycle of bad_cycle [@unboxed]
+[%%expect{|
+Lines 1-3, characters 0-33:
+1 | type bad_cycle =
+2 |   | Case
+3 |   | Cycle of bad_cycle [@unboxed]
+Error: Constructors Cycle and Case have overlapping representations.
+         shape of Cycle: {imm = Any; blocks = Any;}
+         shape of Case: {imm = [0]; blocks = [];}
+|}]
