@@ -183,8 +183,8 @@ let repr_data_of_regular_constructors ~get_shape constructors =
   let max_imm = ref min_int in
   let any_imm = ref false in
   let num_tags = ref 0 in
-  let min_tag = ref 0 in
-  let max_tag = ref 255 in
+  let min_tag = ref 255 in
+  let max_tag = ref 0 in
   let any_tag = ref false in
   let open Head_shape_types in
   let notify_imm (Imm i) =
