@@ -242,6 +242,27 @@ module TycompTbl =
         | None -> raise exn
         end
 
+    let rec elide_open_prefix prefix path tbl =
+      match tbl.opened with
+      | None ->
+          begin match prefix with
+          | None -> Some (Path.longident path)
+          | Some best -> Path.split_path ~prefix:best path
+          end
+      | Some { next; root; _ } ->
+          let best_prefix =
+            match Path.is_prefix root path, prefix with
+            | false, _ -> prefix
+            | true, None -> Some root
+            | true, Some prev ->
+                if Path.is_prefix prev root then Some root else prefix
+         in
+         elide_open_prefix best_prefix path next
+
+    let relative_path path tbl = match path with
+      | Path.Pdot (path,_) -> elide_open_prefix None path tbl
+      | _ -> Some (Path.longident path)
+
     let nothing = fun () -> ()
 
     let mk_callback rest name desc using =
@@ -1319,6 +1340,13 @@ let shape_of_path ~namespace env =
 let shape_or_leaf uid = function
   | None -> Shape.leaf uid
   | Some shape -> shape
+
+
+let relative_constructor_path path env =
+ TycompTbl.relative_path path env.constrs
+
+let relative_label_path path env =
+ TycompTbl.relative_path path env.labels
 
 let required_globals = s_ref []
 let reset_required_globals () = required_globals := []

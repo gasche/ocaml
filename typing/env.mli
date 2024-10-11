@@ -115,6 +115,9 @@ val find_constructor_address: Path.t -> t -> address
 val shape_of_path:
   namespace:Shape.Sig_component_kind.t -> t -> Path.t -> Shape.t
 
+val relative_constructor_path: Path.t -> t -> Longident.t option
+val relative_label_path: Path.t -> t -> Longident.t option
+
 val add_functor_arg: Ident.t -> t -> t
 val is_functor_arg: Path.t -> t -> bool
 

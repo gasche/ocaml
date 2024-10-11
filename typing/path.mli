@@ -76,5 +76,9 @@ val last: t -> string
 
 val is_constructor_typath: t -> bool
 
+val longident: t -> Longident.t
+val is_prefix: t -> t -> bool
+val split_path: prefix:t -> t -> Longident.t option
+
 module Map : Map.S with type key = t
 module Set : Set.S with type elt = t
