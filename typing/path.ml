@@ -140,6 +140,44 @@ let is_constructor_typath p =
   | Pident _ | Pdot _ | Papply _ -> false
   | Pextra_ty _ -> true
 
+type prefix_head =
+  | Ident of Ident.t
+  | Apply of t * t
+
+let rec prefix_uncons proj = function
+  | Pdot (x,s) -> prefix_uncons (s::proj) x
+  | Pident id -> Ident id, proj
+  | Papply(x,y) -> Apply (x,y), proj
+  | Pextra_ty (p,_) -> prefix_uncons proj p
+
+let rec split_prefix l r = match l, r with
+  | [], r -> Some r
+  | _ :: _, [] -> None
+  | x :: l , y :: r -> if x <> y then None else split_prefix l r
+
+let rec longident = function
+  | Pdot (p,x) -> Longident.Ldot(longident p, x)
+  | Pident id -> Longident.Lident (Ident.name id)
+  | Papply(f,x) -> Longident.Lapply(longident f, longident x)
+  | Pextra_ty (p,_) -> longident p
+
+let split_path_prefix prefix path =
+  let prefix, l = prefix_uncons [] prefix in
+  let path, r = prefix_uncons [] path in
+  let same_head = match prefix, path with
+    | Ident p, Ident p' -> Ident.same p p'
+    | Apply (f,x), Apply(f',x') -> same f f' && same x x'
+    | Ident _, Apply _ | Apply _, Ident _ -> false
+  in
+  if same_head then split_prefix l r else None
+
+let is_prefix prefix path = split_path_prefix prefix path <> None
+
+let split_path ~prefix path =
+  match split_path_prefix prefix path with
+  | None -> Some (longident path)
+  | Some suffix -> Longident.unflatten suffix
+
 module T = struct
   type nonrec t = t
   let compare = compare
