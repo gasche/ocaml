@@ -45,6 +45,7 @@ type t = {
   imms: imm_set; (* set of immediates the head can be *)
   blocks: block_set; (* set of block shapes the head can be *)
 }
+type shape = t
 
 type unboxed_cstr_description = (Types.type_expr, t) Misc.Cached.t
 (* Remark on the life cycle of [shape] information.

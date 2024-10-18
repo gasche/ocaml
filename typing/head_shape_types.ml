@@ -40,5 +40,6 @@ type t = {
   imms: imm_set;
   blocks: block_set;
 }
+type shape = t
 
 type unboxed_cstr_description = (Types.type_expr, t) Misc.Cached.t
