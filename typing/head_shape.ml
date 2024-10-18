@@ -238,6 +238,9 @@ let of_type_path env path =
   let ty = Btype.newgenty (Tconstr (path, decl.type_params, ref Mnil)) in
   of_type_expr env ty initial_fuel
 
+let of_unboxed_cstr_description env descr =
+  of_unboxed_cstr_description env descr initial_fuel
+
 let check_typedecl env (path, decl) =
   match Env.find_type_descrs path env with
   | exception Not_found -> assert false

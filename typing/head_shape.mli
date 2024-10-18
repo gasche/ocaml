@@ -19,6 +19,10 @@ type t = Head_shape_types.t
 (** Returns the head shape information of type path *)
 val of_type_path : Env.t -> Path.t -> t
 
+(** Returns the head shape information of an unboxed constructor *)
+val of_unboxed_cstr_description :
+  Env.t -> Head_shape_types.unboxed_cstr_description -> t
+
 (** Check a new type declaration, that may be a variant type
     containing unboxed constructors, to verify that the unboxing
     requests respect the "disjointness" requirement of constructor
