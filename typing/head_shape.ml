@@ -189,16 +189,19 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
               of_unknown_type env p args
 
 and of_regular_cstr_description env descr fuel =
-  ignore (env, fuel);
   match descr.cstr_tag with
   | Cstr_constant n -> imm_shape [Imm n]
   | Cstr_block tag ->
       block_shape [Tag tag]
-  | Cstr_unboxed _ ->
-      failwith "TODO"
+  | Cstr_unboxed descr ->
+      of_unboxed_cstr_description env descr fuel
   | Cstr_extension _ ->
       (* cannot occur in regular variants *)
       assert false
+
+and of_unboxed_cstr_description env descr fuel =
+  try Misc.Cached.force descr (fun ty -> of_type_expr env ty fuel)
+  with Misc.Cached.Forcing_race -> any
 
 let initial_fuel =
   (* choice of fuel: see

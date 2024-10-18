@@ -756,6 +756,25 @@ let set_or_ignore f opt x =
   | None -> ()
   | Some y -> opt := Some y
 
+
+module Cached = struct
+  type ('a, 'b) state =
+    | Init of 'a
+    | Filled of 'b
+  type ('a, 'b) t = ('a, 'b) state Atomic.t
+
+  let create a = Atomic.make (Init a)
+  exception Forcing_race
+  let force r f =
+    match Atomic.get r with
+    | Filled v -> v
+    | (Init a) as init ->
+        let v = f a in
+        if Atomic.compare_and_set r init (Filled v)
+        then v
+        else raise Forcing_race
+end
+
 let fst3 (x, _, _) = x
 let snd3 (_,x,_) = x
 let thd3 (_,_,x) = x

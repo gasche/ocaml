@@ -41,4 +41,4 @@ type t = {
   blocks: block_set;
 }
 
-type unboxed_cstr_description = TODO
+type unboxed_cstr_description = (Types.type_expr, t) Misc.Cached.t
