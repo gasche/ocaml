@@ -3191,14 +3191,20 @@ let split_extension_cases tag_lambda_list =
   in
   split_rec tag_lambda_list
 
-let transl_match_on_option arg loc ~if_some ~if_none =
+let test_imm_or_block arg loc ~if_imm ~if_block =
+  Lifthenelse (Lprim (Pisint, [ arg ], loc), if_imm, if_block)
+
+let test_zero arg loc ~if_zero ~if_nonzero =
   (* Keeping the Pisint test would make the bytecode
      slightly worse, but it lets the native compiler generate
      better code -- see #10681. *)
   if !Clflags.native_code then
-    Lifthenelse(Lprim (Pisint, [ arg ], loc), if_none, if_some)
+    Lifthenelse(Lprim (Pisint, [ arg ], loc), if_zero, if_nonzero)
   else
-    Lifthenelse(arg, if_some, if_none)
+    Lifthenelse(arg, if_nonzero, if_zero)
+
+let test_option arg loc ~if_none ~if_some =
+  test_zero arg loc ~if_zero:if_none ~if_nonzero:if_some
 
 let combine_extension_constructor loc arg pat_env partial ctx def
     (descr_lambda_list, total1, _pats) =
@@ -3294,7 +3300,7 @@ let combine_regular_constructor loc arg cstr partial ctx def
         | 1, 1, [ (0, act1) ], [ (0, act2) ] ->
             (* This case is very frequent, it corresponds to
                options and lists. *)
-            transl_match_on_option arg loc ~if_none:act1 ~if_some:act2
+            test_zero arg loc ~if_zero:act1 ~if_nonzero:act2
         | n, 0, _, [] ->
             (* The matched type defines constant constructors only.
                (typically the constant cases are dense, so
@@ -3329,11 +3335,11 @@ let combine_regular_constructor loc arg cstr partial ctx def
 
                    (The type of tokens has more than 120 constructors.)
                    *)
-                Lifthenelse
-                  ( Lprim (Pisint, [ arg ], loc),
-                    call_switcher loc fail_opt arg
-                      ~low:0 ~high:(n - 1) consts,
-                    act )
+                let lam_const =
+                  call_switcher loc fail_opt arg
+                    ~low:0 ~high:(n - 1) consts
+                in
+                test_imm_or_block arg loc ~if_imm:lam_const ~if_block:act
             | None ->
                 (* In the general case, emit a switch. *)
                 let sw =
@@ -3389,9 +3395,6 @@ let combine_variant loc row arg partial ctx def (tag_lambda_list, total1, _pats)
       (row_fields row)
   else
     num_constr := max_int;
-  let test_int_or_block arg if_int if_block =
-    Lifthenelse (Lprim (Pisint, [ arg ], loc), if_int, if_block)
-  in
   let sig_complete = List.length tag_lambda_list = !num_constr
   and one_action = same_actions tag_lambda_list in
   let fail, local_jumps =
@@ -3413,28 +3416,28 @@ let combine_variant loc row arg partial ctx def (tag_lambda_list, total1, _pats)
     | _, _ -> (
         match (consts, nonconsts) with
         | [ (_, act1) ], [ (_, act2) ] when fail = None ->
-            test_int_or_block arg act1 act2
+            test_imm_or_block arg loc ~if_imm:act1 ~if_block:act2
         | _, [] -> (
             let lam = make_test_sequence_variant_constant fail arg consts in
             (* PR#11587: Switcher.test_sequence expects integer inputs, so
                if the type allows pointers we must filter them away. *)
             match fail with
             | None -> lam
-            | Some fail -> test_int_or_block arg lam fail
+            | Some fail -> test_imm_or_block arg loc ~if_imm:lam ~if_block:fail
           )
         | [], _ -> (
             let lam = call_switcher_variant_constr loc fail arg nonconsts in
             (* One must not dereference integers *)
             match fail with
             | None -> lam
-            | Some fail -> test_int_or_block arg fail lam
+            | Some fail -> test_imm_or_block arg loc ~if_imm:fail ~if_block:lam
           )
         | _, _ ->
             let lam_const = call_switcher_variant_constant loc fail arg consts
             and lam_nonconst =
               call_switcher_variant_constr loc fail arg nonconsts
             in
-            test_int_or_block arg lam_const lam_nonconst
+            test_imm_or_block arg loc ~if_imm:lam_const ~if_block:lam_nonconst
       )
   in
   (lambda1, Jumps.union local_jumps total1)
@@ -4398,7 +4401,7 @@ let for_multiple_match ~scopes loc paraml pat_act_list partial =
 
 let for_optional_arg_default ~scopes loc pat ~default_arg ~param body =
   let supplied_or_default =
-    transl_match_on_option
+    test_option
       (Lvar param)
       Loc_unknown
       ~if_none:default_arg
