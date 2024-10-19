@@ -207,6 +207,9 @@ let of_type_path env path =
   let ty = Btype.newgenty (Tconstr (path, decl.type_params, ref Mnil)) in
   of_type_expr env ty initial_fuel
 
+let of_regular_cstr_description env descr =
+  of_regular_cstr_description env descr initial_fuel
+
 let of_unboxed_cstr_description env descr =
   of_unboxed_cstr_description env descr initial_fuel
 
@@ -227,7 +230,7 @@ let check_typedecl env (path, decl) =
       else begin
         let cstr_shapes =
           Array.of_list @@ List.map (fun descr ->
-            of_regular_cstr_description env descr initial_fuel
+            of_regular_cstr_description env descr
           ) cstrs
         in
         (* Boxed constructors, by construction, cannot have overlapping
