@@ -19,6 +19,11 @@ type t = Head_shape_types.t
 (** Returns the head shape information of type path *)
 val of_type_path : Env.t -> Path.t -> t
 
+(** Returns the head shape information of the constructor
+    of a regular (non-extensible) variant type. *)
+val of_regular_cstr_description :
+  Env.t -> Data_types.constructor_description -> t
+
 (** Returns the head shape information of an unboxed constructor *)
 val of_unboxed_cstr_description :
   Env.t -> Head_shape_types.unboxed_cstr_description -> t

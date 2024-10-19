@@ -17,6 +17,10 @@
 type imm = Imm of int [@@unboxed]
 type tag = Tag of int [@@unboxed]
 
+type head =
+  | Immediate of imm
+  | Block of tag
+
 module ImmSet = Set.Make(struct type t = imm let compare = Stdlib.compare end)
 module TagSet = Set.Make(struct type t = tag let compare = Stdlib.compare end)
 
@@ -41,5 +45,18 @@ type t = {
   blocks: block_set;
 }
 type shape = t
+
+let mem head shape =
+  match head with
+  | Immediate imm ->
+    begin match shape.imms with
+    | Any -> true
+    | Those set -> ImmSet.mem imm set
+    end
+  | Block tag ->
+    begin match shape.blocks with
+    | Any -> true
+    | Those set -> TagSet.mem tag set
+    end
 
 type unboxed_cstr_description = (Types.type_expr, t) Misc.Cached.t

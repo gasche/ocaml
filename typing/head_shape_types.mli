@@ -28,6 +28,10 @@
 type imm = Imm of int [@@unboxed]
 type tag = Tag of int [@@unboxed]
 
+type head =
+  | Immediate of imm
+  | Block of tag
+
 module ImmSet : Set.S with type elt = imm
 module TagSet : Set.S with type elt = tag
 
@@ -46,6 +50,8 @@ type t = {
   blocks: block_set; (* set of block shapes the head can be *)
 }
 type shape = t
+
+val mem : head -> shape -> bool
 
 type unboxed_cstr_description = (Types.type_expr, t) Misc.Cached.t
 (* Remark on the life cycle of [shape] information.
