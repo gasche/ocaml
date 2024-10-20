@@ -43,12 +43,14 @@ let rec of_type_expr env ty fuel =
       | exception Not_found ->
           of_unknown_type env p args
       end
-  | Ttuple _li ->
-      Shape.tuple
+  | Ttuple li ->
+      Shape.tuple ~size:(List.length li) ()
   | Tarrow _ | Tfunctor _ ->
       Shape.\#function
   | Tpackage _ ->
-      Shape.tuple
+      (* We could be more precise on the arity of
+         first-class modules. *)
+      Shape.tuple ()
   | Tobject _ ->
       Shape.\#object
   | Tvariant row ->
@@ -96,13 +98,13 @@ and of_predef_abstract_type env tconstr args fuel =
   | `Float -> Shape.float
   | `Floatarray -> Shape.floatarray
   | `Nativeint | `Int32 | `Int64 ->
-      Shape.custom
+      Shape.custom ~size:1 ()
   | `String | `Bytes ->
       Shape.string
   | `Continuation ->
       Shape.continuation
   | `Extension_constructor ->
-      Shape.block [Tag Obj.object_tag]
+      Shape.block ~size:1 [Tag Obj.object_tag]
   | `Lazy_t ->
       (* Once lazy values are forced, their Forward_tag block can be
          'cut short', and then they are represented exactly like the
@@ -114,7 +116,7 @@ and of_predef_abstract_type env tconstr args fuel =
       let ty = match args with [ty] -> ty | _ -> assert false in
       Shape.\#lazy (of_type_expr env ty fuel)
   | `Atomic_loc ->
-      Shape.tuple
+      Shape.tuple ~size:2 ()
   | `Todo_info ->
       Shape.any
 
@@ -127,8 +129,8 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
     of_type_expr env ty fuel
   in
   match ty_descr with
-  | Type_record (_lbls, Record_regular) ->
-      Shape.tuple
+  | Type_record (lbls, Record_regular) ->
+      Shape.tuple ~size:(List.length lbls) ()
   | Type_record (_lbls, Record_float) ->
       Shape.floatarray
   | Type_record (fields, Record_unboxed _) ->
@@ -137,13 +139,13 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
       | [{lbl_arg = ty; _}] -> of_type_expr_with_params ty
       | _ -> assert false
       end
-  | Type_record (_lbls, Record_inlined tag) ->
-      Shape.block [Tag tag]
-  | Type_record (_lbls, Record_extension _) ->
+  | Type_record (lbls, Record_inlined tag) ->
+      Shape.block ~size:(List.length lbls) [Tag tag]
+  | Type_record (lbls, Record_extension _) ->
       (* non-constant extension constructors have tag 0,
          and one additional argument storing the
          extension constructor dynamic value. *)
-      Shape.block [Tag 0]
+      Shape.block ~size:(1 + List.length lbls) [Tag 0]
   | Type_open ->
       Shape.extensible_variant
   | Type_variant (cstrs, Variant_unboxed) ->
@@ -177,7 +179,7 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
 and of_regular_cstr_description env descr fuel =
   match descr.cstr_tag with
   | Cstr_constant n -> Shape.imm [Imm n]
-  | Cstr_block tag -> Shape.block [Tag tag]
+  | Cstr_block tag -> Shape.block ~size:descr.cstr_arity [Tag tag]
   | Cstr_unboxed descr ->
       of_unboxed_cstr_description env descr fuel
   | Cstr_extension _ ->
