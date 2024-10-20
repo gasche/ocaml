@@ -473,7 +473,7 @@ module Make(O : OBJ)(EVP : EVALPATH with type valu = O.t) = struct
         in
         let obj_head : Head_shape_types.head =
           if O.is_block obj
-          then Block(Tag (O.tag obj))
+          then Block(Tag (O.tag obj), Size (O.size obj))
           else Immediate(Imm (O.obj obj))
         in
         let cstr_info =
