@@ -34,27 +34,23 @@ Lines 1-3, characters 0-38:
 2 |   | Bool of bool
 3 |   | Maybe_int of int option [@unboxed]
 Error: Constructors Maybe_int and Bool have overlapping representations.
-         shape of Maybe_int: {imm = [0]; blocks = [0];}
-         shape of Bool: {imm = []; blocks = [0];}
+         shape of Maybe_int: {imm = [0]; blocks = [0: [1];];}
+         shape of Bool: {imm = []; blocks = [0: [1];];}
 |}]
 
 
-(* There is a conflict between Single and Double,
-   because we are not tracking size/arity. *)
+(* There is *no* conflict between Single and Double,
+   thanks to our tracking of size/arity *)
 type 'a solution =
   | Zero
   | Single of 'a
   | Double of 'a pair [@unboxed]
 and 'a pair = 'a * 'a
 [%%expect{|
-Lines 1-4, characters 0-32:
-1 | type 'a solution =
-2 |   | Zero
-3 |   | Single of 'a
-4 |   | Double of 'a pair [@unboxed]
-Error: Constructors Double and Single have overlapping representations.
-         shape of Double: {imm = []; blocks = [0];}
-         shape of Single: {imm = []; blocks = [0];}
+shape of _ solution: {imm = [0]; blocks = [0: [1; 2];];}
+shape of _ pair: {imm = []; blocks = [0: [2];];}
+type 'a solution = Zero | Single of 'a | Double of 'a pair
+and 'a pair = 'a * 'a
 |}]
 
 

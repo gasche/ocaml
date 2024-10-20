@@ -16,13 +16,15 @@
 
 type imm = Imm of int [@@unboxed]
 type tag = Tag of int [@@unboxed]
+type size = Size of int [@@unboxed]
 
 type head =
   | Immediate of imm
-  | Block of tag
+  | Block of tag * size
 
 module ImmSet = Set.Make(struct type t = imm let compare = Stdlib.compare end)
-module TagSet = Set.Make(struct type t = tag let compare = Stdlib.compare end)
+module SizeSet = Set.Make(struct type t = size let compare = Stdlib.compare end)
+module TagMap = Map.Make(struct type t = tag let compare = Stdlib.compare end)
 
 module Or_any = struct
   type 'a t = Those of 'a | Any
@@ -38,7 +40,8 @@ end
 type 'a or_any = 'a Or_any.t = Those of 'a | Any
 
 type imm_set = ImmSet.t or_any
-type block_set = TagSet.t or_any
+type size_set = SizeSet.t or_any
+type block_set = size_set TagMap.t or_any
 
 type t = {
   imms: imm_set;
@@ -53,10 +56,14 @@ let mem head shape =
     | Any -> true
     | Those set -> ImmSet.mem imm set
     end
-  | Block tag ->
+  | Block (tag, size) ->
     begin match shape.blocks with
     | Any -> true
-    | Those set -> TagSet.mem tag set
+    | Those tag_map ->
+      match TagMap.find tag tag_map with
+      | exception Not_found -> false
+      | Any -> true
+      | Those sizes -> SizeSet.mem size sizes
     end
 
 type unboxed_cstr_description = (Types.type_expr, t) Misc.Cached.t

@@ -29,13 +29,13 @@ let any =
 let any_immediate =
   {
     imms = Any;
-    blocks = Those TagSet.empty;
+    blocks = Those TagMap.empty;
   }
 
 let empty =
   {
     imms = Those ImmSet.empty;
-    blocks = Those TagSet.empty;
+    blocks = Those TagMap.empty;
   }
 
 let intersection sh1 sh2 =
@@ -47,7 +47,14 @@ let intersection sh1 sh2 =
   in
   {
     imms = inter_any ImmSet.inter sh1.imms sh2.imms;
-    blocks = inter_any TagSet.inter sh1.blocks sh2.blocks;
+    blocks =
+      inter_any (fun tm1 tm2 ->
+        TagMap.merge (fun _tag s1 s2 ->
+          match s1, s2 with
+          | None, _ | _, None -> None
+          | Some s1, Some s2 -> Some (inter_any SizeSet.inter s1 s2)
+        ) tm1 tm2
+      ) sh1.blocks sh2.blocks;
   }
 
 let is_empty sh =
@@ -55,22 +62,50 @@ let is_empty sh =
     | Any -> false
     | Those s -> is_empty s
   in
+  let empty_tag_map =
+    TagMap.for_all (fun _tag -> empty_any SizeSet.is_empty)
+  in
   empty_any ImmSet.is_empty sh.imms
-  && empty_any TagSet.is_empty sh.blocks
+  && empty_any empty_tag_map sh.blocks
 
 let union sh1 sh2 =
   let imms = Or_any.mon_map2 ImmSet.union sh1.imms sh2.imms in
-  let blocks = Or_any.mon_map2 TagSet.union sh1.blocks sh2.blocks in
+  let blocks =
+    Or_any.mon_bind2 (fun bs1 bs2 ->
+      let any_count = ref 0 in
+      let tag_map =
+        TagMap.union (fun _tag s1 s2 ->
+          let s = Or_any.mon_map2 SizeSet.union s1 s2 in
+          (if s = Any then incr any_count);
+          Some s
+        ) bs1 bs2
+      in
+      if !any_count = 256 then begin
+        assert (
+          List.init 256 Fun.id
+          |> List.for_all (fun i ->
+            TagMap.find_opt (Tag i) tag_map = Some Any)
+        );
+        Any
+      end
+      else Those tag_map
+    ) sh1.blocks sh2.blocks
+  in
   { imms; blocks; }
 
 let imm_list li = Or_any.Those (ImmSet.of_list li)
 
-let tag_list tags : block_set = Or_any.Those (TagSet.of_list tags)
+let tag_list ?size tags : block_set =
+  let size : size_set = match size with
+    | None -> Any
+    | Some fixed -> Those (SizeSet.singleton (Size fixed))
+  in
+  Those (TagMap.of_list (List.map (fun tags -> (tags, size)) tags))
 
 let imm_shape imms =
   { empty with imms = imm_list imms }
-let block_shape tags =
-  { empty with blocks = tag_list tags }
+let block_shape ?size tags =
+  { empty with blocks = tag_list ?size tags }
 
 let rec of_type_expr env ty fuel =
   match Types.get_desc ty with
@@ -95,8 +130,8 @@ let rec of_type_expr env ty fuel =
       | exception Not_found ->
           of_unknown_type env p args
       end
-  | Ttuple _ ->
-      block_shape [Tag 0]
+  | Ttuple li ->
+      block_shape ~size:(List.length li) [Tag 0]
   | Tarrow _ ->
       block_shape [Tag Obj.closure_tag; Tag Obj.infix_tag]
   | Tpackage _ ->
@@ -131,17 +166,21 @@ and of_predef_abstract_type env tconstr args fuel =
          @ if Config.flat_float_array then []
          else [Tag Obj.double_array_tag])
   | `Float ->
-      block_shape [Tag Obj.double_tag]
+      (* Float values have size 1 or 2 depending
+         on the architecture. *)
+      union
+        (block_shape ~size:1 [Tag Obj.double_tag])
+        (block_shape ~size:2 [Tag Obj.double_tag])
   | `Floatarray ->
       block_shape [Tag Obj.double_array_tag]
   | `Nativeint | `Int32 | `Int64 ->
-      block_shape [Tag Obj.custom_tag]
+      block_shape ~size:1 [Tag Obj.custom_tag]
   | `String | `Bytes ->
       block_shape [Tag Obj.string_tag]
   | `Continuation ->
       block_shape [Tag Obj.cont_tag]
   | `Extension_constructor ->
-      block_shape [Tag Obj.object_tag]
+      block_shape ~size:1 [Tag Obj.object_tag]
   | `Lazy_t ->
       (* Once lazy values are forced, their Forward_tag block can be
          'cut short', and then they are represented exactly like the
@@ -152,7 +191,7 @@ and of_predef_abstract_type env tconstr args fuel =
          be disabled by a runtime check.  *)
       let ty = match args with [ty] -> ty | _ -> assert false in
       union
-        (block_shape [Tag Obj.lazy_tag; Tag Obj.forcing_tag; Tag Obj.forward_tag])
+        (block_shape ~size:1 [Tag Obj.lazy_tag; Tag Obj.forcing_tag; Tag Obj.forward_tag])
         (of_type_expr env ty fuel)
 
 and of_typedescr env p ty_descr ty_decl ~args fuel =
@@ -174,11 +213,13 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
       | [{lbl_arg = ty; _}] -> of_type_expr_with_params ty
       | _ -> assert false
       end
-  | Type_record (_lbls, Record_inlined tag) ->
-      block_shape [Tag tag]
-  | Type_record (_lbls, Record_extension _) ->
-      (* non-constant extension constructors have tag 0 *)
-      block_shape [Tag 0]
+  | Type_record (lbls, Record_inlined tag) ->
+      block_shape ~size:(List.length lbls) [Tag tag]
+  | Type_record (lbls, Record_extension _) ->
+      (* non-constant extension constructors have tag 0,
+         and one additional argument storing the
+         extension constructor dynamic value. *)
+      block_shape ~size:(1 + List.length lbls) [Tag 0]
   | Type_open ->
       (* constant constructors have tag Obj.object_tag,
          non-constant constructors have tag 0 *)
@@ -217,7 +258,7 @@ and of_regular_cstr_description env descr fuel =
   match descr.cstr_tag with
   | Cstr_constant n -> imm_shape [Imm n]
   | Cstr_block tag ->
-      block_shape [Tag tag]
+      block_shape ~size:descr.cstr_arity [Tag tag]
   | Cstr_unboxed descr ->
       of_unboxed_cstr_description env descr fuel
   | Cstr_extension _ ->

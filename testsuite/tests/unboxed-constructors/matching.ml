@@ -174,3 +174,19 @@ module DenseImmSparseTags = struct
     assert (f (B (4, 3)) = 7);
     assert (f (C "baz") = 3);
 end
+
+module SizeDiscrimination = struct
+  type 'a pair = 'a * 'a
+  type 'a triple = 'a * 'a * 'a
+  type t = A | B of int pair [@unboxed] | C of int triple [@unboxed]
+
+  let f = function
+    | A -> 0
+    | B (a, b) -> a + b
+    | C (a, b, c) -> a + b + c
+
+  let () =
+    assert (f A = 0);
+    assert (f (B(3, 4)) = 7);
+    assert (f (C(3, 4, 5)) = 12);
+end
