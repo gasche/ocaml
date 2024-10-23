@@ -95,20 +95,20 @@ type abstract
 type lazy_int = int Lazy.t
 [%%expect{|
 shape of lazy_int:
-  {imm = Any; blocks = [forcing: [1]; lazy: [1]; forward: [1]];}
+  {imm = Any; blocks = [forcing: Any; lazy: Any; forward: Any];}
 type lazy_int = int Lazy.t
 |}]
 
 type lazy_option = int option Lazy.t
 [%%expect{|
 shape of lazy_option:
-  {imm = [0]; blocks = [0: [1]; forcing: [1]; lazy: [1]; forward: [1]];}
+  {imm = [0]; blocks = [0: [1]; forcing: Any; lazy: Any; forward: Any];}
 type lazy_option = int option Lazy.t
 |}]
 
 (* This is currently less precise than it could be. *)
 type some_object = < x : int; y : int >
 [%%expect{|
-shape of some_object: {imm = Any; blocks = Any;}
+shape of some_object: {imm = []; blocks = [248: Any];}
 type some_object = < x : int; y : int >
 |}]
