@@ -254,7 +254,7 @@ let of_regular_cstr_description env descr =
 let of_unboxed_cstr_description env descr =
   of_unboxed_cstr_description env descr initial_fuel
 
-let check_typedecl env (path, decl) =
+let check_typedecl_conflicts env (path, decl) =
   match Env.find_type_descrs path env with
   | exception Not_found -> assert false
   | Type_open | Type_record _ -> ()
@@ -305,3 +305,22 @@ let check_typedecl env (path, decl) =
             ) cstrs
         ) cstrs
       end
+
+let check_typedecl_constraint env (path, decl) =
+  match Builtin_attributes.find_shapes decl.type_attributes with
+  | Some shape_names ->
+      let loc = decl.type_loc in
+      let expected_shape =
+        List.map (of_shape_name loc) shape_names
+        |> List.fold_left Shape.union Shape.empty
+      in
+      let actual_shape = of_type_path env path in
+      if not (Shape.subset actual_shape expected_shape) then
+        Location.raise_errorf ~loc
+          "@[In this type declaration, the actual head shape does not \
+           match the expected type shape.@]"
+  | None -> ()
+
+let check_typedecl env tydecl =
+  check_typedecl_conflicts env tydecl;
+  check_typedecl_constraint env tydecl;
