@@ -115,7 +115,7 @@ type some_object = < x : int; y : int >
 
 type abstract [@@shape [int; constructor 0; constructor 1 ~size:2]]
 [%%expect{|
-shape of abstract: {imm = Any; blocks = [0: Any; 1: [2]];}
+shape of abstract: {imm = Any; blocks = [0; 1 size [2]];}
 type abstract
 |}]
 
