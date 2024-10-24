@@ -344,6 +344,11 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
       match ty_decl.type_manifest with
       | Some ty -> of_type_expr_with_params ty
       | None ->
+      match Builtin_attributes.find_shapes ty_decl.type_attributes with
+      | Some shape_names ->
+        List.map (of_shape_name ty_decl.type_loc) shape_names
+        |> List.fold_left Shape.union Shape.empty
+      | None ->
       match ty_decl.type_immediate with
       | Always -> Shape.any_immediate
       | Always_on_64bits ->

@@ -112,3 +112,10 @@ type some_object = < x : int; y : int >
 shape of some_object: {imm = []; blocks = [248: Any];}
 type some_object = < x : int; y : int >
 |}]
+
+type abstract [@@shape [int; constructor 0; constructor 1 ~size:2]]
+[%%expect{|
+shape of abstract: {imm = Any; blocks = [0: Any; 1: [2]];}
+type abstract
+|}]
+
