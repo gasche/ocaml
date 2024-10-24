@@ -20,6 +20,16 @@ open Head_shape_types
 
 type t = Head_shape_types.t
 
+let is_any_size _ = false
+
+let is_any_block tag_map =
+  TagMap.cardinal tag_map = 256
+  &&
+  TagMap.for_all (fun _ -> function
+    | Any -> true
+    | Those s -> is_any_size s
+  ) tag_map
+
 module Shape = struct
   let intersection sh1 sh2 =
     let inter_any inter any1 any2 =
@@ -39,6 +49,29 @@ module Shape = struct
           ) tm1 tm2
         ) sh1.blocks sh2.blocks;
     }
+
+  let subset sh1 sh2 =
+    let subset_any subset is_any any1 any2 =
+      match any1, any2 with
+      | Any, Any -> true
+      | _, Any -> true
+      | Any, Those b -> is_any b
+      | Those a, Those b -> subset a b
+    in
+    let subset_imm = ImmSet.subset in
+    let subset_size = SizeSet.subset in
+    let subset_block tm1 tm2 =
+      TagMap.for_all (fun tag sizes1 ->
+        let sizes2 =
+          try TagMap.find tag tm2
+          with Not_found -> Those SizeSet.empty in
+        subset_any subset_size is_any_size sizes1 sizes2
+      ) tm1
+    in
+    let is_any_imm _ = false in
+    subset_any subset_imm is_any_imm sh1.imms sh2.imms
+    &&
+    subset_any subset_block is_any_block sh1.blocks sh2.blocks
 
   let is_empty sh =
     let empty_any is_empty = function
@@ -388,7 +421,7 @@ let of_regular_cstr_description env descr =
 let of_unboxed_cstr_description env descr =
   of_unboxed_cstr_description env descr initial_fuel
 
-let check_typedecl env (path, decl) =
+let check_typedecl_conflicts env (path, decl) =
   match Env.find_type_descrs path env with
   | exception Not_found -> assert false
   | Type_open | Type_record _ -> ()
@@ -432,3 +465,22 @@ let check_typedecl env (path, decl) =
             ) cstrs
         ) cstrs
       end
+
+let check_typedecl_constraint env (path, decl) =
+  match Builtin_attributes.find_shapes decl.type_attributes with
+  | Some shape_names ->
+      let loc = decl.type_loc in
+      let expected_shape =
+        List.map (of_shape_name loc) shape_names
+        |> List.fold_left Shape.union Shape.empty
+      in
+      let actual_shape = of_type_path env path in
+      if not (Shape.subset actual_shape expected_shape) then
+        Location.raise_errorf ~loc
+          "@[In this type declaration, the actual head shape does not \
+           match the expected type shape.@]"
+  | None -> ()
+
+let check_typedecl env tydecl =
+  check_typedecl_conflicts env tydecl;
+  check_typedecl_constraint env tydecl;
