@@ -481,7 +481,7 @@ module Make(O : OBJ)(EVP : EVALPATH with type valu = O.t) = struct
           |> List.find_opt (fun (_decl, descr) ->
             let cstr_shape =
               Head_shape.of_regular_cstr_description env descr in
-            Head_shape_types.mem obj_head cstr_shape
+            Head_shape_types.Shape.mem obj_head cstr_shape
           )
         in
         match cstr_info with

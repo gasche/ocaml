@@ -14,7 +14,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-type t = Head_shape_types.t
+type t = Head_shape_types.shape
 
 (** Returns the head shape information of type path *)
 val of_type_path : Env.t -> Path.t -> t
@@ -32,6 +32,10 @@ val of_unboxed_cstr_description :
     provided by the user. *)
 val of_shape_name :
   Location.t -> Asttypes.shape_name -> t
+
+(** A shape provided as [@shape ...] attributes. *)
+val of_attributes :
+  Location.t -> Parsetree.attributes -> t option
 
 (** Check a new type declaration, that may be a variant type
     containing unboxed constructors, to verify that the unboxing

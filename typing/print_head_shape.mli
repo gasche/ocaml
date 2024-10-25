@@ -14,7 +14,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-type head_shape := Head_shape_types.t
+type head_shape := Head_shape_types.shape
 
 val doc : head_shape Format_doc.printer
 val pp : head_shape Format_doc.format_printer

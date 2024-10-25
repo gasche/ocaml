@@ -39,5 +39,5 @@ val constructor_existentials :
  *)
 
 val repr_data_of_regular_constructors:
-  get_shape:Head_shape_types.(unboxed_cstr_description -> t) ->
+  get_shape:Head_shape_types.(unboxed_cstr_description -> shape) ->
   constructor_description list -> repr_data

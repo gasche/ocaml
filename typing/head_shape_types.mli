@@ -48,15 +48,44 @@ type imm_set = ImmSet.t or_any
 type size_set = SizeSet.t or_any
 type block_set = size_set TagMap.t or_any
 
-type t = {
+type shape = {
   imms: imm_set; (* set of immediates the head can be *)
   blocks: block_set; (* set of block shapes the head can be *)
 }
-type shape = t
 
-val mem : head -> shape -> bool
+module Shape : sig
+  type t = shape
+  val empty : t
+  val any : t
 
-type unboxed_cstr_description = (Types.type_expr, t) Misc.Cached.t
+  val mem : head -> shape -> bool
+
+  val union : t -> t -> t
+  val inter : t -> t -> t
+  val is_empty : t -> bool
+  val is_any : t -> bool
+  val subset : t -> t -> bool
+
+  val any_immediate : t
+  val imm : imm list -> t
+  val block : ?size:int -> tag list -> t
+  val float : t
+  val string : t
+  val tuple : size:int option -> t
+  val array : t
+  val floatarray : t
+  val \#function : t
+  val \#object : t
+  val \#lazy : t -> t
+  val continuation : t
+  val extensible_variant : t
+  val polymorphic_variant : has_consts:bool -> has_nonconsts:bool -> t
+  val abstract : size:int option -> t
+  val custom : size:int option -> t
+end
+
+
+type unboxed_cstr_description = (Types.type_expr, shape) Misc.Cached.t
 (* Remark on the life cycle of [shape] information.
 
    The [Data_types.constructor_description] data that contains
