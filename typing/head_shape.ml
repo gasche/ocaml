@@ -290,9 +290,12 @@ let check_typedecl_conflicts ~loc env cstrs =
     ) cstrs
   in
   List.iteri (fun i cstr1 ->
-    if cstr_is_unboxed cstr1 then
+    match cstr1.cstr_tag with
+    | Cstr_constant _ | Cstr_block _ | Cstr_extension _ -> ()
+    | Cstr_unboxed (_ty, unboxed_descr) ->
+      let sh1 = of_unboxed_cstr_description env unboxed_descr in
       List.iteri (fun j cstr2 ->
-        let sh1, sh2 = cstr_shapes.(i), cstr_shapes.(j) in
+        let sh2 = cstr_shapes.(j) in
         if i <> j && not Shape.(is_empty (inter sh1 sh2)) then
           (* TODO: define a proper error with an error printer. *)
           Location.raise_errorf ~loc
