@@ -64,14 +64,19 @@ let of_attributes loc attrs =
         ) Shape.empty shapes
       )
 
+module TypeSet = Btype.TypeSet
+let existentials = ref TypeSet.empty
+let is_existential ty =
+  TypeSet.mem ty !existentials
+let notify_existential ty =
+  existentials := TypeSet.add ty !existentials
+
 let rec of_type_expr env ty fuel =
   match Types.get_desc ty with
   | Tvar _ | Tunivar _ ->
-      (* FIXME: variables that are universally quantified
-         (including type parameters) should get [any], but GADT
-         variables that are existentially quantified should get
-         [poison] instead -- they are not separated. *)
-      Shape.any
+      if is_existential ty
+      then Shape.poison
+      else Shape.any
   | Tconstr (p, args, _abbrev) ->
       (* Both [of_predef_abstract_type] and [of_typedescr] may loop over
          infinite types or recursive expansions; decrease fuel now. *)
@@ -227,6 +232,7 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
         of_unknown_type env p args
 
 and of_regular_cstr_description env descr fuel =
+  List.iter notify_existential descr.cstr_existentials;
   match descr.cstr_tag with
   | Cstr_constant n -> Shape.imm [Imm n]
   | Cstr_block tag ->

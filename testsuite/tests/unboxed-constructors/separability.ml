@@ -18,10 +18,13 @@ Line 1, characters 49-57:
 Error: Unbound type constructor "abstract"
 |}]
 
-(* This is unexpected, we need such GADTs to be rejected
+(* We need such GADTs to be rejected
    as they also break separability. *)
 type t = Any : 'a -> t [@unboxed]
 [%%expect {|
-type t = Any : 'a -> t [@unboxed]
+Line 1, characters 0-33:
+1 | type t = Any : 'a -> t [@unboxed]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error: This type declaration is non-separated, it contains both float and non-float values.
 |}]
 
