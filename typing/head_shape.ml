@@ -80,7 +80,7 @@ let rec of_type_expr env ty fuel =
   | Tconstr (p, args, _abbrev) ->
       (* Both [of_predef_abstract_type] and [of_typedescr] may loop over
          infinite types or recursive expansions; decrease fuel now. *)
-      if fuel = 0 then of_unknown_type env p args else
+      if fuel = 0 then Shape.any else
       let fuel = fuel - 1 in
       begin match Predef.find_type_constr p with
       | Some (#Predef.abstract_type_constr as tconstr) ->
@@ -90,7 +90,7 @@ let rec of_type_expr env ty fuel =
       | descr, decl ->
           of_typedescr env p descr decl ~args fuel
       | exception Not_found ->
-          of_unknown_type env p args
+          of_unknown_type env p args fuel
       end
   | Ttuple li ->
       Shape.tuple ~size:(Some (List.length li))
@@ -130,8 +130,10 @@ let rec of_type_expr env ty fuel =
       (* cannot be returned by [get_desc] *)
       assert false
 
-and of_unknown_type _env _p args =
-  if List.exists is_existential args
+and of_unknown_type env _p args fuel =
+  let arg_shapes =
+    List.map (fun ty -> of_type_expr env ty fuel) args in
+  if List.exists (fun sh -> not sh.separated) arg_shapes
   then Shape.poison
   else Shape.any
 
@@ -227,7 +229,7 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
       | Some sh1, Some sh2 -> Shape.inter sh1 sh2
       | Some sh, None | None, Some sh -> sh
       | None, None ->
-        of_unknown_type env p args
+        of_unknown_type env p args fuel
 
 and of_regular_cstr_description ~of_type_expr_with_params descr =
   List.iter notify_existential descr.cstr_existentials;
