@@ -241,10 +241,6 @@ and of_regular_cstr_description ~of_type_expr_with_params descr =
       (* cannot occur in regular variants *)
       assert false
 
-and of_unboxed_cstr_description env descr fuel =
-  try Misc.Cached.force descr (fun ty -> of_type_expr env ty fuel)
-  with Misc.Cached.Forcing_race -> Shape.any
-
 let initial_fuel =
   (* choice of fuel: see
      {!Typedecl_unboxed.get_unboxed_type_representation} *)
@@ -261,7 +257,8 @@ let of_regular_cstr_description env descr =
   of_regular_cstr_description ~of_type_expr_with_params descr
 
 let of_unboxed_cstr_description env descr =
-  of_unboxed_cstr_description env descr initial_fuel
+  try Misc.Cached.force descr (fun ty -> of_type_expr env ty initial_fuel)
+  with Misc.Cached.Forcing_race -> Shape.any
 
 let cstr_is_unboxed cstr =
   match cstr.cstr_tag with
