@@ -40,7 +40,7 @@ and constructor_tag =
     Cstr_constant of int                (* Constant constructor (an int) *)
   | Cstr_block of int                   (* Regular constructor (a block) *)
   | Cstr_unboxed of                     (* Constructor of an unboxed type *)
-      Head_shape_types.unboxed_cstr_description
+      type_expr * Head_shape_types.unboxed_cstr_description
   | Cstr_extension of Path.t * bool     (* Extension constructor
                                            true if a constant false if a block*)
 

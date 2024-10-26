@@ -139,7 +139,7 @@ let constructor_descrs ~current_unit ty_path decl cstrs rep =
           match cstr_is_unboxed, cd_args with
           | true, Cstr_tuple [ty]
           | true, Cstr_record [{ld_type=ty; _}] ->
-              (Cstr_unboxed (Misc.Cached.create ty),
+              (Cstr_unboxed (ty, Misc.Cached.create ty),
                describe_constructors idx_const idx_nonconst rem)
           | true, _ ->
               raise (Error (cd_loc, Multiple_args_unboxed_constructor cd_id))
@@ -205,7 +205,7 @@ let repr_data_of_regular_constructors ~get_shape constructors =
         notify_tag (Tag tag)
     | Cstr_extension _ ->
         assert false
-    | Cstr_unboxed descr ->
+    | Cstr_unboxed (_ty, descr) ->
         let shape = get_shape descr in
         let open Head_shape_types in
         begin match shape.imms with

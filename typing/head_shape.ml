@@ -130,13 +130,10 @@ let rec of_type_expr env ty fuel =
       (* cannot be returned by [get_desc] *)
       assert false
 
-and of_unknown_type env p args =
-  (* FIXME: if one of the parameters contains a non-separated variable,
-     then this unknown type should be considered non-separated as well.
-     (It may be a projection into this parameter.)
-     This corresponds to the DeepSep case of the separability analysis. *)
-  ignore (env, p, args);
-  Shape.any
+and of_unknown_type _env _p args =
+  if List.exists is_existential args
+  then Shape.poison
+  else Shape.any
 
 and of_predef_abstract_type env tconstr args fuel =
   match tconstr with
@@ -206,7 +203,8 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
          disjoint. Indeed, we already know that it must be disjoint,
          otherwise it would have been rejected at declaration time by
          the {!check_typedecl} function below. *)
-      let of_cstr_descr descr = of_regular_cstr_description env descr fuel in
+      let of_cstr_descr =
+        of_regular_cstr_description ~of_type_expr_with_params in
       List.map of_cstr_descr cstr_descrs
       |> List.fold_left Shape.union Shape.empty
   | Type_abstract _ ->
@@ -231,14 +229,14 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
       | None, None ->
         of_unknown_type env p args
 
-and of_regular_cstr_description env descr fuel =
+and of_regular_cstr_description ~of_type_expr_with_params descr =
   List.iter notify_existential descr.cstr_existentials;
   match descr.cstr_tag with
   | Cstr_constant n -> Shape.imm [Imm n]
   | Cstr_block tag ->
       Shape.block ~size:descr.cstr_arity [Tag tag]
-  | Cstr_unboxed descr ->
-      of_unboxed_cstr_description env descr fuel
+  | Cstr_unboxed (ty, _descr) ->
+      of_type_expr_with_params ty
   | Cstr_extension _ ->
       (* cannot occur in regular variants *)
       assert false
@@ -258,7 +256,9 @@ let of_type_path env path =
   of_type_expr env ty initial_fuel
 
 let of_regular_cstr_description env descr =
-  of_regular_cstr_description env descr initial_fuel
+  let of_type_expr_with_params ty =
+    of_type_expr env ty initial_fuel in
+  of_regular_cstr_description ~of_type_expr_with_params descr
 
 let of_unboxed_cstr_description env descr =
   of_unboxed_cstr_description env descr initial_fuel

@@ -3284,7 +3284,7 @@ let split_cases pat_env tag_lambda_list =
         match cstr_tag with
         | Cstr_constant n -> Cases.add_const (Imm n) act cases
         | Cstr_block n -> Cases.add_nonconst (Tag n) act cases
-        | Cstr_unboxed descr -> split_unboxed descr act cases
+        | Cstr_unboxed (_ty, descr) -> split_unboxed descr act cases
         | Cstr_extension _ -> assert false
       )
   and split_unboxed descr act cases =
