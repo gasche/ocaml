@@ -420,12 +420,12 @@ type t = A of int | B of string | C of string | D of string
            (switch* t2/384
             case tag 0: (exit 31)
             case tag 1: (exit 31)
-            case tag 2: 1
             case tag 3:
              (apply (field_imm 9 (global Stdlib__String!))
-               (field_imm 0 t1/383) (field_imm 0 t2/384))))
-        with (31) (switch* t2/384 case tag 0: 1
-                                  case tag 1: 1))))
+               (field_imm 0 t1/383) (field_imm 0 t2/384))
+            case tag 2: 1))
+        with (31) (switch* t2/384 case tag 1: 1
+                                  case tag 0: 1))))
   (apply (field_mut 1 (global Toploop!)) "compare" compare/382))
 val compare : t -> t -> int = <fun>
 |}];;
