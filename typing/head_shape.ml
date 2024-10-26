@@ -257,62 +257,90 @@ let of_regular_cstr_description env descr =
 let of_unboxed_cstr_description env descr =
   of_unboxed_cstr_description env descr initial_fuel
 
-let check_typedecl_conflicts env (path, decl) =
-  match Env.find_type_descrs path env with
-  | exception Not_found -> assert false
-  | Type_open | Type_record _ -> ()
-  | Type_abstract _ -> ()
-  | Type_variant (_, Variant_unboxed) -> ()
+let cstr_is_unboxed cstr =
+  match cstr.cstr_tag with
+  | Cstr_constant _ | Cstr_block _ | Cstr_extension _ -> false
+  | Cstr_unboxed _ -> true
+
+let find_constructors_with_unboxed = function
+  | Type_open | Type_record _
+  | Type_abstract _
+  | Type_variant (_, Variant_unboxed) -> None
   | Type_variant (cstrs, Variant_regular) ->
-      let is_unboxed cstr =
-        match cstr.cstr_tag with
-        | Cstr_constant _ | Cstr_block _ | Cstr_extension _ -> false
-        | Cstr_unboxed _ -> true
-      in
-      let has_unboxed_cstr = List.exists is_unboxed cstrs in
-      if not has_unboxed_cstr then ()
-      else begin
-        let cstr_shapes =
-          Array.of_list @@ List.map (fun descr ->
-            of_regular_cstr_description env descr
-          ) cstrs
-        in
-        (* Boxed constructors, by construction, cannot have overlapping representations,
-           as they get assigned distinct immediates or tags.
+      let has_unboxed_cstr = List.exists cstr_is_unboxed cstrs in
+      if has_unboxed_cstr then Some cstrs
+      else None
 
-           If an overlap arises, it is necessarily between an unboxed
-           constructor an another constructor (boxed or unboxed). We
-           check all pairs of an unboxed constructor and another
-           constructor. *)
-        List.iteri (fun i cstr1 ->
-          if is_unboxed cstr1 then
-            List.iteri (fun j cstr2 ->
-              let sh1, sh2 = cstr_shapes.(i), cstr_shapes.(j) in
-              if i <> j && not Shape.(is_empty (inter sh1 sh2)) then
-                (* TODO: define a proper error with an error printer. *)
-                Location.raise_errorf ~loc:decl.type_loc
-                  "@[Constructors %s and %s have overlapping representations.\
-                     @;<1 2>shape of %s: %a\
-                     @;<1 2>shape of %s: %a\
-                   @]"
-                  cstr1.cstr_name cstr2.cstr_name
-                  cstr1.cstr_name Print_head_shape.doc sh1
-                  cstr2.cstr_name Print_head_shape.doc sh2
-            ) cstrs
-        ) cstrs
-      end
+let check_typedecl_conflicts ~loc env cstrs =
+  (* Boxed constructors, by construction, cannot have overlapping representations,
+     as they get assigned distinct immediates or tags.
 
-let check_typedecl_constraint env (path, decl) =
-  let loc = decl.type_loc in
+     If an overlap arises, it is necessarily between an unboxed
+     constructor an another constructor (boxed or unboxed). We
+     check all pairs of an unboxed constructor and another
+     constructor. *)
+  let cstr_shapes =
+    Array.of_list @@ List.map (fun descr ->
+      of_regular_cstr_description env descr
+    ) cstrs
+  in
+  List.iteri (fun i cstr1 ->
+    if cstr_is_unboxed cstr1 then
+      List.iteri (fun j cstr2 ->
+        let sh1, sh2 = cstr_shapes.(i), cstr_shapes.(j) in
+        if i <> j && not Shape.(is_empty (inter sh1 sh2)) then
+          (* TODO: define a proper error with an error printer. *)
+          Location.raise_errorf ~loc
+            "@[Constructors %s and %s have overlapping representations.\
+               @;<1 2>shape of %s: %a\
+               @;<1 2>shape of %s: %a\
+             @]"
+            cstr1.cstr_name cstr2.cstr_name
+            cstr1.cstr_name Print_head_shape.doc sh1
+            cstr2.cstr_name Print_head_shape.doc sh2
+      ) cstrs
+  ) cstrs
+
+let check_typedecl_separated ~loc get_shape =
+  let shape = get_shape () in
+  if not shape.separated then
+    Location.raise_errorf ~loc
+      "@[This type declaration is non-separated, \
+         it contains both float and non-float values.@]"
+
+let check_typedecl_constraint ~loc decl get_shape =
   match of_attributes loc decl.type_attributes with
   | Some expected_shape ->
-      let actual_shape = of_type_path env path in
+      let actual_shape = get_shape () in
       if not (Shape.subset actual_shape expected_shape) then
         Location.raise_errorf ~loc
           "@[In this type declaration, the actual head shape does not \
            match the expected type shape.@]"
   | None -> ()
 
-let check_typedecl env tydecl =
-  check_typedecl_conflicts env tydecl;
-  check_typedecl_constraint env tydecl;
+(* We check three soundness properties on head shapes:
+   - If unboxed constructors are used, they must not introduce
+     representation conflicts (two distinct source terms that
+     have the same representation).
+   - If unboxed constructors are used, they must not introduce
+     non-separated types.
+   - If a shape annotation is present, the actual shape of the type
+     must be a subset of the annotated shape.
+
+   The implementation tries to be zero-cost: it computes nothing at
+   all unless unboxed constructors or shape annotations are used.
+*)
+let check_typedecl env (path, decl) =
+  let loc = decl.type_loc in
+  let descr =
+    try Env.find_type_descrs path env
+    with Not_found -> assert false
+  in
+  let get_shape () = of_type_path env path in
+  begin match find_constructors_with_unboxed descr with
+  | None -> ()
+  | Some cstrs ->
+      check_typedecl_conflicts ~loc env cstrs;
+      check_typedecl_separated ~loc get_shape;
+  end;
+  check_typedecl_constraint ~loc decl get_shape;
