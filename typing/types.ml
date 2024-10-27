@@ -238,10 +238,10 @@ end
 
 (* Type definitions *)
 
-type type_declaration =
+type ('lbl, 'cstr) type_def =
   { type_params: type_expr list;
     type_arity: int;
-    type_kind: type_decl_kind;
+    type_kind: ('lbl, 'cstr) type_kind;
     type_private: private_flag;
     type_manifest: type_expr option;
     type_variance: Variance.t list;
@@ -255,13 +255,15 @@ type type_declaration =
     type_uid: Uid.t;
  }
 
-and type_decl_kind = (label_declaration, constructor_declaration) type_kind
-
 and ('lbl, 'cstr) type_kind =
     Type_abstract of type_origin
   | Type_record of 'lbl list * record_representation
   | Type_variant of 'cstr list * variant_representation
   | Type_open
+
+and type_declaration = (label_declaration, constructor_declaration) type_def
+
+and type_decl_kind = (label_declaration, constructor_declaration) type_kind
 
 and type_origin =
     Definition

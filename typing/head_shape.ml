@@ -64,11 +64,16 @@ let of_attributes loc attrs =
         ) Shape.empty shapes
       )
 
+let dbg = false
+
 module TypeSet = Btype.TypeSet
 let existentials = ref TypeSet.empty
 let is_existential ty =
   TypeSet.mem ty !existentials
 let notify_existential ty =
+  if dbg then
+    Format.eprintf "notify existential: %a@."
+      Rawprinttyp.type_expr ty;
   existentials := TypeSet.add ty !existentials
 
 let rec of_type_expr env ty fuel =
@@ -87,8 +92,9 @@ let rec of_type_expr env ty fuel =
           of_predef_abstract_type env tconstr args fuel
       | None | Some #Predef.data_type_constr ->
       match Env.find_type_descrs p env, Env.find_type p env with
-      | descr, decl ->
-          of_typedescr env p descr decl ~args fuel
+      | descr_kind, decl ->
+          let descr = { decl with type_kind = descr_kind } in
+          of_typedescr env p descr ~args fuel
       | exception Not_found ->
           of_unknown_type env p args fuel
       end
@@ -162,15 +168,14 @@ and of_predef_abstract_type env tconstr args fuel =
       let ty = match args with [ty] -> ty | _ -> assert false in
       Shape.\#lazy (of_type_expr env ty fuel)
 
-and of_typedescr env p ty_descr ty_decl ~args fuel =
-  let of_type_expr_with_params ty =
-    (* We instantiate the formal type variables with the
-       type expression parameters at use site. *)
-    let params = ty_decl.type_params in
-    let ty = Ctype.apply env params ty args in
-    of_type_expr env ty fuel
-  in
-  match ty_descr with
+and of_typedescr env p ty_descr ~args fuel =
+  let ty_descr = Ctype.instance_description ty_descr in
+  if dbg then
+    Format.eprintf "args: %a@."
+      (Format.pp_print_list ~pp_sep:Format.pp_print_space
+         Rawprinttyp.type_expr) args;
+  List.iter2 (Ctype.unify env) ty_descr.type_params args;
+  match ty_descr.type_kind with
   | Type_record (lbls, Record_regular) ->
       Shape.tuple ~size:(Some (List.length lbls))
   | Type_record (_lbls, Record_float) ->
@@ -178,7 +183,7 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
   | Type_record (fields, Record_unboxed _) ->
       (* an [@@unboxed] record must have exactly one field *)
       begin match fields with
-      | [{lbl_arg = ty; _}] -> of_type_expr_with_params ty
+      | [{lbl_arg = ty; _}] -> of_type_expr env ty fuel
       | _ -> assert false
       end
   | Type_record (lbls, Record_inlined tag) ->
@@ -194,27 +199,27 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
       (* an [@@unboxed] variant must have exactly one constructor
          with one parameter *)
       begin match cstrs with
-      | [{cstr_args = [ty]; _}] -> of_type_expr_with_params ty
+      | [{cstr_args = [ty]; _}] -> of_type_expr env ty fuel
       | _ -> assert false
       end
   | Type_variant ([], Variant_regular) ->
       Shape.empty
-  | Type_variant (cstr_descrs, Variant_regular) ->
+  | Type_variant (cstrs, Variant_regular) ->
       (* Here we use the {!union} function to compute the head shape
          of the variant, without trying to enforce that the union is
          disjoint. Indeed, we already know that it must be disjoint,
          otherwise it would have been rejected at declaration time by
          the {!check_typedecl} function below. *)
-      let of_cstr_descr =
-        of_regular_cstr_description ~of_type_expr_with_params in
-      List.map of_cstr_descr cstr_descrs
+      let of_cstr cstr_descr =
+        of_regular_cstr_description env cstr_descr fuel in
+      List.map of_cstr cstrs
       |> List.fold_left Shape.union Shape.empty
   | Type_abstract _ ->
-      match ty_decl.type_manifest with
-      | Some ty -> of_type_expr_with_params ty
+      match ty_descr.type_manifest with
+      | Some ty -> of_type_expr env ty fuel
       | None ->
       let from_immediacy =
-        match ty_decl.type_immediate with
+        match ty_descr.type_immediate with
         | Always -> Some Shape.any_immediate
         | Always_on_64bits ->
             (* TODO maybe refine? *)
@@ -223,7 +228,7 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
             None
       in
       let from_attributes =
-        of_attributes ty_decl.type_loc ty_decl.type_attributes
+        of_attributes ty_descr.type_loc ty_descr.type_attributes
       in
       match from_immediacy, from_attributes with
       | Some sh1, Some sh2 -> Shape.inter sh1 sh2
@@ -231,14 +236,14 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
       | None, None ->
         of_unknown_type env p args fuel
 
-and of_regular_cstr_description ~of_type_expr_with_params descr =
+and of_regular_cstr_description env descr fuel =
   List.iter notify_existential descr.cstr_existentials;
   match descr.cstr_tag with
   | Cstr_constant n -> Shape.imm [Imm n]
   | Cstr_block tag ->
       Shape.block ~size:descr.cstr_arity [Tag tag]
   | Cstr_unboxed (ty, _descr) ->
-      of_type_expr_with_params ty
+      of_type_expr env ty fuel
   | Cstr_extension _ ->
       (* cannot occur in regular variants *)
       assert false
@@ -248,19 +253,22 @@ let initial_fuel =
      {!Typedecl_unboxed.get_unboxed_type_representation} *)
   100
 
-let of_type_path env path =
-  let decl = Env.find_type path env in
-  let ty = Btype.newgenty (Tconstr (path, decl.type_params, ref Mnil)) in
+let of_type_expr env ty =
   of_type_expr env ty initial_fuel
 
+let of_type_path env path =
+  let decl = Env.find_type path env in
+  let decl = Ctype.instance_declaration decl in
+  let ty = Btype.newgenty (Tconstr (path, decl.type_params, ref Mnil)) in
+  of_type_expr env ty
+
 let of_regular_cstr_description env descr =
-  let of_type_expr_with_params ty =
-    of_type_expr env ty initial_fuel in
-  of_regular_cstr_description ~of_type_expr_with_params descr
+  of_regular_cstr_description env descr initial_fuel
 
 let of_unboxed_cstr_description env descr =
-  try Misc.Cached.force descr (fun ty -> of_type_expr env ty initial_fuel)
-  with Misc.Cached.Forcing_race -> Shape.any
+  try Misc.Cached.force descr (fun ty -> of_type_expr env ty)
+  with Misc.Cached.Forcing_race ->
+    Misc.fatal_error "of_unboxed_cstr_description"
 
 let cstr_is_unboxed cstr =
   match cstr.cstr_tag with
@@ -344,8 +352,10 @@ let check_typedecl env (path, decl) =
     try Env.find_type_descrs path env
     with Not_found -> assert false
   in
+  let decl =
+    Ctype.instance_description { decl with type_kind = descr } in
   let get_shape () = of_type_path env path in
-  begin match find_constructors_with_unboxed descr with
+  begin match find_constructors_with_unboxed decl.type_kind with
   | None -> ()
   | Some cstrs ->
       check_typedecl_conflicts ~loc env cstrs;

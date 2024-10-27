@@ -1363,36 +1363,93 @@ let instance_parameterized_type ?keep_names sch_args sch =
     (ty_args, ty)
   )
 
-let map_kind f = function
+let map_constructor_decl f c =
+  { c with
+    cd_args = map_type_expr_cstr_args f c.cd_args;
+    cd_res = Option.map f c.cd_res;
+  }
+
+let map_label_decl f l =
+  { l with
+    ld_type = f l.ld_type;
+  }
+
+let map_decl_kind f = function
   | Type_abstract r -> Type_abstract r
   | Type_open -> Type_open
   | Type_variant (cl, rep) ->
-      Type_variant (
-        List.map
-          (fun c ->
-             {c with
-              cd_args = map_type_expr_cstr_args f c.cd_args;
-              cd_res = Option.map f c.cd_res
-             })
-          cl, rep)
+      Type_variant (List.map (map_constructor_decl f) cl, rep)
   | Type_record (fl, rr) ->
-      Type_record (
-        List.map
-          (fun l ->
-             {l with ld_type = f l.ld_type}
-          ) fl, rr)
+      Type_record (List.map (map_label_decl f) fl, rr)
 
+let map_def map_kind f decl =
+    { decl with
+      type_params = List.map f decl.type_params;
+      type_manifest = Option.map f decl.type_manifest;
+      type_kind = map_kind f decl.type_kind;
+    }
+
+let map_declaration f decl =
+  map_def map_decl_kind f decl
+
+let instance_def map_kind decl =
+  For_copy.with_scope (fun copy_scope ->
+    map_def map_kind (copy copy_scope) decl
+  )
 
 let instance_declaration decl =
-  For_copy.with_scope (fun copy_scope ->
-    {decl with type_params = List.map (copy copy_scope) decl.type_params;
-     type_manifest = Option.map (copy copy_scope) decl.type_manifest;
-     type_kind = map_kind (copy copy_scope) decl.type_kind;
-    }
-  )
+  instance_def map_decl_kind decl
 
 let generic_instance_declaration decl =
   with_level ~level:generic_level (fun () -> instance_declaration decl)
+
+let map_constructor_tag f = function
+  | ( Cstr_constant _
+    | Cstr_block _
+    | Cstr_extension _ ) as tag -> tag
+  | Cstr_unboxed (ty, _descr) ->
+    let ty = f ty in
+    Cstr_unboxed (ty, Misc.Cached.create ty)
+
+let map_constructor_descr ~cstr_all f c =
+  { c with
+    cstr_res = f c.cstr_res;
+    cstr_existentials = List.map f c.cstr_existentials;
+    cstr_args = List.map f c.cstr_args;
+    cstr_tag = map_constructor_tag f c.cstr_tag;
+    cstr_inlined = Option.map (map_declaration f) c.cstr_inlined;
+    cstr_type_data =
+      Option.map (fun data ->
+        { data with
+          repr_data = Misc.Cached.create cstr_all;
+        }
+      ) c.cstr_type_data;
+  }
+
+let map_label_descr ~lbl_all f l =
+  { l with
+    lbl_all;
+    lbl_res = f l.lbl_res;
+    lbl_arg = f l.lbl_arg;
+  }
+
+let map_descr_kind f = function
+  | Type_abstract r -> Type_abstract r
+  | Type_open -> Type_open
+  | Type_variant (cl, rep) ->
+      let cstr_all = ref [] in
+      let cstr_descrs = List.map (map_constructor_descr ~cstr_all f) cl in
+      cstr_all := cstr_descrs;
+      Type_variant (cstr_descrs, rep)
+  | Type_record ([], rr) -> Type_record ([], rr)
+  | Type_record (fl, rr) ->
+      let lbl_all = Array.copy (List.hd fl).lbl_all in
+      let fl = List.map (map_label_descr ~lbl_all f) fl in
+      List.iteri (Array.set lbl_all) fl;
+      Type_record (fl, rr)
+
+let instance_description descr =
+  instance_def map_descr_kind descr
 
 let instance_class params cty =
   let rec copy_class_type copy_scope = function
@@ -5471,7 +5528,7 @@ let nondep_type_decl env mid is_covariant decl =
   try
     let params = List.map (nondep_type_rec env mid) decl.type_params in
     let tk =
-      try map_kind (nondep_type_rec env mid) decl.type_kind
+      try map_decl_kind (nondep_type_rec env mid) decl.type_kind
       with Nondep_cannot_erase _ when is_covariant -> Type_abstract Definition
     and tm, priv =
       match decl.type_manifest with

@@ -10,12 +10,14 @@ Line 1, characters 0-40:
 Error: This type declaration is non-separated, it contains both float and non-float values.
 |}]
 
-type t = Float of float [@unboxed] | Abstract of abstract [@unboxed]
+type custom [@@shape [custom]]
+type t = Float of float [@unboxed] | Custom of custom [@unboxed]
 [%%expect {|
-Line 1, characters 49-57:
-1 | type t = Float of float [@unboxed] | Abstract of abstract [@unboxed]
-                                                     ^^^^^^^^
-Error: Unbound type constructor "abstract"
+type custom
+Line 2, characters 0-64:
+2 | type t = Float of float [@unboxed] | Custom of custom [@unboxed]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error: This type declaration is non-separated, it contains both float and non-float values.
 |}]
 
 (* We need such GADTs to be rejected

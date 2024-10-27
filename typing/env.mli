@@ -60,6 +60,8 @@ val diff: t -> t -> Ident.t list
 (* approximation to the preimage equivalence class of [find_type] *)
 val same_type_declarations: t -> t -> bool
 
+type type_description =
+  (label_description, constructor_description) type_def
 type type_descr_kind =
   (label_description, constructor_description) type_kind
 

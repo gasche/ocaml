@@ -487,10 +487,10 @@ end
 
 (* Type definitions *)
 
-type type_declaration =
+type ('lbl, 'cstr) type_def =
   { type_params: type_expr list;
     type_arity: int;
-    type_kind: type_decl_kind;
+    type_kind: ('lbl, 'cstr) type_kind;
     type_private: private_flag;
     type_manifest: type_expr option;
     type_variance: Variance.t list;
@@ -505,6 +505,8 @@ type type_declaration =
     (* true if the unboxed-ness of this type was chosen by a compiler flag *)
     type_uid: Uid.t;
   }
+
+and type_declaration = (label_declaration, constructor_declaration) type_def
 
 and type_decl_kind = (label_declaration, constructor_declaration) type_kind
 

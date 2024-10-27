@@ -500,6 +500,8 @@ module IdTbl =
 
   end
 
+type type_description =
+  (label_description, constructor_description) type_def
 type type_descr_kind =
   (label_description, constructor_description) type_kind
 

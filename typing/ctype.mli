@@ -202,9 +202,13 @@ val instance_constructor:
 val instance_parameterized_type:
         ?keep_names:bool ->
         type_expr list -> type_expr -> type_expr list * type_expr
+
 val instance_declaration: type_declaration -> type_declaration
 val generic_instance_declaration: type_declaration -> type_declaration
         (* Same as instance_declaration, but new nodes at generic_level *)
+
+val instance_description: Env.type_description -> Env.type_description
+
 val instance_class:
         type_expr list -> class_type -> type_expr list * class_type
 
