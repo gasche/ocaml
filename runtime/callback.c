@@ -374,7 +374,7 @@ struct named_value {
 #define Named_value_size 13
 
 static struct named_value * named_value_table[Named_value_size] = { NULL, };
-static caml_plat_mutex named_value_lock = CAML_PLAT_MUTEX_INITIALIZER;
+static caml_plat_cooperative_lock named_value_lock = {CAML_PLAT_MUTEX_INITIALIZER,};
 
 static unsigned int hash_value_name(char const *name)
 {
@@ -390,7 +390,7 @@ CAMLprim value caml_register_named_value(value vname, value val)
   unsigned int h = hash_value_name(name);
   int found = 0;
 
-  caml_plat_lock_non_blocking(&named_value_lock);
+  caml_plat_coop_lock_non_blocking(&named_value_lock);
   for (struct named_value *nv = named_value_table[h];
        nv != NULL;
        nv = nv->next) {
@@ -410,28 +410,28 @@ CAMLprim value caml_register_named_value(value vname, value val)
     named_value_table[h] = nv;
     caml_register_generational_global_root(&nv->val);
   }
-  caml_plat_unlock(&named_value_lock);
+  caml_plat_coop_unlock(&named_value_lock);
   return Val_unit;
 }
 
 CAMLexport const value* caml_named_value(char const *name)
 {
-  caml_plat_lock_non_blocking(&named_value_lock);
+  caml_plat_coop_lock_non_blocking(&named_value_lock);
   for (struct named_value *nv = named_value_table[hash_value_name(name)];
        nv != NULL;
        nv = nv->next) {
     if (strcmp(name, nv->name) == 0){
-      caml_plat_unlock(&named_value_lock);
+      caml_plat_coop_unlock(&named_value_lock);
       return &nv->val;
     }
   }
-  caml_plat_unlock(&named_value_lock);
+  caml_plat_coop_unlock(&named_value_lock);
   return NULL;
 }
 
 CAMLexport void caml_iterate_named_values(caml_named_action f)
 {
-  caml_plat_lock_non_blocking(&named_value_lock);
+  caml_plat_coop_lock_non_blocking(&named_value_lock);
   for (int i = 0; i < Named_value_size; i++){
     for (struct named_value *nv = named_value_table[i];
          nv != NULL;
@@ -439,5 +439,5 @@ CAMLexport void caml_iterate_named_values(caml_named_action f)
       f( Op_val(nv->val), nv->name );
     }
   }
-  caml_plat_unlock(&named_value_lock);
+  caml_plat_coop_unlock(&named_value_lock);
 }

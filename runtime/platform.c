@@ -90,14 +90,15 @@ void caml_plat_assert_all_locks_unlocked(void)
 #endif
 }
 
-CAMLexport void caml_plat_lock_non_blocking_actual(caml_plat_mutex* m)
+CAMLexport void caml_plat_coop_lock_non_blocking_actual(
+  caml_plat_cooperative_lock *lock)
 {
   /* Avoid exceptions */
   caml_enter_blocking_section_no_pending();
-  int rc = pthread_mutex_lock(m);
+  int rc = pthread_mutex_lock(&lock->mutex);
   caml_leave_blocking_section();
   check_err("lock_non_blocking", rc);
-  DEBUG_LOCK(m);
+  DEBUG_LOCK(&lock->mutex);
 }
 
 void caml_plat_mutex_free(caml_plat_mutex* m)
