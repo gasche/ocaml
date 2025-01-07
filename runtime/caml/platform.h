@@ -69,14 +69,17 @@ Caml_inline void cpu_relax(void) {
 /* Warning: blocking functions.
 
    Blocking functions are for use in the runtime outside of the
-   mutator, or when the domain lock is not held. Within crticial
+   mutator, or when the domain lock is not held. Within critical
    sections for [caml_plat_lock_blocking], it is incorrect to
    use the runtime (allocating, releasing the domain lock,
    running a STW section, raising an exception, etc.).
 
+   In particular, those mutex are higher-ranked than the domain lock,
+   it is invalid to take the domain lock while they are held.
+
    If you need to take a lock and then use the runtime within its
-   critical section, consider using cooperative locks below --
-   see [caml_plat_coop_lock_non_blocking].
+   critical section, consider using the lower-ranked mutexes from
+   sync.h, in particular [caml_mutex_lock].
 
    These functions never raise exceptions; errors are fatal. Thus, for
    usages where bugs are susceptible to be introduced by users, the
@@ -100,23 +103,6 @@ void caml_plat_wait(caml_plat_cond*, caml_plat_mutex*); /* blocking */
 void caml_plat_broadcast(caml_plat_cond*);
 void caml_plat_signal(caml_plat_cond*);
 void caml_plat_cond_free(caml_plat_cond*);
-
-
-/* Cooperative locks: [caml_plat_coop_lock_non_blocking] requires the
-   domain lock, and will release it temporarily if the lock is not
-   immediately available.
-
-   These locks are compatible with calling [Mutex.lock] from an OCaml
-   mutator.
-
-   Note: it would be possible to offer a [caml_plat_coop_lock_blocking]
-   variant that may only be called when the runtime lock is not held
-   (this can be checked dynamically for safety). We currently do not
-   need this in the runtime code.
-*/
-typedef struct { pthread_mutex_t mutex; } caml_plat_cooperative_lock;
-Caml_inline void caml_plat_coop_lock_non_blocking(caml_plat_cooperative_lock*);
-Caml_inline void caml_plat_coop_unlock(caml_plat_cooperative_lock*);
 
 
 /* Futexes
@@ -475,22 +461,6 @@ Caml_inline void caml_plat_unlock(caml_plat_mutex* m)
   check_err("unlock", pthread_mutex_unlock(m));
 }
 
-
-CAMLextern void caml_plat_coop_lock_non_blocking_actual(
-  caml_plat_cooperative_lock *lock);
-
-Caml_inline void caml_plat_coop_lock_non_blocking(
-  caml_plat_cooperative_lock *lock)
-{
-  if (!caml_plat_try_lock(&lock->mutex)) {
-    caml_plat_coop_lock_non_blocking_actual(lock);
-  }
-}
-
-Caml_inline void caml_plat_coop_unlock(caml_plat_cooperative_lock *lock)
-{
-  caml_plat_unlock(&lock->mutex);
-}
 
 extern intnat caml_plat_pagesize;
 extern intnat caml_plat_mmap_alignment;

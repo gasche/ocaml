@@ -31,6 +31,7 @@
 #include "caml/misc.h"
 #include "caml/mlvalues.h"
 #include "caml/platform.h"
+#include "caml/sync.h"
 #include "caml/roots.h"
 #include "caml/signals.h"
 #include "caml/sys.h"
@@ -45,7 +46,7 @@
 
 CAMLexport atomic_uintnat caml_pending_signals[NSIG_WORDS];
 
-static caml_plat_cooperative_lock signal_install_mutex = {CAML_PLAT_MUTEX_INITIALIZER,};
+static caml_plat_mutex signal_install_mutex = CAML_PLAT_MUTEX_INITIALIZER;
 
 CAMLexport int caml_check_pending_signals(void)
 {
@@ -687,7 +688,7 @@ CAMLprim value caml_install_signal_handler(value signal_number, value action)
     act = 2;
     break;
   }
-  caml_plat_coop_lock_non_blocking(&signal_install_mutex);
+  caml_mutex_lock_non_blocking(&signal_install_mutex);
   /* Note: no safepoint for calling signals in this critical section */
   oldact = caml_set_signal_action(sig, act);
   switch (oldact) {
@@ -711,10 +712,10 @@ CAMLprim value caml_install_signal_handler(value signal_number, value action)
     }
     caml_modify(&Field(caml_signal_handlers, sig), Field(action, 0));
   }
-  caml_plat_coop_unlock(&signal_install_mutex);
+  caml_mutex_unlock(&signal_install_mutex);
   caml_get_value_or_raise(caml_process_pending_signals_res());
   CAMLreturn (res);
  err:
-  caml_plat_coop_unlock(&signal_install_mutex);
+  caml_mutex_unlock(&signal_install_mutex);
   caml_sys_error(NO_ARG);
 }

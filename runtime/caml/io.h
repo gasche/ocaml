@@ -25,16 +25,17 @@
 #include "mlvalues.h"
 
 #ifndef _MSC_VER
-#include "platform.h"
+#include "sync.h"
 #else
-/* We avoid including platform.h (which is really only necessary here to declare
-   caml_plat_cooperative_lock) because that would end up pulling in pthread.h
-   but we want to hide it on the MSVC port as it is not the native way to handle
-   threads. So we inline here just the implementation of caml_plat_mutex on that
-   port, this should be kept in sync */
+/* We avoid including sync.h (which is really only necessary here to
+   declare sync_mutex) because that would end up pulling in pthread.h
+   but we want to hide it on the MSVC port as it is not the native way
+   to handle threads. So we inline here just the implementation of
+   caml_plat_mutex and sync_mutex on that port, this should be kept in
+   sync */
 #include <stdint.h>
-typedef struct intptr_t caml_plat_mutex;
-typedef struct { pthread_mutex_t mutex; } caml_plat_cooperative_lock;
+typedef intptr_t caml_plat_mutex;
+typedef caml_plat_mutex * sync_mutex;
 #endif
 
 #ifndef IO_BUFFER_SIZE
@@ -54,7 +55,7 @@ struct channel {
   char * end;                   /* Physical end of the buffer */
   char * curr;                  /* Current position in the buffer */
   char * max;                   /* Logical end of the buffer (for input) */
-  caml_plat_cooperative_lock lock; /* Lock protecting the buffer */
+  sync_mutex mutex;             /* Mutex protecting the buffer */
   struct channel * next, * prev;/* Double chaining of channels (flush_all) */
   uintnat refcount;             /* Number of custom blocks owning the channel */
   int flags;                    /* Bitfield */
