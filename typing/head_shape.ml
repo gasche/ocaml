@@ -317,17 +317,16 @@ let check_typedecl_conflicts ~loc env cstrs =
       ) cstrs
   ) cstrs
 
-let check_typedecl_separated ~loc get_shape =
-  let shape = get_shape () in
+let check_typedecl_separated ~loc (lazy shape) =
   if not shape.separated then
     Location.raise_errorf ~loc
       "@[This type declaration is non-separated, \
          it contains both float and non-float values.@]"
 
-let check_typedecl_constraint ~loc decl get_shape =
+let check_typedecl_constraint ~loc decl shape =
   match of_attributes loc decl.type_attributes with
   | Some expected_shape ->
-      let actual_shape = get_shape () in
+      let (lazy actual_shape) = shape in
       if not (Shape.subset actual_shape expected_shape) then
         Location.raise_errorf ~loc
           "@[In this type declaration, the actual head shape does not \
@@ -354,11 +353,11 @@ let check_typedecl env (path, decl) =
   in
   let decl =
     Ctype.instance_description { decl with type_kind = descr } in
-  let get_shape () = of_type_path env path in
+  let shape = lazy (of_type_path env path) in
   begin match find_constructors_with_unboxed decl.type_kind with
   | None -> ()
   | Some cstrs ->
       check_typedecl_conflicts ~loc env cstrs;
-      check_typedecl_separated ~loc get_shape;
+      check_typedecl_separated ~loc shape;
   end;
-  check_typedecl_constraint ~loc decl get_shape;
+  check_typedecl_constraint ~loc decl shape;
