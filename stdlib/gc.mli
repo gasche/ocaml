@@ -585,3 +585,39 @@ module Memprof :
        called on a profile which has not been stopped.
        *)
 end
+
+
+type suspended_collection_work
+
+external ramp_up : (unit -> 'a) -> 'a * suspended_collection_work
+  = "caml_ml_gc_ramp_up"
+(** [ramp_up f] puts the current domain in a "ramp-up" phase for the
+    duration of the evaluation of [f ()]. During ramp-up, allocations
+    do not increase the collection work to be performed immediately,
+    this collection.
+
+    The total number of suspended deallocation work is returned along
+    with the result of the function.
+
+    If the user discards this suspended work (by doing nothing
+    with it), the GC will never accelerate to recover the
+    corresponding amount of memory. This is appropriate if the ramp-up
+    work allocates long-lived memory that remains live until the end
+    of the program execution.
+
+    If the ramp-up memory is likely to become unused at some point,
+    then the user should call {!ramp_down} below to have the GC resume
+    this collection work.
+
+    If [f ()] raises an exception, the exception is re-raised.
+
+    If [f ()] performs an effect, the effect is not handled and an
+    [Effect.Unhandled] exception is thrown instead.
+*)
+
+external ramp_down : suspended_collection_work -> unit
+  = "caml_ml_gc_ramp_down"
+(** Notify the GC about some amount of collection work that was
+    suspended during a ramp-up phase, to be resumed now. *)
+
+
