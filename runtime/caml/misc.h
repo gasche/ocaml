@@ -649,6 +649,14 @@ CAMLextern int caml_snwprintf(wchar_t * buf,
  */
 typedef void * backtrace_slot;
 
+#ifndef IO_BUFFER_SIZE
+#define IO_BUFFER_SIZE 65536
+#endif
+
+/* GC policy settings */
+typedef intnat caml_gc_policy;
+#define CAML_GC_RAMP_UP             0x0001
+
 #ifdef __cplusplus
 }
 #endif
