@@ -1,0 +1,51 @@
+LOG: Phase 1: perform allocations as usual.
+LOG: End the current GC slice.
+LOG: In the GC logging below we expect:
+LOG: - allocated_words_suspended at 0
+LOG: - work-to-do at some non-zero value
+heap_words = 96477
+allocated_words = 17190
+allocated_words_direct = 13326
+allocated_words_suspended = 0
+allocated_words_resumed = 0
+alloc work-to-do = 68759
+dependent_words = 0
+dependent work-to-do = 0
+extra_heap_resources = 0u
+extra work-to-do = 0
+Starting major GC cycle
+LOG: 
+LOG: Phase 2: perform allocations during ramp-up
+LOG: End the current GC slice (after ramp-up).
+LOG: In the GC logging below we expect:
+LOG: - allocated_words_suspended at almost allocated_words
+LOG: - work-to-do at an almost-zero value
+heap_words = 106480
+allocated_words = 10004
+allocated_words_direct = 10001
+allocated_words_suspended = 10001
+allocated_words_resumed = 0
+alloc work-to-do = 12
+dependent_words = 0
+dependent work-to-do = 0
+extra_heap_resources = 0u
+extra work-to-do = 0
+Starting major GC cycle
+LOG: 
+LOG: Phase 3: resume the suspended deallocation work
+LOG: End the current GC slice (after ramp-down).
+LOG: In the GC logging below we expect:
+LOG: - allocated_words at an almost-zero value
+LOG: - allocated_words_resumed equal to the allocated_words_suspended of Phase 2
+LOG: - work-to-do close at some non-zero value
+heap_words = 106480
+allocated_words = 0
+allocated_words_direct = 0
+allocated_words_suspended = 0
+allocated_words_resumed = 10001
+alloc work-to-do = 40004
+dependent_words = 0
+dependent work-to-do = 0
+extra_heap_resources = 0u
+extra work-to-do = 0
+Starting major GC cycle
