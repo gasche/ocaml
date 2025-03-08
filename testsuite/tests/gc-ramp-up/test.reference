@@ -16,6 +16,8 @@ extra work-to-do = 0
 Starting major GC cycle
 LOG: 
 LOG: Phase 2: perform allocations during ramp-up
+Entering a GC ramp-up phase.
+Leaving a GC ramp-up phase; suspended words: 10001
 LOG: End the current GC slice (after ramp-up).
 LOG: In the GC logging below we expect:
 LOG: - allocated_words_suspended at almost allocated_words
@@ -33,6 +35,7 @@ extra work-to-do = 0
 Starting major GC cycle
 LOG: 
 LOG: Phase 3: resume the suspended deallocation work
+GC ramp-down; resumed words: 10001
 LOG: End the current GC slice (after ramp-down).
 LOG: In the GC logging below we expect:
 LOG: - allocated_words at an almost-zero value
