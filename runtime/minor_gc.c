@@ -152,8 +152,7 @@ static value alloc_shared(caml_domain_state* d,
 {
   void* mem = caml_shared_try_alloc(d->shared_heap, wosize, tag,
                                     reserved);
-  caml_update_major_allocated_words(
-    d, Whsize_wosize(wosize), 0 /* promoted, not direct */);
+  caml_update_major_allocated_words(d, Whsize_wosize(wosize));
   if (mem == NULL) {
     caml_fatal_error("allocation failure during minor GC");
   }

@@ -430,19 +430,11 @@ static value intern_alloc_obj(struct caml_intern_state* s, caml_domain_state* d,
   } else {
     p = caml_shared_try_alloc(d->shared_heap, wosize, tag,
                               0 /* no reserved bits */);
-    d->allocated_words += Whsize_wosize(wosize);
+    caml_update_major_allocated_words(d, Whsize_wosize(wosize));
     if (p == NULL) {
       intern_cleanup (s);
       caml_raise_out_of_memory();
     }
-<<<<<<< HEAD
-||||||| parent of 43260c69bc8 ([refactor] runtime: auxiliary function for allocated_words update)
-    d->allocated_words += Whsize_wosize(wosize);
-    d->allocated_words_direct += Whsize_wosize(wosize);
-=======
-    caml_update_major_allocated_words(
-      d, Whsize_wosize(wosize), 1 /* direct */);
->>>>>>> 43260c69bc8 ([refactor] runtime: auxiliary function for allocated_words update)
     Hd_hp(p) = Make_header (wosize, tag, caml_global_heap_state.MARKED);
   }
   return Val_hp(p);
