@@ -431,7 +431,8 @@ Caml_inline value alloc_shr(mlsize_t wosize, tag_t tag, reserved_t reserved,
       return (value)NULL;
   }
 
-  dom_st->allocated_words += Whsize_wosize(wosize);
+  caml_update_major_allocated_words(
+    dom_st, Whsize_wosize(wosize), 0 /* direct */);
   if (dom_st->allocated_words > dom_st->minor_heap_wsz / 5) {
     CAML_EV_COUNTER (EV_C_REQUEST_MAJOR_ALLOC_SHR, 1);
     caml_request_major_slice(1);

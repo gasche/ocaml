@@ -63,6 +63,15 @@ extern uintnat caml_major_cycles_completed;
 
 double caml_mean_space_overhead(void);
 
+inline void caml_update_major_allocated_words(
+  caml_domain_state *self, intnat words, int direct
+) {
+  self->allocated_words += words;
+  if (direct) {
+    self->allocated_words_direct += words;
+  }
+}
+
 #endif /* CAML_INTERNALS */
 
 #endif /* CAML_MAJOR_GC_H */
