@@ -67,6 +67,9 @@ inline void caml_update_major_allocated_words(
   caml_domain_state *self, intnat words)
 {
   self->allocated_words += words;
+  if (self->gc_policy & CAML_GC_RAMP_UP) {
+    self->allocated_words_suspended += words;
+  }
 }
 
 #endif /* CAML_INTERNALS */

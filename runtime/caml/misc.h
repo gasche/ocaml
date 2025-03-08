@@ -588,6 +588,10 @@ CAMLextern int caml_snwprintf(wchar_t * buf,
  */
 typedef void * backtrace_slot;
 
+/* GC policy settings */
+typedef intnat caml_gc_policy;
+#define CAML_GC_RAMP_UP             0x0001
+
 #ifdef __cplusplus
 }
 #endif
