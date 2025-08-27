@@ -139,7 +139,7 @@ static void do_check_key_clean(value e, mlsize_t offset)
     if (Tag_val(elt) == Infix_tag) elt -= Infix_offset_val(elt);
     if (is_unmarked(elt)) {
       Field(e, offset) = caml_ephe_none;
-      Field(e,CAML_EPHE_DATA_OFFSET) = caml_ephe_none;
+      atomic_store_release(Ephe_data_addr(e), caml_ephe_none);
     }
   }
 }
@@ -180,10 +180,10 @@ void caml_ephe_clean (value v) {
     }
   }
 
-  child = Ephe_data(v);
+  child = atomic_load_acquire(Ephe_data_addr(v));
   if (child != caml_ephe_none) {
     if (release_data) {
-      Field(v, CAML_EPHE_DATA_OFFSET) = caml_ephe_none;
+      atomic_store_release(Ephe_data_addr(v), caml_ephe_none);
     }
 #ifdef DEBUG
     else if (Is_block (child) && !Is_young (child)) {
@@ -451,7 +451,12 @@ CAMLprim value caml_weak_check (value e, value n)
 
 CAMLprim value caml_ephe_check_data (value e)
 {
-  return ephe_check_field (e, CAML_EPHE_DATA_OFFSET);
+  CAMLparam1(e);
+  CAMLlocal1(v);
+
+  caml_ephe_clean(e);
+  v = atomic_load_acquire(Ephe_data_addr(e));
+  CAMLreturn(Val_bool(v != caml_ephe_none));
 }
 
 static value ephe_blit_keys (value es, mlsize_t offset_s,
@@ -505,7 +510,7 @@ CAMLprim value caml_ephe_blit_data (value es, value ed)
   caml_ephe_clean(es);
   caml_ephe_clean(ed);
 
-  value v = Ephe_data(es);
+  value v = atomic_load_acquire(Ephe_data_addr(es));
   do_set(ed, CAML_EPHE_DATA_OFFSET, v);
   if (caml_marking_started())
     caml_darken(Caml_state, v, 0);

@@ -348,7 +348,7 @@ static intnat ephe_mark (intnat budget, uintnat for_cycle,
     todo = Ephe_link(v);
     CAMLassert (Tag_val(v) == Abstract_tag);
     hd = Hd_val(v);
-    data = Ephe_data(v);
+    data = atomic_load_acquire(Ephe_data_addr(v));
     alive_data = 1;
 
     if (force_alive)

@@ -19,6 +19,7 @@
 #define CAML_WEAK_H
 
 #include "mlvalues.h"
+#include "camlatomic.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,7 +75,7 @@ struct caml_ephe_info {
 #define CAML_EPHE_MAX_WOSIZE (Max_wosize - CAML_EPHE_FIRST_KEY)
 
 #define Ephe_link(e) (*(Op_val(e) + CAML_EPHE_LINK_OFFSET))
-#define Ephe_data(e) (*(Op_val(e) + CAML_EPHE_DATA_OFFSET))
+#define Ephe_data_addr(e) (Op_atomic_val(e) + CAML_EPHE_DATA_OFFSET)
 
 value caml_ephe_await_key(value ephe, uintnat i);
 
