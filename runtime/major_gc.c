@@ -1620,38 +1620,77 @@ again:
   return budget;
 }
 
-/* mark until the budget runs out or marking is done */
-static intnat mark(intnat budget) {
-  caml_domain_state *domain_state = Caml_state;
+/* Marking code */
+
+/* returns [true] if marking is done */
+static bool mark_internal(
+  caml_domain_state *domain_state, intnat *budget)
+{
   CAMLassert(caml_marking_started());
-  while (budget > 0 && !domain_state->marking_done) {
-    budget = do_some_marking(domain_state->mark_stack, budget);
-    if (budget > 0) {
-      struct mark_stack* mstk = domain_state->mark_stack;
-      addrmap_iterator it = mstk->compressed_stack_iter;
-      if (caml_addrmap_iter_ok(&mstk->compressed_stack, it)) {
-        uintnat chunk = caml_addrmap_iter_key(&mstk->compressed_stack, it);
-        uintnat bitset = caml_addrmap_iter_value(&mstk->compressed_stack, it);
 
-        /* NB: must update the iterator here, as possible that
-           mark_slice_darken could lead to the mark stack being pruned
-           and invalidation of the iterator */
-        mstk->compressed_stack_iter =
-                      caml_addrmap_next(&mstk->compressed_stack, it);
+  *budget = do_some_marking(domain_state->mark_stack, *budget);
 
-        for(int ofs=0; ofs<BITS_PER_WORD; ofs++) {
-          if(bitset & ((uintnat)1 << ofs)) {
-            value_ptr p = chunk_and_offset_to_ptr(chunk, ofs);
-            mark_slice_darken(domain_state->mark_stack, *p, &budget);
-          }
-        }
-      } else {
-        ephe_next_round ();
-        domain_state->marking_done = 1;
-        (void)caml_atomic_counter_decr(&num_domains_to_mark);
-      }
+  if (*budget <= 0) return false;
+
+  struct mark_stack* mstk = domain_state->mark_stack;
+  addrmap_iterator it = mstk->compressed_stack_iter;
+
+  if (!caml_addrmap_iter_ok(&mstk->compressed_stack, it)) return true;
+
+  uintnat chunk = caml_addrmap_iter_key(&mstk->compressed_stack, it);
+  uintnat bitset = caml_addrmap_iter_value(&mstk->compressed_stack, it);
+
+  /* NB: must update the iterator here, as possible that
+     mark_slice_darken could lead to the mark stack being pruned
+     and invalidation of the iterator */
+  mstk->compressed_stack_iter =
+    caml_addrmap_next(&mstk->compressed_stack, it);
+
+  for(int ofs=0; ofs<BITS_PER_WORD; ofs++) {
+    if(bitset & ((uintnat)1 << ofs)) {
+      value_ptr p = chunk_and_offset_to_ptr(chunk, ofs);
+      mark_slice_darken(domain_state->mark_stack, *p, budget);
     }
   }
+
+  return false;
+}
+
+static intnat mark_partial(
+  caml_domain_state *domain_state, intnat budget)
+{
+  if (domain_state->marking_done) return budget;
+  while (budget > 0) {
+    bool marking_done = mark_internal(domain_state, &budget);
+    if (marking_done) break;
+  }
+  return budget;
+}
+
+/* Mark and advance phase state if marking is done --
+   even if there is no budget left. */
+static intnat mark_partial_finish(
+  caml_domain_state *domain_state, intnat budget)
+{
+  if (domain_state->marking_done) return budget;
+  intnat work = 1;
+  bool marking_done = mark_internal(domain_state, &work);
+  budget += work - 1;
+  if (marking_done) {
+    ephe_next_round ();
+    domain_state->marking_done = 1;
+    (void)caml_atomic_counter_decr(&num_domains_to_mark);
+  }
+  return budget;
+}
+
+
+/* Mark until the budget runs out or marking is done.
+   Advance phase state if marking is done. */
+static intnat mark(intnat budget) {
+  caml_domain_state *domain_state = Caml_state;
+  budget = mark_partial(domain_state, budget);
+  budget = mark_partial_finish(domain_state, budget);
   return budget;
 }
 
