@@ -455,7 +455,9 @@ static void record_ephe_marking_done (uintnat round)
  * Returns the remaining budget.
  */
 
-static intnat mark(intnat budget);
+static intnat mark_partial(caml_domain_state *, intnat budget);
+static intnat mark_partial_finish(caml_domain_state *, intnat budget);
+
 static intnat ephe_mark (intnat budget, uintnat round,
                          /* Forces ephemerons and their data to be alive */
                          bool force_alive)
@@ -530,17 +532,15 @@ static intnat ephe_mark (intnat budget, uintnat round,
       value data = Ephe_data(ephe);
       if (data != caml_ephe_none && Is_block(data)) {
         caml_darken (domain_state, data, 0);
-        if (!domain_state->marking_done) {
-          /* We try to mark the data fully (as budget allows); this
-             can mark the keys of some ephemerons that are later in
-             the todo list, which would otherwise have to wait for the
-             next round.
-             This is important in the happy path where ephemerons occur
-             in the list in dependency order, so a single round suffices
-             to mark all the live ones.
-          */
-          budget = mark(budget);
-        }
+        /* We try to mark the data fully (as budget allows); this
+           can mark the keys of some ephemerons that are later in
+           the todo list, which would otherwise have to wait for the
+           next round.
+           This is important in the happy path where ephemerons occur
+           in the list in dependency order, so a single round suffices
+           to mark all the live ones.
+        */
+        budget = mark_partial(domain_state, budget);
       }
       /* Move to 'live' list */
       Ephe_link(ephe) = domain_state->ephe_info->live;
@@ -555,6 +555,8 @@ static intnat ephe_mark (intnat budget, uintnat round,
     }
     ++ scanned;
   }
+
+  budget = mark_partial_finish(domain_state, budget);
 
   caml_gc_log
   ("Mark Ephemeron: %s. Ephemeron round=%"CAML_PRIuNAT
