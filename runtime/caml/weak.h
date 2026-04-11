@@ -96,7 +96,7 @@ Caml_inline value Ephe_key(value ephe, uintnat i)
 struct caml_ephe_info* caml_alloc_ephe_info (void);
 void caml_ephe_clean(value e);
 
-value caml_ephe_list_tail(value li);
+value caml_ephe_list_last(value li);
 
 value caml_ephe_list_cons(value e, value li);
 value caml_ephe_list_append(value front, value back);

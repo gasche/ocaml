@@ -541,7 +541,7 @@ CAMLprim value caml_weak_blit (value es, value ofs,
   return caml_ephe_blit_key (es, ofs, ed, ofd, len);
 }
 
-value caml_ephe_list_tail(value e)
+value caml_ephe_list_last(value e)
 {
   value last = 0;
   while (e != 0) {
@@ -567,7 +567,7 @@ value caml_ephe_list_append_seg(value first, value last, value back)
 
 value caml_ephe_list_append(value front, value back)
 {
-  return caml_ephe_list_append_seg(front, caml_ephe_list_tail(front), back);
+  return caml_ephe_list_append_seg(front, caml_ephe_list_last(front), back);
 }
 
 void caml_ephe_list_cons_inplace(value e, value *li)

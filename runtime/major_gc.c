@@ -624,11 +624,11 @@ void caml_orphan_ephemerons (caml_domain_state* domain_state)
   CAMLassert (ephe_info->todo == 0);
 
   if (ephe_info->live) {
-    value live_tail = caml_ephe_list_tail(ephe_info->live);
+    value live_last = caml_ephe_list_last(ephe_info->live);
 
     caml_plat_lock_blocking(&orphaned_lock);
     orph_structs.ephe_list_live = caml_ephe_list_append_seg(
-      ephe_info->live, live_tail, orph_structs.ephe_list_live);
+      ephe_info->live, live_last, orph_structs.ephe_list_live);
     ephe_info->live = 0;
     caml_plat_unlock(&orphaned_lock);
   }
