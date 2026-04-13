@@ -39,6 +39,9 @@ struct caml_ephe_info {
      live list after cleaning it of keys and releasing the data if any
      of the keys is unreachable. */
 
+  value todo_tail;
+  /* The last element of the [todo] list, or [0] if it is empty. */
+
   value live;
   /* Ephemerons which are alive (marked). The keys of these ephemerons
      may be unmarked if these ephemerons were the target of a blit
@@ -103,6 +106,9 @@ void caml_ephe_list_cons_inplace(value e, value *li);
 void caml_ephe_list_append_inplace(value e, value *li);
 
 value caml_ephe_list_pop(value *li);
+
+value caml_ephe_tail_list_pop(value *first, value *last);
+void caml_ephe_tail_list_extend_inplace(value *first, value *last, value back);
 
 
 #endif /* CAML_INTERNALS */

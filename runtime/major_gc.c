@@ -365,7 +365,9 @@ static void prepare_for_ephe_marking(caml_domain_state *domain_state)
 {
   struct caml_ephe_info* ephe_info = domain_state->ephe_info;
   CAMLassert(ephe_info->todo == (value) NULL);
+  CAMLassert(ephe_info->todo_tail == (value) NULL);
   ephe_info->todo = ephe_info->live;
+  ephe_info->todo_tail = caml_ephe_list_tail(ephe_info->todo);
   ephe_info->live = (value) NULL;
   ephe_info->round = 0;
   ephe_info->cursor.round = 0;
@@ -402,6 +404,9 @@ static void ephe_next_round (void)
    the current major cycle. */
 static void ephe_todo_list_emptied (caml_domain_state *domain_state)
 {
+  CAMLassert (domain_state->ephe_info->todo == 0);
+  CAMLassert (domain_state->ephe_info->todo_tail == 0);
+
   if (caml_ephe_marking_ongoing()) {
     caml_plat_lock_blocking(&ephe_lock);
     if (has_completed_last_ephe_round(domain_state)) {
@@ -481,13 +486,12 @@ static void global_prepare_for_ephe_sweeping (int participant_count)
 static void prepare_for_ephe_sweeping (caml_domain_state *domain_state)
 {
   struct caml_ephe_info* ephe_info = domain_state->ephe_info;
-
-  ephe_info->todo = caml_ephe_list_append(ephe_info->todo, ephe_info->live);
+  caml_ephe_tail_list_extend_inplace(
+    &ephe_info->todo, &ephe_info->todo_tail, ephe_info->live);
   ephe_info->live = 0;
-
-  /* If the todo list is empty, then the ephemeron has no sweeping work
-   * to do. */
   if (ephe_info->todo == 0) {
+    /* If the todo list is empty, then the domain has no ephemeron
+       sweeping work to do. */
     (void)caml_atomic_counter_decr(&num_domains_with_ephe_todo);
   }
 }
@@ -597,6 +601,9 @@ static intnat ephe_mark (intnat budget, uintnat round,
       } else {
         ephe_info->todo = next;
       }
+      if (ephe_info->todo_tail == ephe)
+        ephe_info->todo_tail = last_left;
+
       ++ preserved;
     } else {
       /* Leave this ephemeron on the 'todo' list */
@@ -625,8 +632,8 @@ static intnat ephe_sweep (caml_domain_state* domain_state, intnat budget)
 
   while (ephe_info->todo != 0 && budget > 0) {
     /* pop the first ephemeron from the todo list */
-    value ephe = caml_ephe_list_pop(&ephe_info->todo);
-
+    value ephe = caml_ephe_tail_list_pop(
+      &ephe_info->todo, &ephe_info->todo_tail);
     CAMLassert (Tag_val(ephe) == Abstract_tag);
     if (is_unmarked(ephe)) {
       /* The whole ephemeron is dead; simply drop it */
@@ -678,6 +685,7 @@ void caml_orphan_ephemerons (caml_domain_state* domain_state)
     orph_structs.ephe_list_todo = caml_ephe_list_append_seg(
       ephe_info->todo, todo_tail, orph_structs.ephe_list_todo);
     ephe_info->todo = 0;
+    ephe_info->todo_tail = 0;
     ephe_todo_list_emptied (domain_state);
   }
 
@@ -690,6 +698,7 @@ void caml_orphan_ephemerons (caml_domain_state* domain_state)
 
   CAMLassert (ephe_info->live == 0);
   CAMLassert (ephe_info->todo == 0);
+  CAMLassert (ephe_info->todo_tail == 0);
 }
 
 void caml_orphan_finalisers (caml_domain_state* domain_state)
@@ -776,7 +785,8 @@ static void adopt_orphaned_work (void)
 
   if (orph_ephe_list_todo) {
     ephe_todo_list_extended(domain_state);
-    caml_ephe_list_append_inplace(orph_ephe_list_todo, &ephe_info->todo);
+    caml_ephe_tail_list_extend_inplace(
+      &ephe_info->todo, &ephe_info->todo_tail, orph_ephe_list_todo);
   }
 
   if (orph_ephe_list_live) {

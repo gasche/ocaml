@@ -582,8 +582,23 @@ void caml_ephe_list_append_inplace(value e, value *li)
 
 value caml_ephe_list_pop(value *li)
 {
-  CAMLassert(*li != (value)NULL);
+  CAMLassert(*li != 0);
   value head = *li;
   *li = Ephe_link(head);
   return head;
+}
+
+value caml_ephe_tail_list_pop(value *first, value *last)
+{
+  CAMLassert(*first != 0);
+  value ephe = caml_ephe_list_pop(first);
+  if (*first == 0) *last = 0;
+  return ephe;
+}
+
+void caml_ephe_tail_list_extend_inplace(value *first, value *last, value back)
+{
+  *first = caml_ephe_list_append_seg(*first, *last, back);
+  if (back != 0)
+    *last = caml_ephe_list_tail(back);
 }
