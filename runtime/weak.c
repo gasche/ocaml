@@ -602,3 +602,20 @@ void caml_ephe_tail_list_extend_inplace(value *first, value *last, value back)
   if (back != 0)
     *last = caml_ephe_list_tail(back);
 }
+
+void caml_ephe_tail_list_rotate_inplace(value *first, value new_last, value *last)
+{
+  value new_first = Ephe_link(new_last);
+  if (new_first == 0) {
+    /* If [new_last] is already the end of the list, there is nothing to do */
+    return;
+  }
+  /* Currently we have:  
+      *first -> ... -> new_last -> new_first -> .... -> *last -> 0  
+    We move to:
+      new_first -> ... -> last -> *first -> ... -> new_last -> 0
+  */
+  Ephe_link(new_last) = 0;
+  *first = caml_ephe_list_append_seg(new_first, *last, *first);
+  *last = new_last;
+}

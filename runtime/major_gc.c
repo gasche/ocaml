@@ -522,15 +522,26 @@ static intnat ephe_mark (intnat budget, uintnat round,
   struct caml_ephe_info* ephe_info = domain_state->ephe_info;
   size_t scanned = 0, preserved = 0;
 
-  value last_left;
-
   CAMLassert(caml_ephe_marking_ongoing());
-  if (ephe_info->cursor.round == round &&
-      !force_alive) {
-    last_left = ephe_info->cursor.last_left;
-  } else {
-    /* New round: restart from the beginning of the todo-list. */
-    last_left = 0;
+  CAMLassert(domain_state->ephe_info->todo != 0);
+
+  value last_left = domain_state->ephe_info->cursor.last_left;
+
+  if (ephe_info->cursor.round < round || force_alive)
+  {
+    /* If a new round has started, we need to traverse all markable
+       ephemerons again. Instead of restarting from the beginning of
+       the todo-list, we rotate it, placing the elements that we had
+       already traversed last time at the end of the list. */
+
+    if (last_left == 0) {
+      /* If we had traversed nothing yet, there is nothing to do. */
+    } else {
+      caml_ephe_tail_list_rotate_inplace(&ephe_info->todo, last_left, &ephe_info->todo_tail);
+      last_left = 0;
+    }
+
+    CAMLassert(last_left == 0);
   }
   value next =
     (last_left != 0 ? Ephe_link(last_left) : ephe_info->todo);
@@ -601,8 +612,10 @@ static intnat ephe_mark (intnat budget, uintnat round,
       } else {
         ephe_info->todo = next;
       }
-      if (ephe_info->todo_tail == ephe)
+      if (ephe_info->todo_tail == ephe) {
+        CAMLassert(next == 0);
         ephe_info->todo_tail = last_left;
+      }
 
       ++ preserved;
     } else {

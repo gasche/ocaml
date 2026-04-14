@@ -109,7 +109,7 @@ value caml_ephe_list_pop(value *li);
 
 value caml_ephe_tail_list_pop(value *first, value *last);
 void caml_ephe_tail_list_extend_inplace(value *first, value *last, value back);
-
+void caml_ephe_tail_list_rotate_inplace(value *first, value new_last, value *last);
 
 #endif /* CAML_INTERNALS */
 
