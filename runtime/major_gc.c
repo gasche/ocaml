@@ -368,8 +368,8 @@ static void prepare_for_ephe_marking(caml_domain_state *domain_state)
   ephe_info->todo = ephe_info->live;
   ephe_info->live = (value) NULL;
   ephe_info->round = 0;
-  ephe_info->cursor.todop = NULL;
   ephe_info->cursor.round = 0;
+  ephe_info->cursor.last_left = 0;
 
   if (!ephe_info->todo) {
     caml_atomic_counter_decr(&num_domains_with_ephe_todo);
@@ -518,16 +518,18 @@ static intnat ephe_mark (intnat budget, uintnat round,
   struct caml_ephe_info* ephe_info = domain_state->ephe_info;
   size_t scanned = 0, preserved = 0;
 
-  value* prev_linkp;
+  value last_left;
 
   CAMLassert(caml_ephe_marking_ongoing());
   if (ephe_info->cursor.round == round &&
       !force_alive) {
-    prev_linkp = ephe_info->cursor.todop;
+    last_left = ephe_info->cursor.last_left;
   } else {
-    prev_linkp = &ephe_info->todo;
+    /* New round: restart from the beginning of the todo-list. */
+    last_left = 0;
   }
-  value next = *prev_linkp;
+  value next =
+    (last_left != 0 ? Ephe_link(last_left) : ephe_info->todo);
   while (next != 0 && budget > 0) {
 
     /* TODO: this reproduces much of caml_ephe_clean; can we share code? */
@@ -590,12 +592,15 @@ static intnat ephe_mark (intnat budget, uintnat round,
       /* Move to 'live' list */
       caml_ephe_list_cons_inplace(ephe, &ephe_info->live);
       /* Remove from 'todo' list */
-      *prev_linkp = next;
-
+      if (last_left) {
+        Ephe_link(last_left) = next;
+      } else {
+        ephe_info->todo = next;
+      }
       ++ preserved;
     } else {
       /* Leave this ephemeron on the 'todo' list */
-      prev_linkp = &Ephe_link(ephe);
+      last_left = ephe;
     }
     ++ scanned;
   }
@@ -608,7 +613,7 @@ static intnat ephe_mark (intnat budget, uintnat round,
    round, scanned, preserved);
 
   ephe_info->cursor.round = round;
-  ephe_info->cursor.todop = prev_linkp;
+  ephe_info->cursor.last_left = last_left;
 
   return budget;
 }

@@ -49,12 +49,15 @@ struct caml_ephe_info {
    * recently completed in the current cycle. */
 
   struct {
-    value* todop;
     uintnat round;
+    value last_left;
   } cursor;
   /* This "cursor" structure records progress when marking ephemerons
-   * for some ephemeron round; `todop` indicates a pointer in the
-   * `todo` list above, and `round` is the round number. */
+   for some ephemeron round:
+   - [round] is the round number of the last partial traversal
+     of the todo-list,
+   - [last_left] is the last ephemeron that was traversed and
+     left on the todo-list, or [0] if no element was left. */
 };
 
 /** The first field 0:  weak list;
