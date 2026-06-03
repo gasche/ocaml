@@ -1,0 +1,14 @@
+
+(executable
+ (name bench_bdd)
+ (modules bench_bdd)
+ (libraries hashcons)
+ (promote (until-clean))
+ )
+
+(executable
+ (name bench_lambda)
+ (modules bench_lambda)
+ (libraries hashcons)
+ (promote (until-clean))
+ )
