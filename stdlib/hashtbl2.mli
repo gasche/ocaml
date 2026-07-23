@@ -332,6 +332,7 @@ val of_seq : ('a * 'b) Seq.t -> ('a, 'b) t
     [IntHashtbl.length].
 *)
 
+(*
 module type HashedType =
   sig
     type t
@@ -515,6 +516,7 @@ module MakeSeeded (H : SeededHashedType) : SeededS with type key = H.t
     and returns randomized hash tables if [~random:true] is passed
     or if randomization is globally on (see {!Hashtbl.randomize}).
     @since 4.00 *)
+*)
 
 
 (** {1 The polymorphic hash functions} *)

@@ -290,6 +290,7 @@ let to_seq_keys m = Seq.map fst (to_seq m)
 
 let to_seq_values m = Seq.map snd (to_seq m)
 
+(*
 (* Functorial interface *)
 
 module type HashedType =
@@ -563,7 +564,7 @@ module Make(H: HashedType): (S with type key = H.t) =
       replace_seq tbl i;
       tbl
   end
-
+*)
 (* Polymorphic hash function-based tables *)
 (* Code included below the functorial interface to guard against accidental
    use - see #2202 *)
