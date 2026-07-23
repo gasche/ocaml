@@ -628,25 +628,25 @@ let rec find_rec h key = function
   | Empty ->
       raise Not_found
   | Cons {id; next} ->
-      if compare key (Dynarray.get h.keys id) = 0 then Dynarray.get h.data id
+      if compare key (Dynarray.unsafe_get h.keys id) = 0 then Dynarray.unsafe_get h.data id
       else find_rec h key next
 
 let find h key =
   match h.buckets.(key_index h key) with
   | Empty -> raise Not_found
   | Cons {id = id1; next = next1} ->
-      if compare key (Dynarray.get h.keys id1) = 0 then
-        Dynarray.get h.data id1
+      if compare key (Dynarray.unsafe_get h.keys id1) = 0 then
+        Dynarray.unsafe_get h.data id1
       else match next1 with
       | Empty -> raise Not_found
       | Cons {id = id2; next = next2} ->
-          if compare key (Dynarray.get h.keys id2) = 0 then
-            Dynarray.get h.data id2
+          if compare key (Dynarray.unsafe_get h.keys id2) = 0 then
+            Dynarray.unsafe_get h.data id2
           else match next2 with
           | Empty -> raise Not_found
           | Cons {id = id3; next = next3} ->
-              if compare key (Dynarray.get h.keys id3) = 0 then
-                Dynarray.get h.data id2
+              if compare key (Dynarray.unsafe_get h.keys id3) = 0 then
+                Dynarray.unsafe_get h.data id2
               else find_rec h key next3
 
 let rec find_rec_opt h key = function
