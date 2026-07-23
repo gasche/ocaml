@@ -1,5 +1,5 @@
-(*./ocamlopt.opt -nostdlib -I stdlib hashtbl_vs_hashtbl2.ml
-  -o hashthbl_vs_hashtbl2.exe *)
+(* ./ocamlopt.opt -nostdlib -I stdlib hashtbl_vs_hashtbl2.ml \
+   -o hashtbl_vs_hashtbl2.exe *)
 
 let get_param p =
   try Sys.getenv p with _ ->
@@ -87,16 +87,21 @@ module Benchmarks (H: HtblSeededS with type key = int) = struct
     let find_number = get_int_param "FIND" in
     let replace_number = get_int_param "REPLACE" in
     let iterations = get_int_param "ITERATIONS" in
+    let indices num = Array.init num (fun _ -> Random.int size) in
+    let find_indices = indices find_number in
+    let replace_indices = indices replace_number in
     for j = 1 to iterations do
       let table = H.create 0 in
       for i = 1 to size do
         H.add table i i
       done;
-      for i = 1 to find_number do
-        try ignore (H.find table i) with Not_found -> ()
+      for i = 0 to find_number - 1 do
+        let idx = find_indices.(i) in
+        try ignore (H.find table idx) with Not_found -> ()
       done;
-      for i = 1 to replace_number do
-        try H.replace table i (i+1) with Not_found -> ()
+      for i = 0 to replace_number - 1 do
+        let idx = replace_indices.(i) in
+        H.replace table idx i
       done;
     done
 
