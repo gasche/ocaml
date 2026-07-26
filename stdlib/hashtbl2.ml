@@ -204,12 +204,11 @@ let filter_map_inplace f ~key_index h =
   filter_map_inplace_id ~key_index f h ~read:0 ~write:0
 
 let fold f h init =
-  let rec fold_aux i accu =
-    if i = h.size then accu else
-      fold_aux (i + 1)
-        (f (Dynarray.get h.keys i) (Dynarray.get h.data i) accu) in
   let accu = ref init in
-  accu := fold_aux 0 !accu; !accu
+  for i = 0 to h.size - 1 do
+    accu := f (Dynarray.get h.keys i) (Dynarray.get h.data i) !accu
+  done;
+  !accu
 
 type statistics = {
   num_bindings: int;
