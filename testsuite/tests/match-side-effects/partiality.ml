@@ -1,5 +1,5 @@
 (* TEST
- flags = "-dlambda -dcanonical-ids";
+ flags = "-dlambda -dno-locations -dcanonical-ids";
  expect;
 *)
 
