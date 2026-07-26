@@ -1,7 +1,7 @@
 | Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
 |:---|---:|---:|---:|---:|
-| `fold hashtbl` | 761.4 ± 79.2 | 701.8 | 878.3 | 1.00 |
-| `fold hashtbl2` | 1163.2 ± 57.3 | 1114.7 | 1261.2 | 1.53 ± 0.18 |
+| `fold hashtbl` | 775.2 ± 68.7 | 705.2 | 876.9 | 1.00 |
+| `fold hashtbl2` | 1168.9 ± 73.0 | 1114.4 | 1277.5 | 1.51 ± 0.16 |
 
 <!-- SIZE=1000 ITERATIONS=100_000 -->
 <!-- hyperfine -L impl hashtbl,hashtbl2 "SIZE=1000 ITERATIONS=100_000 IMPL={impl}       FUNCTION=fold ./hashtbl_vs_hashtbl2.exe"       --command-name "fold {impl}" --export-markdown fold.md -->
