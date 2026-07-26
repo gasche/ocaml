@@ -1,5 +1,5 @@
 (* TEST
- flags = "-nostdlib -nopervasives -dlambda -dcanonical-ids";
+ flags = "-nostdlib -nopervasives -dlambda -dno-locations -dcanonical-ids";
  expect;
 *)
 

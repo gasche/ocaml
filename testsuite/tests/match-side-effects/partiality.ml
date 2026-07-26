@@ -325,8 +325,10 @@ type _ t = Bool : bool t | Int : int t | Char : char t
   (test/3 =
      (function param/2 : int
        (catch
-         (if (>= (field_imm 0 param/2) 2) (exit 24)
-           (if (>= (field_imm 1 param/2) 2) (exit 24) 0))
+         (switch* (field_imm 0 param/2)
+          case int 0: (if (>= (field_imm 1 param/2) 2) (exit 24) 0)
+          case int 1: (if (>= (field_imm 1 param/2) 2) (exit 24) 0)
+          case int 2: (exit 24))
         with (24) 0)))
   (apply (field_mut 1 (global Toploop!)) "test" test/3))
 val test : 'a t * 'a t -> unit = <fun>
@@ -356,11 +358,11 @@ type t = A | B | C of nothing
          (if (field_imm 0 param/3)
            (switch* (field_imm 1 param/3)
             case int 0: 3
-            case int 1: (exit 27))
+            case int 1: (exit 26))
            (switch* (field_imm 1 param/3)
             case int 0: 4
-            case int 1: (exit 27)))
-        with (27) 5)))
+            case int 1: (exit 26)))
+        with (26) 5)))
   (apply (field_mut 1 (global Toploop!)) "f" f/3))
 val f : bool * t -> int = <fun>
 |}];;
@@ -414,27 +416,27 @@ external compare_string : string -> string -> int = "%compare"
           case tag 1:
            (catch
              (switch* t2/0
-              case tag 0: (exit 31)
+              case tag 0: (exit 30)
               case tag 1:
                (caml_string_compare (field_imm 0 t1/0) (field_imm 0 t2/0))
-              case tag 2: (exit 36)
-              case tag 3: (exit 36))
-            with (36) -1)
+              case tag 2: (exit 35)
+              case tag 3: (exit 35))
+            with (35) -1)
           case tag 2:
            (switch* t2/0
-            case tag 0: (exit 31)
-            case tag 1: (exit 31)
+            case tag 0: (exit 30)
+            case tag 1: (exit 30)
             case tag 2:
              (caml_string_compare (field_imm 0 t1/0) (field_imm 0 t2/0))
             case tag 3: -1)
           case tag 3:
            (switch* t2/0
-            case tag 0: (exit 31)
-            case tag 1: (exit 31)
+            case tag 0: (exit 30)
+            case tag 1: (exit 30)
             case tag 2: 1
             case tag 3:
              (caml_string_compare (field_imm 0 t1/0) (field_imm 0 t2/0))))
-        with (31) (switch* t2/0 case tag 0: 1
+        with (30) (switch* t2/0 case tag 0: 1
                                 case tag 1: 1))))
   (apply (field_mut 1 (global Toploop!)) "compare" compare/0))
 val compare : t -> t -> int = <fun>
@@ -459,15 +461,15 @@ let f x y =
      (function x/3[int] y/0[int] : int
        (catch
          (catch
-           (catch (if (isint y/0) (if (!= y/0 19896) (exit 45) 0) (exit 45))
-            with (45)
+           (catch (if (isint y/0) (if (!= y/0 19896) (exit 44) 0) (exit 44))
+            with (44)
              (if (!= x/3 19674)
-               (if (>= x/3 19675) (exit 44) (if (>= y/0 19898) (exit 42) 1))
-               (if (isint y/0) (if (!= y/0 19897) (exit 44) (exit 42))
-                 (exit 44))))
-          with (44)
-           (if (isint y/0) (if (!= y/0 19898) (exit 42) 2) (exit 42)))
-        with (42) 3)))
+               (if (>= x/3 19675) (exit 43) (if (>= y/0 19898) (exit 41) 1))
+               (if (isint y/0) (if (!= y/0 19897) (exit 43) (exit 41))
+                 (exit 43))))
+          with (43)
+           (if (isint y/0) (if (!= y/0 19898) (exit 41) 2) (exit 41)))
+        with (41) 3)))
   (apply (field_mut 1 (global Toploop!)) "f" f/4))
 val f : [< `X1 | `X2 | `X3 ] -> [< `Y1 | `Y2 | `Y3 ] -> int = <fun>
 |}];;
@@ -490,25 +492,25 @@ let check_results r1 r2 =
              (let (r/2 =a (field_imm 0 *match*/16))
                (catch
                  (switch* r/2
-                  case tag 0: (exit 50 r/2)
+                  case tag 0: (exit 49 r/2)
                   case tag 1:
                    (catch
                      (if (>= (field_imm 0 r/2) 66)
                        (let (*match*/17 =a (field_imm 1 *match*/16))
                          (switch* *match*/17
-                          case tag 0: (exit 52)
+                          case tag 0: (exit 51)
                           case tag 1:
                            (let (*match*/18 =a (field_imm 0 *match*/17))
                              (if (isint *match*/18)
-                               (if (!= *match*/18 66) (exit 53) r/2)
-                               (exit 53)))))
+                               (if (!= *match*/18 66) (exit 52) r/2)
+                               (exit 52)))))
                        (switch* (field_imm 1 *match*/16)
-                        case tag 0: (exit 52)
-                        case tag 1: (exit 51 r/2)))
-                    with (53) (exit 51 (field_imm 1 *match*/16))))
-                with (52) (exit 50 (field_imm 1 *match*/16))))
-            with (50 r/3) r/3)
-          with (51 r/4) r/4))))
+                        case tag 0: (exit 51)
+                        case tag 1: (exit 50 r/2)))
+                    with (52) (exit 50 (field_imm 1 *match*/16))))
+                with (51) (exit 49 (field_imm 1 *match*/16))))
+            with (49 r/3) r/3)
+          with (50 r/4) r/4))))
   (apply (field_mut 1 (global Toploop!)) "check_results" check_results/0))
 val check_results :
   ('a -> ('b, [< `A | `B ]) result * ('b, [< `A | `B ]) result) ->
