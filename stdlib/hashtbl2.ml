@@ -176,32 +176,33 @@ let remove_bucket ~key_index h ~key ~id =
   in find_bucket Empty h.buckets.(i)
 
 (* function that iterates on ids *)
-let rec filter_map_inplace_id ~key_index f h ~read ~write =
-  if read = h.size then begin
-    h.size <- write;
-    if write <> read then
-      for i = read - 1 to write do
-        remove_bucket ~key_index h ~key:(Dynarray.get h.keys i) ~id:i;
-        Dynarray.remove_last h.keys;
-        Dynarray.remove_last h.data
-      done
-  end
-  else
-    match f (Dynarray.get h.keys read) (Dynarray.get h.data read) with
-    | None ->
-      remove_bucket ~key_index h ~key:(Dynarray.get h.keys write) ~id:write;
-      filter_map_inplace_id ~key_index f h ~read:(read + 1) ~write
-    | Some data ->
-      if write <> read then begin
-        Dynarray.set h.keys write (Dynarray.get h.keys read);
-        replace_bucket_id ~key_index h ~key:(Dynarray.get h.keys read)
-        ~prev_id:read ~new_id:write
-      end;
-      Dynarray.set h.data write data;
-      filter_map_inplace_id ~key_index f h ~read:(read + 1) ~write:(write + 1)
 
 let filter_map_inplace f ~key_index h =
-  filter_map_inplace_id ~key_index f h ~read:0 ~write:0
+  (* write: the position in which to place filtered elements,
+     which is before their current position if elements have been deleted. *)
+  let write = ref 0 in
+  for read = 0 to h.size - 1 do
+    let key = Dynarray.get h.keys read in
+    let old_data = Dynarray.get h.data read in
+    match f key old_data with
+    | None ->
+      remove_bucket ~key_index h ~key:(Dynarray.get h.keys !write) ~id:!write;
+    | Some new_data ->
+      if !write = read then begin
+        if old_data != new_data then 
+          Dynarray.set h.data read new_data;
+      end else begin
+        Dynarray.set h.keys !write (Dynarray.get h.keys read);
+        Dynarray.set h.data !write new_data;
+        replace_bucket_id ~key_index h ~key:(Dynarray.get h.keys read)
+          ~prev_id:read ~new_id:!write
+      end;
+      incr write;
+  done;
+  h.size <- !write;
+  Dynarray.truncate h.keys !write;
+  Dynarray.truncate h.data !write;
+  ()
 
 let fold f h init =
   let accu = ref init in
