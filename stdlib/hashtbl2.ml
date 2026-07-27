@@ -25,7 +25,8 @@ type ('a, 'b) binding =
 type ('a, 'b) t =
   { mutable size: int;                  (* number of entries *)
     mutable buckets: 'a bucketlist array;  (* the buckets *)
-    mutable bindings: ('a, 'b) binding array;
+    mutable bindings: ('a, 'b) binding array; (* dynamic array of bindings *)
+    (* Invariant: length bindings = (length buckets) * 2 *)
     seed: int;                          (* for randomization *)
     initial_size: int;          (* initial array size *)
   }
@@ -83,7 +84,7 @@ let create ?(random = Atomic.get randomized) initial_size =
     size = 0;
     seed = seed;
     buckets = Array.make s Empty;
-    bindings = Array.make s Absent;
+    bindings = Array.make (2*s) Absent;
   }
 
 let clear h =
@@ -99,7 +100,7 @@ let reset h =
   else begin
     h.size <- 0;
     h.buckets <- Array.make h.initial_size Empty;
-    h.bindings <- Array.make h.initial_size Absent;
+    h.bindings <- Array.make (h.initial_size * 2) Absent;
   end
 
 let copy_bucketlist = function
@@ -133,13 +134,13 @@ let copy h = {
 
 let length h = h.size
 
-let insert_all_buckets indexfun odata ndata =
+let insert_all_buckets ~key_index h odata ndata =
   let nsize = Array.length ndata in
   let ndata_tail = Array.make nsize Empty in
   let rec insert_bucket = function
     | Empty -> ()
     | Cons {key; next; _} as cell ->
-        let nidx = indexfun key in
+        let nidx = key_index h key in
         begin match ndata_tail.(nidx) with
         | Empty -> ndata.(nidx) <- cell;
         | Cons tail -> tail.next <- cell;
@@ -156,14 +157,14 @@ let insert_all_buckets indexfun odata ndata =
       | Cons tail -> tail.next <- Empty
     done
 
-let resize indexfun h =
+let resize ~key_index h =
   let odata = h.buckets in
   let osize = Array.length odata in
   let nsize = osize * 2 in
   if nsize < Sys.max_array_length then begin
     let ndata = Array.make nsize Empty in
     h.buckets <- ndata;          (* so that indexfun sees the new bucket count *)
-    insert_all_buckets (indexfun h) odata ndata
+    insert_all_buckets ~key_index h odata ndata
   end
 
 let[@inline never] invalid_array_state _h =
@@ -188,16 +189,19 @@ let[@inline] size_and_bindings h =
   if size > Array.length bindings then invalid_array_state h;
   size, bindings
 
-let add_binding h binding =
+let add_binding ~key_index h binding =
   let bindings = h.bindings in
   let size = h.size in
   let capacity = Array.length bindings in
-  if size <> capacity then begin
-    if size > capacity then invalid_array_state h;
-    (* we know: size < capacity *)
+  if size < capacity then begin
     Array.unsafe_set bindings size binding;
     h.size <- size + 1;
   end else begin
+    if size > capacity then invalid_array_state h;
+    assert (size = capacity);
+    (* We maintain the invariant that [capacity = 2 * length h.buckets],
+       and we resize [bindings] and [buckets] at the same time. *)
+    assert (capacity = min Sys.max_array_length (2 * Array.length h.buckets));
     h.bindings <- [| |]; (* concurrent operations should fail *)
     let new_capacity = min (capacity * 2) Sys.max_array_length in
     if not (size < new_capacity) then failwith "Hashtbl.add_binding: cannot grow backing array";
@@ -206,6 +210,8 @@ let add_binding h binding =
     h.bindings <- new_bindings;
     Array.unsafe_set new_bindings size binding;
     h.size <- size + 1;
+    resize ~key_index h;
+    assert (new_capacity = min Sys.max_array_length (2 * Array.length h.buckets));
   end
 
 let iter f h =
@@ -410,8 +416,7 @@ module MakeSeeded(H: SeededHashedType): (SeededS with type key = H.t) =
       let i = key_index h key in
       let bucket = Cons {id = h.size; key; next = h.buckets.(i)} in
       h.buckets.(i) <- bucket;
-      add_binding h (Binding {k = key; v = data});
-      if h.size > Array.length h.buckets lsl 1 then resize key_index h
+      add_binding ~key_index h (Binding {k = key; v = data})
 
     let rec remove_bucket h i key prec bucket =
       match bucket with
@@ -517,8 +522,7 @@ module MakeSeeded(H: SeededHashedType): (SeededS with type key = H.t) =
     let replace_bucket h key i l data = function
       | Empty ->
         h.buckets.(i) <- Cons {id = h.size; key; next = l};
-        add_binding h (Binding {k = key; v = data});
-        if h.size > Array.length h.buckets lsl 1 then resize key_index h
+        add_binding ~key_index h (Binding {k = key; v = data});
       | Cons ({id; _} as slot) ->
         slot.key <- key;
         set_binding h id key data
@@ -606,8 +610,7 @@ let add h key data =
   let i = key_index h key in
   let bucket = Cons {id = h.size; key; next=h.buckets.(i)} in
   h.buckets.(i) <- bucket;
-  add_binding h (Binding {k = key; v = data});
-  if h.size > Array.length h.buckets lsl 1 then resize key_index h
+  add_binding ~key_index h (Binding {k = key; v = data})
 
 let rec remove_bucket h i key prec bucket =
   match bucket with
@@ -716,8 +719,7 @@ let replace_bucket h key i l data bucket =
   match bucket with
   | Empty ->
     h.buckets.(i) <- Cons {id = h.size; key; next=l};
-    add_binding h (Binding {k = key; v = data});
-    if h.size > Array.length h.buckets lsl 1 then resize key_index h
+    add_binding ~key_index h (Binding {k = key; v = data});
   | Cons ({id; _} as slot) ->
     slot.key <- key;
     set_binding h id key data
@@ -772,5 +774,5 @@ let rebuild ?(random = Atomic.get randomized) h =
     seed = seed;
     initial_size = if Obj.size (Obj.repr h) >= 4 then h.initial_size else s
   } in
-  insert_all_buckets (key_index h') h.buckets h'.buckets;
+  insert_all_buckets ~key_index h' h.buckets h'.buckets;
   h'
