@@ -4,7 +4,7 @@ make -C .. -j || exit 2
    -o hashtbl_vs_hashtbl2.exe || exit 2
 
 run () {
-    cmd="hyperfine -L impl hashtbl,hashtbl2 \"$params IMPL={impl} \
+    cmd="hyperfine --warmup 10 --runs 20 -L impl hashtbl,hashtbl2 \"$params IMPL={impl} \
       FUNCTION=$bench ./hashtbl_vs_hashtbl2.exe\" \
       --command-name \"$file {impl}\" --export-markdown $file.md"
     echo
