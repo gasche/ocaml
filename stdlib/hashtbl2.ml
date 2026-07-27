@@ -189,29 +189,32 @@ let[@inline] size_and_bindings h =
   if size > Array.length bindings then invalid_array_state h;
   size, bindings
 
-let add_binding ~key_index h binding =
+let add_binding_slow_path ~key_index h ~bindings ~size ~capacity binding =
+  if size > capacity then invalid_array_state h;
+  assert (size = capacity);
+  (* We maintain the invariant that [capacity = 2 * length h.buckets],
+     and we resize [bindings] and [buckets] at the same time. *)
+  assert (capacity = min Sys.max_array_length (2 * Array.length h.buckets));
+  h.bindings <- [| |]; (* concurrent operations should fail *)
+  let new_capacity = min (capacity * 2) Sys.max_array_length in
+  if not (size < new_capacity) then failwith "Hashtbl.add_binding: cannot grow backing array";
+  let new_bindings = Array.make new_capacity Absent in
+  Array.blit bindings 0 new_bindings 0 size;
+  h.bindings <- new_bindings;
+  Array.unsafe_set new_bindings size binding;
+  h.size <- size + 1;
+  resize ~key_index h;
+  assert (new_capacity = min Sys.max_array_length (2 * Array.length h.buckets))
+
+let[@inline] add_binding ~key_index h binding =
   let bindings = h.bindings in
   let size = h.size in
   let capacity = Array.length bindings in
-  if size < capacity then begin
+  if size >= capacity then
+    add_binding_slow_path ~key_index h ~bindings ~size ~capacity binding
+  else begin 
     Array.unsafe_set bindings size binding;
     h.size <- size + 1;
-  end else begin
-    if size > capacity then invalid_array_state h;
-    assert (size = capacity);
-    (* We maintain the invariant that [capacity = 2 * length h.buckets],
-       and we resize [bindings] and [buckets] at the same time. *)
-    assert (capacity = min Sys.max_array_length (2 * Array.length h.buckets));
-    h.bindings <- [| |]; (* concurrent operations should fail *)
-    let new_capacity = min (capacity * 2) Sys.max_array_length in
-    if not (size < new_capacity) then failwith "Hashtbl.add_binding: cannot grow backing array";
-    let new_bindings = Array.make new_capacity Absent in
-    Array.blit bindings 0 new_bindings 0 size;
-    h.bindings <- new_bindings;
-    Array.unsafe_set new_bindings size binding;
-    h.size <- size + 1;
-    resize ~key_index h;
-    assert (new_capacity = min Sys.max_array_length (2 * Array.length h.buckets));
   end
 
 let iter f h =
@@ -607,10 +610,15 @@ let key_index h key =
   else invalid_arg "Hashtbl: unsupported hash table format"
 
 let add h key data =
-  let i = key_index h key in
-  let bucket = Cons {id = h.size; key; next=h.buckets.(i)} in
-  h.buckets.(i) <- bucket;
-  add_binding ~key_index h (Binding {k = key; v = data})
+  let buckets = h.buckets in
+  if Obj.size (Obj.repr h) < 4 then
+    invalid_arg "Hahstbl: unsupported hash table format";
+  let i = seeded_hash_param 10 100 h.seed key land (Array.length buckets - 1) in
+  let bucketlist = Array.unsafe_get buckets i in
+  let bucket = Cons {id = h.size; key; next=bucketlist} in
+  let binding = Binding {k = key; v = data} in
+  Array.unsafe_set buckets i bucket;
+  add_binding ~key_index h binding
 
 let rec remove_bucket h i key prec bucket =
   match bucket with
