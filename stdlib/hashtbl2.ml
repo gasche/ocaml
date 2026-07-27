@@ -172,7 +172,6 @@ let[@inline never] invalid_array_state _h =
 let[@inline] get_data h id =
   match Array.get h.bindings id with
   | Absent ->
-      Printf.printf "invalid index: %d; size: %d\n%!" id h.size;
       invalid_array_state h
   | Binding {k = _; v} -> v
 
