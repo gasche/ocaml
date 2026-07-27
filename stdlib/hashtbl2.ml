@@ -18,24 +18,24 @@
 (* We do dynamic hashing, and resize the table and rehash the elements
    when the load factor becomes too high. *)
 
-type ('a, 'b) binding =
-| Absent
-| Binding of { mutable k: 'a; mutable v: 'b }
-
 type ('a, 'b) t =
-  { mutable size: int;                  (* number of entries *)
-    mutable buckets: 'a bucketlist array;  (* the buckets *)
-    mutable bindings: ('a, 'b) binding array; (* dynamic array of bindings *)
-    (* Invariant: length bindings = (length buckets) * 2 *)
-    seed: int;                          (* for randomization *)
-    initial_size: int;          (* initial array size *)
+  { mutable size: int;                        (* number of entries *)
+    mutable data: ('a, 'b) bucketlist array;  (* the buckets *)
+    seed: int;                                (* for randomization *)
+    initial_size: int;                        (* initial array size *)
+    mutable first: ('a, 'b) bucketlist;
+    mutable last: ('a, 'b) bucketlist;
   }
 
-and 'a bucketlist =
+and ('a, 'b) bucketlist =
     Empty
-  | Cons of { mutable id: int;          (* unique identifier *)
-              mutable key: 'a;
-              mutable next: 'a bucketlist }
+  | Cons of {
+      mutable key: 'a;
+      mutable data: 'b;
+      mutable next: ('a, 'b) bucketlist; (* next element in the current bucket list *)
+      mutable before: ('a, 'b) bucketlist; (* previous element in insertion order *)
+      mutable after: ('a, 'b) bucketlist; (* next element in insertion order *)
+    }
 
 (* To pick random seeds if requested *)
 
@@ -82,207 +82,138 @@ let create ?(random = Atomic.get randomized) initial_size =
   {
     initial_size = s;
     size = 0;
-    seed = seed;
-    buckets = Array.make s Empty;
-    bindings = Array.make (2*s) Absent;
+    seed;
+    data = Array.make s Empty;
+    first = Empty;
+    last = Empty;
   }
 
 let clear h =
   if h.size > 0 then begin
     h.size <- 0;
-    Array.fill h.buckets 0 (Array.length h.buckets) Empty;
-    Array.fill h.bindings 0 (Array.length h.bindings) Absent;
+    Array.fill h.data 0 (Array.length h.data) Empty;
+    h.first <- Empty;
+    h.last <- Empty;
   end
 
 let reset h =
-  if Obj.size (Obj.repr h) < 4 (* compatibility with old hash tables *) then
+  let len = Array.length h.data in
+  if Obj.size (Obj.repr h) < 4 (* compatibility with old hash tables *)
+    || len = abs h.initial_size then
     clear h
   else begin
     h.size <- 0;
-    h.buckets <- Array.make h.initial_size Empty;
-    h.bindings <- Array.make (h.initial_size * 2) Absent;
+    h.data <- Array.make (abs h.initial_size) Empty;
+    h.first <- Empty;
+    h.last <- Empty;
   end
 
-let copy_bucketlist = function
-  | Empty -> Empty
-  | Cons {id; key; next} ->
-      let rec loop prec = function
-        | Empty -> ()
-        | Cons {id; key; next} ->
-            let r = Cons {id; key; next} in
-            begin match prec with
-            | Empty -> assert false
-            | Cons prec -> prec.next <- r
-            end;
-            loop r next
-      in
-      let r = Cons {id; key; next} in
-      loop r next;
-      r
-
-let copy_binding = function
-| Absent -> Absent
-| Binding {k; v} -> Binding {k; v}
-
-let copy h = {
-  initial_size = h.initial_size;
-  size = h.size;
-  seed = h.seed;
-  buckets = Array.map copy_bucketlist h.buckets;
-  bindings = Array.map copy_binding h.bindings;
-}
+let copy ~key_index oh =
+  let ndata = Array.make (Array.length oh.data) Empty in
+  let nh = { oh with data = ndata } in
+  let rec copy_inorder prev = function
+    | Cons {key; data; next = _; before = _; after} ->
+      let idx = key_index nh key in
+      let nbucket = Cons {key; data; next = ndata.(idx); before = prev; after = Empty} in
+      begin match prev with
+      | Empty -> nh.first <- nbucket
+      | Cons cell -> cell.after <- nbucket
+      end;
+      copy_inorder nbucket after
+    | Empty -> nh.last <- prev
+  in
+  copy_inorder Empty oh.first;
+  nh
 
 let length h = h.size
 
-let insert_all_buckets ~key_index h odata ndata =
-  let nsize = Array.length ndata in
-  let ndata_tail = Array.make nsize Empty in
-  let rec insert_bucket = function
+let insert_all_buckets ~key_index h ~ndata =
+  let rec loop = function
     | Empty -> ()
-    | Cons {key; next; _} as cell ->
-        let nidx = key_index h key in
-        begin match ndata_tail.(nidx) with
-        | Empty -> ndata.(nidx) <- cell;
-        | Cons tail -> tail.next <- cell;
-        end;
-        ndata_tail.(nidx) <- cell;
-        insert_bucket next
+    | Cons cell as bucket ->
+      let nidx = key_index h cell.key in
+      cell.next <- ndata.(nidx);
+      ndata.(nidx) <- bucket;
+      loop cell.after
   in
-  for i = 0 to Array.length odata - 1 do
-    insert_bucket odata.(i)
-  done;
-  for i = 0 to nsize - 1 do
-      match ndata_tail.(i) with
-      | Empty -> ()
-      | Cons tail -> tail.next <- Empty
-    done
+  loop h.first
 
 let resize ~key_index h =
-  let odata = h.buckets in
+  let odata = h.data in
   let osize = Array.length odata in
   let nsize = osize * 2 in
   if nsize < Sys.max_array_length then begin
     let ndata = Array.make nsize Empty in
-    h.buckets <- ndata;          (* so that indexfun sees the new bucket count *)
-    insert_all_buckets ~key_index h odata ndata
-  end
-
-let[@inline never] invalid_array_state _h =
-  invalid_arg "Hashtbl: invalid array state due to concurrent access"
-
-let[@inline] get_data h id =
-  match Array.get h.bindings id with
-  | Absent ->
-      invalid_array_state h
-  | Binding {k = _; v} -> v
-
-let[@inline] set_binding h id k v =
-  match Array.get h.bindings id with
-  | Absent -> invalid_array_state h
-  | Binding b ->
-    b.k <- k;
-    b.v <- v
-
-let[@inline] size_and_bindings h =
-  let bindings = h.bindings in
-  let size = h.size in
-  if size > Array.length bindings then invalid_array_state h;
-  size, bindings
-
-let add_binding_slow_path ~key_index h ~bindings ~size ~capacity binding =
-  if size > capacity then invalid_array_state h;
-  assert (size = capacity);
-  (* We maintain the invariant that [capacity = 2 * length h.buckets],
-     and we resize [bindings] and [buckets] at the same time. *)
-  assert (capacity = min Sys.max_array_length (2 * Array.length h.buckets));
-  h.bindings <- [| |]; (* concurrent operations should fail *)
-  let new_capacity = min (capacity * 2) Sys.max_array_length in
-  if not (size < new_capacity) then failwith "Hashtbl.add_binding: cannot grow backing array";
-  let new_bindings = Array.make new_capacity Absent in
-  Array.blit bindings 0 new_bindings 0 size;
-  h.bindings <- new_bindings;
-  Array.unsafe_set new_bindings size binding;
-  h.size <- size + 1;
-  resize ~key_index h;
-  assert (new_capacity = min Sys.max_array_length (2 * Array.length h.buckets))
-
-let[@inline] add_binding ~key_index h binding =
-  let bindings = h.bindings in
-  let size = h.size in
-  let capacity = Array.length bindings in
-  if size >= capacity then
-    add_binding_slow_path ~key_index h ~bindings ~size ~capacity binding
-  else begin 
-    Array.unsafe_set bindings size binding;
-    h.size <- size + 1;
+    h.data <- ndata;          (* so that indexfun sees the new bucket count *)
+    insert_all_buckets ~key_index h ~ndata;
   end
 
 let iter f h =
-  let size, bindings = size_and_bindings h in
-  for i = 0 to size - 1 do
-    match Array.unsafe_get bindings i with
-    | Absent -> ()
-    | Binding {k; v} -> f k v
-  done
+  let rec loop f = function
+    | Empty ->
+      ()
+    | Cons{key; data; after; _} ->
+      f key data; loop f after
+  in
+  loop f h.first
 
-let replace_bucket_id ~key_index h ~key ~prev_id ~new_id =
-  let rec find_bucket = function
-  | Empty -> ()
-  | Cons c ->
-    if c.id = prev_id then c.id <- new_id
-    else find_bucket c.next
-  in find_bucket h.buckets.(key_index h key)
-
-(* removes the bucket containing id *)
-let remove_bucket ~key_index h ~key ~id =
-  let i = key_index h key in
-  let rec find_bucket prec = function
-  | Empty -> ()
-  | (Cons {id = prev; next; _}) as slot ->
-    if prev = id then
-      match prec with
-      | Empty -> h.buckets.(i) <- Empty
-      | Cons c -> c.next <- next
-    else find_bucket slot next
-  in find_bucket Empty h.buckets.(i)
-
-(* function that iterates on ids *)
-
-let filter_map_inplace ~key_index f h =
-  let size, bindings = size_and_bindings h in
-  (* write: the position in which to place filtered elements,
-     which is before their current position if elements have been deleted. *)
-  let write = ref 0 in
-  for read = 0 to size - 1 do
-    match Array.unsafe_get bindings read with
-    | Absent -> invalid_array_state h
-    | Binding ({k = key; v = old_data} as pair) as binding ->
-      match f key old_data with
+let filter_map_inplace f h =
+  (* First we loop on the elements in-order, calling the user-provided
+     function [f]. We update the data, mark some elements for
+     deletion and update the threaded doubly-linked list, but we do
+     not update the [next] pointers. *)
+  let rec trav_inorder nbefore = function
+    | Empty ->
+      begin match nbefore with
+      | Empty -> h.first <- Empty
+      | Cons cell -> cell.after <- Empty
+      end;
+      h.last <- nbefore
+    | Cons ({key; data; after; _} as cell) as bucket ->
+      match f key data with
       | None ->
-        remove_bucket ~key_index h ~key ~id:!write;
-      | Some new_data ->
-        if old_data != new_data then 
-          pair.v <- new_data;
-        if !write <> read then begin
-          Array.unsafe_set bindings !write binding;
-          replace_bucket_id ~key_index h ~key
-            ~prev_id:read ~new_id:!write
+        h.size <- h.size - 1;
+        (* to mark that a bucket was deleted, we put [h.first]
+           in its [after] field, which cannot happen for an input bucket. *)
+        cell.after <- h.first;
+        trav_inorder nbefore after
+      | Some ndata ->
+        cell.data <- ndata;
+        if nbefore != cell.before then begin
+          cell.before <- nbefore;
+          begin match nbefore with
+          | Empty -> h.first <- bucket
+          | Cons cell -> cell.after <- bucket
+          end
         end;
-        incr write;
-    done;
-  h.size <- !write;
-  Array.fill bindings !write (size - !write) Absent;
+        trav_inorder bucket after
+  in
+  (* Second we loop over the bucket lists, updating [next] pointers
+     by skipping deleted elements. *)
+  let fix_bucketlist i buckets =
+    let rec loop prev = function
+      | Empty -> ()
+      | Cons cell as bucket ->
+        if cell.after == h.first then loop prev cell.next
+        else begin
+          begin match prev with
+          | Empty -> h.data.(i) <- bucket
+          | Cons pcell -> pcell.next <- bucket
+          end;
+          loop bucket cell.next
+        end
+    in loop Empty buckets
+  in
+  trav_inorder Empty h.first;
+  Array.iteri fix_bucketlist h.data;
   ()
 
 let fold f h init =
-  let size, bindings = size_and_bindings h in
-  let accu = ref init in
-  for i = 0 to size - 1 do
-    match Array.unsafe_get bindings i with
-    | Absent -> invalid_array_state h
-    | Binding {k; v} -> accu := f k v !accu
-  done;
-  !accu
+  let rec loop f bucket accu =
+    match bucket with
+    | Empty -> accu
+    | Cons {key; data; after; _} -> loop f after (f key data accu)
+  in loop f h.first init
 
 type statistics = {
   num_bindings: int;
@@ -293,34 +224,31 @@ type statistics = {
 
 let rec bucket_length accu = function
   | Empty -> accu
-  | Cons {next} -> bucket_length (accu + 1) next
+  | Cons{next} -> bucket_length (accu + 1) next
 
 let stats h =
   let mbl =
-    Array.fold_left (fun m b -> Int.max m (bucket_length 0 b)) 0 h.buckets in
+    Array.fold_left (fun m b -> Int.max m (bucket_length 0 b)) 0 h.data in
   let histo = Array.make (mbl + 1) 0 in
   Array.iter
     (fun b ->
       let l = bucket_length 0 b in
       histo.(l) <- histo.(l) + 1)
-    h.buckets;
+    h.data;
   { num_bindings = h.size;
-    num_buckets = Array.length h.buckets;
+    num_buckets = Array.length h.data;
     max_bucket_length = mbl;
     bucket_histogram = histo }
 
 (** {1 Iterators} *)
 
-let to_seq tbl =
-  let size, bindings = size_and_bindings tbl in
-  let rec aux bindings ~i ~size () =
-    if i = size then Seq.Nil
-    else
-      match Array.unsafe_get bindings i with
-      | Absent -> aux bindings ~i:(i + 1) ~size ()
-      | Binding {k; v} ->
-          Seq.Cons ((k, v), aux bindings ~i:(i+1) ~size)
-  in aux bindings ~i:0 ~size
+let to_seq h =
+  let rec loop bucket () = match bucket with
+    | Empty ->
+      Seq.Nil
+    | Cons {key; data; after} ->
+      Seq.Cons ((key, data), loop after)
+  in loop h.first
 
 let to_seq_keys m = Seq.map fst (to_seq m)
 
@@ -410,132 +338,142 @@ module MakeSeeded(H: SeededHashedType): (SeededS with type key = H.t) =
     let create = create
     let clear = clear
     let reset = reset
-    let copy = copy
 
     let key_index h key =
-      (H.seeded_hash h.seed key) land (Array.length h.buckets - 1)
+      (H.seeded_hash h.seed key) land (Array.length h.data - 1)
+
+    let copy h = copy ~key_index h
 
     let add h key data =
       let i = key_index h key in
-      let bucket = Cons {id = h.size; key; next = h.buckets.(i)} in
-      h.buckets.(i) <- bucket;
-      add_binding ~key_index h (Binding {k = key; v = data})
+      let bucket =
+        Cons { key; data;
+               next=h.data.(i);
+               before = h.last;
+               after = Empty;
+             } in
+      begin match h.last with
+      | Empty -> h.first <- bucket;
+      | Cons cell -> cell.after <- bucket
+      end;
+      h.last <- bucket;
+      h.data.(i) <- bucket;
+      h.size <- h.size + 1;
+      if h.size > Array.length h.data lsl 1 then resize ~key_index h
 
     let rec remove_bucket h i key prec bucket =
       match bucket with
       | Empty ->
-          Absent
-      | Cons {id; key = k; next} ->
-          if not (H.equal k key)
-          then remove_bucket h i key bucket next
-          else begin
-            let size, bindings = size_and_bindings h in
-            let binding = Array.unsafe_get bindings id in
-            let last = size - 1 in
-            if id <> last then begin
-              (* move the last binding to position [id] *)
-              let last_binding = Array.unsafe_get bindings last in
-              begin match last_binding with
-                | Absent -> invalid_array_state h
-                | Binding {k = last_key; _} ->
-                  replace_bucket_id ~key_index h ~key:last_key
-                    ~prev_id:last ~new_id:id;
-              end;
-              Array.unsafe_set h.bindings id last_binding;
-            end;
-            Array.unsafe_set h.bindings last Absent;
-            h.size <- last;
+          bucket
+      | Cons ({key=k; _} as cell) ->
+          if H.equal k key
+          then begin
+            h.size <- h.size - 1;
             begin match prec with
-            | Empty -> h.buckets.(i) <- next
-            | Cons c -> c.next <- next
+            | Empty -> h.data.(i) <- cell.next
+            | Cons c -> c.next <- cell.next
             end;
-            binding
+            begin match cell.before with
+            | Empty -> h.first <- cell.after
+            | Cons bcell -> bcell.after <- cell.after
+            end;
+            begin match cell.after with
+            | Empty -> h.last <- cell.before
+            | Cons acell -> acell.before <- cell.before
+            end;
+            bucket
           end
+          else remove_bucket h i key bucket cell.next
 
     let find_and_remove h key =
       let i = key_index h key in
-      match remove_bucket h i key Empty h.buckets.(i) with
-      | Absent -> None
-      | Binding {k = _; v} -> Some v
+      let bucket = remove_bucket h i key Empty h.data.(i) in
+      match bucket with
+      | Empty -> None
+      | Cons {data; _} -> Some data
 
     let remove h key =
       let i = key_index h key in
-      ignore (remove_bucket h i key Empty h.buckets.(i))
+      ignore (remove_bucket h i key Empty h.data.(i))
 
-    let rec find_rec h key = function
+    let rec find_rec key = function
       | Empty ->
           raise Not_found
-      | Cons {id; key = k; next} ->
-          if H.equal key k then get_data h id
-          else find_rec h key next
+      | Cons{key=k; data; next} ->
+          if H.equal key k then data else find_rec key next
 
     let find h key =
-      match h.buckets.(key_index h key) with
+      match h.data.(key_index h key) with
       | Empty -> raise Not_found
-      | Cons {id = id1; key = key1; next = next1} ->
-        if H.equal key key1 then get_data h id1
-        else match next1 with
-        | Empty -> raise Not_found
-        | Cons {id = id2; key = key2; next = next2} ->
-          if H.equal key key2 then get_data h id2
-          else match next2 with
+      | Cons{key=k1; data=d1; next=next1} ->
+          if H.equal key k1 then d1 else
+          match next1 with
           | Empty -> raise Not_found
-          | Cons {id = id3; key = key3; next = next3} ->
-            if H.equal key key3 then get_data h id3
-            else find_rec h key next3
+          | Cons{key=k2; data=d2; next=next2} ->
+              if H.equal key k2 then d2 else
+              match next2 with
+              | Empty -> raise Not_found
+              | Cons{key=k3; data=d3; next=next3} ->
+                  if H.equal key k3 then d3 else find_rec key next3
 
-    let rec find_rec_opt h key = function
-    | Empty -> None
-    | Cons {id; key = k; next} ->
-      if H.equal key k then Some (get_data h id)
-      else find_rec_opt h key next
+    let rec find_rec_opt key = function
+      | Empty ->
+          None
+      | Cons{key=k; data; next} ->
+          if H.equal key k then Some data else find_rec_opt key next
 
     let find_opt h key =
-      match h.buckets.(key_index h key) with
+      match h.data.(key_index h key) with
       | Empty -> None
-      | Cons {id = id1; key = key1; next = next1} ->
-          if H.equal key key1 then Some (get_data h id1)
-          else match next1 with
+      | Cons{key=k1; data=d1; next=next1} ->
+          if H.equal key k1 then Some d1 else
+          match next1 with
           | Empty -> None
-          | Cons {id = id2; key = key2; next = next2} ->
-              if H.equal key key2 then Some (get_data h id2)
-              else match next2 with
+          | Cons{key=k2; data=d2; next=next2} ->
+              if H.equal key k2 then Some d2 else
+              match next2 with
               | Empty -> None
-              | Cons {id = id3; key = key3; next = next3} ->
-                  if H.equal key key3 then Some (get_data h id3)
-                  else find_rec_opt h key next3
+              | Cons{key=k3; data=d3; next=next3} ->
+                  if H.equal key k3 then Some d3 else find_rec_opt key next3
 
     let find_all h key =
       let[@tail_mod_cons] rec find_in_bucket = function
       | Empty ->
           []
-      | Cons {id; key = k; next} ->
-          if H.equal k key then get_data h id :: find_in_bucket next
+      | Cons{key=k; data=d; next} ->
+          if H.equal k key
+          then d :: find_in_bucket next
           else find_in_bucket next in
-      find_in_bucket h.buckets.(key_index h key)
+      find_in_bucket h.data.(key_index h key)
 
-    let rec retrieve_bucket h key bucket =
+    let rec retrieve_bucket key bucket =
       match bucket with
       | Empty ->
           bucket
-      | Cons {key = k; next; _} ->
-          if H.equal k key then bucket
-          else retrieve_bucket h key next
+      | Cons {key=k; next} ->
+          if H.equal k key
+          then bucket
+          else retrieve_bucket key next
 
     let replace_bucket h key i l data = function
       | Empty ->
-        h.buckets.(i) <- Cons {id = h.size; key; next = l};
-        add_binding ~key_index h (Binding {k = key; v = data});
-      | Cons ({id; _} as slot) ->
-        slot.key <- key;
-        set_binding h id key data
+        let last = Cons {key; data; next=l; before = h.last; after = Empty} in
+        begin match h.last with
+        | Empty -> h.first <- last
+        | Cons cell -> cell.after <- last
+        end;
+        h.last <- last;
+        h.data.(i) <- last;
+        h.size <- h.size + 1;
+        if h.size > Array.length h.data lsl 1 then resize ~key_index h
+      | Cons slot -> slot.key <- key; slot.data <- data
 
     let find_and_replace h key data =
       let i = key_index h key in
-      let l = h.buckets.(i) in
-      let bucket = retrieve_bucket h key l in
+      let l = h.data.(i) in
+      let bucket = retrieve_bucket key l in
       let old_data = match bucket with
-        | Cons {id; _} -> Some (get_data h id)
+        | Cons {data; _} -> Some data
         | Empty -> None
       in
       replace_bucket h key i l data bucket;
@@ -543,20 +481,20 @@ module MakeSeeded(H: SeededHashedType): (SeededS with type key = H.t) =
 
     let replace h key data =
       let i = key_index h key in
-      let l = h.buckets.(i) in
-      let bucket = retrieve_bucket h key l in
+      let l = h.data.(i) in
+      let bucket = retrieve_bucket key l in
       replace_bucket h key i l data bucket
 
     (* Iterators *)
 
-    let rec mem_in_bucket h key = function
+    let rec mem_in_bucket key = function
       | Empty ->
           false
-      | Cons {key = k; next; _} ->
-          H.equal k key || mem_in_bucket h key next
+      | Cons{key=k; next} ->
+          H.equal k key || mem_in_bucket key next
 
     let mem h key =
-      mem_in_bucket h key h.buckets.(key_index h key)
+      mem_in_bucket key h.data.(key_index h key)
 
     let add_seq tbl i =
       Seq.iter (fun (k,v) -> add tbl k v) i
@@ -570,7 +508,7 @@ module MakeSeeded(H: SeededHashedType): (SeededS with type key = H.t) =
       tbl
 
     let iter = iter
-    let filter_map_inplace f h = filter_map_inplace ~key_index f h
+    let filter_map_inplace = filter_map_inplace
     let fold = fold
     let length = length
     let stats = stats
@@ -606,157 +544,162 @@ let seeded_hash seed x = seeded_hash_param 10 100 seed x
 
 let key_index h key =
   if Obj.size (Obj.repr h) >= 4
-  then (seeded_hash_param 10 100 h.seed key) land (Array.length h.buckets - 1)
+  then (seeded_hash_param 10 100 h.seed key) land (Array.length h.data - 1)
   else invalid_arg "Hashtbl: unsupported hash table format"
 
+let copy h = copy ~key_index h
+
 let add h key data =
-  let buckets = h.buckets in
-  if Obj.size (Obj.repr h) < 4 then
-    invalid_arg "Hahstbl: unsupported hash table format";
-  let i = seeded_hash_param 10 100 h.seed key land (Array.length buckets - 1) in
-  let bucketlist = Array.unsafe_get buckets i in
-  let bucket = Cons {id = h.size; key; next=bucketlist} in
-  let binding = Binding {k = key; v = data} in
-  Array.unsafe_set buckets i bucket;
-  add_binding ~key_index h binding
+  let i = key_index h key in
+  let bucket =
+    Cons {
+      key; data;
+      next=h.data.(i);
+      before = h.last;
+      after = Empty;
+    } in
+  begin match h.last with
+  | Empty -> h.first <- bucket;
+  | Cons cell -> cell.after <- bucket
+  end;
+  h.last <- bucket;
+  h.data.(i) <- bucket;
+  h.size <- h.size + 1;
+  if h.size > Array.length h.data lsl 1 then resize ~key_index h
 
 let rec remove_bucket h i key prec bucket =
   match bucket with
   | Empty ->
-      Absent
-  | Cons {id; key = k; next} ->
-      if compare k key <> 0
-      then remove_bucket h i key bucket next
-      else begin
-        let size, bindings = size_and_bindings h in
-        let binding = Array.unsafe_get bindings id in
-        let last = size - 1 in
-        if id <> last then begin
-          (* move the last binding to position [id] *)
-          let last_binding = Array.unsafe_get bindings last in
-          begin match last_binding with
-            | Absent -> invalid_array_state h
-            | Binding {k = last_key; _} ->
-              replace_bucket_id ~key_index h ~key:last_key
-                ~prev_id:last ~new_id:id;
-          end;
-          Array.unsafe_set h.bindings id last_binding;
-        end;
-        Array.unsafe_set h.bindings last Absent;
-        h.size <- last;
+      bucket
+  | Cons ({key=k; next; _} as cell) ->
+      if compare k key = 0
+      then begin
+        h.size <- h.size - 1;
         begin match prec with
-        | Empty -> h.buckets.(i) <- next
+        | Empty -> h.data.(i) <- next
         | Cons c -> c.next <- next
         end;
-        binding
+        begin match cell.before with
+        | Empty -> h.first <- cell.after
+        | Cons bcell -> bcell.after <- cell.after
+        end;
+        begin match cell.after with
+        | Empty -> h.last <- cell.before
+        | Cons acell -> acell.before <- cell.before
+        end;
+        bucket
       end
+      else remove_bucket h i key bucket next
 
 let find_and_remove h key =
   let i = key_index h key in
-  match remove_bucket h i key Empty h.buckets.(i) with
-  | Absent -> None
-  | Binding {k = _; v} -> Some v
+  let bucket = remove_bucket h i key Empty h.data.(i) in
+  match bucket with
+  | Empty -> None
+  | Cons {data; _} -> Some data
 
 let remove h key =
   let i = key_index h key in
-  ignore (remove_bucket h i key Empty h.buckets.(i))
+  ignore (remove_bucket h i key Empty h.data.(i))
 
-let filter_map_inplace f h = filter_map_inplace ~key_index f h
-
-let rec find_rec h key = function
+let rec find_rec key = function
   | Empty ->
       raise Not_found
-  | Cons {id; key = k; next} ->
-      if compare key k = 0 then get_data h id
-      else find_rec h key next
+  | Cons{key=k; data; next} ->
+      if compare key k = 0 then data else find_rec key next
 
 let find h key =
-  match h.buckets.(key_index h key) with
+  match h.data.(key_index h key) with
   | Empty -> raise Not_found
-  | Cons {id = id1; key = key1; next = next1} ->
-      if compare key key1 = 0 then get_data h id1
-      else match next1 with
+  | Cons{key=k1; data=d1; next=next1} ->
+      if compare key k1 = 0 then d1 else
+      match next1 with
       | Empty -> raise Not_found
-      | Cons {id = id2; key = key2; next = next2} ->
-          if compare key key2 = 0 then get_data h id2
-          else match next2 with
+      | Cons{key=k2; data=d2; next=next2} ->
+          if compare key k2 = 0 then d2 else
+          match next2 with
           | Empty -> raise Not_found
-          | Cons {id = id3; key = key3; next = next3} ->
-              if compare key key3 = 0 then get_data h id3
-              else find_rec h key next3
+          | Cons{key=k3; data=d3; next=next3} ->
+              if compare key k3 = 0 then d3 else find_rec key next3
 
-let rec find_rec_opt h key = function
-| Empty -> None
-| Cons {id; key = k; next} ->
-  if compare key k = 0 then Some (get_data h id)
-  else find_rec_opt h key next
+let rec find_rec_opt key = function
+  | Empty ->
+      None
+  | Cons{key=k; data; next} ->
+      if compare key k = 0 then Some data else find_rec_opt key next
 
 let find_opt h key =
-  match h.buckets.(key_index h key) with
+  match h.data.(key_index h key) with
   | Empty -> None
-  | Cons {id = id1; key = key1; next = next1} ->
-      if compare key key1 = 0 then Some (get_data h id1)
-      else match next1 with
+  | Cons{key=k1; data=d1; next=next1} ->
+      if compare key k1 = 0 then Some d1 else
+      match next1 with
       | Empty -> None
-      | Cons {id = id2; key = key2; next = next2} ->
-          if compare key key2 = 0 then Some (get_data h id2)
-          else match next2 with
+      | Cons{key=k2; data=d2; next=next2} ->
+          if compare key k2 = 0 then Some d2 else
+          match next2 with
           | Empty -> None
-          | Cons {id = id3; key = key3; next = next3} ->
-              if compare key key3 = 0 then Some (get_data h id3)
-              else find_rec_opt h key next3
+          | Cons{key=k3; data=d3; next=next3} ->
+              if compare key k3 = 0 then Some d3 else find_rec_opt key next3
 
 let find_all h key =
   let[@tail_mod_cons] rec find_in_bucket = function
   | Empty ->
       []
-  | Cons {id; key = k; next} ->
-      if compare k key = 0 then get_data h id :: find_in_bucket next
+  | Cons{key=k; data; next} ->
+      if compare k key = 0
+      then data :: find_in_bucket next
       else find_in_bucket next in
-  find_in_bucket h.buckets.(key_index h key)
+  find_in_bucket h.data.(key_index h key)
 
-let rec retrieve_bucket h key bucket =
+let rec retrieve_bucket key bucket =
   match bucket with
   | Empty ->
       bucket
-  | Cons {key = k; next; _} ->
-      if compare k key = 0 then bucket
-      else retrieve_bucket h key next
+  | Cons {key=k; next} ->
+      if compare k key = 0
+      then bucket
+      else retrieve_bucket key next
 
 let replace_bucket h key i l data bucket =
   match bucket with
   | Empty ->
-    h.buckets.(i) <- Cons {id = h.size; key; next=l};
-    add_binding ~key_index h (Binding {k = key; v = data});
-  | Cons ({id; _} as slot) ->
-    slot.key <- key;
-    set_binding h id key data
+    let bucket = Cons {key; data; next=l; before = h.last; after = Empty} in
+    begin match h.last with
+    | Empty -> h.first <- bucket
+    | Cons cell -> cell.after <- bucket
+    end;
+    h.last <- bucket;
+    h.data.(i) <- bucket;
+    h.size <- h.size + 1;
+    if h.size > Array.length h.data lsl 1 then resize ~key_index h
+  | Cons (_ as slot) -> slot.key <- key; slot.data <- data
 
 let find_and_replace h key data =
   let i = key_index h key in
-  let l = h.buckets.(i) in
-  let bucket = retrieve_bucket h key l in
+  let l = h.data.(i) in
+  let bucket = retrieve_bucket key l in
   let old_data = match bucket with
+    | Cons {data; _} -> Some data
     | Empty -> None
-    | Cons {id; _} -> Some (get_data h id)
   in
   replace_bucket h key i l data bucket;
   old_data
 
 let replace h key data =
   let i = key_index h key in
-  let l = h.buckets.(i) in
-  let bucket = retrieve_bucket h key l in
+  let l = h.data.(i) in
+  let bucket = retrieve_bucket key l in
   replace_bucket h key i l data bucket
 
-let rec mem_in_bucket h key = function
+let rec mem_in_bucket key = function
   | Empty ->
       false
-  | Cons {key = k; next; _} ->
-      compare k key = 0 || mem_in_bucket h key next
+  | Cons{key=k; next} ->
+      compare k key = 0 || mem_in_bucket key next
 
 let mem h key =
-  mem_in_bucket h key h.buckets.(key_index h key)
+  mem_in_bucket key h.data.(key_index h key)
 
 let add_seq tbl i =
   Seq.iter (fun (k,v) -> add tbl k v) i
@@ -770,17 +713,20 @@ let of_seq i =
   tbl
 
 let rebuild ?(random = Atomic.get randomized) h =
-  let s = power_2_above 16 (Array.length h.buckets) in
+  let s = power_2_above 16 (Array.length h.data) in
   let seed =
     if random then Random.State.bits (Domain.DLS.get prng_key)
     else if Obj.size (Obj.repr h) >= 4 then h.seed
     else 0 in
   let h' = {
     size = h.size;
-    buckets = Array.make s Empty;
-    bindings = Array.make s Absent;
+    data = Array.make s Empty;
     seed = seed;
-    initial_size = if Obj.size (Obj.repr h) >= 4 then h.initial_size else s
+    initial_size = if Obj.size (Obj.repr h) >= 4 then h.initial_size else s;
+    first = Empty;
+    last = Empty;
   } in
-  insert_all_buckets ~key_index h' h.buckets h'.buckets;
-  h'
+  ignore h';
+  failwith "Hashtbl.rebuild: TODO";
+  (* insert_all_buckets_copy ~key_index h' h.data h'.data; *)
+  (* h' *)
