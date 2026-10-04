@@ -3494,6 +3494,9 @@ let combine_regular_constructor loc arg pat_env cstr partial ctx def
           not !Clflags.native_code
           && high > Obj.last_non_constant_constructor_tag
         in
+        (* TODO: the primitive [prim_obj_tag] generates rather slow code,
+           some more specialized logic here would accelerate matches
+           with unboxed constructors with non-dense tags. *)
         let compile_nonconsts ~fail_opt ?(low = 0) ?(high = 255) blocks =
           if high_nonconst_must_call_switcher high then
             call_switcher loc fail_opt
