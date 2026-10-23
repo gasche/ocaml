@@ -14,7 +14,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-type t = Head_shape_types.t
+type t = Head_shape_types.shape
 
 (** Returns the head shape information of type path *)
 val of_type_path : Env.t -> Path.t -> t

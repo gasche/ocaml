@@ -28,6 +28,10 @@
 type imm = Imm of int [@@unboxed]
 type tag = Tag of int [@@unboxed]
 
+type head =
+  | Immediate of imm
+  | Block of tag
+
 module ImmSet : Set.S with type elt = imm
 module TagSet : Set.S with type elt = tag
 
@@ -41,7 +45,38 @@ type 'a or_any = 'a Or_any.t = Those of 'a | Any
 type imm_set = ImmSet.t or_any
 type block_set = TagSet.t or_any
 
-type t = {
+type shape = {
   imms: imm_set; (* set of immediates the head can be *)
   blocks: block_set; (* set of block shapes the head can be *)
 }
+
+module Shape : sig
+  type t = shape
+  val empty : t
+  val any : t
+
+  val mem : head -> shape -> bool
+
+  val union : t -> t -> t
+  val inter : t -> t -> t
+  val is_empty : t -> bool
+  val is_any : t -> bool
+  val subset : t -> t -> bool
+
+  val any_immediate : t
+  val imm : imm list -> t
+  val block : tag list -> t
+  val float : t
+  val string : t
+  val tuple : t
+  val array : t
+  val floatarray : t
+  val \#function : t
+  val \#object : t
+  val \#lazy : t -> t
+  val continuation : t
+  val extensible_variant : t
+  val polymorphic_variant : has_consts:bool -> has_nonconsts:bool -> t
+  val abstract : t
+  val custom : t
+end

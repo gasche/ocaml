@@ -18,39 +18,7 @@ open Types
 open Data_types
 open Head_shape_types
 
-type t = Head_shape_types.t
-
-let any =
-  {
-    imms = Any;
-    blocks = Any;
-  }
-
-let any_immediate =
-  {
-    imms = Any;
-    blocks = Those TagSet.empty;
-  }
-
-let empty =
-  {
-    imms = Those ImmSet.empty;
-    blocks = Those TagSet.empty;
-  }
-
-let union sh1 sh2 =
-  let imms = Or_any.mon_map2 ImmSet.union sh1.imms sh2.imms in
-  let blocks = Or_any.mon_map2 TagSet.union sh1.blocks sh2.blocks in
-  { imms; blocks; }
-
-let imm_list li = Or_any.Those (ImmSet.of_list li)
-
-let tag_list tags : block_set = Or_any.Those (TagSet.of_list tags)
-
-let imm_shape imms =
-  { empty with imms = imm_list imms }
-let block_shape tags =
-  { empty with blocks = tag_list tags }
+type t = shape
 
 let rec of_type_expr env ty fuel =
   match Types.get_desc ty with
@@ -59,7 +27,7 @@ let rec of_type_expr env ty fuel =
          (including type parameters) should get [any], but GADT
          variables that are existentially quantified should get
          [poison] instead -- they are not separated. *)
-      any
+      Shape.any
   | Tconstr (p, args, _abbrev) ->
       (* Both [of_predef_abstract_type] and [of_typedescr] may loop over
          infinite types or recursive expansions; decrease fuel now. *)
@@ -75,19 +43,38 @@ let rec of_type_expr env ty fuel =
       | exception Not_found ->
           of_unknown_type env p args
       end
-  | Ttuple _ ->
-      block_shape [Tag 0]
+  | Ttuple _li ->
+      Shape.tuple
   | Tarrow _ ->
-      block_shape [Tag Obj.closure_tag; Tag Obj.infix_tag]
+      Shape.\#function
   | Tpackage _ ->
-      block_shape [Tag 0]
+      Shape.tuple
   | Tobject _ ->
-      (* TODO refine someday *)
-      any
-  | Tvariant _ ->
-      (* constant polymorphic variants are immediates,
-         non-constant variants have tag 0 *)
-      union any_immediate (block_shape [Tag 0])
+      Shape.\#object
+  | Tvariant row ->
+      let has_consts, has_nonconsts =
+        if not (Types.row_closed row) then true, true
+        else begin
+          (* Note: for closed polymorphic variants, we could refine
+             our shape by listing specific immediates for constant
+             constructors (the hashes of the name). This would allow
+             merging two unboxed constructors containing disjoint
+             constant polymorphic variants. *)
+          let consts = ref false in
+          let nonconsts = ref false in
+          let notify (_label, row_field) =
+            match Types.row_field_repr row_field with
+            | Types.Rpresent None -> consts := true
+            | Types.Rpresent (Some _) -> nonconsts := true
+            | Types.Rabsent -> ()
+            | Types.Reither (is_const, _, _) ->
+                (if is_const then consts else nonconsts) := true
+          in
+          List.iter notify (Types.row_fields row);
+          !consts, !nonconsts
+        end
+      in
+      Shape.polymorphic_variant ~has_consts ~has_nonconsts
   | Tpoly (ty, _vars) ->
       of_type_expr env ty fuel
   | Tlink _ | Tsubst _ | Tfield _ | Tnil ->
@@ -100,29 +87,22 @@ and of_unknown_type env p args =
      (It may be a projection into this parameter.)
      This corresponds to the DeepSep case of the separability analysis. *)
   ignore (env, p, args);
-  any
+  Shape.any
 
 and of_predef_abstract_type env tconstr args fuel =
   match tconstr with
-  | `Int | `Char -> any_immediate
-  | `Array ->
-      block_shape
-        ([Tag 0]
-         @ if Config.flat_float_array
-           then [Tag Obj.double_array_tag]
-           else [])
-  | `Float ->
-      block_shape [Tag Obj.double_tag]
-  | `Floatarray ->
-      block_shape [Tag Obj.double_array_tag]
+  | `Int | `Char -> Shape.any_immediate
+  | `Array -> Shape.array
+  | `Float -> Shape.float
+  | `Floatarray -> Shape.floatarray
   | `Nativeint | `Int32 | `Int64 ->
-      block_shape [Tag Obj.custom_tag]
+      Shape.custom
   | `String | `Bytes ->
-      block_shape [Tag Obj.string_tag]
+      Shape.string
   | `Continuation ->
-      block_shape [Tag Obj.cont_tag]
+      Shape.continuation
   | `Extension_constructor ->
-      block_shape [Tag Obj.object_tag]
+      Shape.block [Tag Obj.object_tag]
   | `Lazy_t ->
       (* Once lazy values are forced, their Forward_tag block can be
          'cut short', and then they are represented exactly like the
@@ -132,9 +112,7 @@ and of_predef_abstract_type env tconstr args fuel =
          underlying type can itself have lazy tags, shortcutting will
          be disabled by a runtime check.  *)
       let ty = match args with [ty] -> ty | _ -> assert false in
-      union
-        (block_shape [Tag Obj.lazy_tag; Tag Obj.forcing_tag; Tag Obj.forward_tag])
-        (of_type_expr env ty fuel)
+      Shape.\#lazy (of_type_expr env ty fuel)
 
 and of_typedescr env p ty_descr ty_decl ~args fuel =
   let of_type_expr_with_params ty =
@@ -145,10 +123,10 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
     of_type_expr env ty fuel
   in
   match ty_descr with
-  | Type_record (_, Record_regular) ->
-      block_shape [Tag 0]
-  | Type_record (_, Record_float) ->
-      block_shape [Tag Obj.double_array_tag]
+  | Type_record (_lbls, Record_regular) ->
+      Shape.tuple
+  | Type_record (_lbls, Record_float) ->
+      Shape.floatarray
   | Type_record (fields, Record_unboxed _) ->
       (* an [@@unboxed] record must have exactly one field *)
       begin match fields with
@@ -156,14 +134,14 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
       | _ -> assert false
       end
   | Type_record (_lbls, Record_inlined tag) ->
-      block_shape [Tag tag]
+      Shape.block [Tag tag]
   | Type_record (_lbls, Record_extension _) ->
-      (* non-constant extension constructors have tag 0 *)
-      block_shape [Tag 0]
+      (* non-constant extension constructors have tag 0,
+         and one additional argument storing the
+         extension constructor dynamic value. *)
+      Shape.block [Tag 0]
   | Type_open ->
-      (* constant constructors have tag Obj.object_tag,
-         non-constant constructors have tag 0 *)
-      block_shape [Tag 0; Tag Obj.object_tag]
+      Shape.extensible_variant
   | Type_variant (cstrs, Variant_unboxed) ->
       (* an [@@unboxed] variant must have exactly one constructor
          with one parameter *)
@@ -174,25 +152,24 @@ and of_typedescr env p ty_descr ty_decl ~args fuel =
   | Type_variant (cstr_descrs, Variant_regular) ->
       let of_cstr_descr descr = of_regular_cstr_description env descr fuel in
       List.map of_cstr_descr cstr_descrs
-      |> List.fold_left union empty
+      |> List.fold_left Shape.union Shape.empty
   | Type_abstract _ ->
       match ty_decl.type_manifest with
       | Some ty -> of_type_expr_with_params ty
       | None ->
-          match ty_decl.type_immediate with
-          | Always -> any_immediate
-          | Always_on_64bits ->
-              (* TODO maybe refine? *)
-              any
-          | Unknown ->
-              of_unknown_type env p args
+      match ty_decl.type_immediate with
+      | Always -> Shape.any_immediate
+      | Always_on_64bits ->
+        (* TODO maybe refine? *)
+        Shape.any
+      | Unknown ->
+        of_unknown_type env p args
 
 and of_regular_cstr_description env descr fuel =
   ignore (env, fuel);
   match descr.cstr_tag with
-  | Cstr_constant n -> imm_shape [Imm n]
-  | Cstr_block tag ->
-      block_shape [Tag tag]
+  | Cstr_constant n -> Shape.imm [Imm n]
+  | Cstr_block tag -> Shape.block [Tag tag]
   | Cstr_unboxed | Cstr_extension _ ->
       (* cannot occur in regular variants *)
       assert false
